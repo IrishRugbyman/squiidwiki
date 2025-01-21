@@ -94,8 +94,32 @@ def read_set(request: Request, set_id: int):
 
         cursor.execute("SELECT * FROM members WHERE set_id = ?", (set_id,))
         members = cursor.fetchall()
-        return templates.TemplateResponse("sets/set_details.html", {"request": request, "set": set, "members": members})
+
+        # Get allies for the set
+        cursor.execute("""
+            SELECT sets.name, sets.id FROM sets
+            JOIN set_allies_map ON sets.id = set_allies_map.ally_id
+            WHERE set_allies_map.set_id = ?
+        """, (set_id,))
+        allies = cursor.fetchall()
+
+        # Get enemies for the set
+        cursor.execute("""
+            SELECT sets.name, sets.id FROM sets
+            JOIN set_enemies_map ON sets.id = set_enemies_map.enemy_id
+            WHERE set_enemies_map.set_id = ?
+        """, (set_id,))
+        enemies = cursor.fetchall()
+
+        return templates.TemplateResponse("sets/set_details.html", {
+            "request": request,
+            "set": set,
+            "members": members,
+            "allies": allies,
+            "enemies": enemies
+        })
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
     finally:
         conn.close()
+

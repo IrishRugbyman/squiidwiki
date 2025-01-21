@@ -5,8 +5,27 @@
 
 <p>{{ set[2] }}</p>
 
-<p><strong>Allies:</strong> {{ set[3] }}</p>
-<p><strong>Enemies:</strong> {{ set[4] }}</p>
+<h3>Allies:</h3>
+{% if allies %}
+    <ul>
+    {% for ally in allies %}
+        <li><a href="/sets/{{ ally[1] }}">{{ ally[0] }}</a></li>  <!-- Use ally[1] for the set ID -->
+    {% endfor %}
+    </ul>
+{% else %}
+    <p>Couldn't find any allies.</p>
+{% endif %}
+
+<h3>Enemies:</h3>
+{% if enemies %}
+    <ul>
+    {% for enemy in enemies %}
+        <li><a href="/sets/{{ enemy[1] }}">{{ enemy[0] }}</a></li>  <!-- Use enemy[1] for the set ID -->
+    {% endfor %}
+    </ul>
+{% else %}
+    <p>Couldn't find any enemies.</p>
+{% endif %}
 
 <h3>Members</h3>
 <ul>
