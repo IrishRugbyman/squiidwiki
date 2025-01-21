@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h2>Alliances</h2>
+<ul>
+    {% for alliance in alliances %}
+    <li><a href="/alliances/{{ alliance[0] }}">{{ alliance[1] }}</a></li>
+    {% endfor %}
+</ul>
+<a href="/alliances/add">Add an Alliance</a>
+{% endblock %}

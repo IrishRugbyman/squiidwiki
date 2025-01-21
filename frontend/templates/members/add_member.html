@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h2>Add a Member to set</h2>
+<form method="POST">
+    <label for="name">Name:</label>
+    <input type="text" id="name" name="name" required>
+    <br>
+
+    <label for="status">Status:</label>
+    <select id="status" name="status" required onchange="toggleFields()">
+        <option value="free">Free</option>
+        <option value="locked up">Locked Up</option>
+        <option value="deceased">Deceased</option>
+    </select>
+    <br>
+
+    <div id="release_date_field" style="display: none;">
+        <label for="release_date">Release Date:</label>
+        <input type="date" id="release_date" name="release_date">
+        <br>
+    </div>
+
+    <div id="date_of_death_field" style="display: none;">
+        <label for="date_of_death">Date of Death:</label>
+        <input type="date" id="date_of_death" name="date_of_death">
+        <br>
+    </div>
+
+    <button type="submit">Add Member</button>
+</form>
+
+<script>
+    function toggleFields() {
+        const status = document.getElementById("status").value;
+        const releaseDateField = document.getElementById("release_date_field");
+        const dateOfDeathField = document.getElementById("date_of_death_field");
+
+        if (status === "locked up") {
+            releaseDateField.style.display = "block";
+            dateOfDeathField.style.display = "none";
+        } else if (status === "deceased") {
+            releaseDateField.style.display = "none";
+            dateOfDeathField.style.display = "block";
+        } else {
+            releaseDateField.style.display = "none";
+            dateOfDeathField.style.display = "none";
+        }
+    }
+</script>
+{% endblock %}

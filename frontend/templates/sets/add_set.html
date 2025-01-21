@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Add a Set</title>
+    <!-- Include Tagify CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/@yaireo/tagify/dist/tagify.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+    <h1>Add a New Set</h1>
+    <form method="post" action="/sets/add">
+        <label for="name">Set Name:</label>
+        <input type="text" id="name" name="name" required>
+
+        <label for="description">Description:</label>
+        <textarea id="description" name="description"></textarea>
+
+        <label for="allies">Allies:</label>
+        <input id="allies" name="allies" placeholder="Add allies">
+
+        <label for="enemies">Enemies:</label>
+        <input id="enemies" name="enemies" placeholder="Add enemies">
+
+        <button type="submit">Add Set</button>
+    </form>
+
+    <!-- Include Tagify JS -->
+    <script src="https://cdn.jsdelivr.net/npm/@yaireo/tagify"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@yaireo/tagify/dist/tagify.polyfills.min.js"></script>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+        // Initialize Tagify for allies input
+        var alliesInput = document.getElementById('allies');
+        var tagifyAllies = new Tagify(alliesInput, {
+            whitelist: [], // Initially empty, will be populated via fetch
+            dropdown: {
+                enabled: 1, // Show suggestions dropdown
+                maxItems: 5, // Limit the number of displayed suggestions
+                highlightFirst: true // Automatically highlight the first suggestion
+            }
+        });
+
+        // Initialize Tagify for enemies input
+        var enemiesInput = document.getElementById('enemies');
+        var tagifyEnemies = new Tagify(enemiesInput, {
+            whitelist: [], // Initially empty, will be populated via fetch
+            dropdown: {
+                enabled: 1, // Show suggestions dropdown
+                maxItems: 5, // Limit the number of displayed suggestions
+                highlightFirst: true // Automatically highlight the first suggestion
+            }
+        });
+
+        // Function to fetch and populate the whitelist
+        function populateWhitelist(tagifyInstance, url) {
+            fetch(url, {
+                method: "GET",
+                headers: { "Content-Type": "application/json" },
+            })
+                .then(function (response) {
+                    if (!response.ok) {
+                        throw new Error("HTTP error! status: " + response.status);
+                    }
+                    return response.json();
+                })
+                .then(function (data) {
+                    console.log("Fetched data:", data); // Debugging: Log fetched data
+
+                    // Transform the data into the format Tagify expects
+                    var whitelist = data.map(function (item) {
+                        return item.name; // Assuming the backend returns objects with 'name' property
+                    });
+
+                    // Update the whitelist
+                    tagifyInstance.settings.whitelist = whitelist;
+
+                    // Refresh the dropdown
+                    tagifyInstance.dropdown.show.call(tagifyInstance); // Show dropdown with updated whitelist
+                })
+                .catch(function (error) {
+                    console.error("Error fetching whitelist data:", error);
+                });
+        }
+
+        // Populate whitelist for allies and enemies
+        populateWhitelist(tagifyAllies, "/sets/set_options");
+        populateWhitelist(tagifyEnemies, "/sets/set_options");
+    });
+
+    </script>
+</body>
+<style>
+    /* Adjust the size of the Tagify input fields */
+    .tagify {
+        width: 100%;
+        max-width: 300px;
+    }
+</style>
+</html>

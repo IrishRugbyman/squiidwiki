@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h2>Sets</h2>
+<ul>
+    {% for set in sets|sort(attribute=1) %}
+    <li><a href="/sets/{{ set[0] }}">{{ set[1] }}</a></li>
+    {% endfor %}
+</ul>
+<a href="/sets/add">Add a Set</a>
+{% endblock %}

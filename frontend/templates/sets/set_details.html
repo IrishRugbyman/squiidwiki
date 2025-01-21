@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h2>{{ set[1] }}</h2>
+
+<p>{{ set[2] }}</p>
+
+<p><strong>Allies:</strong> {{ set[3] }}</p>
+<p><strong>Enemies:</strong> {{ set[4] }}</p>
+
+<h3>Members</h3>
+<ul>
+    {% for member in members %}
+    <li>
+        <a href="/members/{{ member[0] }}">{{ member[1] }}</a> -
+        {% if member[2] == "locked up" %}
+            🔒
+        {% elif member[2] == "deceased" %}
+            💀
+        {% else %}
+            🟢
+        {% endif %}
+    </li>
+    {% endfor %}
+</ul>
+<a href="/members/add/{{ set[0] }}">Add a Member</a>
+{% endblock %}

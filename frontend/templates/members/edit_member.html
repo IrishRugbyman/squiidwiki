@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h2>Edit Member</h2>
+<form method="POST">
+    <label for="name">Name:</label>
+    <input type="text" id="name" name="name" value="{{ member[1] }}" required>
+    <br>
+
+    <label for="status">Status:</label>
+    <select id="status" name="status" required onchange="toggleFields()">
+        <option value="free" {% if member[2] == "free" %}selected{% endif %}>Free</option>
+        <option value="locked up" {% if member[2] == "locked up" %}selected{% endif %}>Locked Up</option>
+        <option value="deceased" {% if member[2] == "deceased" %}selected{% endif %}>Deceased</option>
+    </select>
+    <br>
+
+    <div id="release_date_field" style="display: {% if member[2] == 'locked up' %}block{% else %}none{% endif %};">
+        <label for="release_date">Release Date:</label>
+        <input type="date" id="release_date" name="release_date" value="{{ member[3] or '' }}">
+        <br>
+    </div>
+
+    <div id="date_of_death_field" style="display: {% if member[2] == 'deceased' %}block{% else %}none{% endif %};">
+        <label for="date_of_death">Date of Death:</label>
+        <input type="date" id="date_of_death" name="date_of_death" value="{{ member[4] or '' }}">
+        <br>
+    </div>
+
+    <button type="submit">Save Changes</button>
+</form>
+
+<script>
+    function toggleFields() {
+        const status = document.getElementById("status").value;
+        const releaseDateField = document.getElementById("release_date_field");
+        const dateOfDeathField = document.getElementById("date_of_death_field");
+
+        if (status === "locked up") {
+            releaseDateField.style.display = "block";
+            dateOfDeathField.style.display = "none";
+        } else if (status === "deceased") {
+            releaseDateField.style.display = "none";
+            dateOfDeathField.style.display = "block";
+        } else {
+            releaseDateField.style.display = "none";
+            dateOfDeathField.style.display = "none";
+        }
+    }
+</script>
+{% endblock %}
