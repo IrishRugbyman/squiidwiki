@@ -64,7 +64,7 @@ def init_db():
         CREATE TABLE IF NOT EXISTS members (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             name TEXT NOT NULL,
-            status TEXT CHECK (status IN ('alive', 'dead', 'unknown')),
+            status TEXT CHECK (status IN ('free', 'locked up', 'deceased')),
             release_date TEXT, -- ISO 8601 format YYYY-MM-DD
             date_of_death TEXT, -- ISO 8601 format YYYY-MM-DD
             set_id INTEGER,

@@ -7,7 +7,7 @@
 </head>
 <body>
     <h1>Add a New Set</h1>
-    <form method="post" action="/sets/add">
+    <form method="post" action="/sets/add" id="add-set-form">
         <label for="name">Set Name:</label>
         <input type="text" id="name" name="name" required>
 
@@ -29,63 +29,86 @@
 
     <script>
         document.addEventListener("DOMContentLoaded", function () {
-        // Initialize Tagify for allies input
-        var alliesInput = document.getElementById('allies');
-        var tagifyAllies = new Tagify(alliesInput, {
-            whitelist: [], // Initially empty, will be populated via fetch
-            dropdown: {
-                enabled: 1, // Show suggestions dropdown
-                maxItems: 5, // Limit the number of displayed suggestions
-                highlightFirst: true // Automatically highlight the first suggestion
-            }
-        });
-
-        // Initialize Tagify for enemies input
-        var enemiesInput = document.getElementById('enemies');
-        var tagifyEnemies = new Tagify(enemiesInput, {
-            whitelist: [], // Initially empty, will be populated via fetch
-            dropdown: {
-                enabled: 1, // Show suggestions dropdown
-                maxItems: 5, // Limit the number of displayed suggestions
-                highlightFirst: true // Automatically highlight the first suggestion
-            }
-        });
-
-        // Function to fetch and populate the whitelist
-        function populateWhitelist(tagifyInstance, url) {
-            fetch(url, {
-                method: "GET",
-                headers: { "Content-Type": "application/json" },
-            })
-                .then(function (response) {
-                    if (!response.ok) {
-                        throw new Error("HTTP error! status: " + response.status);
-                    }
-                    return response.json();
-                })
-                .then(function (data) {
-                    console.log("Fetched data:", data); // Debugging: Log fetched data
-
-                    // Transform the data into the format Tagify expects
-                    var whitelist = data.map(function (item) {
-                        return item.name; // Assuming the backend returns objects with 'name' property
-                    });
-
-                    // Update the whitelist
-                    tagifyInstance.settings.whitelist = whitelist;
-
-                    // Refresh the dropdown
-                    tagifyInstance.dropdown.show.call(tagifyInstance); // Show dropdown with updated whitelist
-                })
-                .catch(function (error) {
-                    console.error("Error fetching whitelist data:", error);
-                });
+    // Initialize Tagify for allies input
+    var alliesInput = document.getElementById('allies');
+    var tagifyAllies = new Tagify(alliesInput, {
+        whitelist: [], // Initially empty, will be populated via fetch
+        dropdown: {
+            enabled: 1, // Show suggestions dropdown
+            maxItems: 5, // Limit the number of displayed suggestions
+            highlightFirst: true // Automatically highlight the first suggestion
         }
-
-        // Populate whitelist for allies and enemies
-        populateWhitelist(tagifyAllies, "/sets/set_options");
-        populateWhitelist(tagifyEnemies, "/sets/set_options");
     });
+
+    // Initialize Tagify for enemies input
+    var enemiesInput = document.getElementById('enemies');
+    var tagifyEnemies = new Tagify(enemiesInput, {
+        whitelist: [], // Initially empty, will be populated via fetch
+        dropdown: {
+            enabled: 1, // Show suggestions dropdown
+            maxItems: 5, // Limit the number of displayed suggestions
+            highlightFirst: true // Automatically highlight the first suggestion
+        }
+    });
+
+    // Function to fetch and populate the whitelist
+    function populateWhitelist(tagifyInstance, url) {
+        fetch(url, {
+            method: "GET",
+            headers: { "Content-Type": "application/json" },
+        })
+            .then(function (response) {
+                if (!response.ok) {
+                    throw new Error("HTTP error! status: " + response.status);
+                }
+                return response.json();
+            })
+            .then(function (data) {
+                console.log("Fetched data:", data); // Debugging: Log fetched data
+
+                // Transform the data into the format Tagify expects
+                var whitelist = data.map(function (item) {
+                    return item.name; // Assuming the backend returns objects with 'name' property
+                });
+
+                // Update the whitelist
+                tagifyInstance.settings.whitelist = whitelist;
+
+                // Refresh the dropdown
+                tagifyInstance.dropdown.show.call(tagifyInstance); // Show dropdown with updated whitelist
+            })
+            .catch(function (error) {
+                console.error("Error fetching whitelist data:", error);
+            });
+    }
+
+    // Populate whitelist for allies and enemies
+    populateWhitelist(tagifyAllies, "/sets/set_options");
+    populateWhitelist(tagifyEnemies, "/sets/set_options");
+
+    // Before form submission, extract the selected tags and add them as comma-separated values in the form
+    var form = document.getElementById('add-set-form');
+    form.addEventListener('submit', function (e) {
+        // Log the selected values before submitting
+        console.log('Allies:', tagifyAllies.value); // Check the selected allies
+        console.log('Enemies:', tagifyEnemies.value); // Check the selected enemies
+
+        // Add selected tags from Tagify inputs to the form fields as comma-separated values
+        var alliesTags = tagifyAllies.value.map(function (tag) {
+            return tag.value; // Get the values of the tags
+        }).join(","); // Convert array to comma-separated string
+        document.getElementById('allies').value = alliesTags;
+
+        var enemiesTags = tagifyEnemies.value.map(function (tag) {
+            return tag.value; // Get the values of the tags
+        }).join(","); // Convert array to comma-separated string
+        document.getElementById('enemies').value = enemiesTags;
+
+        // Log the values just before submitting to confirm
+        console.log('Submitted Allies:', document.getElementById('allies').value);
+        console.log('Submitted Enemies:', document.getElementById('enemies').value);
+    });
+});
 
     </script>
 </body>

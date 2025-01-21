@@ -24,12 +24,13 @@ def read_root(request: Request):
 def add_set_form(request: Request):
     return templates.TemplateResponse("sets/add_set.html", {"request": request})
 
+
 @router.post("/add", response_class=RedirectResponse)
 def add_set(
-    name: str = Form(...),
-    description: str = Form(None),
-    allies: str = Form(None),  # Comma-separated IDs
-    enemies: str = Form(None),  # Comma-separated IDs
+        name: str = Form(...),
+        description: str = Form(None),
+        allies: str = Form(None),  # Comma-separated names
+        enemies: str = Form(None),  # Comma-separated names
 ):
     conn = get_db()
     cursor = conn.cursor()
@@ -42,23 +43,49 @@ def add_set(
         )
         set_id = cursor.lastrowid  # Get the newly created set's ID
 
-        # Handle allies
+        # Fetch the ID of allies based on their names
         if allies:
-            ally_ids = [int(a.strip()) for a in allies.split(",") if a.strip().isdigit()]
-            for ally_id in ally_ids:
-                cursor.execute(
-                    "INSERT OR IGNORE INTO set_allies_map (set_id, ally_id) VALUES (?, ?)",
-                    (set_id, ally_id),
-                )
+            ally_names = [a.strip() for a in allies.split(",") if a.strip()]
+            for ally_name in ally_names:
+                # Get the ID of the ally based on the name
+                cursor.execute("SELECT id FROM sets WHERE name = ?", (ally_name,))
+                ally_id_row = cursor.fetchone()
+                if ally_id_row:
+                    ally_id = ally_id_row[0]  # Fetch the ID from the query result
 
-        # Handle enemies
+                    # Insert the ally relationship for the current set
+                    cursor.execute(
+                        "INSERT OR IGNORE INTO set_allies_map (set_id, ally_id) VALUES (?, ?)",
+                        (set_id, ally_id),
+                    )
+
+                    # Insert the reciprocal ally relationship for the ally set
+                    cursor.execute(
+                        "INSERT OR IGNORE INTO set_allies_map (set_id, ally_id) VALUES (?, ?)",
+                        (ally_id, set_id),
+                    )
+
+        # Fetch the ID of enemies based on their names
         if enemies:
-            enemy_ids = [int(e.strip()) for e in enemies.split(",") if e.strip().isdigit()]
-            for enemy_id in enemy_ids:
-                cursor.execute(
-                    "INSERT OR IGNORE INTO set_enemies_map (set_id, enemy_id) VALUES (?, ?)",
-                    (set_id, enemy_id),
-                )
+            enemy_names = [e.strip() for e in enemies.split(",") if e.strip()]
+            for enemy_name in enemy_names:
+                # Get the ID of the enemy based on the name
+                cursor.execute("SELECT id FROM sets WHERE name = ?", (enemy_name,))
+                enemy_id_row = cursor.fetchone()
+                if enemy_id_row:
+                    enemy_id = enemy_id_row[0]  # Fetch the ID from the query result
+
+                    # Insert the enemy relationship for the current set
+                    cursor.execute(
+                        "INSERT OR IGNORE INTO set_enemies_map (set_id, enemy_id) VALUES (?, ?)",
+                        (set_id, enemy_id),
+                    )
+
+                    # Insert the reciprocal enemy relationship for the enemy set
+                    cursor.execute(
+                        "INSERT OR IGNORE INTO set_enemies_map (set_id, enemy_id) VALUES (?, ?)",
+                        (enemy_id, set_id),
+                    )
 
         conn.commit()
     except Exception as e:
@@ -68,6 +95,7 @@ def add_set(
         conn.close()
 
     return RedirectResponse(url="/sets/", status_code=303)
+
 
 @router.get("/set_options")
 def get_set_options() -> List[Dict[str, Any]]:

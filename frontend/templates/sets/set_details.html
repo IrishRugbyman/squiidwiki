@@ -8,7 +8,7 @@
 <h3>Allies:</h3>
 {% if allies %}
     <ul>
-    {% for ally in allies %}
+    {% for ally in allies|sort(attribute=0) %}  <!-- Sort by ally[0] (name) -->
         <li><a href="/sets/{{ ally[1] }}">{{ ally[0] }}</a></li>  <!-- Use ally[1] for the set ID -->
     {% endfor %}
     </ul>
@@ -19,7 +19,7 @@
 <h3>Enemies:</h3>
 {% if enemies %}
     <ul>
-    {% for enemy in enemies %}
+    {% for enemy in enemies|sort(attribute=0) %}  <!-- Sort by enemy[0] (name) -->
         <li><a href="/sets/{{ enemy[1] }}">{{ enemy[0] }}</a></li>  <!-- Use enemy[1] for the set ID -->
     {% endfor %}
     </ul>
