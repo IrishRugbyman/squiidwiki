@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Request, Form, HTTPException
 from fastapi.responses import HTMLResponse, RedirectResponse
-from backend.database import get_db
+from backend.database.database import get_db
 from pathlib import Path
 from fastapi.templating import Jinja2Templates
 
@@ -26,6 +26,8 @@ def member_details(request: Request, member_id: int):
 def add_member_form(request: Request, set_id: int):
     return templates.TemplateResponse("members/add_member.html", {"request": request, "set_id": set_id})
 
+
+# In your add_member route
 @router.post("/add/{set_id}", response_class=RedirectResponse)
 def add_member(
     set_id: int,
@@ -34,11 +36,16 @@ def add_member(
     release_date: str = Form(None),
     date_of_death: str = Form(None)
 ):
+    # Remove the status mapping since we're using direct values now
+    # Convert empty strings to None for dates
+    release_date = release_date if release_date else None
+    date_of_death = date_of_death if date_of_death else None
+
     conn = get_db()
     cursor = conn.cursor()
     cursor.execute(
         "INSERT INTO members (name, status, release_date, date_of_death, set_id) VALUES (?, ?, ?, ?, ?)",
-        (name, status, release_date, date_of_death, set_id)
+        (name, status, release_date, date_of_death, set_id)  # Use status directly
     )
     conn.commit()
     return RedirectResponse(url=f"/sets/{set_id}", status_code=303)

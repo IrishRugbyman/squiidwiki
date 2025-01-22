@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Request, Form, HTTPException
 from fastapi.responses import HTMLResponse, RedirectResponse
-from backend.database import get_db
+from backend.database.database import get_db
 from pathlib import Path
 from fastapi.templating import Jinja2Templates
 

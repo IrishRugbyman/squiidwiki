@@ -1,46 +1,361 @@
 {% extends "base.html" %}
 
 {% block content %}
-<h2>{{ set[1] }}</h2>
+<div class="set-container">
+    <!-- Set Header -->
+    <div class="set-header">
+        <h1 class="set-title">
+            {{ set[1] }}
+            {% if set[3] == "extinct" %}
+                <span class="extinct-icon" title="Extinct Set">💀</span>
+            {% endif %}
+        </h1>
+        <a href="/sets/edit/{{ set[0] }}" class="edit-set-btn">
+            ✏️ Edit Set
+        </a>
+    </div>
 
-<p>{{ set[2] }}</p>
+    <!-- Set Description -->
+    <div class="set-description">
+        <p>{{ set[2] or "No description available" }}</p>
+    </div>
 
-<h3>Allies:</h3>
-{% if allies %}
-    <ul>
-    {% for ally in allies|sort(attribute=0) %}  <!-- Sort by ally[0] (name) -->
-        <li><a href="/sets/{{ ally[1] }}">{{ ally[0] }}</a></li>  <!-- Use ally[1] for the set ID -->
-    {% endfor %}
-    </ul>
-{% else %}
-    <p>Couldn't find any allies.</p>
-{% endif %}
+    <!-- Relationships Section -->
+    <div class="relationship-section">
+        <div class="relationship-card allies">
+            <h3>🤝 Allies</h3>
+            {% if allies %}
+                <ul class="relationship-list">
+                {% for ally in allies|sort(attribute='name') %}  <!-- Changed to sort by name -->
+                    <li>
+                        <a href="/sets/{{ ally[1] }}" class="relationship-item">
+                            <span class="bullet">•</span> {{ ally[0] }}
+                        </a>
+                    </li>
+                {% endfor %}
+                </ul>
+            {% else %}
+                <div class="empty-state">
+                    No allies found
+                    <span class="empty-icon">❌</span>
+                </div>
+            {% endif %}
+        </div>
 
-<h3>Enemies:</h3>
-{% if enemies %}
-    <ul>
-    {% for enemy in enemies|sort(attribute=0) %}  <!-- Sort by enemy[0] (name) -->
-        <li><a href="/sets/{{ enemy[1] }}">{{ enemy[0] }}</a></li>  <!-- Use enemy[1] for the set ID -->
-    {% endfor %}
-    </ul>
-{% else %}
-    <p>Couldn't find any enemies.</p>
-{% endif %}
 
-<h3>Members</h3>
-<ul>
-    {% for member in members %}
-    <li>
-        <a href="/members/{{ member[0] }}">{{ member[1] }}</a> -
-        {% if member[2] == "locked up" %}
-            🔒
-        {% elif member[2] == "deceased" %}
-            💀
+        <div class="relationship-card enemies">
+            <h3>⚔️ Enemies</h3>
+            {% if enemies %}
+                <ul class="relationship-list">
+                {% for enemy in enemies|sort(attribute='name') %}  <!-- Changed to sort by name -->
+                    <li>
+                        <a href="/sets/{{ enemy[1] }}" class="relationship-item">
+                            <span class="bullet">•</span> {{ enemy[0] }}
+                        </a>
+                    </li>
+                {% endfor %}
+                </ul>
+            {% else %}
+                <div class="empty-state">
+                    No enemies found
+                    <span class="empty-icon">❌</span>
+                </div>
+            {% endif %}
+    </div>
+    </div>
+
+    <!-- Members Section -->
+    <div class="members-section">
+        <div class="members-header">
+            <div class="members-controls">
+                <h3>👥 Members</h3>
+                <div class="sort-controls">
+                    <select id="sort-by" class="sort-select">
+                        <option value="name">Sort by Name</option>
+                        <option value="status">Sort by Status</option>
+                    </select>
+                    <button id="sort-order" class="sort-order-btn" data-order="asc">↑</button>
+                </div>
+            </div>
+            <a href="/members/add/{{ set[0] }}" class="add-member-btn">
+                ➕ Add Member
+            </a>
+        </div>
+
+        {% if members %}
+            <ul class="members-list">
+            {% for member in members %}
+                <li class="member-item" data-status="{{ member[2] }}">
+                    <a href="/members/{{ member[0] }}" class="member-name">
+                        {{ member[1] }}
+                    </a>
+                    <div class="member-status">
+                        {% if member[2] == "locked_up" %}
+                            <span class="status locked-up" title="Locked Up">
+                                🔒 Locked Up
+                            </span>
+                        {% elif member[2] == "dead" %}
+                            <span class="status deceased" title="Deceased">
+                                💀 Deceased
+                            </span>
+                        {% else %}
+                            <span class="status alive" title="Alive">
+                                🟢 Active
+                            </span>
+                        {% endif %}
+                    </div>
+                </li>
+            {% endfor %}
+            </ul>
         {% else %}
-            🟢
+            <div class="empty-state">
+                No members found
+                <span class="empty-icon">❌</span>
+            </div>
         {% endif %}
-    </li>
-    {% endfor %}
-</ul>
-<a href="/members/add/{{ set[0] }}">Add a Member</a>
+    </div>
+</div>
+
+<style>
+    .set-container {
+        max-width: 1200px;
+        margin: 2rem auto;
+        padding: 0 1rem;
+    }
+
+    .set-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 2rem;
+    }
+
+    .set-title {
+        font-size: 2.5rem;
+        color: #6a0dad;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .extinct-icon {
+        font-size: 1.8rem;
+        vertical-align: middle;
+    }
+
+    .relationship-section {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 2rem;
+        margin: 2rem 0;
+    }
+
+    .relationship-card {
+        background: #1e1e1e;
+        padding: 1.5rem;
+        border-radius: 8px;
+        border: 1px solid #333;
+    }
+
+    .relationship-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+
+    .relationship-item {
+        color: #e0e0e0;
+        text-decoration: none;
+        padding: 0.25rem 0;
+        display: block;
+        transition: color 0.2s;
+        line-height: 0.5;
+    }
+
+    .relationship-item:hover {
+        color: #8c32ef;
+    }
+
+    .members-section {
+        margin-top: 3rem;
+    }
+
+    .members-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1.5rem;
+    }
+
+    .members-controls {
+        display: flex;
+        gap: 1rem;
+        align-items: center;
+    }
+
+    .sort-controls {
+        display: flex;
+        gap: 0.5rem;
+        align-items: center;
+    }
+
+    .sort-select {
+        background: #2a2a2a;
+        color: #e0e0e0;
+        border: 1px solid #444;
+        padding: 0.3rem 0.8rem;
+        border-radius: 4px;
+        cursor: pointer;
+    }
+
+    .sort-order-btn {
+        background: #3a3a3a;
+        color: #e0e0e0;
+        border: 1px solid #444;
+        padding: 0.3rem 0.8rem;
+        border-radius: 4px;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .sort-order-btn:hover {
+        background: #4a4a4a;
+    }
+
+    .members-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+
+    .member-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1rem;
+        background: #1e1e1e;
+        margin-bottom: 0.5rem;
+        border-radius: 6px;
+        transition: transform 0.2s;
+    }
+
+    .member-item:hover {
+        transform: translateX(5px);
+    }
+
+    .member-name {
+        color: #e0e0e0;
+        text-decoration: none;
+        flex-grow: 1;
+    }
+
+    .member-status {
+        font-size: 0.9rem;
+        padding: 0.3rem 0.8rem;
+        border-radius: 4px;
+        min-width: 100px;
+        text-align: center;
+    }
+
+    .status.alive {
+        color: #4CAF50;
+        background: rgba(76, 175, 80, 0.1);
+    }
+
+    .status.locked-up {
+        color: #FF9800;
+        background: rgba(255, 152, 0, 0.1);
+    }
+
+    .status.deceased {
+        color: #F44336;
+        background: rgba(244, 67, 54, 0.1);
+    }
+
+    .empty-state {
+        color: #888;
+        text-align: center;
+        padding: 1.5rem;
+        border: 1px dashed #333;
+        border-radius: 6px;
+    }
+
+    .edit-set-btn, .add-member-btn {
+        background: #6a0dad;
+        color: white;
+        padding: 0.5rem 1rem;
+        border-radius: 4px;
+        text-decoration: none;
+        transition: background 0.2s;
+    }
+
+    .edit-set-btn:hover, .add-member-btn:hover {
+        background: #8c32ef;
+    }
+
+    @media (max-width: 768px) {
+        .relationship-section {
+            grid-template-columns: 1fr;
+        }
+
+        .set-header {
+            flex-direction: column;
+            gap: 1rem;
+            align-items: flex-start;
+        }
+
+        .members-header {
+            flex-direction: column;
+            gap: 1rem;
+            align-items: flex-start;
+        }
+    }
+</style>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const sortBy = document.getElementById('sort-by');
+        const sortOrderBtn = document.getElementById('sort-order');
+        let currentOrder = 'asc';
+
+        const statusOrder = { 'alive': 1, 'locked_up': 2, 'dead': 3 };
+
+        function sortMembers() {
+            const memberList = document.querySelector('.members-list');
+            const members = Array.from(memberList.children);
+
+            members.sort((a, b) => {
+                let aValue, bValue;
+
+                if (sortBy.value === 'name') {
+                    aValue = a.querySelector('.member-name').textContent.toLowerCase();
+                    bValue = b.querySelector('.member-name').textContent.toLowerCase();
+                    return currentOrder === 'asc'
+                        ? aValue.localeCompare(bValue, undefined, { sensitivity: 'base' })
+                        : bValue.localeCompare(aValue, undefined, { sensitivity: 'base' });
+                } else {
+                    aValue = statusOrder[a.dataset.status];
+                    bValue = statusOrder[b.dataset.status];
+                    return currentOrder === 'asc'
+                        ? aValue - bValue
+                        : bValue - aValue;
+                }
+            });
+
+            memberList.append(...members);
+        }
+
+        // Rest of the script remains the same
+        sortBy.addEventListener('change', sortMembers);
+
+        sortOrderBtn.addEventListener('click', () => {
+            currentOrder = currentOrder === 'asc' ? 'desc' : 'asc';
+            sortOrderBtn.textContent = currentOrder === 'asc' ? '↑' : '↓';
+            sortMembers();
+        });
+
+        sortMembers();
+    });
+</script>
 {% endblock %}

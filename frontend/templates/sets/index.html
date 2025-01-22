@@ -1,11 +1,125 @@
 {% extends "base.html" %}
 
 {% block content %}
-<h2>Sets</h2>
-<ul>
-    {% for set in sets|sort(attribute=1) %}
+<h2>DETROIT SETS</h2>
+
+<!-- Search Bar -->
+<input type="text" id="searchInput" placeholder="Search for a set..." class="search-bar">
+
+<!-- Alphabetical Navigation Bar -->
+<div id="alphabetNav">
+    <a href="#numbers">#</a> <!-- Link for numbers -->
+    {% for letter in 'ABCDEFGHIJKLMNOPQRSTUVWXYZ' %}
+    <a href="#{{ letter }}">{{ letter }}</a> <!-- Links for A-Z -->
+    {% endfor %}
+    <a href="/sets/add" class="add-button">+ Add a New Set</a>
+</div>
+
+<!-- Sets Grouped by Starting Character -->
+<ul id="setsList">
+    {% for char, group in grouped_sets.items() %}
+    <h3 id="{{ char }}">{{ char }}</h3> <!-- Section header -->
+    {% for set in group %}
     <li><a href="/sets/{{ set[0] }}">{{ set[1] }}</a></li>
     {% endfor %}
+    {% endfor %}
 </ul>
-<a href="/sets/add">Add a Set</a>
+
+<script>
+    // JavaScript for filtering sets
+    document.getElementById('searchInput').addEventListener('input', function() {
+        const searchTerm = this.value.toLowerCase(); // Get the search term
+        const sets = document.querySelectorAll('#setsList li'); // Get all list items
+
+        sets.forEach(set => {
+            const setName = set.textContent.toLowerCase(); // Get the set name
+            if (setName.includes(searchTerm)) {
+                set.style.display = 'block'; // Show matching sets
+            } else {
+                set.style.display = 'none'; // Hide non-matching sets
+            }
+        });
+
+        // Hide empty sections
+        document.querySelectorAll('#setsList h3').forEach(header => {
+            const sectionId = header.id;
+            const sectionItems = document.querySelectorAll(`#${sectionId} + li`);
+            const hasVisibleItems = Array.from(sectionItems).some(item => item.style.display !== 'none');
+            header.style.display = hasVisibleItems ? 'block' : 'none';
+        });
+    });
+</script>
+
+<style>
+    /* Search Bar Styling */
+    .search-bar {
+        width: 100%;
+        padding: 10px;
+        margin-bottom: 20px;
+        border-radius: 5px;
+        border: 1px solid #444;
+        background-color: #1e1e1e;
+        color: white;
+        font-size: 1em;
+        font-weight: 500;
+        transition: border-color 0.3s ease;
+    }
+
+    .search-bar:focus {
+        border-color: #6a0dad; /* Purple border on focus */
+        outline: none;
+    }
+
+    /* Alphabetical Navigation Bar Styling */
+    #alphabetNav {
+        display: flex;
+        justify-content: space-between; /* Spread out the items */
+        align-items: center; /* Vertically center the items */
+        gap: 15px; /* Add a gap between the elements */
+        margin-bottom: 20px;
+    }
+
+    #alphabetNav a {
+        color: #ffffff;
+        text-decoration: none;
+        font-weight: 500;
+        font-size: 1.2em;
+        transition: color 0.3s ease;
+    }
+
+    #alphabetNav a:hover {
+        color: #690dac;
+    }
+
+    .add-button {
+        background-color: rgb(105, 13, 172);
+        color: #ffffff;
+        padding: 8px 15px;
+        text-align: center;
+        border-radius: 5px;
+        font-size: 1.2em;
+        text-decoration: none;
+        transition: background-color 0.3s ease;
+    }
+
+
+    /* Section Headers */
+    h3 {
+        font-size: 1.5em;
+        margin-top: 20px;
+        margin-bottom: 10px;
+        color: #690dac;
+        scroll-margin-top: 50px; /* Ensure scrolling accounts for fixed header */
+    }
+
+    /* List Item Styling */
+    #setsList li {
+        padding: 10px 0;
+        border-bottom: 1px solid #444;
+    }
+
+    #setsList li:last-child {
+        border-bottom: none;
+    }
+</style>
 {% endblock %}

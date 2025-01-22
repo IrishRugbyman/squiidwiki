@@ -1,10 +1,12 @@
 from pydantic import BaseModel
-from typing import Optional, List
+from typing import Optional
 from datetime import date
+from backend.database.enums import eStatus, eSetType
 
 class SetBase(BaseModel):
     name: str
     description: Optional[str] = None
+    type: eSetType = eSetType.ACTIVE  # Default to ACTIVE
 
 class SetCreate(SetBase):
     pass
@@ -53,9 +55,9 @@ class AllianceMemberMap(BaseModel):
 
 class MemberBase(BaseModel):
     name: str
-    status: str  # "alive", "dead", "unknown"
-    release_date: Optional[date] = None  # Only if status is "locked up"
-    date_of_death: Optional[date] = None  # Only if status is "deceased"
+    status: eStatus
+    release_date: Optional[date] = None  # Only if status is "locked_up"
+    date_of_death: Optional[date] = None  # Only if status is "dead"
     set_id: int
 
 class MemberCreate(MemberBase):

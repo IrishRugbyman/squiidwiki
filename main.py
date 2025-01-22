@@ -1,5 +1,5 @@
 from backend.server import app
-from backend.database import init_db
+from backend.database.database import init_db
 import uvicorn
 
 # Initialiser la base de données

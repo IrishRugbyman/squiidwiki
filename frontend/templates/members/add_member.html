@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 
 {% block content %}
-<h2>Add a Member to set</h2>
+<h2>Add a Member to Set</h2>
 <form method="POST">
     <label for="name">Name:</label>
     <input type="text" id="name" name="name" required>
@@ -9,9 +9,9 @@
 
     <label for="status">Status:</label>
     <select id="status" name="status" required onchange="toggleFields()">
-        <option value="free">Free</option>
-        <option value="locked up">Locked Up</option>
-        <option value="deceased">Deceased</option>
+        <option value="alive">Alive</option>
+        <option value="locked_up">Locked Up</option>
+        <option value="dead">Deceased</option>
     </select>
     <br>
 
@@ -32,20 +32,37 @@
 
 <script>
     function toggleFields() {
-        const status = document.getElementById("status").value;
-        const releaseDateField = document.getElementById("release_date_field");
-        const dateOfDeathField = document.getElementById("date_of_death_field");
+    const status = document.getElementById("status").value;
+    const releaseDateField = document.getElementById("release_date_field");
+    const dateOfDeathField = document.getElementById("date_of_death_field");
 
-        if (status === "locked up") {
-            releaseDateField.style.display = "block";
-            dateOfDeathField.style.display = "none";
-        } else if (status === "deceased") {
-            releaseDateField.style.display = "none";
-            dateOfDeathField.style.display = "block";
-        } else {
-            releaseDateField.style.display = "none";
-            dateOfDeathField.style.display = "none";
-        }
+    if (status === "locked_up") {  // Match the exact value
+        releaseDateField.style.display = "block";
+        dateOfDeathField.style.display = "none";
+    } else if (status === "dead") {
+        releaseDateField.style.display = "none";
+        dateOfDeathField.style.display = "block";
+    } else {
+        releaseDateField.style.display = "none";
+        dateOfDeathField.style.display = "none";
     }
+}
+
+    // Form validation
+    document.querySelector("form").addEventListener("submit", function(e) {
+        const status = document.getElementById("status").value;
+        const releaseDate = document.getElementById("release_date").value;
+        const deathDate = document.getElementById("date_of_death").value;
+
+        if (status === "locked_up" && !releaseDate) {
+            alert("Please provide a release date for locked up members");
+            e.preventDefault();
+        }
+
+        if (status === "dead" && !deathDate) {
+            alert("Please provide a date of death for deceased members");
+            e.preventDefault();
+        }
+    });
 </script>
 {% endblock %}

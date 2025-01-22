@@ -1,7 +1,7 @@
 import sqlite3
 
 def get_db():
-    conn = sqlite3.connect('squiidvault.db')
+    conn = sqlite3.connect('../squiidvault.db')
     return conn
 
 def init_db():
@@ -13,7 +13,8 @@ def init_db():
         CREATE TABLE IF NOT EXISTS sets (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             name TEXT NOT NULL,
-            description TEXT
+            description TEXT,
+            type TEXT NOT NULL CHECK (type IN ('active', 'extinct')) DEFAULT 'active' -- Enforce eSetType values
         )
     ''')
 
@@ -64,7 +65,7 @@ def init_db():
         CREATE TABLE IF NOT EXISTS members (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             name TEXT NOT NULL,
-            status TEXT CHECK (status IN ('free', 'locked up', 'deceased')),
+            status TEXT NOT NULL CHECK (status IN ('dead', 'alive', 'locked_up', 'unknown')), -- Enforce eStatus values
             release_date TEXT, -- ISO 8601 format YYYY-MM-DD
             date_of_death TEXT, -- ISO 8601 format YYYY-MM-DD
             set_id INTEGER,

@@ -4,7 +4,7 @@ from backend.routes.sets import router as sets_router
 from backend.routes.members import router as members_router
 from backend.routes.alliances import router as alliances_router
 from backend.routes.calendar import router as calendar_router
-from backend.database import init_db
+from backend.database.database import init_db
 
 app = FastAPI()
 
