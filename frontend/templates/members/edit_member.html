@@ -8,10 +8,12 @@
     <br>
 
     <label for="status">Status:</label>
+    <!-- Change the status options to match database values -->
     <select id="status" name="status" required onchange="toggleFields()">
-        <option value="free" {% if member[2] == "free" %}selected{% endif %}>Free</option>
-        <option value="locked up" {% if member[2] == "locked up" %}selected{% endif %}>Locked Up</option>
-        <option value="deceased" {% if member[2] == "deceased" %}selected{% endif %}>Deceased</option>
+        <option value="alive" {% if member[2] == "alive" %}selected{% endif %}>Alive/Free</option>
+        <option value="locked_up" {% if member[2] == "locked_up" %}selected{% endif %}>Locked Up</option>
+        <option value="dead" {% if member[2] == "dead" %}selected{% endif %}>Deceased</option>
+        <option value="unknown" {% if member[2] == "unknown" %}selected{% endif %}>Unknown</option>
     </select>
     <br>
 
@@ -36,10 +38,10 @@
         const releaseDateField = document.getElementById("release_date_field");
         const dateOfDeathField = document.getElementById("date_of_death_field");
 
-        if (status === "locked up") {
+        if (status === "locked_up") {
             releaseDateField.style.display = "block";
             dateOfDeathField.style.display = "none";
-        } else if (status === "deceased") {
+        } else if (status === "dead") {  // Changed from 'deceased' to 'dead'
             releaseDateField.style.display = "none";
             dateOfDeathField.style.display = "block";
         } else {

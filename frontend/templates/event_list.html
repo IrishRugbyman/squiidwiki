@@ -1,0 +1,132 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="event-container">
+    <div class="event-header">
+        <h2>{{ event_type|title }} Management</h2>
+        <a href="/members/{{ member_id }}" class="back-link">← Back to Member</a>
+    </div>
+
+    <div class="event-form-card">
+        <h3>{{ 'Edit' if event else 'Add' }} {{ event_type|title }}</h3>
+        <form method="POST" action="{% if event %}/events/edit/{{ event_type }}/{{ event[0] }}{% else %}/events/add/{{ event_type }}/{{ member_id }}{% endif %}">
+            <div class="form-grid">
+                <div class="form-group">
+                    <label for="victim_id">Victim:</label>
+                    <select name="victim_id" required>
+                        {% for member in all_members %}
+                            <option value="{{ member[0] }}" {% if event and member[0] == event[2] %}selected{% endif %}>
+                                {{ member[1] }}
+                            </option>
+                        {% else %}
+                            <option disabled>No members available</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="date">Date:</label>
+                    <input type="date" name="date" value="{{ event[3] if event else '' }}" required>
+                </div>
+            </div>
+
+            <div class="form-actions">
+                <button type="submit" class="save-btn">
+                    {{ 'Update' if event else 'Create' }} {{ event_type|title }}
+                </button>
+                {% if event %}
+                <a href="/events/{{ event_type }}/{{ member_id }}" class="cancel-btn">Cancel</a>
+                {% endif %}
+            </div>
+        </form>
+    </div>
+
+    {% if not event %}
+    <div class="event-list">
+        {% for event in events %}
+        <div class="event-item">
+            <div class="event-info">
+                <span class="event-date">{{ event.date }}</span>
+                <span class="event-victim">{{ member_names.get(event.victim_id, 'Unknown Member') }}</span>
+            </div>
+            <div class="event-actions">
+                <a href="/events/edit/{{ event_type }}/{{ event.id }}" class="edit-btn">✏️</a>
+                <form action="/events/delete/{{ event_type }}/{{ event.id }}" method="POST">
+                    <button type="submit" class="delete-btn"
+                        onclick="return confirm('Delete this {{ event_type }} record?')">🗑️</button>
+                </form>
+            </div>
+        </div>
+        {% else %}
+        <div class="no-events">No {{ event_type }} events recorded</div>
+        {% endfor %}
+    </div>
+    {% endif %}
+</div>
+
+<style>
+/* Updated Event List Styles */
+.event-container {
+    max-width: 800px;
+    margin: 2rem auto;
+    padding: 1rem;
+}
+
+.event-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+}
+
+.event-form-card {
+    background: #1e1e1e;
+    padding: 1.5rem;
+    border-radius: 8px;
+    margin-bottom: 2rem;
+}
+
+.form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+    margin: 1rem 0;
+}
+
+.form-actions {
+    display: flex;
+    gap: 1rem;
+    margin-top: 1.5rem;
+}
+
+.save-btn {
+    background: #8c32ef;
+    color: white;
+    padding: 0.75rem 1.5rem;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.cancel-btn {
+    color: #888;
+    padding: 0.75rem 1.5rem;
+    text-decoration: none;
+}
+
+.event-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem;
+    background: #2a2a2a;
+    margin-bottom: 0.5rem;
+    border-radius: 4px;
+}
+
+.event-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+</style>
+{% endblock %}

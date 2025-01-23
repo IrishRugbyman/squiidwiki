@@ -172,12 +172,30 @@ def read_set(request: Request, set_id: int):
             """, (set_id,))
             enemies = cursor.fetchall()
 
+            # In read_set function
+            cursor.execute("""
+                SELECT m.date, 
+                       shooter.name AS shooter_name, 
+                       victim.name AS victim_name, 
+                       victim_set.name AS victim_set_name,
+                       victim.id AS victim_id,  -- Get actual victim member ID
+                       victim.set_id AS victim_set_id
+                FROM murders m
+                JOIN members shooter ON m.shooter_id = shooter.id
+                JOIN members victim ON m.victim_id = victim.id
+                JOIN sets victim_set ON victim.set_id = victim_set.id
+                WHERE shooter.set_id = ?
+                ORDER BY m.date DESC
+            """, (set_id,))
+            murders = cursor.fetchall()
+
             return templates.TemplateResponse("sets/set_details.html", {
                 "request": request,
                 "set": set,
                 "members": members,
                 "allies": allies,
-                "enemies": enemies
+                "enemies": enemies,
+                "murders": murders  # Add this line
             })
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")

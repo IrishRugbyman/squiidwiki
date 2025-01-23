@@ -4,26 +4,19 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="5a90f149-2977-41b7-8c89-dbcb66ee7cb1" name="Changes" comment="sets ennemies and allies working great">
-      <change afterPath="$PROJECT_DIR$/backend/database/__init__.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/backend/database/enums.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/frontend/templates/sets/edit_set.html" afterDir="false" />
+    <list default="true" id="5a90f149-2977-41b7-8c89-dbcb66ee7cb1" name="Changes" comment="vive deepseek">
+      <change afterPath="$PROJECT_DIR$/backend/config/templates.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/backend/routes/events.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/frontend/templates/event_list.html" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/database.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/database/database.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/models.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/database/models.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/routes/alliances.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/routes/alliances.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/routes/calendar.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/routes/calendar.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/backend/routes/members.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/routes/members.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/backend/routes/sets.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/routes/sets.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/backend/server.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/server.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/frontend/static/styles.css" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/static/styles.css" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/frontend/templates/base.html" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/templates/base.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/templates/members/add_member.html" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/templates/members/add_member.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/templates/sets/add_set.html" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/templates/sets/add_set.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/templates/sets/index.html" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/templates/sets/index.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/templates/members/edit_member.html" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/templates/members/edit_member.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/templates/members/member_details.html" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/templates/members/member_details.html" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/frontend/templates/sets/set_details.html" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/templates/sets/set_details.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/main.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/squiidvault.db" beforeDir="false" afterPath="$PROJECT_DIR$/squiidvault.db" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -33,8 +26,8 @@
   <component name="FileTemplateManagerImpl">
     <option name="RECENT_TEMPLATES">
       <list>
-        <option value="Python Script" />
         <option value="HTML File" />
+        <option value="Python Script" />
       </list>
     </option>
   </component>
@@ -226,7 +219,8 @@
       <workItem from="1737413788515" duration="189000" />
       <workItem from="1737414010743" duration="7738000" />
       <workItem from="1737488159759" duration="6076000" />
-      <workItem from="1737499538684" duration="12773000" />
+      <workItem from="1737499538684" duration="13739000" />
+      <workItem from="1737574447921" duration="8238000" />
     </task>
     <task id="LOCAL-00001" summary="first commit">
       <option name="closed" value="true" />
@@ -252,7 +246,15 @@
       <option name="project" value="LOCAL" />
       <updated>1737422017331</updated>
     </task>
-    <option name="localTasksCounter" value="4" />
+    <task id="LOCAL-00004" summary="vive deepseek">
+      <option name="closed" value="true" />
+      <created>1737518796204</created>
+      <option name="number" value="00004" />
+      <option name="presentableId" value="LOCAL-00004" />
+      <option name="project" value="LOCAL" />
+      <updated>1737518796204</updated>
+    </task>
+    <option name="localTasksCounter" value="5" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -272,11 +274,12 @@
   <component name="VcsManagerConfiguration">
     <MESSAGE value="first commit" />
     <MESSAGE value="sets ennemies and allies working great" />
-    <option name="LAST_COMMIT_MESSAGE" value="sets ennemies and allies working great" />
+    <MESSAGE value="vive deepseek" />
+    <option name="LAST_COMMIT_MESSAGE" value="vive deepseek" />
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
     <SUITE FILE_PATH="coverage/SquiidWiki$server.coverage" NAME="server Coverage Results" MODIFIED="1736989649360" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
-    <SUITE FILE_PATH="coverage/SquiidWiki$main.coverage" NAME="main Coverage Results" MODIFIED="1737515949119" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/SquiidWiki$main.coverage" NAME="main Coverage Results" MODIFIED="1737608497109" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
     <SUITE FILE_PATH="coverage/SquiidWiki$python_gui.coverage" NAME="python_gui Coverage Results" MODIFIED="1736989810824" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
     <SUITE FILE_PATH="coverage/SquiidWiki$database.coverage" NAME="database Coverage Results" MODIFIED="1737326535679" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/backend" />
   </component>

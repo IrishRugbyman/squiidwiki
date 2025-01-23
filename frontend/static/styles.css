@@ -1,138 +1,64 @@
-/* General Reset */
-* {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-}
-
+/* Base styles */
 body {
-    font-family: 'Roboto', sans-serif;
-    background-color: #121212; /* Dark background for a modern look */
-    color: #e0e0e0; /* Light gray text for readability */
+    background: #121212;
+    color: #e0e0e0;
+    font-family: 'Segoe UI', sans-serif;
+    margin: 0;
     line-height: 1.6;
 }
 
 header {
-    background-color: #6a0dad; /* Primary purple */
-    color: white;
-    padding: 15px 30px;
-    text-align: center;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3); /* Professional shadow */
-}
-
-header h1 {
-    font-size: 2.5em;
-    font-weight: 700;
-    letter-spacing: 1px;
-    margin-bottom: 5px;
+    background: #1a1a1a;
+    padding: 1rem;
+    border-bottom: 1px solid #333;
 }
 
 nav {
-    margin-top: 10px;
+    display: flex;
+    gap: 1.5rem;
+    margin-top: 1rem;
 }
 
 nav a {
-    color: white;
+    color: #8c32ef;
     text-decoration: none;
-    margin: 0 20px;
-    font-size: 1.1em;
-    font-weight: 500;
-    padding: 5px 10px;
-    transition: background-color 0.3s, color 0.3s;
+    transition: color 0.2s;
 }
 
 nav a:hover {
-    background-color: #ffffff33; /* Semi-transparent white */
-    color: #fff;
-    border-radius: 5px;
+    color: #6a0dad;
 }
 
-main {
-    padding: 30px 10%;
+/* Shared component styles */
+.detail-card {
+    background: #1e1e1e;
+    padding: 1.5rem;
+    border-radius: 8px;
+    border: 1px solid #333;
 }
 
-/* General styling for unordered lists */
-ul {
-    list-style-type: none; /* Removes default bullet points */
-    padding: 0;
-    margin: 0;
-}
-
-/* Styling for individual list items */
-li {
-    background-color: transparent; /* Removes any background box */
-    padding: 5px 0; /* Adds space between items */
-    font-size: 1.1em;
-    color: #e0e0e0; /* Light text color */
-    text-align: left;
-    border: none; /* Ensures no border or box-shadow */
-    display: block; /* Makes sure each item takes full width */
-}
-
-/* Links inside list items */
-ul li a {
-    text-decoration: none; /* Removes underline from links */
-    color: #e0e0e0;
-    transition: color 0.3s ease; /* Smooth hover effect */
-}
-
-ul li a:hover {
-    color: #6a0dad; /* Purple hover effect */
-}
-
-/* Styling for section headings */
-h3 {
-    font-size: 1.5em;
-    margin-bottom: 15px;
-    font-weight: 600;
-    color: #6a0dad; /* Purple color */
-}
-
-/* Paragraph text styling */
-p {
-    color: #e0e0e0;
-    font-size: 1em;
-}
-
-form {
-    background-color: #1e1e1e;
-    padding: 30px;
-    border-radius: 10px;
-    max-width: 500px;
-    margin: 30px auto;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
-}
-
-input, button {
-    width: 100%;
-    padding: 15px;
-    margin: 10px 0;
-    border-radius: 5px;
-    border: 1px solid #444;
-    background-color: #121212;
-    color: white;
-    font-size: 1em;
-    font-weight: 500;
-}
-
-button {
-    background-color: #6a0dad;
-    border: none;
+.edit-btn, .delete-btn {
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    text-decoration: none;
     cursor: pointer;
-    transition: background-color 0.3s ease;
 }
 
-button:hover {
-    background-color: #8c32ef; /* Slightly brighter purple */
+.edit-btn {
+    background: #2a2a2a;
+    color: #e0e0e0;
+    border: 1px solid #444;
 }
 
-footer {
-    background-color: #6a0dad;
-    color: white;
-    padding: 15px;
-    text-align: center;
-    font-size: 0.9em;
-    margin-top: 30px;
-    box-shadow: 0 -4px 6px rgba(0, 0, 0, 0.3);
+.delete-btn {
+    background: #4a0000;
+    color: #ff6666;
+    border: 1px solid #660000;
 }
 
+/* Responsive base */
+@media (max-width: 768px) {
+    body {
+        padding: 0.5rem;
+    }
+}

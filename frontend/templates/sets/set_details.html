@@ -92,15 +92,15 @@
                     <div class="member-status">
                         {% if member[2] == "locked_up" %}
                             <span class="status locked-up" title="Locked Up">
-                                🔒 Locked Up
+                                🔒
                             </span>
                         {% elif member[2] == "dead" %}
                             <span class="status deceased" title="Deceased">
-                                💀 Deceased
+                                💀
                             </span>
                         {% else %}
                             <span class="status alive" title="Alive">
-                                🟢 Active
+                                🟢
                             </span>
                         {% endif %}
                     </div>
@@ -114,9 +114,99 @@
             </div>
         {% endif %}
     </div>
+    <div class="murders-section">
+        <div class="section-header">
+            <h3>🔪 Murders Committed</h3>
+        </div>
+
+        {% if murders %}
+        <div class="murders-list">
+            {% for murder in murders %}
+            <div class="murder-item">
+                <div class="murder-date">{{ murder[0] }}</div>  {# Date already formatted as year #}
+                <div class="murder-details">
+                    <span class="shooter">{{ murder[1] }}</span> killed
+                    <a href="/members/{{ murder[4] }}" class="victim">{{ murder[2] }}</a>
+                    from <a href="/sets/{{ murder[5] }}" class="victim-set">{{ murder[3] }}</a>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty-state">
+            No recorded murders
+            <span class="empty-icon">🕊️</span>
+        </div>
+        {% endif %}
+    </div>
+
+    <style>
+        .murders-section {
+            margin: 2rem 0;
+            padding: 1.5rem;
+            background: #1a1a1a;
+            border-radius: 8px;
+            border: 1px solid #2d2d2d;
+        }
+
+        .murders-list {
+            margin-top: 1rem;
+        }
+
+        .murder-item {
+            display: flex;
+            align-items: center;
+            padding: 1rem;
+            margin-bottom: 0.5rem;
+            background: #242424;
+            border-radius: 6px;
+        }
+
+        .murder-date {
+            color: #888;
+            min-width: 120px;
+            font-size: 0.9rem;
+        }
+
+        .murder-details {
+            color: #e0e0e0;
+            flex-grow: 1;
+        }
+
+        .shooter {
+            color: #ef8732;
+            font-weight: 500;
+        }
+
+        .victim {
+            color: #ff4d4d;
+            text-decoration: none;
+        }
+
+        .victim-set {
+            color: #8c32ef;
+            text-decoration: none;
+        }
+
+        .victim:hover,
+        .victim-set:hover {
+            text-decoration: underline;
+        }
+    </style>
 </div>
 
+
 <style>
+    .section-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1rem;
+    }
+
+    .empty-icon {
+        margin-left: 0.5rem;
+    }
     .set-container {
         max-width: 1200px;
         margin: 2rem auto;
@@ -233,7 +323,7 @@
         display: flex;
         justify-content: space-between;
         align-items: center;
-        padding: 1rem;
+        padding: 0.5rem;
         background: #1e1e1e;
         margin-bottom: 0.5rem;
         border-radius: 6px;
@@ -241,7 +331,6 @@
     }
 
     .member-item:hover {
-        transform: translateX(5px);
     }
 
     .member-name {
@@ -260,17 +349,14 @@
 
     .status.alive {
         color: #4CAF50;
-        background: rgba(76, 175, 80, 0.1);
     }
 
     .status.locked-up {
         color: #FF9800;
-        background: rgba(255, 152, 0, 0.1);
     }
 
     .status.deceased {
         color: #F44336;
-        background: rgba(244, 67, 54, 0.1);
     }
 
     .empty-state {
