@@ -8,9 +8,9 @@
 
 <!-- Alphabetical Navigation Bar -->
 <div id="alphabetNav">
-    <a href="#numbers">#</a> <!-- Link for numbers -->
+    <a href="#numbers">#</a>
     {% for letter in 'ABCDEFGHIJKLMNOPQRSTUVWXYZ' %}
-    <a href="#{{ letter }}">{{ letter }}</a> <!-- Links for A-Z -->
+    <a href="#{{ letter }}">{{ letter }}</a>
     {% endfor %}
     <a href="/sets/add" class="add-button">+ Add a New Set</a>
 </div>
@@ -18,7 +18,7 @@
 <!-- Sets Grouped by Starting Character -->
 <ul id="setsList">
     {% for char, group in grouped_sets.items() %}
-    <h3 id="{{ char }}">{{ char }}</h3> <!-- Section header -->
+    <h3 id="{{ char }}">{{ char }}</h3>
     {% for set in group %}
     <li><a href="/sets/{{ set[0] }}">{{ set[1] }}</a></li>
     {% endfor %}
@@ -26,21 +26,15 @@
 </ul>
 
 <script>
-    // JavaScript for filtering sets
     document.getElementById('searchInput').addEventListener('input', function() {
-        const searchTerm = this.value.toLowerCase(); // Get the search term
-        const sets = document.querySelectorAll('#setsList li'); // Get all list items
+        const searchTerm = this.value.toLowerCase();
+        const sets = document.querySelectorAll('#setsList li');
 
         sets.forEach(set => {
-            const setName = set.textContent.toLowerCase(); // Get the set name
-            if (setName.includes(searchTerm)) {
-                set.style.display = 'block'; // Show matching sets
-            } else {
-                set.style.display = 'none'; // Hide non-matching sets
-            }
+            const setName = set.textContent.toLowerCase();
+            set.style.display = setName.includes(searchTerm) ? 'block' : 'none';
         });
 
-        // Hide empty sections
         document.querySelectorAll('#setsList h3').forEach(header => {
             const sectionId = header.id;
             const sectionItems = document.querySelectorAll(`#${sectionId} + li`);
@@ -63,63 +57,101 @@
         font-size: 1em;
         font-weight: 500;
         transition: border-color 0.3s ease;
-    }
-
-    .search-bar:focus {
-        border-color: #6a0dad; /* Purple border on focus */
-        outline: none;
+        box-sizing: border-box;
     }
 
     /* Alphabetical Navigation Bar Styling */
     #alphabetNav {
         display: flex;
-        justify-content: space-between; /* Spread out the items */
-        align-items: center; /* Vertically center the items */
-        gap: 15px; /* Add a gap between the elements */
-        margin-bottom: 20px;
+        flex-wrap: wrap;
+        justify-content: flex-start;
+        gap: 10px;
+        margin-bottom: 15px;
+        padding: 10px 0;
     }
 
     #alphabetNav a {
         color: #ffffff;
         text-decoration: none;
         font-weight: 500;
-        font-size: 1.2em;
+        font-size: 1.1em;
+        padding: 4px 8px;
         transition: color 0.3s ease;
-    }
-
-    #alphabetNav a:hover {
-        color: #690dac;
+        white-space: nowrap;
     }
 
     .add-button {
         background-color: rgb(105, 13, 172);
         color: #ffffff;
         padding: 8px 15px;
-        text-align: center;
         border-radius: 5px;
-        font-size: 1.2em;
+        font-size: 1.1em;
         text-decoration: none;
         transition: background-color 0.3s ease;
+        margin-left: auto;
     }
-
 
     /* Section Headers */
     h3 {
         font-size: 1.5em;
-        margin-top: 20px;
-        margin-bottom: 10px;
+        margin: 15px 0 10px;
         color: #690dac;
-        scroll-margin-top: 50px; /* Ensure scrolling accounts for fixed header */
+        scroll-margin-top: 50px;
     }
 
     /* List Item Styling */
-    #setsList li {
-        padding: 10px 0;
-        border-bottom: 1px solid #444;
+    #setsList {
+        padding: 0 10px;
+        box-sizing: border-box;
     }
 
-    #setsList li:last-child {
-        border-bottom: none;
+    #setsList li {
+        padding: 10px 0;
+        list-style-type: none;
+    }
+
+    #setsList li a {
+        color: #ffffff;
+        text-decoration: none;
+        word-break: break-word;
+        display: inline-block;
+        max-width: 100%;
+    }
+
+    @media (max-width: 768px) {
+        #alphabetNav {
+            gap: 8px;
+        }
+
+        #alphabetNav a {
+            font-size: 1em;
+            padding: 4px 6px;
+        }
+
+        .add-button {
+            padding: 6px 12px;
+            font-size: 1em;
+        }
+    }
+
+    @media (max-width: 480px) {
+        #alphabetNav {
+            gap: 6px;
+        }
+
+        #alphabetNav a {
+            font-size: 0.9em;
+            padding: 3px 5px;
+        }
+
+        h3 {
+            font-size: 1.3em;
+        }
+
+        .add-button {
+            padding: 5px 10px;
+            font-size: 0.9em;
+        }
     }
 </style>
 {% endblock %}

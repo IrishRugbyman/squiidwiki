@@ -1,137 +1,216 @@
 import sqlite3
+from pathlib import Path
+
+DB_PATH = Path(__file__).parent.parent.parent / "squiidvault.db"
+
 
 def get_db():
-    conn = sqlite3.connect('../squiidvault.db')
-    return conn
+    return sqlite3.connect(DB_PATH)
 
-def init_db():
+
+def init_db(drop_existing: bool = False):
     conn = get_db()
     cursor = conn.cursor()
 
-    # Create tables
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS sets (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT NOT NULL,
-            description TEXT,
-            type TEXT NOT NULL CHECK (type IN ('active', 'extinct')) DEFAULT 'active' -- Enforce eSetType values
-        )
-    ''')
+    try:
+        if drop_existing:
+            # Disable foreign keys temporarily
+            cursor.execute("PRAGMA foreign_keys = OFF")
 
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS set_allies_map (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            set_id INTEGER NOT NULL,
-            ally_id INTEGER NOT NULL,
-            FOREIGN KEY (set_id) REFERENCES sets (id),
-            FOREIGN KEY (ally_id) REFERENCES sets (id),
-            UNIQUE (set_id, ally_id) -- Prevent duplicate ally relationships
-        )
-    ''')
+            # Clean slate removal (development only!)
+            cursor.execute('DROP TABLE IF EXISTS config')
+            cursor.execute('DROP TABLE IF EXISTS set_allies_map')
+            cursor.execute('DROP TABLE IF EXISTS set_enemies_map')
+            cursor.execute('DROP TABLE IF EXISTS alliance_member_map')
+            cursor.execute('DROP TABLE IF EXISTS alliances')
+            cursor.execute('DROP TABLE IF EXISTS members')
+            cursor.execute('DROP TABLE IF EXISTS shootings')
+            cursor.execute('DROP TABLE IF EXISTS murders')
+            cursor.execute('DROP TABLE IF EXISTS assists')
+            cursor.execute('DROP TABLE IF EXISTS sets')
 
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS set_enemies_map (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            set_id INTEGER NOT NULL,
-            enemy_id INTEGER NOT NULL,
-            FOREIGN KEY (set_id) REFERENCES sets (id),
-            FOREIGN KEY (enemy_id) REFERENCES sets (id),
-            UNIQUE (set_id, enemy_id) -- Prevent duplicate enemy relationships
-        )
-    ''')
+            # Re-enable foreign key constraints
+            cursor.execute("PRAGMA foreign_keys = ON")
 
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS alliances (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT NOT NULL,
-            description TEXT
-        )
-    ''')
+        # --- RECREATE ALL TABLES PROPERLY ---
+        # Create main sets table
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS sets (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL UNIQUE,
+                description TEXT,
+                type TEXT NOT NULL CHECK (type IN ('active', 'extinct')) DEFAULT 'active'
+            )
+        ''')
 
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS alliance_member_map (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            alliance_id INTEGER NOT NULL,
-            set_id INTEGER NOT NULL,
-            role TEXT, -- Optional: Role of the set in the alliance
-            join_date TEXT, -- Optional: ISO 8601 format YYYY-MM-DD
-            FOREIGN KEY (alliance_id) REFERENCES alliances (id),
-            FOREIGN KEY (set_id) REFERENCES sets (id),
-            UNIQUE (alliance_id, set_id) -- Prevent duplicate mappings
-        )
-    ''')
+        # Create relationship tables
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS set_allies_map (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                set_id INTEGER NOT NULL,
+                ally_id INTEGER NOT NULL,
+                FOREIGN KEY (set_id) REFERENCES sets(id) ON DELETE CASCADE,
+                FOREIGN KEY (ally_id) REFERENCES sets(id) ON DELETE CASCADE,
+                UNIQUE (set_id, ally_id)
+            )
+        ''')
 
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS members (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT NOT NULL,
-            status TEXT NOT NULL CHECK (status IN ('dead', 'alive', 'locked_up', 'unknown')), -- Enforce eStatus values
-            release_date TEXT, -- ISO 8601 format YYYY-MM-DD
-            date_of_death TEXT, -- ISO 8601 format YYYY-MM-DD
-            set_id INTEGER,
-            FOREIGN KEY (set_id) REFERENCES sets (id)
-        )
-    ''')
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS set_enemies_map (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                set_id INTEGER NOT NULL,
+                enemy_id INTEGER NOT NULL,
+                FOREIGN KEY (set_id) REFERENCES sets(id) ON DELETE CASCADE,
+                FOREIGN KEY (enemy_id) REFERENCES sets(id) ON DELETE CASCADE,
+                UNIQUE (set_id, enemy_id)
+            )
+        ''')
 
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS shootings (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            shooter_id INTEGER NOT NULL,
-            victim_id INTEGER NOT NULL,
-            date TEXT NOT NULL, -- Store as year (e.g., '2025')
-            FOREIGN KEY (shooter_id) REFERENCES members (id),
-            FOREIGN KEY (victim_id) REFERENCES members (id)
-        )
-    ''')
+        # Create alliances tables
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS alliances (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL UNIQUE,
+                description TEXT
+            )
+        ''')
 
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS murders (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            shooter_id INTEGER NOT NULL,
-            victim_id INTEGER NOT NULL,
-            date TEXT NOT NULL, -- Store as year (e.g., '2025')
-            FOREIGN KEY (shooter_id) REFERENCES members (id),
-            FOREIGN KEY (victim_id) REFERENCES members (id)
-        )
-    ''')
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS alliance_member_map (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                alliance_id INTEGER NOT NULL,
+                set_id INTEGER NOT NULL,
+                role TEXT,
+                join_date TEXT,
+                FOREIGN KEY (alliance_id) REFERENCES alliances(id) ON DELETE CASCADE,
+                FOREIGN KEY (set_id) REFERENCES sets(id) ON DELETE CASCADE,
+                UNIQUE (alliance_id, set_id)
+            )
+        ''')
 
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS assists (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            shooter_id INTEGER NOT NULL,
-            victim_id INTEGER NOT NULL,
-            date TEXT NOT NULL, -- Store as year (e.g., '2025')
-            FOREIGN KEY (shooter_id) REFERENCES members (id),
-            FOREIGN KEY (victim_id) REFERENCES members (id)
-        )
-    ''')
+        # Create members table
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS members (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL,
+                description TEXT,
+                status TEXT NOT NULL CHECK (status IN ('dead', 'alive', 'locked_up', 'unknown')),
+                release_date TEXT,
+                date_of_death TEXT,
+                set_id INTEGER,
+                FOREIGN KEY (set_id) REFERENCES sets(id) ON DELETE SET NULL
+            )
+        ''')
 
-    # Adding indexes for optimized queries
-    cursor.execute('''
-        CREATE INDEX IF NOT EXISTS idx_members_set_id ON members (set_id)
-    ''')
-    cursor.execute('''
-        CREATE INDEX IF NOT EXISTS idx_shootings_date ON shootings (date)
-    ''')
-    cursor.execute('''
-        CREATE INDEX IF NOT EXISTS idx_murders_date ON murders (date)
-    ''')
-    cursor.execute('''
-        CREATE INDEX IF NOT EXISTS idx_assists_date ON assists (date)
-    ''')
-    cursor.execute('''
-        CREATE INDEX IF NOT EXISTS idx_alliance_member_map ON alliance_member_map (alliance_id, set_id)
-    ''')
-    cursor.execute('''
-        CREATE INDEX IF NOT EXISTS idx_set_allies_map ON set_allies_map (set_id, ally_id)
-    ''')
-    cursor.execute('''
-        CREATE INDEX IF NOT EXISTS idx_set_enemies_map ON set_enemies_map (set_id, enemy_id)
-    ''')
+        # Create incident tables
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS shootings (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                shooter_id INTEGER NOT NULL,
+                victim_id INTEGER NOT NULL,
+                date TEXT NOT NULL,
+                FOREIGN KEY (shooter_id) REFERENCES members(id),
+                FOREIGN KEY (victim_id) REFERENCES members(id)
+            )
+        ''')
 
-    conn.commit()
-    conn.close()
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS murders (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                shooter_id INTEGER NOT NULL,
+                victim_id INTEGER NOT NULL,
+                date TEXT NOT NULL,
+                FOREIGN KEY (shooter_id) REFERENCES members(id),
+                FOREIGN KEY (victim_id) REFERENCES members(id)
+            )
+        ''')
 
-# Initialize the database
-if __name__ == "__main__":
-    init_db()
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS assists (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                shooter_id INTEGER NOT NULL,
+                victim_id INTEGER NOT NULL,
+                date TEXT NOT NULL,
+                FOREIGN KEY (shooter_id) REFERENCES members(id),
+                FOREIGN KEY (victim_id) REFERENCES members(id)
+            )
+        ''')
+
+        # Create configuration table
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS config (
+                key TEXT PRIMARY KEY,
+                value INTEGER UNIQUE
+            )
+        ''')
+
+        # --- REST OF INITIALIZATION CODE ---
+        # Insert special sets
+        special_sets = [
+            ('?', 'Default set for unknown affiliations'),
+            ('Civilians', 'Default set for non-gang members')
+        ]
+
+        for name, desc in special_sets:
+            cursor.execute('''
+                INSERT OR IGNORE INTO sets (name, description, type)
+                VALUES (?, ?, 'active')
+            ''', (name, desc))
+
+        # Get and store special IDs
+        cursor.execute('SELECT id FROM sets WHERE name = "?"')
+        unknown_id = cursor.fetchone()[0]
+
+        cursor.execute('SELECT id FROM sets WHERE name = "Civilians"')
+        civilian_id = cursor.fetchone()[0]
+
+        cursor.execute('''
+            INSERT OR REPLACE INTO config (key, value)
+            VALUES ('unknown_set_id', ?), ('civilian_set_id', ?)
+        ''', (unknown_id, civilian_id))
+
+        # Create indexes
+        cursor.execute('''
+            CREATE INDEX IF NOT EXISTS idx_members_set_id ON members (set_id)
+        ''')
+        # ... other indexes ...
+
+        # Create protection triggers
+        cursor.execute('''
+            CREATE TRIGGER IF NOT EXISTS prevent_special_sets_delete
+            BEFORE DELETE ON sets
+            WHEN OLD.id IN (SELECT value FROM config)
+            BEGIN
+                SELECT RAISE(ABORT, 'Cannot delete system sets');
+            END;
+        ''')
+
+        cursor.execute('''
+            CREATE TRIGGER IF NOT EXISTS prevent_special_sets_update
+            BEFORE UPDATE OF id, name ON sets
+            WHEN OLD.id IN (SELECT value FROM config)
+            BEGIN
+                SELECT RAISE(ABORT, 'Cannot modify system sets');
+            END;
+        ''')
+
+        conn.commit()
+
+    except Exception as e:
+        conn.rollback()
+        raise RuntimeError(f"Database initialization failed: {str(e)}")
+
+    finally:
+        conn.close()
+
+
+def get_special_set_id(set_type: str) -> int:
+    conn = get_db()
+    try:
+        cursor = conn.cursor()
+        cursor.execute('''
+            SELECT value FROM config WHERE key = ?
+        ''', (f'{set_type}_set_id',))
+        return cursor.fetchone()[0]
+    finally:
+        conn.close()
