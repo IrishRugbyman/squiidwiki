@@ -1,4 +1,62 @@
 {% block content %} <!-- Start the content block -->
+<!-- In edit_set.html template -->
+{% if error %}
+<div class="error-banner">
+    ⚠️ System Set Protection: This is a protected system set and cannot be modified.
+    <a href="/sets" class="back-link">← Return to Sets List</a>
+</div>
+<style>
+    .error-banner {
+        background: #2a1a1a;
+        border-left: 4px solid #6a0dad;
+        padding: 1.5rem;
+        margin: 2rem auto;
+        max-width: 800px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .back-link {
+        color: #8c32ef;
+        text-decoration: none;
+        font-weight: bold;
+        margin-left: 1rem;
+    }
+</style>
+{% endif %}
+
+{% if not is_system_set %}
+<!-- Existing form code -->
+{% else %}
+<div class="system-set-message">
+    <h2>🔒 Protected System Set</h2>
+    <p>This set is part of the application's core infrastructure and cannot be modified.</p>
+    <p>Name: <strong>{{ set[1] }}</strong></p>
+    <a href="/sets" class="nav-button">← Back to All Sets</a>
+</div>
+<style>
+    .system-set-message {
+        max-width: 800px;
+        margin: 4rem auto;
+        text-align: center;
+        padding: 2rem;
+        background: #1a1a1a;
+        border-radius: 8px;
+    }
+
+    .nav-button {
+        display: inline-block;
+        margin-top: 1.5rem;
+        padding: 0.8rem 1.5rem;
+        background: #6a0dad;
+        color: white;
+        text-decoration: none;
+        border-radius: 4px;
+    }
+</style>
+{% endif %}
+<!-- Existing form code -->
 <html>
 <head>
     <title>Edit Set</title>
@@ -152,6 +210,7 @@
     <script src="https://cdn.jsdelivr.net/npm/@yaireo/tagify"></script>
     <script src="https://cdn.jsdelivr.net/npm/@yaireo/tagify/dist/tagify.polyfills.min.js"></script>
     <script>
+
         document.addEventListener("DOMContentLoaded", function () {
             var alliesInput = document.getElementById('allies');
             var enemiesInput = document.getElementById('enemies');

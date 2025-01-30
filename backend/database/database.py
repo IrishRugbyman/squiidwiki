@@ -71,17 +71,16 @@ def init_db(drop_existing: bool = False):
             CREATE TABLE IF NOT EXISTS alliances (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 name TEXT NOT NULL UNIQUE,
-                description TEXT
+                description TEXT,
+                status TEXT NOT NULL CHECK (status IN ('active', 'inactive')) DEFAULT 'active'
             )
         ''')
 
         cursor.execute('''
-            CREATE TABLE IF NOT EXISTS alliance_member_map (
+            CREATE TABLE IF NOT EXISTS alliance_sets_map (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 alliance_id INTEGER NOT NULL,
                 set_id INTEGER NOT NULL,
-                role TEXT,
-                join_date TEXT,
                 FOREIGN KEY (alliance_id) REFERENCES alliances(id) ON DELETE CASCADE,
                 FOREIGN KEY (set_id) REFERENCES sets(id) ON DELETE CASCADE,
                 UNIQUE (alliance_id, set_id)
@@ -95,10 +94,25 @@ def init_db(drop_existing: bool = False):
                 name TEXT NOT NULL,
                 description TEXT,
                 status TEXT NOT NULL CHECK (status IN ('dead', 'alive', 'locked_up', 'unknown')),
-                release_date TEXT,
-                date_of_death TEXT,
+                release_date DATE,
+                release_date_approx TEXT DEFAULT 'unknown',
+                date_of_death DATE,
+                death_date_approx TEXT DEFAULT 'unknown', 
                 set_id INTEGER,
                 FOREIGN KEY (set_id) REFERENCES sets(id) ON DELETE SET NULL
+            )
+        ''')
+        # release_date_approx and death_date_approx are used when the dates are unknown, when we only know the year or when it's life in prison
+        # so their values will either be "unknown", "YYYY" or "life"
+
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS alliance_members_map (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                alliance_id INTEGER NOT NULL,
+                member_id INTEGER NOT NULL,
+                FOREIGN KEY (alliance_id) REFERENCES alliances(id) ON DELETE CASCADE,
+                FOREIGN KEY (member_id) REFERENCES members(id) ON DELETE CASCADE,
+                UNIQUE (alliance_id, member_id)
             )
         ''')
 
@@ -108,33 +122,42 @@ def init_db(drop_existing: bool = False):
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 shooter_id INTEGER NOT NULL,
                 victim_id INTEGER NOT NULL,
-                date TEXT NOT NULL,
+                date DATE,
+                date_approx TEXT DEFAULT 'unknown',
                 FOREIGN KEY (shooter_id) REFERENCES members(id),
                 FOREIGN KEY (victim_id) REFERENCES members(id)
             )
         ''')
+        # date_approx is used when the date is unknown or when we only know the year
+        # so its value will either be "unknown" or "YYYY"
 
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS murders (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 shooter_id INTEGER NOT NULL,
-                victim_id INTEGER NOT NULL,
-                date TEXT NOT NULL,
+                victim_id INTEGER NOT NULL UNIQUE,
+                date DATE,
+                date_approx TEXT DEFAULT 'unknown',
                 FOREIGN KEY (shooter_id) REFERENCES members(id),
                 FOREIGN KEY (victim_id) REFERENCES members(id)
             )
         ''')
+        # date_approx is used when the date is unknown or when we only know the year
+        # so its value will either be "unknown" or "YYYY"
 
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS assists (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 shooter_id INTEGER NOT NULL,
                 victim_id INTEGER NOT NULL,
-                date TEXT NOT NULL,
+                date DATE,
+                date_approx TEXT DEFAULT 'unknown',
                 FOREIGN KEY (shooter_id) REFERENCES members(id),
                 FOREIGN KEY (victim_id) REFERENCES members(id)
             )
         ''')
+        # date_approx is used when the date is unknown or when we only know the year
+        # so its value will either be "unknown" or "YYYY"
 
         # Create configuration table
         cursor.execute('''
@@ -211,6 +234,33 @@ def get_special_set_id(set_type: str) -> int:
         cursor.execute('''
             SELECT value FROM config WHERE key = ?
         ''', (f'{set_type}_set_id',))
+        return cursor.fetchone()[0]
+    finally:
+        conn.close()
+
+def get_total_sets() -> int:
+    conn = get_db()
+    try:
+        cursor = conn.cursor()
+        cursor.execute("SELECT COUNT(*) FROM sets")
+        return cursor.fetchone()[0]
+    finally:
+        conn.close()
+
+def get_total_members() -> int:
+    conn = get_db()
+    try:
+        cursor = conn.cursor()
+        cursor.execute("SELECT COUNT(*) FROM members")
+        return cursor.fetchone()[0]
+    finally:
+        conn.close()
+
+def get_total_alliances() -> int:
+    conn = get_db()
+    try:
+        cursor = conn.cursor()
+        cursor.execute("SELECT COUNT(*) FROM alliances")
         return cursor.fetchone()[0]
     finally:
         conn.close()

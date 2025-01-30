@@ -12,6 +12,10 @@
     <h1>Add a New Set</h1>
     <form method="post" action="/sets/add" id="add-set-form">
         <div class="form-row">
+            <label for="is_extinct">Is Extinct:</label>
+            <input type="checkbox" id="is_extinct" name="is_extinct">
+        </div>
+        <div class="form-row">
             <label for="name">Name:</label>
             <input type="text" id="name" name="name" placeholder="Set name" required>
 
@@ -25,11 +29,6 @@
 
             <label for="enemies">Enemies:</label>
             <input id="enemies" name="enemies" placeholder="Add enemies">
-        </div>
-
-        <div class="form-row">
-            <label for="is_extinct">Is Extinct:</label>
-            <input type="checkbox" id="is_extinct" name="is_extinct">
         </div>
 
         <div class="form-row">
@@ -97,7 +96,7 @@
     h1 {
         text-align: center;
         color: #6a0dad;
-        margin-bottom: 30px;
+        margin-bottom: 10px;
         font-size: 2.5em;
         font-weight: 700;
     }

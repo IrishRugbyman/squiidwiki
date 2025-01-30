@@ -15,7 +15,7 @@
                     <label for="victim_id">Victim:</label>
                     <select name="victim_id" required>
                         {% for member in all_members %}
-                            <option value="{{ member[0] }}" {% if event and member[0] == event[2] %}selected{% endif %}>
+                            <option value="{{ member[0] }}" {% if form_data and member[0] == form_data.victim_id %}selected{% endif %}>
                                 {{ member[1] }}
                             </option>
                         {% else %}
@@ -26,7 +26,7 @@
 
                 <div class="form-group">
                     <label for="date">Date:</label>
-                    <input type="date" name="date" value="{{ event[3] if event else '' }}" required>
+                    <input type="date" name="date" value="{{ form_data.date if form_data else '' }}" required>
                 </div>
             </div>
 
@@ -64,69 +64,136 @@
     {% endif %}
 </div>
 
+<!-- Error Modal -->
+<div id="errorModal" class="modal" x-data="{ show: {% if error_message %}true{% else %}false{% endif %} }" x-show="show" @keydown.escape="show = false" @click.away="show = false">
+    <div class="modal-content">
+        <span class="close" @click="show = false">&times;</span>
+        <p class="error-message">{{ error_message }}</p>
+    </div>
+</div>
+
 <style>
-/* Updated Event List Styles */
-.event-container {
-    max-width: 800px;
-    margin: 2rem auto;
-    padding: 1rem;
-}
+    /* Modal Styles */
+    .modal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5);
+        justify-content: center;
+        align-items: center;
+    }
 
-.event-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 2rem;
-}
+    .modal-content {
+        background-color: white;
+        padding: 20px;
+        border-radius: 8px;
+        width: 90%;
+        max-width: 400px;
+        text-align: center;
+    }
 
-.event-form-card {
-    background: #1e1e1e;
-    padding: 1.5rem;
-    border-radius: 8px;
-    margin-bottom: 2rem;
-}
+    .close {
+        float: right;
+        cursor: pointer;
+        font-size: 1.5rem;
+    }
 
-.form-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 1.5rem;
-    margin: 1rem 0;
-}
+    .error-message {
+        color: red;
+        font-weight: bold;
+        margin-top: 1rem;
+    }
 
-.form-actions {
-    display: flex;
-    gap: 1rem;
-    margin-top: 1.5rem;
-}
+    /* Event List Styles */
+    .event-container {
+        max-width: 800px;
+        margin: 2rem auto;
+        padding: 1rem;
+    }
 
-.save-btn {
-    background: #8c32ef;
-    color: white;
-    padding: 0.75rem 1.5rem;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-}
+    .event-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 2rem;
+    }
 
-.cancel-btn {
-    color: #888;
-    padding: 0.75rem 1.5rem;
-    text-decoration: none;
-}
+    .event-form-card {
+        background: #1e1e1e;
+        padding: 1.5rem;
+        border-radius: 8px;
+        margin-bottom: 2rem;
+    }
 
-.event-item {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 1rem;
-    background: #2a2a2a;
-    margin-bottom: 0.5rem;
-    border-radius: 4px;
-}
+    .form-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1.5rem;
+        margin: 1rem 0;
+    }
 
-.event-actions {
-    display: flex;
-    gap: 0.5rem;
-}
+    .form-actions {
+        display: flex;
+        gap: 1rem;
+        margin-top: 1.5rem;
+    }
+
+    .save-btn {
+        background: #8c32ef;
+        color: white;
+        padding: 0.75rem 1.5rem;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+    }
+
+    .cancel-btn {
+        color: #888;
+        padding: 0.75rem 1.5rem;
+        text-decoration: none;
+    }
+
+    .event-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1rem;
+        background: #2a2a2a;
+        margin-bottom: 0.5rem;
+        border-radius: 4px;
+    }
+
+    .event-actions {
+        display: flex;
+        gap: 0.5rem;
+    }
 </style>
+
+<script>
+    // Show modal if there's an error
+    document.addEventListener('DOMContentLoaded', function () {
+        const modal = document.getElementById('errorModal');
+        if (modal && modal.getAttribute('x-data').includes('true')) {
+            modal.style.display = 'flex';
+        }
+    });
+
+    // Close modal when clicking outside or pressing Escape
+    document.addEventListener('click', function (event) {
+        const modal = document.getElementById('errorModal');
+        if (modal && event.target === modal) {
+            modal.style.display = 'none';
+        }
+    });
+
+    document.addEventListener('keydown', function (event) {
+        const modal = document.getElementById('errorModal');
+        if (modal && event.key === 'Escape') {
+            modal.style.display = 'none';
+        }
+    });
+</script>
 {% endblock %}

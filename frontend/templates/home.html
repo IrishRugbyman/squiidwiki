@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="dashboard">
+    <div class="dashboard-grid">
+        <!-- Stats Section -->
+        <div class="stats-container">
+            <h2 class="dashboard-title">SquiidVault Overview</h2>
+            <div class="horizontal-stats">
+                <a href="/sets" class="compact-stat">
+                    <div class="stat-value">{{ total_sets }}</div>
+                    <div class="stat-label">Total Sets</div>
+                </a>
+                <a href="/members" class="compact-stat">
+                    <div class="stat-value">{{ total_members }}</div>
+                    <div class="stat-label">Members</div>
+                </a>
+                <a href="/alliances" class="compact-stat">
+                    <div class="stat-value">{{ total_alliances }}</div>
+                    <div class="stat-label">Active Alliances</div>
+                </a>
+            </div>
+        </div>
+
+        <!-- Welcome Message -->
+        <div class="welcome-message">
+            <p>
+                Welcome to the SquiidVault! If you can read this message, it means you're one of the few privileged individuals who have access to this rich and complex database.
+                <br><br>
+                The pieces of information you'll find here are the result of years of research and discussions with members. All of it can't be perfectly on point, but it's the best I can.
+                <br><br>
+                I hope you'll find what you're looking for, and if you don't, please let me know so I can improve the database.
+                <br><br>
+                <span class="signature">presented to you by Q aka IrishRugbyman</span>
+            </p>
+        </div>
+    </div>
+</section>
+{% endblock %}

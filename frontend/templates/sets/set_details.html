@@ -7,12 +7,17 @@
         <h1 class="set-title">
             {{ set[1] }}
             {% if set[3] == "extinct" %}
-                <span class="extinct-icon" title="Extinct Set">💀</span>
+                <span class="extinct-icon" role="img" aria-label="Extinct Set">🪦</span>
             {% endif %}
         </h1>
-        <a href="/sets/edit/{{ set[0] }}" class="edit-set-btn">
-            ✏️ Edit Set
-        </a>
+        <div class="member-actions">
+            <a href="/sets/edit/{{ set[0] }}" class="edit-btn" aria-label="Edit set">
+                ✏️ Edit
+            </a>
+            <button class="delete-btn" data-bs-toggle="modal" data-bs-target="#deleteModal" aria-label="Delete set">
+                🗑️ Delete
+            </button>
+        </div>
     </div>
 
     <!-- Set Description -->
@@ -23,10 +28,10 @@
     <!-- Relationships Section -->
     <div class="relationship-section">
         <div class="relationship-card allies">
-            <h3>🤝 Allies</h3>
+            <h3><span role="img" aria-label="Allies">🤝</span> Allies</h3>
             {% if allies %}
                 <ul class="relationship-list">
-                {% for ally in allies|sort(attribute='name') %}  <!-- Changed to sort by name -->
+                {% for ally in allies|sort(attribute='name') %}
                     <li>
                         <a href="/sets/{{ ally[1] }}" class="relationship-item">
                             <span class="bullet">•</span> {{ ally[0] }}
@@ -37,17 +42,16 @@
             {% else %}
                 <div class="empty-state">
                     No allies found
-                    <span class="empty-icon">❌</span>
+                    <span class="empty-icon" role="img" aria-label="No entries">❌</span>
                 </div>
             {% endif %}
         </div>
 
-
         <div class="relationship-card enemies">
-            <h3>⚔️ Enemies</h3>
+            <h3><span role="img" aria-label="Enemies">⚔️</span> Enemies</h3>
             {% if enemies %}
                 <ul class="relationship-list">
-                {% for enemy in enemies|sort(attribute='name') %}  <!-- Changed to sort by name -->
+                {% for enemy in enemies|sort(attribute='name') %}
                     <li>
                         <a href="/sets/{{ enemy[1] }}" class="relationship-item">
                             <span class="bullet">•</span> {{ enemy[0] }}
@@ -58,26 +62,53 @@
             {% else %}
                 <div class="empty-state">
                     No enemies found
-                    <span class="empty-icon">❌</span>
+                    <span class="empty-icon" role="img" aria-label="No entries">❌</span>
                 </div>
             {% endif %}
+        </div>
     </div>
+
+    <!-- Murders Section -->
+    <div class="murders-section">
+        <div class="section-header">
+            <h3><span role="img" aria-label="Murders">🔪</span> Murders Committed</h3>
+        </div>
+
+        {% if murders %}
+        <div class="murders-list">
+            {% for murder in murders %}
+            <div class="murder-item">
+                <div class="murder-details">
+                    <a href="/members/{{ murder[2] }}" class="shooter">{{ murder[1] }}</a> killed
+                    <a href="/members/{{ murder[5] }}" class="victim">{{ murder[3] }}</a>
+                    from <a href="/sets/{{ murder[6] }}" class="victim-set">{{ murder[4] }}</a>
+                </div>
+                <div class="murder-date">{{ murder[0][:4] }}</div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty-state">
+            No recorded murders
+            <span class="empty-icon" role="img" aria-label="Peace">🕊️</span>
+        </div>
+        {% endif %}
     </div>
 
     <!-- Members Section -->
     <div class="members-section">
         <div class="members-header">
             <div class="members-controls">
-                <h3>👥 Members</h3>
+                <h3><span role="img" aria-label="Members">👥</span> Members</h3>
                 <div class="sort-controls">
-                    <select id="sort-by" class="sort-select">
-                        <option value="name">Sort by Name</option>
-                        <option value="status">Sort by Status</option>
+                    <select id="sort-by" class="sort-select" aria-label="Sort members by">
+                        <option value="name">Name</option>
+                        <option value="status">Status</option>
                     </select>
-                    <button id="sort-order" class="sort-order-btn" data-order="asc">↑</button>
+                    <button id="sort-order" class="sort-order-btn" data-order="asc" aria-label="Sort order">↑</button>
                 </div>
             </div>
-            <a href="/members/add/{{ set[0] }}" class="add-member-btn">
+            <a href="/members/add/{{ set[0] }}" class="add-member-btn" aria-label="Add new member">
                 ➕ Add Member
             </a>
         </div>
@@ -85,23 +116,17 @@
         {% if members %}
             <ul class="members-list">
             {% for member in members %}
-                <li class="member-item" data-status="{{ member[2] }}">
+                <li class="member-item" data-status="{{ member[3] }}">
                     <a href="/members/{{ member[0] }}" class="member-name">
                         {{ member[1] }}
                     </a>
                     <div class="member-status">
-                        {% if member[2] == "locked_up" %}
-                            <span class="status locked-up" title="Locked Up">
-                                🔒
-                            </span>
-                        {% elif member[2] == "dead" %}
-                            <span class="status deceased" title="Deceased">
-                                💀
-                            </span>
+                        {% if member[3] == "locked_up" %}
+                            <span class="status locked-up" role="img" aria-label="Locked Up">🔒</span>
+                        {% elif member[3] == "dead" %}
+                            <span class="status deceased" role="img" aria-label="Deceased">💀</span>
                         {% else %}
-                            <span class="status alive" title="Alive">
-                                🟢
-                            </span>
+                            <span class="status alive" role="img" aria-label="Active">🟢</span>
                         {% endif %}
                     </div>
                 </li>
@@ -110,103 +135,13 @@
         {% else %}
             <div class="empty-state">
                 No members found
-                <span class="empty-icon">❌</span>
+                <span class="empty-icon" role="img" aria-label="No entries">❌</span>
             </div>
         {% endif %}
     </div>
-    <div class="murders-section">
-        <div class="section-header">
-            <h3>🔪 Murders Committed</h3>
-        </div>
-
-        {% if murders %}
-        <div class="murders-list">
-            {% for murder in murders %}
-            <div class="murder-item">
-                <div class="murder-date">{{ murder[0] }}</div>  {# Date already formatted as year #}
-                <div class="murder-details">
-                    <span class="shooter">{{ murder[1] }}</span> killed
-                    <a href="/members/{{ murder[4] }}" class="victim">{{ murder[2] }}</a>
-                    from <a href="/sets/{{ murder[5] }}" class="victim-set">{{ murder[3] }}</a>
-                </div>
-            </div>
-            {% endfor %}
-        </div>
-        {% else %}
-        <div class="empty-state">
-            No recorded murders
-            <span class="empty-icon">🕊️</span>
-        </div>
-        {% endif %}
-    </div>
-
-    <style>
-        .murders-section {
-            margin: 2rem 0;
-            padding: 1.5rem;
-            background: #1a1a1a;
-            border-radius: 8px;
-            border: 1px solid #2d2d2d;
-        }
-
-        .murders-list {
-            margin-top: 1rem;
-        }
-
-        .murder-item {
-            display: flex;
-            align-items: center;
-            padding: 1rem;
-            margin-bottom: 0.5rem;
-            background: #242424;
-            border-radius: 6px;
-        }
-
-        .murder-date {
-            color: #888;
-            min-width: 120px;
-            font-size: 0.9rem;
-        }
-
-        .murder-details {
-            color: #e0e0e0;
-            flex-grow: 1;
-        }
-
-        .shooter {
-            color: #ef8732;
-            font-weight: 500;
-        }
-
-        .victim {
-            color: #ff4d4d;
-            text-decoration: none;
-        }
-
-        .victim-set {
-            color: #8c32ef;
-            text-decoration: none;
-        }
-
-        .victim:hover,
-        .victim-set:hover {
-            text-decoration: underline;
-        }
-    </style>
 </div>
 
-
 <style>
-    .section-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 1rem;
-    }
-
-    .empty-icon {
-        margin-left: 0.5rem;
-    }
     .set-container {
         max-width: 1200px;
         margin: 2rem auto;
@@ -234,10 +169,41 @@
         vertical-align: middle;
     }
 
+    .member-actions {
+        display: flex;
+        gap: 1rem;
+        align-items: center;
+    }
+
+    .edit-btn, .delete-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.5rem 1rem;
+        border-radius: 4px;
+        text-decoration: none;
+        transition: all 0.2s ease;
+        background: transparent;
+        border: none;
+        font-size: 0.9rem;
+    }
+
+    .edit-btn {
+        color: #ef8732;
+    }
+
+    .delete-btn {
+        color: #ff4d4d;
+    }
+
+    .edit-btn:hover, .delete-btn:hover {
+        opacity: 0.8;
+    }
+
     .relationship-section {
         display: grid;
         grid-template-columns: 1fr 1fr;
-        gap: 2rem;
+        gap: 1rem;
         margin: 2rem 0;
     }
 
@@ -245,7 +211,12 @@
         background: #1e1e1e;
         padding: 1.5rem;
         border-radius: 8px;
-        border: 1px solid #333;
+        border: 1px solid #2d2d2d;
+    }
+
+    .relationship-card h3 {
+        margin-top: 0;
+        margin-bottom: 1rem;
     }
 
     .relationship-list {
@@ -257,25 +228,84 @@
     .relationship-item {
         color: #e0e0e0;
         text-decoration: none;
-        padding: 0.25rem 0;
+        padding: 0.5rem 0;
         display: block;
         transition: color 0.2s;
-        line-height: 0.5;
     }
 
     .relationship-item:hover {
         color: #8c32ef;
     }
 
+    .empty-state {
+        color: #888;
+        text-align: center;
+        padding: 1.5rem;
+        border: 1px dashed #333;
+        border-radius: 6px;
+    }
+
+    .murders-section {
+        margin: 2rem 0;
+        padding: 1.5rem;
+        background: #1e1e1e;
+        border-radius: 8px;
+        border: 1px solid #2d2d2d;
+    }
+
+    .murders-list {
+        margin-top: 1rem;
+    }
+
+    .murder-item {
+        display: flex;
+        align-items: center;
+        padding: 1rem;
+        margin-bottom: 0.5rem;
+        background: #242424;
+        border-radius: 6px;
+    }
+
+    .murder-details {
+        color: #e0e0e0;
+        flex-grow: 1;
+    }
+
+    .murder-date {
+        color: #888;
+        font-size: 0.9rem;
+    }
+
+    .shooter {
+        color: #ef8732;
+        font-weight: 500;
+        text-decoration: none;
+    }
+
+    .victim {
+        color: #ff4d4d;
+        text-decoration: none;
+        font-weight: 500;
+    }
+
+    .victim-set {
+        color: #8c32ef;
+        text-decoration: none;
+    }
+
+    .victim:hover, .victim-set:hover {
+        text-decoration: underline;
+    }
+
     .members-section {
-        margin-top: 3rem;
+        margin-top: 2rem;
     }
 
     .members-header {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        margin-bottom: 1.5rem;
+        margin-bottom: 1rem;
     }
 
     .members-controls {
@@ -294,7 +324,7 @@
         background: #2a2a2a;
         color: #e0e0e0;
         border: 1px solid #444;
-        padding: 0.3rem 0.8rem;
+        padding: 0.5rem 1rem;
         border-radius: 4px;
         cursor: pointer;
     }
@@ -303,7 +333,7 @@
         background: #3a3a3a;
         color: #e0e0e0;
         border: 1px solid #444;
-        padding: 0.3rem 0.8rem;
+        padding: 0.5rem 1rem;
         border-radius: 4px;
         cursor: pointer;
         transition: all 0.2s;
@@ -323,7 +353,7 @@
         display: flex;
         justify-content: space-between;
         align-items: center;
-        padding: 0.5rem;
+        padding: 1rem;
         background: #1e1e1e;
         margin-bottom: 0.5rem;
         border-radius: 6px;
@@ -331,6 +361,7 @@
     }
 
     .member-item:hover {
+        transform: translateX(5px);
     }
 
     .member-name {
@@ -340,11 +371,9 @@
     }
 
     .member-status {
-        font-size: 0.9rem;
-        padding: 0.3rem 0.8rem;
-        border-radius: 4px;
-        min-width: 100px;
-        text-align: center;
+        font-size: 1.2rem;
+        min-width: 40px;
+        text-align: right;
     }
 
     .status.alive {
@@ -359,15 +388,7 @@
         color: #F44336;
     }
 
-    .empty-state {
-        color: #888;
-        text-align: center;
-        padding: 1.5rem;
-        border: 1px dashed #333;
-        border-radius: 6px;
-    }
-
-    .edit-set-btn, .add-member-btn {
+    .add-member-btn {
         background: #6a0dad;
         color: white;
         padding: 0.5rem 1rem;
@@ -376,7 +397,7 @@
         transition: background 0.2s;
     }
 
-    .edit-set-btn:hover, .add-member-btn:hover {
+    .add-member-btn:hover {
         background: #8c32ef;
     }
 
@@ -432,7 +453,6 @@
             memberList.append(...members);
         }
 
-        // Rest of the script remains the same
         sortBy.addEventListener('change', sortMembers);
 
         sortOrderBtn.addEventListener('click', () => {

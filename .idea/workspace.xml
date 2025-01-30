@@ -4,19 +4,47 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="5a90f149-2977-41b7-8c89-dbcb66ee7cb1" name="Changes" comment="vive deepseek">
-      <change afterPath="$PROJECT_DIR$/backend/config/templates.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/backend/routes/events.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/frontend/templates/event_list.html" afterDir="false" />
+    <list default="true" id="5a90f149-2977-41b7-8c89-dbcb66ee7cb1" name="Changes" comment="hummmmm not too great tonight">
+      <change afterPath="$PROJECT_DIR$/backend/routes/home.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/frontend/static/icons/android-chrome-192x192.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/frontend/static/icons/apple-touch-icon.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/frontend/static/icons/favicon.ico" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/frontend/templates/alliances/add_alliance_member.html" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/frontend/templates/home.html" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/frontend/templates/members/delete_members.html" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/frontend/templates/members/index.html" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/frontend/templates/sets/delete_set.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/dataSources.local.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/dataSources.local.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/dataSources.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/dataSources.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/dataSources/a6644f1b-41d3-4cbc-bb4e-def8fcaab52f.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/dataSources/a6644f1b-41d3-4cbc-bb4e-def8fcaab52f/storage_v2/_src_/schema/main.uQUzAA.meta" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/dataSources/c293a5f7-2d64-4fac-9301-ca10816d3b63.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/dataSources/c293a5f7-2d64-4fac-9301-ca10816d3b63/storage_v2/_src_/schema/main.uQUzAA.meta" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/dataSources/c293a5f7-2d64-4fac-9301-ca10816d3b63/storage_v2/_src_/schema/main.uQUzAA.zip" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/config/templates.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/config/templates.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/database/database.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/database/database.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/routes/alliances.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/routes/alliances.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/routes/events.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/routes/events.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/backend/routes/members.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/routes/members.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/backend/routes/sets.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/routes/sets.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/backend/server.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/server.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/frontend/static/styles.css" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/static/styles.css" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/templates/alliances/add_alliance.html" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/templates/alliances/add_alliance.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/templates/alliances/alliance_details.html" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/templates/alliances/alliance_details.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/templates/alliances/edit_alliance.html" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/templates/alliances/edit_alliance.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/templates/alliances/index.html" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/templates/alliances/index.html" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/frontend/templates/base.html" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/templates/base.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/templates/event_list.html" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/templates/event_list.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/templates/members/add_member.html" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/templates/members/add_member.html" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/frontend/templates/members/edit_member.html" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/templates/members/edit_member.html" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/frontend/templates/members/member_details.html" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/templates/members/member_details.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/templates/sets/add_set.html" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/templates/sets/add_set.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/templates/sets/edit_set.html" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/templates/sets/edit_set.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/templates/sets/index.html" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/templates/sets/index.html" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/frontend/templates/sets/set_details.html" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/templates/sets/set_details.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/main.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/squiidvault.db" beforeDir="false" afterPath="$PROJECT_DIR$/squiidvault.db" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -26,8 +54,8 @@
   <component name="FileTemplateManagerImpl">
     <option name="RECENT_TEMPLATES">
       <list>
-        <option value="HTML File" />
         <option value="Python Script" />
+        <option value="HTML File" />
       </list>
     </option>
   </component>
@@ -57,6 +85,9 @@
     &quot;accountId&quot;: &quot;bfbe5698-3a63-4f92-abfe-8ffe4def76c2&quot;
   }
 }</component>
+  <component name="ProblemsViewState">
+    <option name="selectedTabId" value="CurrentFile" />
+  </component>
   <component name="ProjectColorInfo">{
   &quot;associatedIndex&quot;: 1
 }</component>
@@ -71,7 +102,7 @@
   <component name="PropertiesComponent">{
   &quot;keyToString&quot;: {
     &quot;DefaultHtmlFileTemplate&quot;: &quot;HTML File&quot;,
-    &quot;Python.database.executor&quot;: &quot;Run&quot;,
+    &quot;Python.database.executor&quot;: &quot;Debug&quot;,
     &quot;Python.main.executor&quot;: &quot;Debug&quot;,
     &quot;Python.python_gui.executor&quot;: &quot;Run&quot;,
     &quot;Python.server.executor&quot;: &quot;Run&quot;,
@@ -84,17 +115,25 @@
     &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
     &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
     &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
-    &quot;settings.editor.selected.configurable&quot;: &quot;preferences.pluginManager&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;settings.qodana&quot;,
     &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
+  },
+  &quot;keyToStringList&quot;: {
+    &quot;DatabaseDriversLRU&quot;: [
+      &quot;sqlite&quot;
+    ],
+    &quot;com.intellij.ide.scratch.LRUPopupBuilder$1/SQL Dialect&quot;: [
+      &quot;SQLite&quot;
+    ]
   }
 }</component>
   <component name="RecentsManager">
     <key name="MoveFile.RECENT_KEYS">
+      <recent name="C:\Users\irish\SquiidWiki\frontend\static\icons" />
       <recent name="C:\Users\irish\SquiidWiki\backend\database" />
       <recent name="C:\Users\irish\SquiidWiki\frontend\templates" />
       <recent name="C:\Users\irish\SquiidWiki\frontend\templates\sets" />
       <recent name="C:\Users\irish\SquiidWiki\frontend\templates\calendar" />
-      <recent name="C:\Users\irish\SquiidWiki\frontend\templates\member_details" />
     </key>
   </component>
   <component name="RunManager" selected="Python.main">
@@ -193,14 +232,15 @@
     <recent_temporary>
       <list>
         <item itemvalue="Python.main" />
+        <item itemvalue="Python.database" />
       </list>
     </recent_temporary>
   </component>
   <component name="SharedIndexes">
     <attachedChunks>
       <set>
-        <option value="bundled-js-predefined-d6986cc7102b-deb605915726-JavaScript-PY-243.22562.220" />
-        <option value="bundled-python-sdk-0fc6c617c4bd-9a18a617cbe4-com.jetbrains.pycharm.pro.sharedIndexes.bundled-PY-243.22562.220" />
+        <option value="bundled-js-predefined-d6986cc7102b-822845ee3bb5-JavaScript-PY-243.23654.177" />
+        <option value="bundled-python-sdk-91d3a02ef49d-43b77aa2d136-com.jetbrains.pycharm.pro.sharedIndexes.bundled-PY-243.23654.177" />
       </set>
     </attachedChunks>
   </component>
@@ -220,7 +260,11 @@
       <workItem from="1737414010743" duration="7738000" />
       <workItem from="1737488159759" duration="6076000" />
       <workItem from="1737499538684" duration="13739000" />
-      <workItem from="1737574447921" duration="8238000" />
+      <workItem from="1737574447921" duration="8454000" />
+      <workItem from="1737678069504" duration="13032000" />
+      <workItem from="1737779978994" duration="25000" />
+      <workItem from="1737822701638" duration="31227000" />
+      <workItem from="1738193941532" duration="13885000" />
     </task>
     <task id="LOCAL-00001" summary="first commit">
       <option name="closed" value="true" />
@@ -254,7 +298,23 @@
       <option name="project" value="LOCAL" />
       <updated>1737518796204</updated>
     </task>
-    <option name="localTasksCounter" value="5" />
+    <task id="LOCAL-00005" summary="gui is looking nice">
+      <option name="closed" value="true" />
+      <created>1737608718056</created>
+      <option name="number" value="00005" />
+      <option name="presentableId" value="LOCAL-00005" />
+      <option name="project" value="LOCAL" />
+      <updated>1737608718056</updated>
+    </task>
+    <task id="LOCAL-00006" summary="hummmmm not too great tonight">
+      <option name="closed" value="true" />
+      <created>1737691236089</created>
+      <option name="number" value="00006" />
+      <option name="presentableId" value="LOCAL-00006" />
+      <option name="project" value="LOCAL" />
+      <updated>1737691236089</updated>
+    </task>
+    <option name="localTasksCounter" value="7" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -275,12 +335,32 @@
     <MESSAGE value="first commit" />
     <MESSAGE value="sets ennemies and allies working great" />
     <MESSAGE value="vive deepseek" />
-    <option name="LAST_COMMIT_MESSAGE" value="vive deepseek" />
+    <MESSAGE value="gui is looking nice" />
+    <MESSAGE value="hummmmm not too great tonight" />
+    <option name="LAST_COMMIT_MESSAGE" value="hummmmm not too great tonight" />
+  </component>
+  <component name="XDebuggerManager">
+    <breakpoint-manager>
+      <breakpoints>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/main.py</url>
+          <line>6</line>
+          <option name="timeStamp" value="1" />
+        </line-breakpoint>
+      </breakpoints>
+      <default-breakpoints>
+        <breakpoint type="python-exception">
+          <properties notifyOnTerminate="true" exception="BaseException">
+            <option name="notifyOnTerminate" value="true" />
+          </properties>
+        </breakpoint>
+      </default-breakpoints>
+    </breakpoint-manager>
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
     <SUITE FILE_PATH="coverage/SquiidWiki$server.coverage" NAME="server Coverage Results" MODIFIED="1736989649360" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
-    <SUITE FILE_PATH="coverage/SquiidWiki$main.coverage" NAME="main Coverage Results" MODIFIED="1737608497109" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/SquiidWiki$main.coverage" NAME="main Coverage Results" MODIFIED="1738207557381" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
     <SUITE FILE_PATH="coverage/SquiidWiki$python_gui.coverage" NAME="python_gui Coverage Results" MODIFIED="1736989810824" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
-    <SUITE FILE_PATH="coverage/SquiidWiki$database.coverage" NAME="database Coverage Results" MODIFIED="1737326535679" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/backend" />
+    <SUITE FILE_PATH="coverage/SquiidWiki$database.coverage" NAME="database Coverage Results" MODIFIED="1737682507520" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/backend" />
   </component>
 </project>

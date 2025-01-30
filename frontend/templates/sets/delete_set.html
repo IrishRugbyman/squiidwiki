@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>Delete Set: {{ set[1] }}</h2>
+    
+    <div class="alert alert-danger">
+        <form method="post" onsubmit="return validateForm()">
+            <p class="fw-bold">This will permanently delete:</p>
+            <ul>
+                <li>Set: {{ set[1] }}</li>
+                <li>All relationships</li>
+                {% if member_count > 0 %}
+                <li>{{ member_count }} member(s)</li>
+                {% endif %}
+            </ul>
+
+            <div class="mb-4">
+                <h5>Member handling:</h5>
+
+                <select name="member_action" class="form-select mb-3" required>
+                    <option value="">Choose action...</option>
+                    <option value="move">Move members to another set</option>
+                    <option value="delete">Delete all members permanently</option>
+                </select>
+
+                <div id="targetSetGroup" style="display: none;">
+                    <select name="target_set" class="form-select w-50">
+                        <option value="{{ special_set_id }}">? (Unknown)</option>
+                        <!-- Add more set options if needed -->
+                    </select>
+                </div>
+            </div>
+
+            <div class="mt-4">
+                <button type="submit" class="btn btn-danger">Confirm Deletion</button>
+                <a href="/sets/{{ set[0] }}" class="btn btn-secondary">Cancel</a>
+            </div>
+        </form>
+    </div>
+
+    <script>
+        function validateForm() {
+            const action = document.querySelector('[name="member_action"]').value;
+            const targetSet = document.querySelector('[name="target_set"]');
+
+            if (action === 'move' && !targetSet.value) {
+                alert('Please select a target set for members');
+                return false;
+            }
+            return true;
+        }
+
+        // Show/hide target set based on selection
+        document.querySelector('[name="member_action"]').addEventListener('change', (e) => {
+            document.getElementById('targetSetGroup').style.display =
+                e.target.value === 'move' ? 'block' : 'none';
+        });
+    </script>
+</div>
+{% endblock %}

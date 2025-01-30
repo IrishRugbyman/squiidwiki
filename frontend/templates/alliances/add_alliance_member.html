@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="add-member-container">
+    <h2>Add Member Set to {{ alliance.name }}</h2>
+
+    <form method="post" action="/alliances/add_member/{{ alliance.id }}">
+        <div class="form-group">
+            <label for="set_id">Select Set to Add:</label>
+            <select class="form-select" id="set_id" name="set_id" required>
+                {% for set in available_sets %}
+                    <option value="{{ set.id }}">{{ set.name }} ({{ set.type }})</option>
+                {% endfor %}
+            </select>
+        </div>
+        <button type="submit" class="btn btn-primary">Add Set to Alliance</button>
+    </form>
+
+    <a href="/alliances/{{ alliance.id }}" class="back-link">← Back to Alliance</a>
+</div>
+
+<style>
+    .add-member-container {
+        max-width: 800px;
+        margin: 2rem auto;
+        padding: 2rem;
+        background: #1e1e1e;
+        border-radius: 8px;
+    }
+
+    .form-group {
+        margin-bottom: 1.5rem;
+    }
+
+    .form-select {
+        width: 100%;
+        padding: 0.75rem;
+        background: #2a2a2a;
+        border: 1px solid #444;
+        color: #e0e0e0;
+        border-radius: 4px;
+    }
+
+    .btn-primary {
+        background: #6a0dad;
+        border: none;
+        padding: 0.75rem 1.5rem;
+        border-radius: 4px;
+        cursor: pointer;
+    }
+
+    .btn-primary:hover {
+        background: #8c32ef;
+    }
+
+    .back-link {
+        display: inline-block;
+        margin-top: 1.5rem;
+        color: #ef8732;
+        text-decoration: none;
+    }
+</style>
+{% endblock %}

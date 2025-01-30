@@ -92,6 +92,15 @@ def process_relations(cursor, set_id, relation_names, relation_table):
             (added_id, set_id)
         )
 
+def get_special_set_id(set_type):
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute('''
+        SELECT value FROM config 
+        WHERE key = ?
+    ''', (f'{set_type}_set_id',))
+    return cursor.fetchone()[0]
+
 @router.get("/", response_class=HTMLResponse)
 def read_root(request: Request):
     with db_connection() as conn:
@@ -155,6 +164,10 @@ def read_set(request: Request, set_id: int):
             if not set:
                 raise HTTPException(status_code=404, detail="Set not found")
 
+                # Count members
+            cursor.execute("SELECT COUNT(*) FROM members WHERE set_id = ?", (set_id,))
+            member_count = cursor.fetchone()[0]
+
             cursor.execute("SELECT * FROM members WHERE set_id = ?", (set_id,))
             members = cursor.fetchall()
 
@@ -173,12 +186,14 @@ def read_set(request: Request, set_id: int):
             enemies = cursor.fetchall()
 
             # In read_set function
+            # In the read_set function's SQL query
             cursor.execute("""
                 SELECT m.date, 
-                       shooter.name AS shooter_name, 
+                       shooter.name AS shooter_name,
+                       shooter.id AS shooter_id,  -- Add this line
                        victim.name AS victim_name, 
                        victim_set.name AS victim_set_name,
-                       victim.id AS victim_id,  -- Get actual victim member ID
+                       victim.id AS victim_id,
                        victim.set_id AS victim_set_id
                 FROM murders m
                 JOIN members shooter ON m.shooter_id = shooter.id
@@ -195,7 +210,8 @@ def read_set(request: Request, set_id: int):
                 "members": members,
                 "allies": allies,
                 "enemies": enemies,
-                "murders": murders  # Add this line
+                "murders": murders,  # Add this line
+                "member_count": member_count,
             })
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
@@ -249,7 +265,15 @@ def edit_set(
     with db_connection() as conn:
         cursor = conn.cursor()
         try:
-            # Fetch the current set name
+            # First check if system set
+            cursor.execute("SELECT value FROM config WHERE key IN ('unknown_set_id', 'civilian_set_id')")
+            special_ids = [row[0] for row in cursor.fetchall()]
+            if set_id in special_ids:
+                raise HTTPException(
+                    status_code=303,
+                    detail="System sets cannot be modified",
+                    headers={"Location": f"/sets/{set_id}?error=system_set"}
+                )
             cursor.execute("SELECT name FROM sets WHERE id = ?", (set_id,))
             set_name = cursor.fetchone()[0]
 
@@ -283,3 +307,101 @@ def edit_set(
             raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
 
     return RedirectResponse(url=f"/sets/{set_id}", status_code=303)
+
+
+# Add to your existing sets router
+
+@router.get("/delete/{set_id}", response_class=HTMLResponse)
+def delete_set_confirmation(request: Request, set_id: int):
+    with db_connection() as conn:
+        cursor = conn.cursor()
+        try:
+            # Check if system set
+            cursor.execute("SELECT value FROM config WHERE key IN ('unknown_set_id', 'civilian_set_id')")
+            special_ids = [row[0] for row in cursor.fetchall()]
+            if set_id in special_ids:
+                return RedirectResponse(url=f"/sets/{set_id}?error=Cannot delete system sets")
+
+            # Get set details
+            cursor.execute("SELECT * FROM sets WHERE id = ?", (set_id,))
+            set_data = cursor.fetchone()
+            if not set_data:
+                raise HTTPException(status_code=404, detail="Set not found")
+
+            # Count members
+            cursor.execute("SELECT COUNT(*) FROM members WHERE set_id = ?", (set_id,))
+            member_count = cursor.fetchone()[0]
+
+            return templates.TemplateResponse("sets/delete_set.html", {
+                "request": request,
+                "set": set_data,
+                "member_count": member_count,
+                "special_set_id": get_special_set_id('unknown')
+            })
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/delete/{set_id}", response_class=RedirectResponse)
+def delete_set(
+        request: Request,
+        set_id: int,
+        member_action: str = Form(...),
+        target_set: Optional[int] = Form(None)
+):
+    with db_connection() as conn:
+        cursor = conn.cursor()
+        try:
+            # Validate set exists
+            cursor.execute("SELECT id FROM sets WHERE id = ?", (set_id,))
+            if not cursor.fetchone():
+                raise HTTPException(status_code=404, detail="Set not found")
+
+            # Handle member action
+            if member_action == "move":
+                if not target_set:
+                    raise HTTPException(
+                        status_code=400,
+                        detail="Target set required for member transfer"
+                    )
+
+                # Verify target set exists
+                cursor.execute("SELECT id FROM sets WHERE id = ?", (target_set,))
+                if not cursor.fetchone():
+                    raise HTTPException(
+                        status_code=400,
+                        detail="Invalid destination set"
+                    )
+
+                # Move members
+                cursor.execute(
+                    "UPDATE members SET set_id = ? WHERE set_id = ?",
+                    (target_set, set_id)
+                )
+
+            elif member_action == "delete":
+                # Delete member-related records
+                cursor.execute("""
+                    DELETE FROM incidents 
+                    WHERE shooter_id IN (SELECT id FROM members WHERE set_id = ?)
+                    OR victim_id IN (SELECT id FROM members WHERE set_id = ?)
+                """, (set_id, set_id))
+
+                # Delete members
+                cursor.execute("DELETE FROM members WHERE set_id = ?", (set_id,))
+
+            # Clean relationships and delete set
+            cursor.execute("DELETE FROM set_relationships WHERE set_id = ?", (set_id,))
+            cursor.execute("DELETE FROM sets WHERE id = ?", (set_id,))
+
+            conn.commit()
+            return RedirectResponse(url="/sets/", status_code=303)
+
+        except HTTPException as he:
+            raise
+        except Exception as e:
+            conn.rollback()
+            raise HTTPException(
+                status_code=500,
+                detail=f"Deletion failed: {str(e)}"
+            )

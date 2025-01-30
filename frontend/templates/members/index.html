@@ -1,25 +1,30 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="alliances-container">
-    <div class="header-container">
-        <h2 class="page-title">DETROIT ALLIANCES</h2>
-        <a href="/alliances/add" class="add-alliance-button">+ Add Alliance</a>
-    </div>
+<div class="members-container">
+    <h2 class="page-title">DETROIT MEMBERS</h2>
 
     <!-- Controls Container -->
     <div class="controls-container">
         <!-- Search Bar -->
-        <input type="text" id="searchInput" placeholder="Search for an alliance..."
-               class="search-bar" aria-label="Search alliances">
+        <input type="text" id="searchInput" placeholder="Search for a member..."
+               class="search-bar" aria-label="Search members">
 
         <!-- Filter & Sort Controls -->
         <div class="filter-sort-controls">
             <div class="filter-group">
                 <select id="filter-status" class="filter-select" aria-label="Filter by status">
                     <option value="all">All Statuses</option>
-                    <option value="active">Active</option>
-                    <option value="inactive">Inactive</option>
+                    <option value="alive">Active</option>
+                    <option value="locked_up">Locked Up</option>
+                    <option value="dead">Deceased</option>
+                </select>
+
+                <select id="filter-set" class="filter-select" aria-label="Filter by set">
+                    <option value="all">All Sets</option>
+                    {% for set in sets %}
+                    <option value="{{ set[0] }}">{{ set[1] }}</option>
+                    {% endfor %}
                 </select>
             </div>
 
@@ -27,6 +32,7 @@
                 <select id="sort-by" class="sort-select" aria-label="Sort by">
                     <option value="name">Name</option>
                     <option value="status">Status</option>
+                    <option value="set">Set</option>
                 </select>
                 <button id="sort-order" class="sort-order-btn" data-order="asc"
                         aria-label="Toggle sort order">↑</button>
@@ -34,21 +40,25 @@
         </div>
     </div>
 
-    <!-- Alliances List -->
-    <ul class="alliances-list">
-        {% for alliance in alliances %}
-        <li class="alliance-item" data-status="{{ alliance.status }}">
-            <div class="alliance-info">
-                <a href="/alliances/{{ alliance.id }}" class="alliance-name">
-                    {{ alliance.name }}
+    <!-- Members List -->
+    <ul class="members-list">
+        {% for member in members %}
+        <li class="member-item" data-status="{{ member[3] }}" data-set="{{ member[8] or 'Unknown' }}">
+            <div class="member-info">
+                <a href="/members/{{ member[0] }}" class="member-name">
+                    {{ member[1] }}
                 </a>
-                <span class="alliance-description">{{ alliance.description }}</span>
+                <a href="/sets/{{ member[7] }}" class="member-set">
+                    ({% if member[8] %}{{ member[8] }}{% else %}Unknown Set{% endif %})
+                </a>
             </div>
-            <div class="alliance-status">
-                {% if alliance.status == "active" %}
-                    <span class="status active" role="img" aria-label="Active">🔰</span>
+            <div class="member-status">
+                {% if member[3] == "locked_up" %}
+                    <span class="status locked-up" role="img" aria-label="Locked Up">🔒</span>
+                {% elif member[3] == "dead" %}
+                    <span class="status deceased" role="img" aria-label="Deceased">💀</span>
                 {% else %}
-                    <span class="status inactive" role="img" aria-label="Inactive">⛔</span>
+                    <span class="status alive" role="img" aria-label="Active">🟢</span>
                 {% endif %}
             </div>
         </li>
@@ -57,40 +67,15 @@
 
     <!-- Empty State -->
     <div class="empty-state" id="emptyState">
-        No alliances found matching your criteria
+        No members found matching your criteria
     </div>
 </div>
 
 <style>
-    .alliances-container {
+    .members-container {
         max-width: 1200px;
         margin: 2rem auto;
         padding: 0 1rem;
-    }
-
-    .header-container {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 2rem;
-    }
-
-    .page-title {
-        margin: 0;
-    }
-
-    .add-alliance-button {
-        background-color: #4CAF50;
-        color: white;
-        padding: 0.5rem 1rem;
-        border-radius: 4px;
-        text-decoration: none;
-        font-size: 1rem;
-        transition: background-color 0.2s;
-    }
-
-    .add-alliance-button:hover {
-        background-color: #45a049;
     }
 
     .controls-container {
@@ -140,13 +125,13 @@
         width: 50px;
     }
 
-    .alliances-list {
+    .members-list {
         list-style: none;
         padding: 0;
         margin: 0;
     }
 
-    .alliance-item {
+    .member-item {
         display: flex;
         justify-content: space-between;
         align-items: center;
@@ -157,33 +142,38 @@
         transition: transform 0.2s;
     }
 
-    .alliance-info {
+    .member-info {
         flex-grow: 1;
     }
 
-    .alliance-name {
+    .member-name {
         color: #e0e0e0;
         text-decoration: none;
         font-size: 1.1rem;
         margin-right: 0.5rem;
     }
 
-    .alliance-description {
+    .member-set {
         color: #888;
         font-size: 0.9rem;
+        text-decoration: none;
     }
 
-    .alliance-status {
+    .member-status {
         font-size: 1.2rem;
         min-width: 40px;
         text-align: right;
     }
 
-    .status.active {
+    .status.alive {
         color: #4CAF50;
     }
 
-    .status.inactive {
+    .status.locked-up {
+        color: #FF9800;
+    }
+
+    .status.deceased {
         color: #F44336;
     }
 
@@ -203,16 +193,26 @@
             flex-direction: column;
         }
 
-        .alliance-item {
+        .member-item {
             flex-direction: column;
             align-items: flex-start;
             padding: 1rem 0.5rem;
         }
 
-        .alliance-status {
+        .member-status {
             margin-top: 0.5rem;
             text-align: left;
         }
+    }
+
+    @keyframes pulse {
+        0% { opacity: 0.6; }
+        50% { opacity: 1; }
+        100% { opacity: 0.6; }
+    }
+
+    .loading .member-item {
+        animation: pulse 1.5s infinite;
     }
 </style>
 
@@ -220,13 +220,14 @@
     document.addEventListener('DOMContentLoaded', () => {
         const searchInput = document.getElementById('searchInput');
         const filterStatus = document.getElementById('filter-status');
+        const filterSet = document.getElementById('filter-set');
         const sortBy = document.getElementById('sort-by');
         const sortOrderBtn = document.getElementById('sort-order');
-        const allianceList = document.querySelector('.alliances-list');
+        const memberList = document.querySelector('.members-list');
         const emptyState = document.getElementById('emptyState');
         let currentOrder = 'asc';
 
-        const statusOrder = { 'active': 1, 'inactive': 2 };
+        const statusOrder = { 'alive': 1, 'locked_up': 2, 'dead': 3 };
 
         // Debounce function
         const debounce = (func, timeout = 300) => {
@@ -238,46 +239,53 @@
         };
 
         // Combined filter function
-        const filterAndSortAlliances = debounce(() => {
+        const filterAndSortMembers = debounce(() => {
             const searchTerm = searchInput.value.toLowerCase();
             const statusFilter = filterStatus.value;
+            const setFilter = filterSet.value;
 
             let visibleCount = 0;
 
-            document.querySelectorAll('.alliance-item').forEach(item => {
-                const name = item.querySelector('.alliance-name').textContent.toLowerCase();
-                const description = item.querySelector('.alliance-description').textContent.toLowerCase();
+            document.querySelectorAll('.member-item').forEach(item => {
+                const name = item.querySelector('.member-name').textContent.toLowerCase();
+                const set = item.querySelector('.member-set').textContent.toLowerCase();
+                const itemSetId = item.dataset.set;
 
-                const matchesSearch = name.includes(searchTerm) || description.includes(searchTerm);
+                const matchesSearch = name.includes(searchTerm) || set.includes(searchTerm);
                 const matchesStatus = statusFilter === 'all' || item.dataset.status === statusFilter;
+                const matchesSet = setFilter === 'all' || itemSetId === setFilter;
 
-                const shouldShow = matchesSearch && matchesStatus;
+                const shouldShow = matchesSearch && matchesStatus && matchesSet;
                 item.style.display = shouldShow ? 'flex' : 'none';
                 if(shouldShow) visibleCount++;
             });
 
             emptyState.style.display = visibleCount ? 'none' : 'block';
-            sortAlliances();
+            sortMembers();
         });
 
         // Sorting function
-        const sortAlliances = () => {
-            const alliances = Array.from(allianceList.children).filter(item =>
+        const sortMembers = () => {
+            const members = Array.from(memberList.children).filter(item =>
                 item.style.display !== 'none'
             );
 
-            alliances.sort((a, b) => {
+            members.sort((a, b) => {
                 let aValue, bValue;
 
                 switch(sortBy.value) {
                     case 'name':
-                        aValue = a.querySelector('.alliance-name').textContent.toLowerCase();
-                        bValue = b.querySelector('.alliance-name').textContent.toLowerCase();
+                        aValue = a.querySelector('.member-name').textContent.toLowerCase();
+                        bValue = b.querySelector('.member-name').textContent.toLowerCase();
                         break;
                     case 'status':
                         aValue = statusOrder[a.dataset.status];
                         bValue = statusOrder[b.dataset.status];
                         return currentOrder === 'asc' ? aValue - bValue : bValue - aValue;
+                    case 'set':
+                        aValue = a.dataset.set.toLowerCase();
+                        bValue = b.dataset.set.toLowerCase();
+                        break;
                 }
 
                 return currentOrder === 'asc'
@@ -285,28 +293,28 @@
                     : bValue.localeCompare(aValue);
             });
 
-            allianceList.append(...alliances);
+            memberList.append(...members);
         };
 
         // Event Listeners
-        [searchInput, filterStatus].forEach(element => {
-            element.addEventListener('input', filterAndSortAlliances);
+        [searchInput, filterStatus, filterSet].forEach(element => {
+            element.addEventListener('input', filterAndSortMembers);
         });
 
         sortBy.addEventListener('change', () => {
-            filterAndSortAlliances();
-            sortAlliances();
+            filterAndSortMembers();
+            sortMembers();
         });
 
         sortOrderBtn.addEventListener('click', () => {
             currentOrder = currentOrder === 'asc' ? 'desc' : 'asc';
             sortOrderBtn.textContent = currentOrder === 'asc' ? '↑' : '↓';
             sortOrderBtn.setAttribute('data-order', currentOrder);
-            filterAndSortAlliances();
+            filterAndSortMembers();
         });
 
         // Initial setup
-        filterAndSortAlliances();
+        filterAndSortMembers();
     });
 </script>
 {% endblock %}

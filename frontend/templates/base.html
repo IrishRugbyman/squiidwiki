@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <link rel="icon" href="{{ url_for('static', path='icons/favicon.ico') }}">
+    <link rel="apple-touch-icon" href="{{ url_for('static', path='icons/apple-touch-icon.png') }}">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SquiidVault</title>
@@ -8,19 +10,37 @@
     {% block extra_styles %}{% endblock %}
 </head>
 <body>
-    <header>
-        <h1>SquiidVault</h1>
-        <nav>
-            <a href="/sets">Sets</a>
-            <a href="/alliances">Alliances</a>
-            <a href="/calendar">Calendar</a>
-        </nav>
+    <header class="main-header">
+        <div class="header-content">
+            <div class="branding">
+                <img src="{{ url_for('static', path='icons/favicon.ico') }}" alt="Logo" class="logo">
+                <h1 class="site-title">SquiidVault</h1>
+            </div>
+            <nav class="main-nav">
+                <a href="/" class="nav-link">🏚️ Home</a>
+                <a href="/sets" class="nav-link">🏘️ Sets</a>
+                <a href="/members" class="nav-link">👤 Members</a>
+                <a href="/alliances" class="nav-link">🤝 Alliances</a>
+                <a href="/calendar" class="nav-link">📅 Calendar</a>
+            </nav>
+        </div>
     </header>
-    <main>
+
+    <main class="main-content">
         {% block content %}{% endblock %}
     </main>
-    <footer>
-        &copy; {{ year }} SquiidVault. All rights reserved.
+
+    <footer class="main-footer">
+        <div class="footer-content">
+            <p>&copy; {{ year }} SquiidVault. All rights reserved.</p>
+        </div>
     </footer>
+
+    <script>
+    window.addEventListener('scroll', function() {
+        const header = document.querySelector('.main-header');
+        header.classList.toggle('scrolled', window.scrollY > 50);
+    });
+    </script>
 </body>
 </html>

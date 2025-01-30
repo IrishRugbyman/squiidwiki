@@ -1,20 +1,332 @@
 {% extends "base.html" %}
 
 {% block content %}
-<h2>{{ alliance[1] }}</h2>
-<p><strong>Description:</strong> {{ alliance[2] }}</p>
+<div class="set-container">
+    <!-- Alliance Header -->
+    <div class="set-header">
+        <h1 class="set-title">
+            {{ alliance.name }}
+            {% if alliance.status == "extinct" %}
+                <span class="extinct-icon" role="img" aria-label="Extinct">🪦</span>
+            {% endif %}
+        </h1>
+        <div class="member-actions">
+            <a href="/alliances/edit/{{ alliance.id }}" class="edit-btn" aria-label="Edit alliance">
+                ✏️ Edit
+            </a>
+        </div>
+    </div>
 
-<h3>Sets in this Alliance</h3>
-<ul>
-    {% for set in sets %}
-    <li><a href="/sets/{{ set[0] }}">{{ set[1] }}</a></li>
-    {% endfor %}
-</ul>
+    <!-- Alliance Description -->
+    <div class="set-description">
+        <p>{{ alliance.description or "No description available" }}</p>
+    </div>
 
-<a href="/alliances/edit/{{ alliance[0] }}">Edit</a>
-<form action="/alliances/delete/{{ alliance[0] }}" method="POST" style="display: inline;">
-    <button type="submit" onclick="return confirm('Are you sure you want to delete this alliance?')">Delete</button>
-</form>
+    <!-- Event Tracker Section -->
+    <div class="murders-section">
+        <div class="section-header">
+            <h3><span role="img" aria-label="Murders">🔪</span> Murders Committed</h3>
+        </div>
 
-<a href="/alliances">Back to Alliances</a>
+        {% if murders %}
+        <div class="murders-list">
+            {% for murder in murders %}
+            <div class="murder-item">
+                <div class="murder-details">
+                    <a href="/members/{{ murder[2] }}" class="shooter">{{ murder[1] }}</a> killed
+                    <a href="/members/{{ murder[5] }}" class="victim">{{ murder[3] }}</a>
+                    from <a href="/sets/{{ murder[6] }}" class="victim-set">{{ murder[4] }}</a>
+                </div>
+                <div class="murder-date">{{ murder[0][:4] }}</div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty-state">
+            No recorded murders
+            <span class="empty-icon" role="img" aria-label="Peace">🕊️</span>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Member Sets Section -->
+    <div class="members-section">
+        <div class="members-header">
+            <div class="members-controls">
+                <h3><span role="img" aria-label="Members">🤝</span> Member Sets</h3>
+                <div class="sort-controls">
+                    <select id="sort-by" class="sort-select" aria-label="Sort sets by">
+                        <option value="name">Name</option>
+                        <option value="status">Status</option>
+                    </select>
+                    <button id="sort-order" class="sort-order-btn" data-order="asc" aria-label="Sort order">↑</button>
+                </div>
+            </div>
+            <a href="/alliances/add_member/{{ alliance.id }}" class="add-member-btn" aria-label="Add new set">
+                ➕ Add Set
+            </a>
+        </div>
+
+        {% if member_sets %}
+            <ul class="members-list">
+            {% for set in member_sets %}
+                <li class="member-item" data-status="{{ set.type }}">
+                    <a href="/sets/{{ set.id }}" class="member-name">
+                        {{ set.name }}
+                        {% if set.type == "extinct" %}
+                            <span class="status extinct" role="img" aria-label="Extinct">🪦</span>
+                        {% else %}
+                            <span class="status active" role="img" aria-label="Active">🟢</span>
+                        {% endif %}
+                    </a>
+                </li>
+            {% endfor %}
+            </ul>
+        {% else %}
+            <div class="empty-state">
+                No member sets found
+                <span class="empty-icon" role="img" aria-label="No entries">❌</span>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<style>
+    .set-container {
+        max-width: 1200px;
+        margin: 2rem auto;
+        padding: 0 1rem;
+    }
+
+    .set-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 2rem;
+    }
+
+    .set-title {
+        font-size: 2.5rem;
+        color: #6a0dad;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .extinct-icon {
+        font-size: 1.8rem;
+        vertical-align: middle;
+    }
+
+    .member-actions {
+        display: flex;
+        gap: 1rem;
+        align-items: center;
+    }
+
+    .edit-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.5rem 1rem;
+        border-radius: 4px;
+        text-decoration: none;
+        transition: all 0.2s ease;
+        background: transparent;
+        border: none;
+        font-size: 0.9rem;
+        color: #ef8732;
+    }
+
+    .edit-btn:hover {
+        opacity: 0.8;
+    }
+
+    .murders-section {
+        margin: 2rem 0;
+        padding: 1.5rem;
+        background: #1e1e1e;
+        border-radius: 8px;
+        border: 1px solid #2d2d2d;
+    }
+
+    .murders-list {
+        margin-top: 1rem;
+    }
+
+    .murder-item {
+        display: flex;
+        align-items: center;
+        padding: 1rem;
+        margin-bottom: 0.5rem;
+        background: #242424;
+        border-radius: 6px;
+    }
+
+    .murder-details {
+        color: #e0e0e0;
+        flex-grow: 1;
+    }
+
+    .murder-date {
+        color: #888;
+        font-size: 0.9rem;
+    }
+
+    .members-section {
+        margin-top: 2rem;
+    }
+
+    .members-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1rem;
+    }
+
+    .members-controls {
+        display: flex;
+        gap: 1rem;
+        align-items: center;
+    }
+
+    .sort-controls {
+        display: flex;
+        gap: 0.5rem;
+        align-items: center;
+    }
+
+    .sort-select {
+        background: #2a2a2a;
+        color: #e0e0e0;
+        border: 1px solid #444;
+        padding: 0.5rem 1rem;
+        border-radius: 4px;
+        cursor: pointer;
+    }
+
+    .sort-order-btn {
+        background: #3a3a3a;
+        color: #e0e0e0;
+        border: 1px solid #444;
+        padding: 0.5rem 1rem;
+        border-radius: 4px;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .sort-order-btn:hover {
+        background: #4a4a4a;
+    }
+
+    .members-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+
+    .member-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1rem;
+        background: #1e1e1e;
+        margin-bottom: 0.5rem;
+        border-radius: 6px;
+        transition: transform 0.2s;
+    }
+
+    .member-item:hover {
+        transform: translateX(5px);
+    }
+
+    .member-name {
+        color: #e0e0e0;
+        text-decoration: none;
+        flex-grow: 1;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .status.active {
+        color: #4CAF50;
+    }
+
+    .status.extinct {
+        color: #888;
+    }
+
+    .add-member-btn {
+        background: #6a0dad;
+        color: white;
+        padding: 0.5rem 1rem;
+        border-radius: 4px;
+        text-decoration: none;
+        transition: background 0.2s;
+    }
+
+    .add-member-btn:hover {
+        background: #8c32ef;
+    }
+
+    @media (max-width: 768px) {
+        .set-header {
+            flex-direction: column;
+            gap: 1rem;
+            align-items: flex-start;
+        }
+
+        .members-header {
+            flex-direction: column;
+            gap: 1rem;
+            align-items: flex-start;
+        }
+    }
+</style>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const sortBy = document.getElementById('sort-by');
+        const sortOrderBtn = document.getElementById('sort-order');
+        let currentOrder = 'asc';
+
+        const statusOrder = { 'active': 1, 'extinct': 2 };
+
+        function sortSets() {
+            const memberList = document.querySelector('.members-list');
+            const sets = Array.from(memberList.children);
+
+            sets.sort((a, b) => {
+                let aValue, bValue;
+
+                if (sortBy.value === 'name') {
+                    aValue = a.querySelector('.member-name').textContent.toLowerCase();
+                    bValue = b.querySelector('.member-name').textContent.toLowerCase();
+                    return currentOrder === 'asc'
+                        ? aValue.localeCompare(bValue)
+                        : bValue.localeCompare(aValue);
+                } else {
+                    aValue = statusOrder[a.dataset.status];
+                    bValue = statusOrder[b.dataset.status];
+                    return currentOrder === 'asc'
+                        ? aValue - bValue
+                        : bValue - aValue;
+                }
+            });
+
+            memberList.append(...sets);
+        }
+
+        sortBy.addEventListener('change', sortSets);
+        sortOrderBtn.addEventListener('click', () => {
+            currentOrder = currentOrder === 'asc' ? 'desc' : 'asc';
+            sortOrderBtn.textContent = currentOrder === 'asc' ? '↑' : '↓';
+            sortSets();
+        });
+
+        sortSets();
+    });
+</script>
 {% endblock %}

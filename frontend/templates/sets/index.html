@@ -1,156 +1,195 @@
 {% extends "base.html" %}
 
 {% block content %}
-<h2>DETROIT SETS</h2>
+<div class="sets-container">
+    <h2 class="page-title">DETROIT SETS</h2>
 
-<!-- Search Bar -->
-<input type="text" id="searchInput" placeholder="Search for a set..." class="search-bar">
+    <!-- Search Bar -->
+    <input type="text" id="searchInput" placeholder="Search for a set..." class="search-bar">
 
-<!-- Alphabetical Navigation Bar -->
-<div id="alphabetNav">
-    <a href="#numbers">#</a>
-    {% for letter in 'ABCDEFGHIJKLMNOPQRSTUVWXYZ' %}
-    <a href="#{{ letter }}">{{ letter }}</a>
-    {% endfor %}
-    <a href="/sets/add" class="add-button">+ Add a New Set</a>
+    <!-- Alphabetical Navigation Bar -->
+    <div id="alphabetNav">
+        <div class="nav-wrapper">
+            <a href="#numbers">#</a>
+            {% for letter in 'ABCDEFGHIJKLMNOPQRSTUVWXYZ' %}
+            <a href="#{{ letter }}">{{ letter }}</a>
+            {% endfor %}
+        </div>
+        <a href="/sets/add" class="add-button">+ Add New Set</a>
+    </div>
+
+    <!-- Sets Grouped by Starting Character -->
+    <ul id="setsList">
+        {% for char, group in grouped_sets.items() %}
+        <h3 id="{{ char }}">{{ char }}</h3>
+        {% for set in group %}
+        <li><a href="/sets/{{ set[0] }}">{{ set[1] }}</a></li>
+        {% endfor %}
+        {% endfor %}
+    </ul>
 </div>
-
-<!-- Sets Grouped by Starting Character -->
-<ul id="setsList">
-    {% for char, group in grouped_sets.items() %}
-    <h3 id="{{ char }}">{{ char }}</h3>
-    {% for set in group %}
-    <li><a href="/sets/{{ set[0] }}">{{ set[1] }}</a></li>
-    {% endfor %}
-    {% endfor %}
-</ul>
 
 <script>
     document.getElementById('searchInput').addEventListener('input', function() {
-        const searchTerm = this.value.toLowerCase();
+        const searchTerm = this.value.toLowerCase().trim();
         const sets = document.querySelectorAll('#setsList li');
+        const headers = document.querySelectorAll('#setsList h3');
 
-        sets.forEach(set => {
-            const setName = set.textContent.toLowerCase();
-            set.style.display = setName.includes(searchTerm) ? 'block' : 'none';
-        });
-
-        document.querySelectorAll('#setsList h3').forEach(header => {
-            const sectionId = header.id;
-            const sectionItems = document.querySelectorAll(`#${sectionId} + li`);
-            const hasVisibleItems = Array.from(sectionItems).some(item => item.style.display !== 'none');
-            header.style.display = hasVisibleItems ? 'block' : 'none';
+        headers.forEach(header => {
+            let hasVisible = false;
+            const sectionItems = Array.from(header.nextElementSibling?.children || []);
+            sectionItems.forEach(item => {
+                const matches = item.textContent.toLowerCase().includes(searchTerm);
+                item.style.display = matches ? 'block' : 'none';
+                if (matches) hasVisible = true;
+            });
+            header.style.display = hasVisible ? 'block' : 'none';
         });
     });
 </script>
 
 <style>
-    /* Search Bar Styling */
-    .search-bar {
-        width: 100%;
-        padding: 10px;
-        margin-bottom: 20px;
-        border-radius: 5px;
-        border: 1px solid #444;
-        background-color: #1e1e1e;
-        color: white;
-        font-size: 1em;
-        font-weight: 500;
-        transition: border-color 0.3s ease;
-        box-sizing: border-box;
+    .sets-container {
+        margin-top: -10px;
+        padding: 20px 5%;
+        max-width: 1200px;
+        margin-left: auto;
+        margin-right: auto;
     }
 
-    /* Alphabetical Navigation Bar Styling */
+    .page-title {
+        text-align: center;
+        margin-bottom: 25px;
+        color: #690dac;
+        font-size: 2.2em;
+    }
+
+    .search-bar {
+        width: 100%;
+        margin: 0 auto 20px;
+        padding: 12px 20px;
+        border-radius: 8px;
+        border: 1px solid #333;
+        background-color: #1a1a1a;
+        color: white;
+        font-size: 1.1em;
+        display: block;
+    }
+
     #alphabetNav {
         display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin: 0 auto 25px;
+        padding: 12px 0;
+        gap: 15px;
+    }
+
+    .nav-wrapper {
+        display: flex;
         flex-wrap: wrap;
-        justify-content: flex-start;
-        gap: 10px;
-        margin-bottom: 15px;
-        padding: 10px 0;
+        gap: 8px;
+        align-items: center;
     }
 
     #alphabetNav a {
-        color: #ffffff;
+        color: #ddd;
         text-decoration: none;
-        font-weight: 500;
-        font-size: 1.1em;
-        padding: 4px 8px;
-        transition: color 0.3s ease;
+        padding: 6px 10px;
+        border-radius: 4px;
+        transition: all 0.2s ease;
+        font-size: 0.95em;
         white-space: nowrap;
     }
 
+    #alphabetNav a:hover {
+        background: #1a1a1a;
+    }
+
     .add-button {
-        background-color: rgb(105, 13, 172);
-        color: #ffffff;
-        padding: 8px 15px;
-        border-radius: 5px;
-        font-size: 1.1em;
+        background-color: #690dac;
+        color: white !important;
+        padding: 8px 20px !important;
+        border-radius: 4px;
         text-decoration: none;
-        transition: background-color 0.3s ease;
-        margin-left: auto;
+        transition: background-color 0.2s ease;
     }
 
-    /* Section Headers */
-    h3 {
-        font-size: 1.5em;
-        margin: 15px 0 10px;
-        color: #690dac;
-        scroll-margin-top: 50px;
+    .add-button:hover {
+        background-color: #7a1fc2;
     }
 
-    /* List Item Styling */
     #setsList {
-        padding: 0 10px;
-        box-sizing: border-box;
+        padding: 0;
+        margin: 0 auto;
+    }
+
+    #setsList h3 {
+        color: #690dac;
+        margin: 20px 0 10px;
+        font-size: 1.4em;
+        padding-bottom: 5px;
+        border-bottom: 1px solid #333;
     }
 
     #setsList li {
-        padding: 10px 0;
-        list-style-type: none;
+        padding: 6px 0;
+        list-style: none;
     }
 
     #setsList li a {
-        color: #ffffff;
+        color: #ddd;
         text-decoration: none;
-        word-break: break-word;
-        display: inline-block;
-        max-width: 100%;
+        transition: color 0.2s ease;
+        display: block;
+        padding: 4px 0;
+    }
+
+    #setsList li a:hover {
+        color: #fff;
+        text-decoration: underline;
     }
 
     @media (max-width: 768px) {
-        #alphabetNav {
-            gap: 8px;
+        .sets-container {
+            margin-top: 70px;
+            padding: 15px;
         }
 
-        #alphabetNav a {
-            font-size: 1em;
-            padding: 4px 6px;
+        #alphabetNav {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 10px;
+        }
+
+        .nav-wrapper {
+            gap: 6px;
+            justify-content: center;
         }
 
         .add-button {
-            padding: 6px 12px;
-            font-size: 1em;
+            text-align: center;
+            margin-top: 5px;
+        }
+
+        .page-title {
+            font-size: 1.8em;
+        }
+
+        #setsList h3 {
+            font-size: 1.3em;
+            margin: 15px 0 8px;
         }
     }
 
     @media (max-width: 480px) {
-        #alphabetNav {
-            gap: 6px;
-        }
-
         #alphabetNav a {
+            padding: 5px 8px;
             font-size: 0.9em;
-            padding: 3px 5px;
-        }
-
-        h3 {
-            font-size: 1.3em;
         }
 
         .add-button {
-            padding: 5px 10px;
-            font-size: 0.9em;
+            padding: 8px 15px !important;
         }
     }
 </style>

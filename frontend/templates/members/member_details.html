@@ -11,7 +11,7 @@
     .member-header {
         display: flex;
         justify-content: space-between;
-        align-items: flex-start;
+        align-items: center; /* Changed from flex-start to center */
         gap: 1.5rem;
         margin-bottom: 2rem;
         padding: 1.5rem;
@@ -50,34 +50,26 @@
         display: flex;
         gap: 1rem;
         align-items: center;
+        flex-shrink: 0; /* Prevent shrinking */
+        margin-left: auto; /* Push to the right */
     }
 
     .edit-btn, .delete-btn {
         text-decoration: none; /* Removes the underline */
-        padding: 0rem 0rem;
+        padding: 0;
         border-radius: 6px;
         font-size: 0.9rem;
         transition: all 0.2s ease;
+        background: transparent;
+        border: none;
     }
 
     .edit-btn {
         color: #ef8732;
     }
 
-
     .delete-btn {
-        background: transparent;
-        border: none;
         color: #ff4d4d;
-        padding: 0;
-        font-size: 0.9rem;
-    }
-
-    .status-section {
-        margin: 1.5rem 0;
-        padding: 1rem;
-        background: #1a1a1a;
-        border-radius: 8px;
     }
 
     .status-item {
@@ -88,20 +80,19 @@
     }
 
     .status-label {
-        color: #888;
+        color: #888888;
         font-size: 0.95rem;
     }
 
     .status-value {
-        color: #e0e0e0;
+        color: #747474;
         font-weight: 500;
     }
 
     .activity-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-        gap: 0.7rem;
-        margin-top: 0rem;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 1.7rem;
     }
 
     .activity-card {
@@ -169,7 +160,7 @@
         display: flex;
         justify-content: space-between;
         align-items: center;
-        padding: 0.8rem 0;
+        padding: 0.2rem;
         border-bottom: 1px solid #2d2d2d;
     }
 
@@ -220,112 +211,160 @@
         margin-left: 0.5rem;
     }
 
-    @media (max-width: 768px) {
-        .member-header {
-            flex-direction: column;
-            align-items: flex-start;
-            padding: 1rem;
-        }
+    .member-set {
+        color: #8c32ef;
+        text-decoration: none;
+    }
 
-        .member-title {
-            font-size: 1.5rem;
-        }
+    .member-set:hover {
+        text-decoration: none;
+    }
 
-        .activity-grid {
-            grid-template-columns: 0fr;
-        }
+    .victim-name {
+        color: #e0e0e0;
+        text-decoration: none;
+        margin-bottom: -0.6em;
+    }
 
-        .activity-card {
-            padding: 0rem;
-        }
+    .victim-set-link {
+        color: #888;
+        text-decoration: none;
+    }
+
+    .victim-set-link:hover {
+        text-decoration: underline;
+    }
+
+    .date-warning {
+        color: #ff9900;
+        border-bottom: 1px dashed #ff9900;
+        cursor: help;
+    }
+
+    .unknown-date {
+        color: #666;
+        font-style: italic;
+    }
+
+    .date-raw {
+        font-size: 0.8em;
+        color: #888;
+        margin-left: 0.5rem;
     }
 </style>
 {% endblock %}
-
 {% block content %}
 <div class="member-container">
-    <!-- Member Header -->
+    <!-- Header -->
     <div class="member-header">
-        <div class="member-title-container">
-            <h1 class="member-title">
-                {{ member[1] }}
-                <span class="member-set">({{ set_name }})</span>
-            </h1>
-            <div class="status-icons">
-                {% if member[2] == "locked_up" %}
-                    <span class="status-icon locked" title="Locked Up">🔒</span>
-                {% elif member[2] == "dead" %}
-                    <span class="status-icon deceased" title="Deceased">💀</span>
-                {% else %}
-                    <span class="status-icon alive" title="Alive">🟢</span>
-                {% endif %}
-            </div>
+        <div class="member-title">
+            <span>{{ member.name }}</span>
+            <span class="member-set">({{ set_name }})</span>
         </div>
-        <div class="member-actions">
-            <a href="/members/edit/{{ member[0] }}" class="edit-btn">✏️ Edit</a>
-            <a href="/members/delete/{{ member[0] }}" class="delete-btn" onclick="return confirm('Are you sure?')">🗑️ Delete</a>
-        </div>
-    </div>
-
-    <!-- Status Details -->
-    <div class="status-section">
-        <div class="status-info">
-            {% if member[2] == "locked_up" and member[3] %}
-                <div class="status-item">
-                    <span class="status-label">Release Date:</span>
-                    <span class="status-value">{{ member[3]|datetime }}</span>
-                </div>
-            {% elif member[2] == "dead" and member[4] %}
-                <div class="status-item">
-                    <span class="status-label">Date of Death:</span>
-                    <span class="status-value">{{ member[4]|datetime }}</span>
-                </div>
+        <!-- Status -->
+        <div class="status-icons">
+            {% if member.status == "locked_up" %}
+                <span class="status-icon" title="Locked Up">🔒</span>
+            {% elif member.status == "dead" %}
+                <span class="status-icon" title="Deceased">💀</span>
+            {% else %}
+                <span class="status-icon" title="Alive">🟢</span>
             {% endif %}
         </div>
+        <div class="member-actions">
+            <a href="/members/edit/{{ member.id }}" class="edit-btn" aria-label="Edit Member">✏️ Edit</a>
+            <a href="/delete/{{ member.id }}" class="delete-btn" onclick="return confirm('Are you sure?')" aria-label="Delete Member">🗑️ Delete</a>
+        </div>
     </div>
 
-    <!-- Activity Grid -->
+
+
+    <!-- Release Date -->
+    {% if member.status == "locked_up" %}
+        <div class="status-item">
+            <span class="status-label">Release Date:</span>
+            <span class="status-value">
+                {% if member.release_date %}
+                    {{ member.release_date|format_special_date|safe }}
+                {% elif member.release_date_approx %}
+                    {{ member.release_date_approx }}
+                    {% if member.release_date_approx|lower != 'unknown' %}<abbr title="Approximate"></abbr>{% endif %}
+                {% else %}
+                    <span class="unknown-date">Unknown</span>
+                {% endif %}
+            </span>
+        </div>
+    {% endif %}
+
+    <!-- Date of Death -->
+    {% if member.status == "dead" %}
+        <div class="status-item">
+            <span class="status-label">Date of Death:</span>
+            <span class="status-value">
+                {% if member.date_of_death %}
+                    {{ member.date_of_death|format_special_date|safe }}
+                {% elif member.death_date_approx %}
+                    {{ member.death_date_approx }}
+                    {% if member.death_date_approx|lower != 'unknown' %}<abbr title="Approximate">(approx)</abbr>{% endif %}
+                {% else %}
+                    <span class="unknown-date">Unknown</span>
+                {% endif %}
+            </span>
+        </div>
+    {% endif %}
+
+    <!-- Description -->
+    {% if member.description %}
+        <div class="status-item">
+            <span class="status-label">Description:</span>
+            <span class="status-value">{{ member.description }}</span>
+        </div>
+    {% endif %}
+
+    <!-- Activities -->
     <div class="activity-grid">
         {% for category in ['shootings', 'murders', 'assists'] %}
-        <div class="activity-card">
-            <div class="activity-header">
-                <h3>
-                    {% if category == 'shootings' %}🔫
-                    {% elif category == 'murders' %}🔪
-                    {% else %}🛡️{% endif %}
-                    {{ category|title }}
-                </h3>
-                <div class="activity-controls">
-                    <span class="activity-count">{{ activities[category]|length }}</span>
-                    <a href="/events/{{ category }}/{{ member[0] }}" class="add-event-btn">+</a>
+            <div class="activity-card">
+                <div class="activity-header">
+                    <h3>
+                        {% if category == 'shootings' %}
+                            🔫 Shootings
+                        {% elif category == 'murders' %}
+                            🪦 Murders
+                        {% else %}
+                            🤝 Assists
+                        {% endif %}
+                    </h3>
+                    <div class="activity-controls">
+                        <span class="activity-count">{{ activities[category]|length }}</span>
+                        <a href="/add_activity/{{ member.id }}?category={{ category }}" class="add-event-btn" aria-label="Add {{ category }}">+</a>
+                    </div>
                 </div>
+                <ul class="activity-list">
+                    {% if activities[category] %}
+                        {% for event in activities[category] %}
+                            <li class="activity-item">
+                                <div class="event-info">
+                                    <a href="/members/{{ event.victim_id }}" class="victim-name">{{ member_names.get(event.victim_id, 'Unknown Member') }}</a>
+                                    <a href="/sets/{{ victim_set_ids.get(event.victim_id, 'Unknown Set') }}" class="victim-set-link">
+                                        {{ victim_sets.get(event.victim_id, 'Unknown Set') }}
+                                    </a>
+                                    <span class="event-date">{{ event.date[:4] }}</span>
+                                </div>
+                                <div class="event-actions">
+                                    <a href="/edit_activity/{{ event.id }}" aria-label="Edit Event">✏️</a>
+                                    <a href="/delete_activity/{{ event.id }}" onclick="return confirm('Are you sure?')" aria-label="Delete Event">🗑️</a>
+                                </div>
+                            </li>
+                        {% endfor %}
+                    {% else %}
+                        <li class="empty-activity">
+                            No {{ category }} recorded
+                            <a href="/add_activity/{{ member.id }}?category={{ category }}" class="add-event-link">Add new +</a>
+                        </li>
+                    {% endif %}
+                </ul>
             </div>
-
-            <ul class="activity-list">
-                {% for event in activities[category] %}
-                <li class="activity-item">
-                    <div class="event-info">
-                        <span class="event-victim">
-                            {{ member_names.get(event[2], 'Unknown Member') }}
-                            <span class="victim-set">
-                                {{ victim_sets.get(event[2], 'Unknown Set') }}
-                            </span>
-                        </span>
-                        <span class="event-date">{{ event[3]|datetime }}</span>
-                    </div>
-                    <div class="event-actions">
-                        <a href="/events/edit/{{ category }}/{{ event[0] }}" class="edit-btn">✏️</a>
-                        <a href="/events/delete/{{ category }}/{{ event[0] }}" class="delete-btn" onclick="return confirm('Delete this {{ category }} record?')">🗑️</a>
-                    </div>
-                </li>
-                {% else %}
-                <li class="empty-activity">
-                    No {{ category }} recorded
-                    <a href="/events/{{ category }}/{{ member[0] }}" class="add-event-link">Add new +</a>
-                </li>
-                {% endfor %}
-            </ul>
-        </div>
         {% endfor %}
     </div>
 </div>
