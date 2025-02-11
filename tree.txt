@@ -1,0 +1,107 @@
+Folder PATH listing for volume OS
+Volume serial number is 3647-A969
+C:.
+¦   .gitignore
+¦   arborescence.txt
+¦   main.py
+¦   requirements.txt
+¦   squiidvault.db
+¦   tree.txt
+¦   
++---.idea
+¦   ¦   .name
+¦   ¦   dataSources.local.xml
+¦   ¦   dataSources.xml
+¦   ¦   git_toolbox_blame.xml
+¦   ¦   git_toolbox_prj.xml
+¦   ¦   misc.xml
+¦   ¦   modules.xml
+¦   ¦   SquiidWiki.iml
+¦   ¦   vcs.xml
+¦   ¦   workspace.xml
+¦   ¦   
+¦   +---dataSources
+¦   ¦   ¦   e838f96e-64be-4cca-bafd-917db14afd5c.xml
+¦   ¦   ¦   
+¦   ¦   +---e838f96e-64be-4cca-bafd-917db14afd5c
+¦   ¦       +---storage_v2
+¦   ¦           +---_src_
+¦   ¦               +---schema
+¦   ¦                       main.uQUzAA.meta
+¦   ¦                       main.uQUzAA.zip
+¦   ¦                       
+¦   +---inspectionProfiles
+¦           profiles_settings.xml
+¦           
++---backend
+¦   ¦   server.py
+¦   ¦   squiidvault.db
+¦   ¦   __init__.py
+¦   ¦   
+¦   +---config
+¦   ¦       templates.py
+¦   ¦       
+¦   +---database
+¦   ¦       database.py
+¦   ¦       enums.py
+¦   ¦       models.py
+¦   ¦       __init__.py
+¦   ¦       
+¦   +---routes
+¦   ¦   ¦   alliances.py
+¦   ¦   ¦   calendar.py
+¦   ¦   ¦   events.py
+¦   ¦   ¦   home.py
+¦   ¦   ¦   members.py
+¦   ¦   ¦   sets.py
+¦   ¦   ¦   
+¦   ¦   +---__pycache__
+¦   ¦           alliances.cpython-311.pyc
+¦   ¦           calendar.cpython-311.pyc
+¦   ¦           members.cpython-311.pyc
+¦   ¦           sets.cpython-311.pyc
+¦   ¦           
+¦   +---__pycache__
+¦           server.cpython-311.pyc
+¦           __init__.cpython-311.pyc
+¦           
++---frontend
+¦   +---static
+¦   ¦   ¦   styles.css
+¦   ¦   ¦   
+¦   ¦   +---icons
+¦   ¦           android-chrome-192x192.png
+¦   ¦           apple-touch-icon.png
+¦   ¦           favicon.ico
+¦   ¦           
+¦   +---templates
+¦       ¦   base.html
+¦       ¦   calendar.html
+¦       ¦   home.html
+¦       ¦   
+¦       +---alliances
+¦       ¦       add_alliance.html
+¦       ¦       add_alliance_member.html
+¦       ¦       alliance_details.html
+¦       ¦       edit_alliance.html
+¦       ¦       index.html
+¦       ¦       
+¦       +---calendar
+¦       +---events
+¦       ¦       add_event.html
+¦       ¦       
+¦       +---members
+¦       ¦       add_member.html
+¦       ¦       delete_members.html
+¦       ¦       edit_member.html
+¦       ¦       index.html
+¦       ¦       member_details.html
+¦       ¦       
+¦       +---sets
+¦               add_set.html
+¦               delete_set.html
+¦               edit_set.html
+¦               index.html
+¦               set_details.html
+¦               
++---__pycache__
