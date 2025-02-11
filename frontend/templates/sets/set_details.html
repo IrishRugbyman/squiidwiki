@@ -5,13 +5,13 @@
     <!-- Set Header -->
     <div class="set-header">
         <h1 class="set-title">
-            {{ set[1] }}
-            {% if set[3] == "extinct" %}
+            {{ set.name }}
+            {% if set.type == "extinct" %}
                 <span class="extinct-icon" role="img" aria-label="Extinct Set">🪦</span>
             {% endif %}
         </h1>
         <div class="member-actions">
-            <a href="/sets/edit/{{ set[0] }}" class="edit-btn" aria-label="Edit set">
+            <a href="/sets/edit/{{ set.id }}" class="edit-btn" aria-label="Edit set">
                 ✏️ Edit
             </a>
             <button class="delete-btn" data-bs-toggle="modal" data-bs-target="#deleteModal" aria-label="Delete set">
@@ -22,7 +22,7 @@
 
     <!-- Set Description -->
     <div class="set-description">
-        <p>{{ set[2] or "No description available" }}</p>
+        <p>{{ set.description or "No description available" }}</p>
     </div>
 
     <!-- Relationships Section -->
@@ -33,8 +33,8 @@
                 <ul class="relationship-list">
                 {% for ally in allies|sort(attribute='name') %}
                     <li>
-                        <a href="/sets/{{ ally[1] }}" class="relationship-item">
-                            <span class="bullet">•</span> {{ ally[0] }}
+                        <a href="/sets/{{ ally.id }}" class="relationship-item">
+                            <span class="bullet">•</span> {{ ally.name }}
                         </a>
                     </li>
                 {% endfor %}
@@ -53,8 +53,8 @@
                 <ul class="relationship-list">
                 {% for enemy in enemies|sort(attribute='name') %}
                     <li>
-                        <a href="/sets/{{ enemy[1] }}" class="relationship-item">
-                            <span class="bullet">•</span> {{ enemy[0] }}
+                        <a href="/sets/{{ enemy.id }}" class="relationship-item">
+                            <span class="bullet">•</span> {{ enemy.name }}
                         </a>
                     </li>
                 {% endfor %}
@@ -79,11 +79,19 @@
             {% for murder in murders %}
             <div class="murder-item">
                 <div class="murder-details">
-                    <a href="/members/{{ murder[2] }}" class="shooter">{{ murder[1] }}</a> killed
-                    <a href="/members/{{ murder[5] }}" class="victim">{{ murder[3] }}</a>
-                    from <a href="/sets/{{ murder[6] }}" class="victim-set">{{ murder[4] }}</a>
+                    <a href="/members/{{ murder.shooter_id }}" class="shooter">{{ murder.shooter_name }}</a> killed
+                    <a href="/members/{{ murder.victim_id }}" class="victim">{{ murder.victim_name }}</a>
+                    from <a href="/sets/{{ murder.victim_set_id }}" class="victim-set">{{ murder.victim_set_name }}</a>
                 </div>
-                <div class="murder-date">{{ murder[0][:4] }}</div>
+                <div class="murder-date">
+                    {% if murder.date %}
+                        {{ murder.date[:4] }}
+                    {% elif murder.date_approx and murder.date_approx != 'unknown' %}
+                        {{ murder.date_approx }}
+                    {% else %}
+                        Unknown
+                    {% endif %}
+                </div>
             </div>
             {% endfor %}
         </div>
@@ -108,7 +116,7 @@
                     <button id="sort-order" class="sort-order-btn" data-order="asc" aria-label="Sort order">↑</button>
                 </div>
             </div>
-            <a href="/members/add/{{ set[0] }}" class="add-member-btn" aria-label="Add new member">
+            <a href="/members/add/{{ set.id }}" class="add-member-btn" aria-label="Add new member">
                 ➕ Add Member
             </a>
         </div>
@@ -116,14 +124,14 @@
         {% if members %}
             <ul class="members-list">
             {% for member in members %}
-                <li class="member-item" data-status="{{ member[3] }}">
-                    <a href="/members/{{ member[0] }}" class="member-name">
-                        {{ member[1] }}
+                <li class="member-item" data-status="{{ member.status }}">
+                    <a href="/members/{{ member.id }}" class="member-name">
+                        {{ member.name }}
                     </a>
                     <div class="member-status">
-                        {% if member[3] == "locked_up" %}
+                        {% if member.status == "locked_up" %}
                             <span class="status locked-up" role="img" aria-label="Locked Up">🔒</span>
-                        {% elif member[3] == "dead" %}
+                        {% elif member.status == "dead" %}
                             <span class="status deceased" role="img" aria-label="Deceased">💀</span>
                         {% else %}
                             <span class="status alive" role="img" aria-label="Active">🟢</span>

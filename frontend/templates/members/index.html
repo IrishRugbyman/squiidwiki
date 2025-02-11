@@ -3,59 +3,46 @@
 {% block content %}
 <div class="members-container">
     <h2 class="page-title">DETROIT MEMBERS</h2>
+    <input type="text" id="searchInput" placeholder="Search for a member..." class="search-bar">
 
-    <!-- Controls Container -->
-    <div class="controls-container">
-        <!-- Search Bar -->
-        <input type="text" id="searchInput" placeholder="Search for a member..."
-               class="search-bar" aria-label="Search members">
-
-        <!-- Filter & Sort Controls -->
-        <div class="filter-sort-controls">
-            <div class="filter-group">
-                <select id="filter-status" class="filter-select" aria-label="Filter by status">
-                    <option value="all">All Statuses</option>
-                    <option value="alive">Active</option>
-                    <option value="locked_up">Locked Up</option>
-                    <option value="dead">Deceased</option>
-                </select>
-
-                <select id="filter-set" class="filter-select" aria-label="Filter by set">
-                    <option value="all">All Sets</option>
-                    {% for set in sets %}
-                    <option value="{{ set[0] }}">{{ set[1] }}</option>
-                    {% endfor %}
-                </select>
-            </div>
-
-            <div class="sort-group">
-                <select id="sort-by" class="sort-select" aria-label="Sort by">
-                    <option value="name">Name</option>
-                    <option value="status">Status</option>
-                    <option value="set">Set</option>
-                </select>
-                <button id="sort-order" class="sort-order-btn" data-order="asc"
-                        aria-label="Toggle sort order">↑</button>
-            </div>
+    <!-- Filter and Sort Controls -->
+    <div class="filter-sort-controls">
+        <div class="filter-group">
+            <select id="filter-status" class="filter-select">
+                <option value="all">All Statuses</option>
+                <option value="alive">Active</option>
+                <option value="locked_up">Locked Up</option>
+                <option value="dead">Deceased</option>
+            </select>
+            <select id="filter-set" class="filter-select">
+                <option value="all">All Sets</option>
+                {% for set in sets %}
+                <option value="{{ set.id }}">{{ set.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="sort-group">
+            <select id="sort-by" class="sort-select">
+                <option value="name">Name</option>
+                <option value="status">Status</option>
+                <option value="set">Set</option>
+            </select>
+            <button id="sort-order" class="sort-order-btn" data-order="asc" aria-label="Toggle sort order">↑</button>
         </div>
     </div>
 
     <!-- Members List -->
     <ul class="members-list">
         {% for member in members %}
-        <li class="member-item" data-status="{{ member[3] }}" data-set="{{ member[8] or 'Unknown' }}">
+        <li class="member-item" data-status="{{ member.status }}" data-set="{{ member.set_id }}">
             <div class="member-info">
-                <a href="/members/{{ member[0] }}" class="member-name">
-                    {{ member[1] }}
-                </a>
-                <a href="/sets/{{ member[7] }}" class="member-set">
-                    ({% if member[8] %}{{ member[8] }}{% else %}Unknown Set{% endif %})
-                </a>
+                <a href="/members/{{ member.id }}" class="member-name">{{ member.name }}</a>
+                <a href="/sets/{{ member.set_id }}" class="member-set">({% if member.set_name %}{{ member.set_name }}{% else %}Unknown Set{% endif %})</a>
             </div>
             <div class="member-status">
-                {% if member[3] == "locked_up" %}
+                {% if member.status == "locked_up" %}
                     <span class="status locked-up" role="img" aria-label="Locked Up">🔒</span>
-                {% elif member[3] == "dead" %}
+                {% elif member.status == "dead" %}
                     <span class="status deceased" role="img" aria-label="Deceased">💀</span>
                 {% else %}
                     <span class="status alive" role="img" aria-label="Active">🟢</span>
@@ -64,12 +51,108 @@
         </li>
         {% endfor %}
     </ul>
-
-    <!-- Empty State -->
-    <div class="empty-state" id="emptyState">
-        No members found matching your criteria
-    </div>
+    <div id="emptyState" style="display: none;">No members found</div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const searchInput = document.getElementById('searchInput');
+    const filterStatus = document.getElementById('filter-status');
+    const filterSet = document.getElementById('filter-set');
+    const sortBy = document.getElementById('sort-by');
+    const sortOrderBtn = document.getElementById('sort-order');
+    const memberList = document.querySelector('.members-list');
+    const emptyState = document.getElementById('emptyState');
+    let currentOrder = 'asc';
+
+    const statusOrder = { 'alive': 1, 'locked_up': 2, 'dead': 3 };
+
+    // Debounce function to prevent excessive function calls
+    const debounce = (func, timeout = 300) => {
+        let timer;
+        return (...args) => {
+            clearTimeout(timer);
+            timer = setTimeout(() => func.apply(this, args), timeout);
+        };
+    };
+
+    // Combined filtering and sorting function
+    const filterAndSortMembers = debounce(() => {
+        const searchTerm = searchInput.value.toLowerCase();
+        const statusFilter = filterStatus.value;
+        const setFilter = filterSet.value;
+        let visibleCount = 0;
+
+        document.querySelectorAll('.member-item').forEach(item => {
+            const name = item.querySelector('.member-name').textContent.toLowerCase();
+            const memberSetText = item.querySelector('.member-set').textContent.toLowerCase();
+            const itemSetId = item.dataset.set;
+
+            const matchesSearch = name.includes(searchTerm) || memberSetText.includes(searchTerm);
+            const matchesStatus = statusFilter === 'all' || item.dataset.status === statusFilter;
+            const matchesSet = setFilter === 'all' || itemSetId === setFilter;
+
+            const shouldShow = matchesSearch && matchesStatus && matchesSet;
+            item.style.display = shouldShow ? 'flex' : 'none';
+            if (shouldShow) visibleCount++;
+        });
+
+        emptyState.style.display = visibleCount ? 'none' : 'block';
+        sortMembers();
+    });
+
+    // Sorting function
+    const sortMembers = () => {
+        const members = Array.from(memberList.children).filter(item =>
+            item.style.display !== 'none'
+        );
+
+        members.sort((a, b) => {
+            let aValue, bValue;
+            switch(sortBy.value) {
+                case 'name':
+                    aValue = a.querySelector('.member-name').textContent.toLowerCase();
+                    bValue = b.querySelector('.member-name').textContent.toLowerCase();
+                    break;
+                case 'status':
+                    aValue = statusOrder[a.dataset.status];
+                    bValue = statusOrder[b.dataset.status];
+                    // For numeric values, subtract; no need to use localeCompare
+                    return currentOrder === 'asc' ? aValue - bValue : bValue - aValue;
+                case 'set':
+                    aValue = a.querySelector('.member-set').textContent.toLowerCase();
+                    bValue = b.querySelector('.member-set').textContent.toLowerCase();
+                    break;
+            }
+            return currentOrder === 'asc'
+                ? aValue.localeCompare(bValue)
+                : bValue.localeCompare(aValue);
+        });
+
+        memberList.append(...members);
+    };
+
+    // Event Listeners
+    [searchInput, filterStatus, filterSet].forEach(element => {
+        element.addEventListener('input', filterAndSortMembers);
+    });
+
+    sortBy.addEventListener('change', () => {
+        filterAndSortMembers();
+        sortMembers();
+    });
+
+    sortOrderBtn.addEventListener('click', () => {
+        currentOrder = currentOrder === 'asc' ? 'desc' : 'asc';
+        sortOrderBtn.textContent = currentOrder === 'asc' ? '↑' : '↓';
+        sortOrderBtn.setAttribute('data-order', currentOrder);
+        filterAndSortMembers();
+    });
+
+    // Initial setup
+    filterAndSortMembers();
+});
+</script>
 
 <style>
     .members-container {
@@ -77,11 +160,6 @@
         margin: 2rem auto;
         padding: 0 1rem;
     }
-
-    .controls-container {
-        margin-bottom: 2rem;
-    }
-
     .search-bar {
         width: 100%;
         padding: 0.8rem;
@@ -92,18 +170,16 @@
         border-radius: 4px;
         font-size: 1rem;
     }
-
     .filter-sort-controls {
         display: grid;
         grid-template-columns: 1fr auto;
         gap: 1rem;
+        margin-bottom: 1rem;
     }
-
     .filter-group, .sort-group {
         display: flex;
         gap: 0.5rem;
     }
-
     .filter-select, .sort-select {
         background: #2a2a2a;
         color: #e0e0e0;
@@ -113,7 +189,6 @@
         cursor: pointer;
         min-width: 160px;
     }
-
     .sort-order-btn {
         background: #3a3a3a;
         color: #e0e0e0;
@@ -124,13 +199,11 @@
         transition: all 0.2s;
         width: 50px;
     }
-
     .members-list {
         list-style: none;
         padding: 0;
         margin: 0;
     }
-
     .member-item {
         display: flex;
         justify-content: space-between;
@@ -141,180 +214,64 @@
         border-radius: 6px;
         transition: transform 0.2s;
     }
-
     .member-info {
         flex-grow: 1;
     }
-
     .member-name {
         color: #e0e0e0;
         text-decoration: none;
         font-size: 1.1rem;
         margin-right: 0.5rem;
     }
-
     .member-set {
         color: #888;
         font-size: 0.9rem;
         text-decoration: none;
     }
-
     .member-status {
         font-size: 1.2rem;
         min-width: 40px;
         text-align: right;
     }
-
     .status.alive {
         color: #4CAF50;
     }
-
     .status.locked-up {
         color: #FF9800;
     }
-
     .status.deceased {
         color: #F44336;
     }
-
     .empty-state {
         text-align: center;
         color: #666;
         padding: 2rem;
         display: none;
     }
-
     @media (max-width: 768px) {
         .filter-sort-controls {
             grid-template-columns: 1fr;
         }
-
         .filter-group, .sort-group {
             flex-direction: column;
         }
-
         .member-item {
             flex-direction: column;
             align-items: flex-start;
             padding: 1rem 0.5rem;
         }
-
         .member-status {
             margin-top: 0.5rem;
             text-align: left;
         }
     }
-
     @keyframes pulse {
         0% { opacity: 0.6; }
         50% { opacity: 1; }
         100% { opacity: 0.6; }
     }
-
     .loading .member-item {
         animation: pulse 1.5s infinite;
     }
 </style>
-
-<script>
-    document.addEventListener('DOMContentLoaded', () => {
-        const searchInput = document.getElementById('searchInput');
-        const filterStatus = document.getElementById('filter-status');
-        const filterSet = document.getElementById('filter-set');
-        const sortBy = document.getElementById('sort-by');
-        const sortOrderBtn = document.getElementById('sort-order');
-        const memberList = document.querySelector('.members-list');
-        const emptyState = document.getElementById('emptyState');
-        let currentOrder = 'asc';
-
-        const statusOrder = { 'alive': 1, 'locked_up': 2, 'dead': 3 };
-
-        // Debounce function
-        const debounce = (func, timeout = 300) => {
-            let timer;
-            return (...args) => {
-                clearTimeout(timer);
-                timer = setTimeout(() => func.apply(this, args), timeout);
-            };
-        };
-
-        // Combined filter function
-        const filterAndSortMembers = debounce(() => {
-            const searchTerm = searchInput.value.toLowerCase();
-            const statusFilter = filterStatus.value;
-            const setFilter = filterSet.value;
-
-            let visibleCount = 0;
-
-            document.querySelectorAll('.member-item').forEach(item => {
-                const name = item.querySelector('.member-name').textContent.toLowerCase();
-                const set = item.querySelector('.member-set').textContent.toLowerCase();
-                const itemSetId = item.dataset.set;
-
-                const matchesSearch = name.includes(searchTerm) || set.includes(searchTerm);
-                const matchesStatus = statusFilter === 'all' || item.dataset.status === statusFilter;
-                const matchesSet = setFilter === 'all' || itemSetId === setFilter;
-
-                const shouldShow = matchesSearch && matchesStatus && matchesSet;
-                item.style.display = shouldShow ? 'flex' : 'none';
-                if(shouldShow) visibleCount++;
-            });
-
-            emptyState.style.display = visibleCount ? 'none' : 'block';
-            sortMembers();
-        });
-
-        // Sorting function
-        const sortMembers = () => {
-            const members = Array.from(memberList.children).filter(item =>
-                item.style.display !== 'none'
-            );
-
-            members.sort((a, b) => {
-                let aValue, bValue;
-
-                switch(sortBy.value) {
-                    case 'name':
-                        aValue = a.querySelector('.member-name').textContent.toLowerCase();
-                        bValue = b.querySelector('.member-name').textContent.toLowerCase();
-                        break;
-                    case 'status':
-                        aValue = statusOrder[a.dataset.status];
-                        bValue = statusOrder[b.dataset.status];
-                        return currentOrder === 'asc' ? aValue - bValue : bValue - aValue;
-                    case 'set':
-                        aValue = a.dataset.set.toLowerCase();
-                        bValue = b.dataset.set.toLowerCase();
-                        break;
-                }
-
-                return currentOrder === 'asc'
-                    ? aValue.localeCompare(bValue)
-                    : bValue.localeCompare(aValue);
-            });
-
-            memberList.append(...members);
-        };
-
-        // Event Listeners
-        [searchInput, filterStatus, filterSet].forEach(element => {
-            element.addEventListener('input', filterAndSortMembers);
-        });
-
-        sortBy.addEventListener('change', () => {
-            filterAndSortMembers();
-            sortMembers();
-        });
-
-        sortOrderBtn.addEventListener('click', () => {
-            currentOrder = currentOrder === 'asc' ? 'desc' : 'asc';
-            sortOrderBtn.textContent = currentOrder === 'asc' ? '↑' : '↓';
-            sortOrderBtn.setAttribute('data-order', currentOrder);
-            filterAndSortMembers();
-        });
-
-        // Initial setup
-        filterAndSortMembers();
-    });
-</script>
 {% endblock %}

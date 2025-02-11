@@ -18,7 +18,7 @@ def show_calendar(request: Request):
     cursor = conn.cursor()
 
     # Fetch all members with release dates or dates of death
-    cursor.execute("SELECT name, release_date, date_of_death FROM members")
+    cursor.execute("SELECT name, release_date, death_date FROM members")
     members = cursor.fetchall()
 
     # Prepare data for the calendar
@@ -30,7 +30,7 @@ def show_calendar(request: Request):
                 "date": member[1],
                 "color": "green"  # Green for release dates
             })
-        if member[2]:  # date_of_death
+        if member[2]:  # death_date
             events.append({
                 "title": f"{member[0]} - Deceased",
                 "date": member[2],

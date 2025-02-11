@@ -1,0 +1,142 @@
+{% block extra_styles %}
+<style>
+    /* Container Styles */
+    .form-container {
+        max-width: 800px;
+        margin: 2rem auto;
+        padding: 2rem;
+        background: #ffffff;
+        border-radius: 8px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    /* Header Styles */
+    .form-header {
+        text-align: center;
+        margin-bottom: 2rem;
+    }
+    .form-header h2 {
+        color: #495057;
+        margin-bottom: 0.5rem;
+    }
+    .back-link {
+        color: #8c32ef;
+        text-decoration: none;
+        font-size: 0.9rem;
+    }
+
+    /* Form Grid Layout */
+    .form-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+    }
+
+    /* Form Group Styles */
+    .form-group {
+        margin-bottom: 1.5rem;
+    }
+    .form-group label {
+        display: block;
+        font-weight: 500;
+        margin-bottom: 0.5rem;
+        color: #495057;
+    }
+    .form-control {
+        width: 100%;
+        padding: 0.75rem;
+        border: 1px solid #ced4da;
+        border-radius: 4px;
+        font-size: 1rem;
+        transition: all 0.2s ease;
+    }
+    .form-control:focus {
+        border-color: #8c32ef;
+        outline: none;
+        box-shadow: 0 0 0 0.2rem rgba(140, 50, 239, 0.25);
+    }
+
+    /* Button Styles */
+    .form-actions {
+        display: flex;
+        gap: 1rem;
+        margin-top: 2rem;
+    }
+    .save-btn {
+        background: #8c32ef;
+        color: white;
+        padding: 0.75rem 1.5rem;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        transition: background-color 0.2s ease;
+        flex-grow: 1;
+    }
+    .save-btn:hover {
+        background-color: #6a26b3;
+    }
+    .cancel-btn {
+        background: #f8f9fa;
+        color: #6c757d;
+        padding: 0.75rem 1.5rem;
+        border: 1px solid #ced4da;
+        border-radius: 4px;
+        text-decoration: none;
+        text-align: center;
+        transition: background-color 0.2s ease;
+    }
+
+    /* Responsive Design */
+    @media (max-width: 768px) {
+        .form-container {
+            padding: 1.5rem;
+            margin: 1rem;
+        }
+        .form-grid {
+            grid-template-columns: 1fr;
+        }
+        .form-header h2 {
+            font-size: 1.5rem;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="form-container">
+    <div class="form-header">
+        <h2>Add Assist</h2>
+        <a href="/members/{{ member_id }}" class="back-link">← Back to Member</a>
+    </div>
+
+    <form method="POST" action="/events/add/assists/{{ member_id }}">
+        <div class="form-grid">
+            <!-- Victim Selection -->
+            <div class="form-group">
+                <label for="victim_id">Victim</label>
+                <select name="victim_id" class="form-control" required>
+                    {% for member in all_members %}
+                        <option value="{{ member.id }}" {% if form_data and member.id == form_data.victim_id %}selected{% endif %}>
+                            {{ member.name }} (Deceased on {{ member.death_date }})
+                        </option>
+                    {% else %}
+                        <option disabled>No members available</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+
+        <div class="form-actions">
+            <button type="submit" class="save-btn">Create Assist</button>
+            <a href="/members/{{ member_id }}" class="cancel-btn">Cancel</a>
+        </div>
+
+        {% if error_message %}
+        <div class="error-message" style="color: red; margin-top: 1rem;">
+            {{ error_message }}
+        </div>
+        {% endif %}
+    </form>
+</div>
+{% endblock %}

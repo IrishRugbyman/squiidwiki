@@ -3,11 +3,7 @@
 {% block content %}
 <div class="sets-container">
     <h2 class="page-title">DETROIT SETS</h2>
-
-    <!-- Search Bar -->
     <input type="text" id="searchInput" placeholder="Search for a set..." class="search-bar">
-
-    <!-- Alphabetical Navigation Bar -->
     <div id="alphabetNav">
         <div class="nav-wrapper">
             <a href="#numbers">#</a>
@@ -17,33 +13,21 @@
         </div>
         <a href="/sets/add" class="add-button">+ Add New Set</a>
     </div>
-
-    <!-- Sets Grouped by Starting Character -->
     <ul id="setsList">
         {% for char, group in grouped_sets.items() %}
         <h3 id="{{ char }}">{{ char }}</h3>
         {% for set in group %}
-        <li><a href="/sets/{{ set[0] }}">{{ set[1] }}</a></li>
+        <li><a href="/sets/{{ set.id }}">{{ set.name }}</a></li>
         {% endfor %}
         {% endfor %}
     </ul>
 </div>
-
 <script>
     document.getElementById('searchInput').addEventListener('input', function() {
         const searchTerm = this.value.toLowerCase().trim();
-        const sets = document.querySelectorAll('#setsList li');
-        const headers = document.querySelectorAll('#setsList h3');
-
-        headers.forEach(header => {
-            let hasVisible = false;
-            const sectionItems = Array.from(header.nextElementSibling?.children || []);
-            sectionItems.forEach(item => {
-                const matches = item.textContent.toLowerCase().includes(searchTerm);
-                item.style.display = matches ? 'block' : 'none';
-                if (matches) hasVisible = true;
-            });
-            header.style.display = hasVisible ? 'block' : 'none';
+        const listItems = document.querySelectorAll('#setsList li');
+        listItems.forEach(item => {
+            item.style.display = item.textContent.toLowerCase().includes(searchTerm) ? 'block' : 'none';
         });
     });
 </script>

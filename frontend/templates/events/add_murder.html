@@ -1,0 +1,246 @@
+{% block extra_styles %}
+<style>
+    /* Container Styles */
+    .form-container {
+        max-width: 800px;
+        margin: 2rem auto;
+        padding: 2rem;
+        background: #ffffff;
+        border-radius: 8px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    /* Header Styles */
+    .form-header {
+        text-align: center;
+        margin-bottom: 2rem;
+    }
+    .form-header h2 {
+        color: #495057;
+        margin-bottom: 0.5rem;
+    }
+    .back-link {
+        color: #8c32ef;
+        text-decoration: none;
+        font-size: 0.9rem;
+    }
+
+    /* Form Grid Layout */
+    .form-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+    }
+
+    /* Form Group Styles */
+    .form-group {
+        margin-bottom: 1.5rem;
+    }
+    .form-group label {
+        display: block;
+        font-weight: 500;
+        margin-bottom: 0.5rem;
+        color: #495057;
+    }
+    .form-control {
+        width: 100%;
+        padding: 0.75rem;
+        border: 1px solid #ced4da;
+        border-radius: 4px;
+        font-size: 1rem;
+        transition: all 0.2s ease;
+    }
+    .form-control:focus {
+        border-color: #8c32ef;
+        outline: none;
+        box-shadow: 0 0 0 0.2rem rgba(140, 50, 239, 0.25);
+    }
+
+    /* Date Precision Styles */
+    .precision-group {
+        background: #f8f9fa;
+        padding: 1rem;
+        border-radius: 6px;
+        margin-top: 1rem;
+    }
+    .form-check {
+        display: flex;
+        align-items: center;
+        margin-bottom: 0.5rem;
+    }
+    .form-check-input {
+        margin-right: 0.5rem;
+    }
+
+    /* Button Styles */
+    .form-actions {
+        display: flex;
+        gap: 1rem;
+        margin-top: 2rem;
+    }
+    .save-btn {
+        background: #8c32ef;
+        color: white;
+        padding: 0.75rem 1.5rem;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        transition: background-color 0.2s ease;
+        flex-grow: 1;
+    }
+    .save-btn:hover {
+        background-color: #6a26b3;
+    }
+    .cancel-btn {
+        background: #f8f9fa;
+        color: #6c757d;
+        padding: 0.75rem 1.5rem;
+        border: 1px solid #ced4da;
+        border-radius: 4px;
+        text-decoration: none;
+        text-align: center;
+        transition: background-color 0.2s ease;
+    }
+
+    /* Responsive Design */
+    @media (max-width: 768px) {
+        .form-container {
+            padding: 1.5rem;
+            margin: 1rem;
+        }
+        .form-grid {
+            grid-template-columns: 1fr;
+        }
+        .form-header h2 {
+            font-size: 1.5rem;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="form-container">
+    <div class="form-header">
+        <h2>Add Murder</h2>
+        <a href="/members/{{ member_id }}" class="back-link">&larr; Back to Member</a>
+    </div>
+
+    <form method="POST" action="/events/add/murders/{{ member_id }}">
+        <!-- Victim Selection -->
+        <div class="form-group">
+            <label for="victim_id">Victim</label>
+            <select name="victim_id" id="victimSelect" class="form-control" required>
+                {% for member in all_members %}
+                    <option value="{{ member.id }}"
+                        data-death_date="{{ member.death_date or '' }}"
+                        data-death_approx="{{ member.death_date_approx or '' }}">
+                        {{ member.name }}
+                        {% if member.death_date %}
+                            (Deceased on {{ member.death_date|format_special_date|safe }})
+                        {% elif member.death_date_approx and member.death_date_approx != 'unknown' %}
+                            (Deceased approximately in {{ member.death_date_approx }})
+                        {% elif member.death_date_approx == 'unknown' %}
+                            (Death date unknown)
+                        {% else %}
+                            (Alive)
+                        {% endif %}
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <!-- Date Precision Selection -->
+        <div class="form-group">
+            <label>Date Precision</label>
+            <select name="date_precision" id="datePrecision" class="form-control" required>
+                <option value="exact">Exact Date</option>
+                <option value="year">Year Only</option>
+                <option value="unknown">Unknown</option>
+            </select>
+        </div>
+
+        <!-- Exact Date Input -->
+        <div id="exactDateGroup" class="form-group">
+            <label>Exact Date</label>
+            <input type="date" name="date_exact" class="form-control">
+        </div>
+
+        <!-- Year Input -->
+        <div id="yearGroup" class="form-group">
+            <label>Year</label>
+            <input type="int" name="date_year" class="form-control" placeholder="YYYY"
+            >
+        </div>
+
+        <!-- Message Display -->
+        <div id="victimStatusMessage" class="error-message"></div>
+
+        <!-- Form Actions -->
+        <div class="form-actions">
+            <button type="submit" class="save-btn">Create Murder</button>
+            <a href="/members/{{ member_id }}" class="cancel-btn">Cancel</a>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const precisionSelect = document.getElementById('datePrecision');
+    const exactDateGroup = document.getElementById('exactDateGroup');
+    const yearGroup = document.getElementById('yearGroup');
+    const victimSelect = document.getElementById('victimSelect');
+    const victimStatusMessage = document.getElementById('victimStatusMessage');
+
+    function updateDateFields() {
+        exactDateGroup.style.display = (precisionSelect.value === 'exact') ? 'block' : 'none';
+        yearGroup.style.display = (precisionSelect.value === 'year') ? 'block' : 'none';
+    }
+
+    victimSelect.addEventListener('change', function() {
+        const selected = victimSelect.options[victimSelect.selectedIndex];
+        const deathDate = selected.getAttribute('data-death_date');
+        const deathApprox = selected.getAttribute('data-death_approx');
+
+        // Check if a precise death date exists.
+        if (deathDate && deathDate !== 'None') {
+            precisionSelect.disabled = true;
+            exactDateGroup.style.display = 'none';
+            yearGroup.style.display = 'none';
+            victimStatusMessage.innerText = 'Death date already known';
+        }
+        // Check if there is an approximate death date (other than "unknown").
+        else if (deathApprox && deathApprox !== 'unknown' && deathApprox !== 'None') {
+            precisionSelect.disabled = false;
+            precisionSelect.innerHTML = '<option value="keep">Keep same date</option><option value="exact">Exact Date (more precise)</option>';
+            precisionSelect.value = 'exact';
+            exactDateGroup.style.display = 'block';
+            yearGroup.style.display = 'none';
+            victimStatusMessage.innerText = 'Victim already has an approximate death date. Please provide a more precise date or choose "Keep same date".';
+        }
+        // Check if death date is marked as unknown.
+        else if (deathApprox === 'unknown') {
+            precisionSelect.disabled = false;
+            precisionSelect.innerHTML = '<option value="keep">Keep unknown date</option><option value="exact">Exact Date</option><option value="year">Year Only</option>';
+            precisionSelect.value = 'exact';
+            updateDateFields();
+            victimStatusMessage.innerText = '';
+        }
+        // Otherwise, assume the victim is alive.
+        else {
+            precisionSelect.disabled = false;
+            precisionSelect.innerHTML = '<option value="exact">Exact Date</option><option value="year">Year Only</option><option value="unknown">Unknown</option>';
+            precisionSelect.value = 'exact';
+            updateDateFields();
+            victimStatusMessage.innerText = '';
+        }
+    });
+
+    precisionSelect.addEventListener('change', updateDateFields);
+    // Trigger the change event on page load.
+    victimSelect.dispatchEvent(new Event('change'));
+});
+</script>
+{% endblock %}

@@ -3,6 +3,10 @@ from typing import Optional
 from datetime import date
 from backend.database.enums import eStatus, eSetType
 
+# --------------------------
+# Set Models
+# --------------------------
+
 class SetBase(BaseModel):
     name: str
     description: Optional[str] = None
@@ -17,6 +21,7 @@ class Set(SetBase):
     class Config:
         from_attributes = True
 
+# Relationships between Sets
 class SetAlliesMap(BaseModel):
     set_id: int
     ally_id: int
@@ -31,6 +36,10 @@ class SetEnemiesMap(BaseModel):
     class Config:
         from_attributes = True
 
+# --------------------------
+# Alliance Models
+# --------------------------
+
 class AllianceBase(BaseModel):
     name: str
     description: Optional[str] = None
@@ -44,6 +53,7 @@ class Alliance(AllianceBase):
     class Config:
         from_attributes = True
 
+# Relationship between Alliances and Sets
 class AllianceMemberMap(BaseModel):
     alliance_id: int
     set_id: int
@@ -53,12 +63,25 @@ class AllianceMemberMap(BaseModel):
     class Config:
         from_attributes = True
 
+# Option model for dropdowns or simple list retrieval
+class AllianceOption(BaseModel):
+    id: int
+    name: str
+
+# --------------------------
+# Member Models
+# --------------------------
+
 class MemberBase(BaseModel):
     name: str
+    description: Optional[str] = None
     status: eStatus
     release_date: Optional[date] = None  # Only if status is "locked_up"
-    date_of_death: Optional[date] = None  # Only if status is "dead"
-    set_id: int
+    release_date_approx: Optional[str] = None  # Approximate release date (e.g., "2023" or "life")
+    death_date: Optional[date] = None  # Only if status is "dead"
+    death_date_approx: Optional[str] = None  # Approximate date of death (e.g., "2023")
+    set_id: Optional[int] = None  # Optional set reference
+    alliance_id: Optional[int] = None  # Optional alliance reference
 
 class MemberCreate(MemberBase):
     pass
@@ -69,10 +92,16 @@ class Member(MemberBase):
     class Config:
         from_attributes = True
 
+# --------------------------
+# Incident Models (Shootings, Murders, Assists)
+# --------------------------
+
 class ShootingBase(BaseModel):
     shooter_id: int
     victim_id: int
-    date: date
+    date: Optional[date]
+    date_approx: Optional[str]
+
 
 class ShootingCreate(ShootingBase):
     pass
@@ -86,7 +115,9 @@ class Shooting(ShootingBase):
 class MurderBase(BaseModel):
     shooter_id: int
     victim_id: int
-    date: date
+    date: Optional[date]
+    date_approx: Optional[str]
+
 
 class MurderCreate(MurderBase):
     pass
@@ -100,7 +131,8 @@ class Murder(MurderBase):
 class AssistBase(BaseModel):
     shooter_id: int
     victim_id: int
-    date: date
+    date: Optional[date]
+    date_approx: Optional[str]
 
 class AssistCreate(AssistBase):
     pass

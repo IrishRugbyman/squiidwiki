@@ -9,13 +9,11 @@
         margin: 0;
         padding: 0;
     }
-
     h2 {
         text-align: center;
         margin-top: 2rem;
         color: #495057;
     }
-
     form {
         max-width: 600px;
         margin: 2rem auto;
@@ -24,18 +22,15 @@
         border-radius: 8px;
         box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
     }
-
     .form-group {
         margin-bottom: 1.5rem;
     }
-
     label {
         display: block;
         font-weight: 500;
         margin-bottom: 0.5rem;
         color: #495057;
     }
-
     input[type="text"],
     textarea,
     select,
@@ -48,7 +43,6 @@
         font-size: 1rem;
         transition: border-color 0.2s ease;
     }
-
     input[type="text"]:focus,
     textarea:focus,
     select:focus,
@@ -58,29 +52,24 @@
         outline: none;
         box-shadow: 0 0 0 0.2rem rgba(140, 50, 239, 0.25);
     }
-
     .form-check {
         display: flex;
         align-items: center;
         margin-bottom: 0.5rem;
     }
-
     .form-check-input {
         margin-right: 0.5rem;
     }
-
     .form-check-label {
         font-size: 0.9rem;
         color: #495057;
     }
-
     small.form-text {
         display: block;
         font-size: 0.875rem;
         color: #6c757d;
         margin-top: 0.25rem;
     }
-
     button[type="submit"] {
         display: inline-block;
         width: 100%;
@@ -94,22 +83,14 @@
         cursor: pointer;
         transition: background-color 0.2s ease;
     }
-
     button[type="submit"]:hover {
         background-color: #6a26b3;
     }
-
-    /* Hidden Fields */
-    [style*="display: none;"] {
-        display: none !important;
-    }
-
     /* Responsive Design */
     @media (max-width: 768px) {
         form {
             padding: 1.5rem;
         }
-
         h2 {
             font-size: 1.5rem;
         }
@@ -118,15 +99,20 @@
 {% endblock %}
 {% block content %}
 <h2>Add a Member to {{ set_name }}</h2>
-<form method="POST">
+<form method="POST" action="/members/add/{{ set_id }}" id="add-member-form">
+    <!-- Name Field -->
     <div class="form-group">
         <label for="name">Name:</label>
         <input type="text" id="name" name="name" class="form-control" required aria-label="Member Name">
     </div>
+
+    <!-- Description Field -->
     <div class="form-group">
         <label for="description">Description:</label>
         <textarea id="description" name="description" class="form-control" aria-label="Member Description"></textarea>
     </div>
+
+    <!-- Status Field -->
     <div class="form-group">
         <label for="status">Status:</label>
         <select id="status" name="status" class="form-control" required onchange="toggleFields()" aria-label="Member Status">
@@ -136,158 +122,197 @@
         </select>
     </div>
 
-    <!-- Release Date Section -->
+    <!-- Release Date Section (for locked_up members) -->
     <div id="release_date_field" style="display: none;">
+        <!-- Update the release date precision radio group -->
         <div class="form-group">
             <label>Release Date Precision:</label>
             <div class="form-check">
-                <input class="form-check-input" type="radio" name="release_date_precision"
-                       value="exact" id="release_exact_precision" onchange="toggleReleaseDatePrecision()">
-                <label class="form-check-label" for="release_exact_precision">Exact Date</label>
+                <input type="radio" id="release_exact_precision" name="release_date_precision" value="exact" class="form-check-input">
+                <label for="release_exact_precision" class="form-check-label">Exact</label>
             </div>
             <div class="form-check">
-                <input class="form-check-input" type="radio" name="release_date_precision"
-                       value="year" id="release_year_precision" onchange="toggleReleaseDatePrecision()">
-                <label class="form-check-label" for="release_year_precision">Year Only</label>
+                <input type="radio" id="release_year_precision" name="release_date_precision" value="year" class="form-check-input">
+                <label for="release_year_precision" class="form-check-label">Year</label>
             </div>
             <div class="form-check">
-                <input class="form-check-input" type="radio" name="release_date_precision"
-                       value="unknown" id="release_unknown_precision" onchange="toggleReleaseDatePrecision()" checked>
-                <label class="form-check-label" for="release_unknown_precision">Unknown</label>
+                <input type="radio" id="release_life_precision" name="release_date_precision" value="life" class="form-check-input">
+                <label for="release_life_precision" class="form-check-label">Life Sentence</label>
+            </div>
+            <div class="form-check">
+                <input type="radio" id="release_unknown_precision" name="release_date_precision" value="unknown" class="form-check-input" checked>
+                <label for="release_unknown_precision" class="form-check-label">Unknown</label>
             </div>
         </div>
-        <div id="release_exact_date_field" style="display: none;">
-            <div class="form-group">
-                <label for="release_date_exact">Exact Date:</label>
-                <input type="date" id="release_date_exact" name="release_date_exact" class="form-control" aria-describedby="release_exact_help">
-                <small id="release_exact_help" class="form-text text-muted">Select the exact release date.</small>
-            </div>
+        <div id="release_exact_date_field" style="display: none;" class="form-group">
+            <label for="release_date_exact">Exact Release Date:</label>
+            <input type="date" id="release_date_exact" name="release_date_exact" class="form-control">
         </div>
-        <div id="release_year_date_field" style="display: none;">
-            <div class="form-group">
-                <label for="release_date_year">Year:</label>
-                <input type="number" id="release_date_year" name="release_date_year"
-                       class="form-control" min="{{ current_year }}" max="9999" placeholder="YYYY" aria-describedby="release_year_help">
-                <small id="release_year_help" class="form-text text-muted">Enter the release year (e.g., 2029).</small>
-            </div>
+        <div id="release_year_date_field" style="display: none;" class="form-group">
+            <label for="release_date_year">Release Year:</label>
+            <input type="number" id="release_date_year" name="release_date_year" class="form-control">
         </div>
     </div>
 
-    <!-- Death Date Section -->
+    <!-- Death Date Section (for deceased members) -->
     <div id="date_of_death_precision" style="display: none;">
         <div class="form-group">
             <label>Death Date Precision:</label>
             <div class="form-check">
-                <input class="form-check-input" type="radio" name="death_precision"
-                       value="exact" id="exact_precision" onchange="toggleDeathDatePrecision()">
-                <label class="form-check-label" for="exact_precision">Exact Date</label>
+                <input type="radio" id="death_exact_precision" name="death_precision" value="exact" class="form-check-input">
+                <label for="death_exact_precision" class="form-check-label">Exact</label>
             </div>
             <div class="form-check">
-                <input class="form-check-input" type="radio" name="death_precision"
-                       value="year" id="year_precision" onchange="toggleDeathDatePrecision()">
-                <label class="form-check-label" for="year_precision">Year Only</label>
+                <input type="radio" id="death_year_precision" name="death_precision" value="year" class="form-check-input">
+                <label for="death_year_precision" class="form-check-label">Year</label>
             </div>
             <div class="form-check">
-                <input class="form-check-input" type="radio" name="death_precision"
-                       value="unknown" id="unknown_precision" onchange="toggleDeathDatePrecision()" checked>
-                <label class="form-check-label" for="unknown_precision">Unknown</label>
+                <input type="radio" id="death_unknown_precision" name="death_precision" value="unknown" class="form-check-input" checked>
+                <label for="death_unknown_precision" class="form-check-label">Unknown</label>
             </div>
         </div>
-        <div id="exact_date_field" style="display: none;">
-            <div class="form-group">
-                <label for="death_date_exact">Exact Date:</label>
-                <input type="date" id="death_date_exact" name="death_date_exact" class="form-control" aria-describedby="death_exact_help">
-                <small id="death_exact_help" class="form-text text-muted">Select the exact death date.</small>
-            </div>
+        <div id="death_exact_date_field" style="display: none;" class="form-group">
+            <label for="death_date_exact">Exact Death Date:</label>
+            <input type="date" id="death_date_exact" name="death_date_exact" class="form-control">
         </div>
-        <div id="year_date_field" style="display: none;">
-            <div class="form-group">
-                <label for="death_date_year">Year:</label>
-                <input type="number" id="death_date_year" name="death_date_year"
-                       class="form-control" min="1900" max="{{ current_year }}" placeholder="YYYY" aria-describedby="death_year_help">
-                <small id="death_year_help" class="form-text text-muted">Enter the death year (e.g., 2019).</small>
-            </div>
+        <div id="death_year_date_field" style="display: none;" class="form-group">
+            <label for="death_date_year">Death Year:</label>
+            <input type="number" id="death_date_year" name="death_date_year" class="form-control">
         </div>
     </div>
 
+    <!-- Alliance Selection -->
+    <div class="form-group">
+        <label for="alliance_id">Alliance (Optional):</label>
+        <select id="alliance_id" name="alliance_id" class="form-control">
+            <option value="">-- None --</option>
+        </select>
+        <small class="form-text text-muted">Select an alliance from the available options.</small>
+    </div>
+
+    <!-- Submit Button -->
     <button type="submit" class="btn btn-primary">Add Member</button>
 </form>
 
+<script src="https://cdn.jsdelivr.net/npm/@yaireo/tagify"></script>
+<script src="https://cdn.jsdelivr.net/npm/@yaireo/tagify/dist/tagify.polyfills.min.js"></script>
 <script>
+    document.addEventListener("DOMContentLoaded", function () {
+        console.log("Page loaded, calling populateAlliances function...");
+        toggleFields();
+
+        // Populate alliances dynamically
+        const allianceSelect = document.getElementById("alliance_id");
+        function populateAlliances(selectElement, url) {
+            console.log("Fetching alliance options from:", url); // Log the URL being fetched
+            fetch(url)
+                .then(response => response.json())
+                .then(data => {
+                    console.log('Alliance data:', data); // Log the data returned from the API
+                    data.forEach(function (alliance) {
+                        const option = document.createElement("option");
+                        option.value = alliance.id;
+                        option.textContent = alliance.name;
+                        selectElement.appendChild(option);
+                    });
+                })
+                .catch(error => {
+                    console.error('Error fetching alliances:', error); // Log any fetch errors
+                });
+        }
+        populateAlliances(allianceSelect, "/alliances/options");
+
+        // Add event listeners for release date precision radio buttons
+        const releaseRadios = document.querySelectorAll('input[name="release_date_precision"]');
+        releaseRadios.forEach(radio => {
+            radio.addEventListener("change", toggleReleaseDatePrecision);
+        });
+
+        // Add event listeners for death date precision radio buttons
+        const deathRadios = document.querySelectorAll('input[name="death_precision"]');
+        deathRadios.forEach(radio => {
+            radio.addEventListener("change", toggleDeathDatePrecision);
+        });
+    });
+
+    // Toggle fields based on status selection
     function toggleFields() {
-        const status = document.getElementById("status").value;
+        const status = document.getElementById("status")?.value || ""; // Default to empty string if "status" is missing
         const releaseDateSection = document.getElementById("release_date_field");
         const dateOfDeathSection = document.getElementById("date_of_death_precision");
 
-        // Show/hide sections based on status
-        releaseDateSection.style.display = status === "locked_up" ? "block" : "none";
-        dateOfDeathSection.style.display = status === "dead" ? "block" : "none";
-
-        // Reset release date fields if not applicable
-        if (status !== "locked_up") {
-            document.querySelectorAll('input[name="release_date_precision"]').forEach(radio => radio.checked = false);
-            document.getElementById("release_unknown_precision").checked = true;
-            toggleReleaseDatePrecision();
-            document.getElementById("release_date_exact").value = "";
-            document.getElementById("release_date_year").value = "";
+        // Toggle visibility of sections
+        if (releaseDateSection) {
+            releaseDateSection.style.display = status === "locked_up" ? "block" : "none";
+        }
+        if (dateOfDeathSection) {
+            dateOfDeathSection.style.display = status === "dead" ? "block" : "none";
         }
 
-        // Reset death date fields if not applicable
+        // Reset release date fields if status is not "locked_up"
+        if (status !== "locked_up") {
+            document.querySelectorAll('input[name="release_date_precision"]').forEach(radio => {
+                if (radio) radio.checked = false; // Ensure radio exists before setting checked
+            });
+            const releaseUnknownPrecision = document.getElementById("release_unknown_precision");
+            if (releaseUnknownPrecision) releaseUnknownPrecision.checked = true; // Check only if element exists
+            toggleReleaseDatePrecision();
+            if (document.getElementById("release_date_exact")) {
+                document.getElementById("release_date_exact").value = "";
+            }
+            if (document.getElementById("release_date_year")) {
+                document.getElementById("release_date_year").value = "";
+            }
+        }
+
+        // Reset death date fields if status is not "dead"
         if (status !== "dead") {
-            document.querySelectorAll('input[name="death_precision"]').forEach(radio => radio.checked = false);
-            document.getElementById("unknown_precision").checked = true;
+            document.querySelectorAll('input[name="death_precision"]').forEach(radio => {
+                if (radio) radio.checked = false; // Ensure radio exists before setting checked
+            });
+            const deathUnknownPrecision = document.getElementById("death_unknown_precision");
+            if (deathUnknownPrecision) deathUnknownPrecision.checked = true; // Check only if element exists
             toggleDeathDatePrecision();
-            document.getElementById("death_date_exact").value = "";
-            document.getElementById("death_date_year").value = "";
+            if (document.getElementById("death_date_exact")) {
+                document.getElementById("death_date_exact").value = "";
+            }
+            if (document.getElementById("death_date_year")) {
+                document.getElementById("death_date_year").value = "";
+            }
         }
     }
 
     function toggleReleaseDatePrecision() {
         const precision = document.querySelector('input[name="release_date_precision"]:checked')?.value;
-        document.getElementById("release_exact_date_field").style.display = precision === "exact" ? "block" : "none";
-        document.getElementById("release_year_date_field").style.display = precision === "year" ? "block" : "none";
+        // Show/hide the appropriate fields based on the radio selection
+        if (document.getElementById("release_exact_date_field")) {
+            document.getElementById("release_exact_date_field").style.display = precision === "exact" ? "block" : "none";
+        }
+        if (document.getElementById("release_year_date_field")) {
+            document.getElementById("release_year_date_field").style.display = precision === "year" ? "block" : "none";
+        }
+
+        // Clear fields when "life" is selected
+        if (precision === "life") {
+            if (document.getElementById("release_date_exact")) {
+                document.getElementById("release_date_exact").value = "";
+            }
+            if (document.getElementById("release_date_year")) {
+                document.getElementById("release_date_year").value = "";
+            }
+        }
     }
 
+    // Toggle death date precision fields
     function toggleDeathDatePrecision() {
         const precision = document.querySelector('input[name="death_precision"]:checked')?.value;
-        document.getElementById("exact_date_field").style.display = precision === "exact" ? "block" : "none";
-        document.getElementById("year_date_field").style.display = precision === "year" ? "block" : "none";
+        if (document.getElementById("death_exact_date_field")) {
+            document.getElementById("death_exact_date_field").style.display = precision === "exact" ? "block" : "none";
+        }
+        if (document.getElementById("death_year_date_field")) {
+            document.getElementById("death_year_date_field").style.display = precision === "year" ? "block" : "none";
+        }
     }
-
-    document.addEventListener('DOMContentLoaded', function () {
-        toggleFields();
-        document.querySelector("form").addEventListener("submit", function (e) {
-            const status = document.getElementById("status").value;
-            let isValid = true;
-
-            // Validate release date fields
-            if (status === "locked_up") {
-                const precision = document.querySelector('input[name="release_date_precision"]:checked')?.value;
-                if (precision === "exact" && !document.getElementById("release_date_exact").value) {
-                    alert("Please provide an exact release date.");
-                    isValid = false;
-                } else if (precision === "year" && !document.getElementById("release_date_year").value) {
-                    alert("Please provide a release year.");
-                    isValid = false;
-                }
-            }
-
-            // Validate death date fields
-            if (status === "dead") {
-                const precision = document.querySelector('input[name="death_precision"]:checked')?.value;
-                if (precision === "exact" && !document.getElementById("death_date_exact").value) {
-                    alert("Please provide an exact death date.");
-                    isValid = false;
-                } else if (precision === "year" && !document.getElementById("death_date_year").value) {
-                    alert("Please provide a death year.");
-                    isValid = false;
-                }
-            }
-
-            if (!isValid) {
-                e.preventDefault();
-            }
-        });
-    });
 </script>
+
 {% endblock %}

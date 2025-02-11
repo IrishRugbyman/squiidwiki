@@ -1,6 +1,6 @@
 from pathlib import Path
 from fastapi.templating import Jinja2Templates
-from datetime import datetime
+from datetime import datetime, date
 from markupsafe import Markup
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
@@ -12,7 +12,7 @@ def format_special_date(date_value, precision=None):
     Formats a date based on its precision and value.
 
     Args:
-        date_value (str): The date value (e.g., '2023-05-15' or 'circa 2020').
+        date_value (str or datetime.date): The date value (e.g., '2023-05-15' or 'circa 2020').
         precision (str): The precision ('exact', 'year', or None).
 
     Returns:
@@ -21,6 +21,10 @@ def format_special_date(date_value, precision=None):
     try:
         if not date_value:
             return Markup('<span class="date-unknown">Unknown</span>')
+
+        # Convert datetime.date to string if necessary
+        if isinstance(date_value, (date, datetime)):
+            date_value = date_value.strftime("%Y-%m-%d")
 
         # Handle exact dates
         if precision == "exact":
@@ -59,6 +63,8 @@ def format_special_date(date_value, precision=None):
 
     except Exception as e:
         return Markup(f'<span class="date-error">Error formatting date: {str(e)}</span>')
+
+
 
 
 # Initialize templates and register the filter

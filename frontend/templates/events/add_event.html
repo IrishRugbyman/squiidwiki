@@ -1,0 +1,218 @@
+
+{% block extra_styles %}
+<style>
+    /* Container Styles */
+    .form-container {
+        max-width: 800px;
+        margin: 2rem auto;
+        padding: 2rem;
+        background: #ffffff;
+        border-radius: 8px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    /* Header Styles */
+    .form-header {
+        text-align: center;
+        margin-bottom: 2rem;
+    }
+    .form-header h2 {
+        color: #495057;
+        margin-bottom: 0.5rem;
+    }
+    .back-link {
+        color: #8c32ef;
+        text-decoration: none;
+        font-size: 0.9rem;
+    }
+
+    /* Form Grid Layout */
+    .form-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+    }
+
+    /* Form Group Styles */
+    .form-group {
+        margin-bottom: 1.5rem;
+    }
+    .form-group label {
+        display: block;
+        font-weight: 500;
+        margin-bottom: 0.5rem;
+        color: #495057;
+    }
+    .form-control {
+        width: 100%;
+        padding: 0.75rem;
+        border: 1px solid #ced4da;
+        border-radius: 4px;
+        font-size: 1rem;
+        transition: all 0.2s ease;
+    }
+    .form-control:focus {
+        border-color: #8c32ef;
+        outline: none;
+        box-shadow: 0 0 0 0.2rem rgba(140, 50, 239, 0.25);
+    }
+
+    /* Date Precision Styles */
+    .precision-group {
+        background: #f8f9fa;
+        padding: 1rem;
+        border-radius: 6px;
+        margin-top: 1rem;
+    }
+    .form-check {
+        display: flex;
+        align-items: center;
+        margin-bottom: 0.5rem;
+    }
+    .form-check-input {
+        margin-right: 0.5rem;
+    }
+
+    /* Button Styles */
+    .form-actions {
+        display: flex;
+        gap: 1rem;
+        margin-top: 2rem;
+    }
+    .save-btn {
+        background: #8c32ef;
+        color: white;
+        padding: 0.75rem 1.5rem;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        transition: background-color 0.2s ease;
+        flex-grow: 1;
+    }
+    .save-btn:hover {
+        background-color: #6a26b3;
+    }
+    .cancel-btn {
+        background: #f8f9fa;
+        color: #6c757d;
+        padding: 0.75rem 1.5rem;
+        border: 1px solid #ced4da;
+        border-radius: 4px;
+        text-decoration: none;
+        text-align: center;
+        transition: background-color 0.2s ease;
+    }
+
+    /* Responsive Design */
+    @media (max-width: 768px) {
+        .form-container {
+            padding: 1.5rem;
+            margin: 1rem;
+        }
+        .form-grid {
+            grid-template-columns: 1fr;
+        }
+        .form-header h2 {
+            font-size: 1.5rem;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="form-container">
+    <div class="form-header">
+        <h2>{{ 'Edit' if event else 'Add' }} {{ event_type|title }}</h2>
+        <a href="/members/{{ member_id }}" class="back-link">← Back to Member</a>
+    </div>
+
+    <!-- Note: the form action URL includes both event_type and member_id -->
+    <form method="POST" action="/events/add/{{ event_type }}/{{ member_id }}">
+        <div class="form-grid">
+            <!-- Victim Selection -->
+            <div class="form-group">
+                <label for="victim_id">Victim</label>
+                <select name="victim_id" class="form-control" required>
+                    {% for member in all_members %}
+                        <option value="{{ member.id }}" {% if form_data and member.id == form_data.victim_id %}selected{% endif %}>
+                            {{ member.name }}
+                            {% if member.death_date %}
+                                (Deceased on {{ member.death_date }})
+                            {% endif %}
+                        </option>
+                    {% else %}
+                        <option disabled>No members available</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Date Precision -->
+            <div class="form-group">
+                <label>Date Precision</label>
+                <div class="precision-group">
+                    <select name="date_precision" id="datePrecision" class="form-control" required>
+                        <option value="exact" {% if form_data and form_data.date_precision == 'exact' %}selected{% endif %}>Exact Date</option>
+                        <option value="year" {% if form_data and form_data.date_precision == 'year' %}selected{% endif %}>Year Only</option>
+                        <option value="unknown" {% if form_data and form_data.date_precision == 'unknown' %}selected{% endif %}>Unknown</option>
+                    </select>
+
+                    <div id="exactDateGroup" style="margin-top: 1rem;">
+                        <label>Exact Date</label>
+                        <input type="date" name="date_exact" class="form-control" value="{{ form_data.date_exact if form_data and form_data.date_exact }}">
+                    </div>
+
+                    <div id="yearGroup" style="margin-top: 1rem;">
+                        <label>Year</label>
+                        <input type="text" name="date_year" class="form-control" placeholder="YYYY" pattern="\d{4}" value="{{ form_data.date_year if form_data and form_data.date_year }}">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="form-actions">
+            <button type="submit" class="save-btn">
+                {{ 'Update' if event else 'Create' }} {{ event_type|title }}
+            </button>
+            <a href="/members/{{ member_id }}" class="cancel-btn">Cancel</a>
+        </div>
+
+        {% if error_message %}
+        <div class="error-message" style="color: red; margin-top: 1rem;">
+            {{ error_message }}
+        </div>
+        {% endif %}
+    </form>
+</div>
+{% endblock %}
+
+
+{% block extra_scripts %}
+<script>
+    // Show/hide fields based on precision selection
+    document.addEventListener('DOMContentLoaded', function () {
+        const precisionSelect = document.getElementById('datePrecision');
+        const exactDateGroup = document.getElementById('exactDateGroup');
+        const yearGroup = document.getElementById('yearGroup');
+
+        function updateDateFields() {
+            if (precisionSelect.value === 'exact') {
+                exactDateGroup.style.display = 'block';
+                yearGroup.style.display = 'none';
+            } else if (precisionSelect.value === 'year') {
+                exactDateGroup.style.display = 'none';
+                yearGroup.style.display = 'block';
+            } else {
+                exactDateGroup.style.display = 'none';
+                yearGroup.style.display = 'none';
+            }
+        }
+
+        // Initial setup
+        updateDateFields();
+
+        // Update on change
+        precisionSelect.addEventListener('change', updateDateFields);
+    });
+</script>
+{% endblock %}
