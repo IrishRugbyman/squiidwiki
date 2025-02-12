@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container">
+  <h2 class="my-2 text-center">Upcoming and Latest Events</h2>
+
+  <!-- Upcoming Events -->
+  <div class="section">
+    <h3>Upcoming Events</h3>
+    <ul class="event-list">
+      {% for event in upcoming_events %}
+      <li style="color: {{ event.color }};">
+        <strong>{{ event.title }}</strong> - {{ event.date }}
+      </li>
+      {% else %}
+      <li>No upcoming events.</li>
+      {% endfor %}
+    </ul>
+  </div>
+
+  <!-- Latest Past Events -->
+  <div class="section">
+    <h3>Latest Past Events</h3>
+    <ul class="event-list">
+      {% for event in latest_past_events %}
+      <li style="color: {{ event.color }};">
+        <strong>{{ event.title }}</strong> - {{ event.date }}
+      </li>
+      {% else %}
+      <li>No recent events.</li>
+      {% endfor %}
+    </ul>
+  </div>
+</div>
+<style>
+  .container {
+    max-width: 900px;
+    margin: 20px auto;
+    padding: 20px;
+    background-color: #1f1f1f;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+  }
+
+  h2, h3 {
+    color: #eee;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  }
+
+  .event-list {
+    list-style-type: none;
+    padding: 0;
+  }
+
+  .event-list li {
+    margin: 10px 0;
+    font-size: 1rem;
+    color: #eee;
+  }
+
+  .section {
+    margin-bottom: 20px;
+  }
+</style>
+{% endblock %}

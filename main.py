@@ -1,3 +1,5 @@
+import os
+
 from backend.server import app
 from backend.database.database import init_db, get_db
 import uvicorn
@@ -192,6 +194,10 @@ drop_existing = True
 init_db(drop_existing=drop_existing)
 if drop_existing:
     add_test_data()
+os.system("tree /F /A > project_tree.txt")
+print("Project tree saved to project_tree.txt")
+# os.system("pip freeze > requirements.txt")
+# print("Requirements saved to requirements.txt")
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)

@@ -163,7 +163,7 @@ async def show_add_event_form(
 
         if event_type == "assists":
             # For assists, only show dead members
-            cursor.execute("SELECT id, name, death_date FROM members WHERE id != ? AND status = 'dead'", (member_id,))
+            cursor.execute("SELECT id, name, death_date, death_date_approx FROM members WHERE id != ? AND status = 'dead'", (member_id,))
             template_name = "events/add_assist.html"
         elif event_type == "murders":
             # For murders, show all members except those who already have a murder record

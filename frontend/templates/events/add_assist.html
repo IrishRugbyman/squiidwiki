@@ -118,7 +118,16 @@
                 <select name="victim_id" class="form-control" required>
                     {% for member in all_members %}
                         <option value="{{ member.id }}" {% if form_data and member.id == form_data.victim_id %}selected{% endif %}>
-                            {{ member.name }} (Deceased on {{ member.death_date }})
+                            {{ member.name }}
+                            {% if member.death_date %}
+                            (Deceased on {{ member.death_date|format_special_date|safe }})
+                            {% elif member.death_date_approx and member.death_date_approx != 'unknown' %}
+                            (Deceased approximately in {{ member.death_date_approx }})
+                            {% elif member.death_date_approx == 'unknown' %}
+                            (Death date unknown)
+                            {% else %}
+                            (Alive)
+                        {% endif %}
                         </option>
                     {% else %}
                         <option disabled>No members available</option>

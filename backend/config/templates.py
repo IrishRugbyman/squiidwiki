@@ -80,6 +80,3 @@ def format_datetime(value, format="%Y-%m-%d"):
         return datetime.strptime(value, "%Y-%m-%d").strftime(format)
     except (ValueError, TypeError):
         return value
-
-
-print(templates.env.filters)
