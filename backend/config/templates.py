@@ -80,3 +80,16 @@ def format_datetime(value, format="%Y-%m-%d"):
         return datetime.strptime(value, "%Y-%m-%d").strftime(format)
     except (ValueError, TypeError):
         return value
+
+
+# Add a context processor to include current_year in all templates
+class CustomTemplates(Jinja2Templates):
+    def TemplateResponse(self, name, context, *args, **kwargs):
+        # Add current_year to all template contexts
+        context["current_year"] = datetime.now().year
+        return super().TemplateResponse(name, context, *args, **kwargs)
+
+# Replace the default templates with our custom version
+templates = CustomTemplates(directory=TEMPLATES_DIR)
+templates.env.filters["format_special_date"] = format_special_date
+templates.env.filters["format_datetime"] = format_datetime
