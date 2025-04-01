@@ -2,73 +2,206 @@
 
 {% block content %}
 <div class="edit-alliance-container">
-    <h2 class="page-title">Edit Alliance</h2>
-    <form action="/alliances/edit/{{ alliance.id }}" method="post">
-        <div class="form-group">
-            <label for="name">Name:</label>
-            <input type="text" id="name" name="name" value="{{ alliance.name }}" required>
+    <div class="page-header">
+        <h1 class="page-title">Edit Alliance</h1>
+        <a href="/alliances/{{ alliance.id }}" class="action-btn back-btn" title="Back to alliance">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="19" y1="12" x2="5" y2="12"></line>
+                <polyline points="12 19 5 12 12 5"></polyline>
+            </svg>
+            <span>Back</span>
+        </a>
+    </div>
+
+    <form action="/alliances/edit/{{ alliance.id }}" method="post" class="edit-form">
+        <div class="form-section">
+            <div class="form-group">
+                <label for="name">Alliance Name</label>
+                <input type="text" id="name" name="name" value="{{ alliance.name }}" required
+                    class="form-input" placeholder="Enter alliance name">
+            </div>
+
+            <div class="form-group">
+                <label for="description">Description</label>
+                <textarea id="description" name="description" class="form-input" rows="4"
+                    placeholder="Enter alliance description">{{ alliance.description }}</textarea>
+            </div>
+
+            <div class="form-group">
+                <label for="status">Status</label>
+                <select id="status" name="status" class="form-input">
+                    <option value="active" {% if alliance.status == "active" %}selected{% endif %}>Active</option>
+                    <option value="inactive" {% if alliance.status == "inactive" %}selected{% endif %}>Inactive</option>
+                </select>
+            </div>
         </div>
-        <div class="form-group">
-            <label for="description">Description:</label>
-            <textarea id="description" name="description">{{ alliance.description }}</textarea>
+
+        <div class="form-actions">
+            <button type="submit" class="action-btn submit-btn">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+                    <polyline points="17 21 17 13 7 13 7 21"></polyline>
+                    <polyline points="7 3 7 8 15 8"></polyline>
+                </svg>
+                <span>Save Changes</span>
+            </button>
+            <a href="/alliances/{{ alliance.id }}" class="action-btn cancel-btn">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+                <span>Cancel</span>
+            </a>
         </div>
-        <div class="form-group">
-            <label for="status">Status:</label>
-            <select id="status" name="status">
-                <option value="active" {% if alliance.status == "active" %}selected{% endif %}>Active</option>
-                <option value="inactive" {% if alliance.status == "inactive" %}selected{% endif %}>Inactive</option>
-            </select>
-        </div>
-        <button type="submit" class="submit-button">Update Alliance</button>
     </form>
 </div>
 
 <style>
-    .edit-alliance-container {
-        max-width: 800px;
-        margin: 2rem auto;
-        padding: 1rem;
-        background: #1e1e1e;
-        border-radius: 8px;
+:root {
+    --card-hover-transform: translateY(-4px);
+    --transition-speed: 0.3s;
+}
+
+.edit-alliance-container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 2rem 1rem;
+}
+
+.page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+}
+
+.page-title {
+    color: var(--primary-color);
+    font-size: 2.5rem;
+    font-weight: 700;
+    margin: 0;
+}
+
+.action-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.25rem;
+    border-radius: 12px;
+    text-decoration: none;
+    transition: all var(--transition-speed) ease;
+    cursor: pointer;
+    border: none;
+    font-size: 1rem;
+}
+
+.back-btn {
+    background: transparent;
+    color: var(--text-color);
+    border: 1px solid var(--border-color);
+}
+
+.back-btn:hover {
+    border-color: var(--primary-color);
+    color: var(--primary-color);
+    transform: var(--card-hover-transform);
+}
+
+.edit-form {
+    background: var(--surface-color);
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    padding: 2rem;
+}
+
+.form-section {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+label {
+    color: var(--helper-text-color);
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+
+.form-input {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    border-radius: 12px;
+    border: 1px solid var(--border-color);
+    background: var(--bg-color);
+    color: var(--text-color);
+    font-size: 1rem;
+    transition: all var(--transition-speed) ease;
+}
+
+.form-input:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 2px var(--primary-color-hover);
+}
+
+textarea.form-input {
+    resize: vertical;
+    min-height: 100px;
+}
+
+.form-actions {
+    display: flex;
+    gap: 1rem;
+    justify-content: flex-end;
+}
+
+.submit-btn {
+    background: var(--primary-color);
+    color: white;
+}
+
+.submit-btn:hover {
+    background: var(--primary-color-hover);
+    transform: var(--card-hover-transform);
+}
+
+.cancel-btn {
+    background: transparent;
+    color: #F44336;
+    border: 1px solid #F44336;
+}
+
+.cancel-btn:hover {
+    background: #F44336;
+    color: white;
+    transform: var(--card-hover-transform);
+}
+
+@media (max-width: 768px) {
+    .page-header {
+        flex-direction: column;
+        gap: 1rem;
+        text-align: center;
     }
 
     .page-title {
-        color: #e0e0e0;
         font-size: 2rem;
-        margin-bottom: 1rem;
     }
 
-    .form-group {
-        margin-bottom: 1rem;
+    .form-actions {
+        flex-direction: column;
     }
 
-    label {
-        color: #e0e0e0;
-        font-size: 1rem;
-        display: block;
-        margin-bottom: 0.5rem;
-    }
-
-    input, textarea, select {
+    .action-btn {
         width: 100%;
-        padding: 0.5rem;
-        border-radius: 4px;
-        border: 1px solid #444;
-        background: #2a2a2a;
-        color: #e0e0e0;
+        justify-content: center;
     }
-
-    .submit-button {
-        padding: 0.5rem 1rem;
-        border-radius: 4px;
-        background-color: #4CAF50;
-        color: white;
-        font-size: 1rem;
-        cursor: pointer;
-    }
-
-    .submit-button:hover {
-        background-color: #45a049;
-    }
+}
 </style>
 {% endblock %}

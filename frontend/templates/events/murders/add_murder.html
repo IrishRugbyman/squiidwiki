@@ -25,14 +25,6 @@
         font-size: 0.9rem;
     }
 
-    /* Form Grid Layout */
-    .form-grid {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 1.5rem;
-        margin-bottom: 2rem;
-    }
-
     /* Form Group Styles */
     .form-group {
         margin-bottom: 1.5rem;
@@ -55,22 +47,6 @@
         border-color: #8c32ef;
         outline: none;
         box-shadow: 0 0 0 0.2rem rgba(140, 50, 239, 0.25);
-    }
-
-    /* Date Precision Styles */
-    .precision-group {
-        background: #f8f9fa;
-        padding: 1rem;
-        border-radius: 6px;
-        margin-top: 1rem;
-    }
-    .form-check {
-        display: flex;
-        align-items: center;
-        margin-bottom: 0.5rem;
-    }
-    .form-check-input {
-        margin-right: 0.5rem;
     }
 
     /* Button Styles */
@@ -109,9 +85,6 @@
             padding: 1.5rem;
             margin: 1rem;
         }
-        .form-grid {
-            grid-template-columns: 1fr;
-        }
         .form-header h2 {
             font-size: 1.5rem;
         }
@@ -123,10 +96,10 @@
 <div class="form-container">
     <div class="form-header">
         <h2>Add Murder</h2>
-        <a href="/members/{{ member_id }}" class="back-link">&larr; Back to Member</a>
+        <a href="/members/{{ member_id }}" class="back-link">← Back to Member</a>
     </div>
 
-    <form method="POST" action="/events/add/murders/{{ member_id }}">
+    <form method="POST" action="/events/murders/add/{{ member_id }}">
         <!-- Victim Selection -->
         <div class="form-group">
             <label for="victim_id">Victim</label>
@@ -161,16 +134,15 @@
         </div>
 
         <!-- Exact Date Input -->
-        <div id="exactDateGroup" class="form-group">
+        <div id="exactDateGroup" class="form-group" style="display: block;">
             <label>Exact Date</label>
             <input type="date" name="date_exact" class="form-control">
         </div>
 
         <!-- Year Input -->
-        <div id="yearGroup" class="form-group">
+        <div id="yearGroup" class="form-group" style="display: none;">
             <label>Year</label>
-            <input type="int" name="date_year" class="form-control" placeholder="YYYY"
-            >
+            <input type="number" name="date_year" class="form-control" placeholder="YYYY">
         </div>
 
         <!-- Message Display -->
@@ -195,8 +167,8 @@ document.addEventListener('DOMContentLoaded', function () {
     const victimStatusMessage = document.getElementById('victimStatusMessage');
 
     function updateDateFields() {
-        exactDateGroup.style.display = (precisionSelect.value === 'exact') ? 'block' : 'none';
-        yearGroup.style.display = (precisionSelect.value === 'year') ? 'block' : 'none';
+        exactDateGroup.style.display = precisionSelect.value === 'exact' ? 'block' : 'none';
+        yearGroup.style.display = precisionSelect.value === 'year' ? 'block' : 'none';
     }
 
     victimSelect.addEventListener('change', function() {
@@ -204,33 +176,21 @@ document.addEventListener('DOMContentLoaded', function () {
         const deathDate = selected.getAttribute('data-death_date');
         const deathApprox = selected.getAttribute('data-death_approx');
 
-        // Check if a precise death date exists.
-        if (deathDate && deathDate !== 'None') {
-            precisionSelect.disabled = true;
+        if (deathDate && deathDate !== 'None' && deathDate !== '') {
+            // Victim has a precise death date
+            precisionSelect.innerHTML = '<option value="keep">Keep existing date</option>';
+            precisionSelect.value = 'keep';
             exactDateGroup.style.display = 'none';
             yearGroup.style.display = 'none';
-            victimStatusMessage.innerText = 'Death date already known';
-        }
-        // Check if there is an approximate death date (other than "unknown").
-        else if (deathApprox && deathApprox !== 'unknown' && deathApprox !== 'None') {
-            precisionSelect.disabled = false;
+            victimStatusMessage.innerText = 'Death date already known, will use existing date';
+        } else if (deathApprox && deathApprox !== 'unknown' && deathApprox !== 'None' && deathApprox !== '') {
+            // Victim has an approximate death date
             precisionSelect.innerHTML = '<option value="keep">Keep same date</option><option value="exact">Exact Date (more precise)</option>';
-            precisionSelect.value = 'exact';
-            exactDateGroup.style.display = 'block';
-            yearGroup.style.display = 'none';
-            victimStatusMessage.innerText = 'Victim already has an approximate death date. Please provide a more precise date or choose "Keep same date".';
-        }
-        // Check if death date is marked as unknown.
-        else if (deathApprox === 'unknown') {
-            precisionSelect.disabled = false;
-            precisionSelect.innerHTML = '<option value="keep">Keep unknown date</option><option value="exact">Exact Date</option><option value="year">Year Only</option>';
-            precisionSelect.value = 'exact';
+            precisionSelect.value = 'keep';
             updateDateFields();
-            victimStatusMessage.innerText = '';
-        }
-        // Otherwise, assume the victim is alive.
-        else {
-            precisionSelect.disabled = false;
+            victimStatusMessage.innerText = 'Victim has an approximate death date. Select "Exact Date" to specify a precise date or "Keep same date" to retain the approximation.';
+        } else {
+            // Victim is alive or has unknown death date
             precisionSelect.innerHTML = '<option value="exact">Exact Date</option><option value="year">Year Only</option><option value="unknown">Unknown</option>';
             precisionSelect.value = 'exact';
             updateDateFields();
@@ -239,7 +199,7 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
     precisionSelect.addEventListener('change', updateDateFields);
-    // Trigger the change event on page load.
+    // Trigger the change event on page load
     victimSelect.dispatchEvent(new Event('change'));
 });
 </script>

@@ -33,33 +33,54 @@ C:.
 |           profiles_settings.xml
 |           
 +---backend
+|   |   cemetary.py
 |   |   server.py
 |   |   squiidvault.db
 |   |   __init__.py
 |   |   
+|   +---alliances
+|   |       alliances_funcs.py
+|   |       alliances_router.py
+|   |       __init__.py
+|   |       
+|   +---calendar
+|   |       calendar_router.py
+|   |       __init__.py
+|   |       
 |   +---config
 |   |       templates.py
 |   |       
 |   +---database
+|   |       create_models.py
 |   |       database.py
+|   |       db_alchemy_models.py
 |   |       enums.py
 |   |       models.py
 |   |       __init__.py
 |   |       
-|   +---routes
-|   |   |   alliances.py
-|   |   |   calendar.py
-|   |   |   events.py
-|   |   |   home.py
-|   |   |   members.py
-|   |   |   sets.py
+|   +---events
+|   |   |   events_funcs.py
+|   |   |   events_router.py
+|   |   |   __init__.py
 |   |   |   
-|   |   \---__pycache__
-|   |           alliances.cpython-311.pyc
-|   |           calendar.cpython-311.pyc
-|   |           members.cpython-311.pyc
-|   |           sets.cpython-311.pyc
+|   |   \---subrouters
+|   |           assists_router.py
+|   |           murders_router.py
+|   |           shootings_router.py
 |   |           
+|   +---home
+|   |       home_router.py
+|   |       __init__.py
+|   |       
+|   +---members
+|   |       members_router.py
+|   |       __init__.py
+|   |       
+|   +---sets
+|   |       sets_funcs.py
+|   |       sets_router.py
+|   |       __init__.py
+|   |       
 |   \---__pycache__
 |           server.cpython-311.pyc
 |           __init__.cpython-311.pyc
@@ -81,6 +102,7 @@ C:.
 |       |       add_alliance.html
 |       |       add_alliance_member.html
 |       |       alliance_details.html
+|       |       delete_alliance.html
 |       |       edit_alliance.html
 |       |       index.html
 |       |       
@@ -89,13 +111,21 @@ C:.
 |       |       calendar_events.html
 |       |       
 |       +---events
-|       |       add_assist.html
-|       |       add_event (to delete).html
-|       |       add_murder.html
-|       |       add_shooting.html
-|       |       
+|       |   +---assists
+|       |   |       add_assist.html
+|       |   |       edit_assist.html
+|       |   |       
+|       |   +---murders
+|       |   |       add_murder.html
+|       |   |       edit_murder.html
+|       |   |       
+|       |   \---shootings
+|       |           add_shooting.html
+|       |           edit_shooting.html
+|       |           
 |       +---members
 |       |       add_member.html
+|       |       delete_member.html
 |       |       delete_members.html
 |       |       edit_member.html
 |       |       index.html

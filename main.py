@@ -4,6 +4,7 @@ from backend.server import app
 from backend.database.database import init_db, get_db
 import uvicorn
 
+
 def add_test_data():
     """
     Inserts test data into the database for development or testing purposes.
@@ -145,7 +146,7 @@ def add_test_data():
         # --- Example: Insert test events (shootings, murders, assists) ---
         test_events = [
             # Shooting event: Alice shoots Diana on an exact date
-            ("shooting", alice_id, diana_id, "2023-03-15", None),
+            ("shooting", alice_id, diana_id, "2021-03-15", None),
             # Murder event: Bob kills Evan on an exact date
             ("murder", bob_id, evan_id, "2023-04-10", None),
             # Assist event: Alice assists Bob in shooting Diana with an approximate date (year)

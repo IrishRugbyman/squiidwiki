@@ -4,472 +4,607 @@
 <div class="set-container">
     <!-- Set Header -->
     <div class="set-header">
-        <h1 class="set-title">
-            {{ set.name }}
-            {% if set.type == "extinct" %}
-                <span class="extinct-icon" role="img" aria-label="Extinct Set">🪦</span>
-            {% endif %}
-        </h1>
-        <div class="member-actions">
-            <a href="/sets/edit/{{ set.id }}" class="edit-btn" aria-label="Edit set">
-                ✏️ Edit
+        <div class="title-section">
+            <h1 class="set-title">
+                {{ set.name }}
+                {% if set.type == "extinct" %}
+                    <span class="extinct-icon" title="Extinct Set" role="img" aria-label="Extinct Set">🪦</span>
+                {% endif %}
+            </h1>
+            <p class="set-description">{{ set.description or "No description available" }}</p>
+        </div>
+        <div class="action-buttons">
+            <a href="/sets/edit/{{ set.id }}" class="action-btn edit-btn" title="Edit set">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                </svg>
+                <span>Edit</span>
             </a>
-            <button class="delete-btn" data-bs-toggle="modal" data-bs-target="#deleteModal" aria-label="Delete set">
-                🗑️ Delete
-            </button>
-        </div>
-    </div>
-
-    <!-- Set Description -->
-    <div class="set-description">
-        <p>{{ set.description or "No description available" }}</p>
-    </div>
-
-    <!-- Relationships Section -->
-    <div class="relationship-section">
-        <div class="relationship-card allies">
-            <h3><span role="img" aria-label="Allies">🤝</span> Allies</h3>
-            {% if allies %}
-                <ul class="relationship-list">
-                {% for ally in allies|sort(attribute='name') %}
-                    <li>
-                        <a href="/sets/{{ ally.id }}" class="relationship-item">
-                            <span class="bullet">•</span> {{ ally.name }}
-                        </a>
-                    </li>
-                {% endfor %}
-                </ul>
-            {% else %}
-                <div class="empty-state">
-                    No allies found
-                    <span class="empty-icon" role="img" aria-label="No entries">❌</span>
-                </div>
-            {% endif %}
-        </div>
-
-        <div class="relationship-card enemies">
-            <h3><span role="img" aria-label="Enemies">⚔️</span> Enemies</h3>
-            {% if enemies %}
-                <ul class="relationship-list">
-                {% for enemy in enemies|sort(attribute='name') %}
-                    <li>
-                        <a href="/sets/{{ enemy.id }}" class="relationship-item">
-                            <span class="bullet">•</span> {{ enemy.name }}
-                        </a>
-                    </li>
-                {% endfor %}
-                </ul>
-            {% else %}
-                <div class="empty-state">
-                    No enemies found
-                    <span class="empty-icon" role="img" aria-label="No entries">❌</span>
-                </div>
-            {% endif %}
-        </div>
-    </div>
-
-    <!-- Murders Section -->
-    <div class="murders-section">
-        <div class="section-header">
-            <h3><span role="img" aria-label="Murders">🔪</span> Murders Committed</h3>
-        </div>
-
-        {% if murders %}
-        <div class="murders-list">
-            {% for murder in murders %}
-            <div class="murder-item">
-                <div class="murder-details">
-                    <a href="/members/{{ murder.shooter_id }}" class="shooter">{{ murder.shooter_name }}</a> killed
-                    <a href="/members/{{ murder.victim_id }}" class="victim">{{ murder.victim_name }}</a>
-                    from <a href="/sets/{{ murder.victim_set_id }}" class="victim-set">{{ murder.victim_set_name }}</a>
-                </div>
-                <div class="murder-date">
-                    {% if murder.date %}
-                        {{ murder.date[:4] }}
-                    {% elif murder.date_approx and murder.date_approx != 'unknown' %}
-                        {{ murder.date_approx }}
-                    {% else %}
-                        Unknown
-                    {% endif %}
-                </div>
-            </div>
-            {% endfor %}
-        </div>
-        {% else %}
-        <div class="empty-state">
-            No recorded murders
-            <span class="empty-icon" role="img" aria-label="Peace">🕊️</span>
-        </div>
-        {% endif %}
-    </div>
-
-    <!-- Members Section -->
-    <div class="members-section">
-        <div class="members-header">
-            <div class="members-controls">
-                <h3><span role="img" aria-label="Members">👥</span> Members</h3>
-                <div class="sort-controls">
-                    <select id="sort-by" class="sort-select" aria-label="Sort members by">
-                        <option value="name">Name</option>
-                        <option value="status">Status</option>
-                    </select>
-                    <button id="sort-order" class="sort-order-btn" data-order="asc" aria-label="Sort order">↑</button>
-                </div>
-            </div>
-            <a href="/members/add/{{ set.id }}" class="add-member-btn" aria-label="Add new member">
-                ➕ Add Member
+            <a href="/sets/delete/{{set.id }}" class="action-btn delete-btn" data-bs-toggle="modal" data-bs-target="#deleteModal" title="Delete set">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="3 6 5 6 21 6"></polyline>
+                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                </svg>
+                <span>Delete</span>
             </a>
         </div>
+    </div>
 
-        {% if members %}
-            <ul class="members-list">
-            {% for member in members %}
-                <li class="member-item" data-status="{{ member.status }}">
-                    <a href="/members/{{ member.id }}" class="member-name">
-                        {{ member.name }}
-                    </a>
-                    <div class="member-status">
-                        {% if member.status == "locked_up" %}
-                            <span class="status locked-up" role="img" aria-label="Locked Up">🔒</span>
-                        {% elif member.status == "dead" %}
-                            <span class="status deceased" role="img" aria-label="Deceased">💀</span>
+    <!-- Main Content Grid -->
+    <div class="content-grid">
+        <!-- Left Column -->
+        <div class="left-column">
+            <!-- Relationships Section -->
+            <div class="card relationships-card">
+                <div class="card-grid">
+                    <div class="relationship-section allies">
+                        <h3 class="section-title">
+                            <span class="icon" role="img" aria-label="Allies">🤝</span>
+                            Allies
+                        </h3>
+                        {% if allies %}
+                            <ul class="relationship-list">
+                            {% for ally in allies|sort(attribute='name') %}
+                                <li>
+                                    <a href="/sets/{{ ally.id }}" class="relationship-item">
+                                        {{ ally.name }}
+                                        <span class="arrow">→</span>
+                                    </a>
+                                </li>
+                            {% endfor %}
+                            </ul>
                         {% else %}
-                            <span class="status alive" role="img" aria-label="Active">🟢</span>
+                            <div class="empty-state">
+                                No allies found
+                                <span class="empty-icon" role="img" aria-label="No entries">❌</span>
+                            </div>
                         {% endif %}
                     </div>
-                </li>
-            {% endfor %}
-            </ul>
-        {% else %}
-            <div class="empty-state">
-                No members found
-                <span class="empty-icon" role="img" aria-label="No entries">❌</span>
+
+                    <div class="relationship-section enemies">
+                        <h3 class="section-title">
+                            <span class="icon" role="img" aria-label="Enemies">⚔️</span>
+                            Enemies
+                        </h3>
+                        {% if enemies %}
+                            <ul class="relationship-list">
+                            {% for enemy in enemies|sort(attribute='name') %}
+                                <li>
+                                    <a href="/sets/{{ enemy.id }}" class="relationship-item">
+                                        {{ enemy.name }}
+                                        <span class="arrow">→</span>
+                                    </a>
+                                </li>
+                            {% endfor %}
+                            </ul>
+                        {% else %}
+                            <div class="empty-state">
+                                No enemies found
+                                <span class="empty-icon" role="img" aria-label="No entries">❌</span>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
             </div>
-        {% endif %}
+
+            <!-- Murders Section -->
+            <div class="card murders-card">
+                <h3 class="murders-title">
+                    <span class="icon" role="img" aria-label="Murders">🔪</span>
+                    Murders Committed
+                </h3>
+
+                {% if murders %}
+                <div class="murders-list">
+                    {% for murder in murders %}
+                    <div class="murder-item">
+                        <div class="murder-content">
+                            <div class="murder-details">
+                                <a href="/members/{{ murder.shooter_id }}" class="shooter">{{ murder.shooter_name }}</a>
+                                <span class="killed">killed</span>
+                                <a href="/members/{{ murder.victim_id }}" class="victim">{{ murder.victim_name }}</a>
+                                <span class="from">from</span>
+                                <a href="/sets/{{ murder.victim_set_id }}" class="victim-set">{{ murder.victim_set_name }}</a>
+                            </div>
+                            <div class="murder-date">
+                                {% if murder.date %}
+                                    {{ murder.date.year }}
+                                {% elif murder.date_approx and murder.date_approx != 'unknown' %}
+                                    {{ murder.date_approx }}
+                                {% else %}
+                                    Unknown
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="empty-state">
+                    No recorded murders
+                    <span class="empty-icon" role="img" aria-label="Peace">🕊️</span>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Right Column -->
+        <div class="right-column">
+            <!-- Members Section -->
+            <div class="card members-card">
+                <div class="card-header">
+                    <h3 class="section-title">
+                        <span class="icon" role="img" aria-label="Members">👥</span>
+                        Members
+                    </h3>
+                    <div class="header-actions">
+                        <div class="sort-controls">
+                            <select id="sort-by" class="sort-select" aria-label="Sort members by">
+                                <option value="name">Name</option>
+                                <option value="status">Status</option>
+                            </select>
+                            <button id="sort-order" class="sort-order-btn" data-order="asc" aria-label="Sort order">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M12 20V4"></path>
+                                    <polyline points="6 10 12 4 18 10"></polyline>
+                                </svg>
+                            </button>
+                        </div>
+                        <a href="/members/add/{{ set.id }}" class="action-btn add-btn" title="Add new member">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                                <circle cx="8.5" cy="7" r="4"></circle>
+                                <line x1="20" y1="8" x2="20" y2="14"></line>
+                                <line x1="23" y1="11" x2="17" y2="11"></line>
+                            </svg>
+                            <span>Add Member</span>
+                        </a>
+                    </div>
+                </div>
+
+                {% if members %}
+                    <div class="members-list">
+                    {% for member in members %}
+                        <a href="/members/{{ member.id }}" class="member-card" data-status="{{ member.status }}">
+                            <div class="member-info">
+                                <span class="member-name">{{ member.name }}</span>
+                                <div class="member-status">
+                                    {% if member.status == "locked_up" %}
+                                        <span class="status-icon locked-up" title="Locked Up" role="img" aria-label="Locked Up">🔒</span>
+                                    {% elif member.status == "dead" %}
+                                        <span class="status-icon deceased" title="Deceased" role="img" aria-label="Deceased">💀</span>
+                                    {% else %}
+                                        <span class="status-icon alive" title="Active" role="img" aria-label="Active">🟢</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="member-arrow">→</div>
+                        </a>
+                    {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="empty-state">
+                        No members found
+                        <span class="empty-icon" role="img" aria-label="No entries">❌</span>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
     </div>
 </div>
 
 <style>
-    .set-container {
-        max-width: 1200px;
-        margin: 2rem auto;
-        padding: 0 1rem;
+:root {
+    --card-padding: 1rem;
+    --card-radius: 12px;
+    --card-shadow: 0 4px 12px var(--shadow-color);
+    --transition-speed: 0.3s;
+    --hover-transform: translateY(-4px);
+}
+
+.set-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 1rem;
+}
+
+.set-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 0.5rem;
+    gap: 0.5rem;
+}
+
+.title-section {
+    flex: 1;
+}
+
+.set-title {
+    color: var(--primary-color);
+    font-size: 2.5rem;
+    font-weight: 700;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.extinct-icon {
+    font-size: 2rem;
+}
+
+.set-description {
+    color: var(--helper-text-color);
+    margin: 0.5rem 0 0;
+    font-size: 1.1rem;
+    line-height: 1.6;
+}
+
+.action-buttons {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.action-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.25rem;
+    border-radius: var(--card-radius);
+    border: 1px solid var(--border-color);
+    background: var(--surface-color);
+    color: var(--text-color);
+    font-size: 0.9rem;
+    text-decoration: none;
+    transition: all var(--transition-speed) ease;
+}
+
+.edit-btn:hover {
+    border-color: #ef8732;
+    color: #ef8732;
+    transform: var(--hover-transform);
+}
+
+.delete-btn:hover {
+    border-color: #ff4d4d;
+    color: #ff4d4d;
+    transform: var(--hover-transform);
+}
+
+.add-btn {
+    background: var(--primary-color);
+    color: white;
+    border: none;
+}
+
+.add-btn:hover {
+    background: var(--primary-color-hover);
+    transform: var(--hover-transform);
+}
+
+.content-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+}
+
+.card {
+    background: var(--surface-color);
+    border-radius: var(--card-radius);
+    border: 1px solid var(--border-color);
+    box-shadow: var(--card-shadow);
+    overflow: hidden;
+    margin-bottom: 0.5rem;
+}
+
+.card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--card-padding);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.header-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.section-title {
+    color: var(--primary-color);
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.murders-title {
+    color: var(--primary-color);
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 1rem;
+    margin-bottom: -10px;
+}
+
+.icon {
+    font-size: 1.2rem;
+}
+
+.card-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem;
+}
+
+.relationship-section {
+    padding: var(--card-padding);
+}
+
+.relationship-list {
+    list-style: none;
+    padding: 0;
+    margin: 0.5rem 0 0;
+}
+
+.relationship-item {
+    color: var(--text-color);
+    text-decoration: none;
+    padding: 0.75rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-radius: 8px;
+    transition: all var(--transition-speed) ease;
+}
+
+.relationship-item:hover {
+    background: var(--bg-color);
+    color: var(--primary-color);
+    transform: var(--hover-transform);
+}
+
+.arrow {
+    color: var(--primary-color);
+    opacity: 0;
+    transform: translateX(-10px);
+    transition: all var(--transition-speed) ease;
+}
+
+.relationship-item:hover .arrow {
+    opacity: 1;
+    transform: translateX(0);
+}
+
+.murders-list {
+    padding: 1rem;
+}
+
+.murder-item {
+    padding: 0.5rem;
+    border-radius: 8px;
+    margin-bottom: 0.5rem;
+    transition: all var(--transition-speed) ease;
+}
+
+.murder-item:hover {
+    background: var(--bg-color);
+}
+
+.murder-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.murder-details {
+    font-size: 0.95rem;
+}
+
+.murder-details a {
+    color: var(--primary-color);
+    text-decoration: none;
+}
+
+.murder-details a:hover {
+    color: var(--primary-color-hover);
+}
+
+.murder-details .killed,
+.murder-details .from {
+    color: var(--helper-text-color);
+    margin: 0 0.25rem;
+}
+
+.murder-date {
+    color: var(--helper-text-color);
+    font-size: 0.9rem;
+}
+
+.members-list {
+    padding: var(--card-padding);
+    display: grid;
+    gap: 0.5rem;
+}
+
+.member-card {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem;
+    border-radius: 8px;
+    background: var(--bg-color);
+    color: var(--text-color);
+    text-decoration: none;
+    transition: all var(--transition-speed) ease;
+}
+
+.member-card:hover {
+    transform: var(--hover-transform);
+    background: var(--surface-color);
+}
+
+.member-info {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.member-name {
+    font-weight: 500;
+}
+
+.status-icon {
+    font-size: 1.1rem;
+}
+
+.member-arrow {
+    color: var(--primary-color);
+    opacity: 0;
+    transform: translateX(-10px);
+    transition: all var(--transition-speed) ease;
+}
+
+.member-card:hover .member-arrow {
+    opacity: 1;
+    transform: translateX(0);
+}
+
+.sort-controls {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.sort-select {
+    padding: 0.5rem;
+    border-radius: 6px;
+    border: 1px solid var(--border-color);
+    background: var(--bg-color);
+    color: var(--text-color);
+    font-size: 0.9rem;
+}
+
+.sort-order-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 6px;
+    border: 1px solid var(--border-color);
+    background: var(--bg-color);
+    color: var(--text-color);
+    cursor: pointer;
+    transition: all var(--transition-speed) ease;
+}
+
+.sort-order-btn:hover {
+    border-color: var(--primary-color);
+    color: var(--primary-color);
+}
+
+.empty-state {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 1.5rem;
+    color: var(--helper-text-color);
+    font-size: 0.95rem;
+}
+
+@media (max-width: 1024px) {
+    .content-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 768px) {
+    .set-header {
+        flex-direction: column;
     }
 
-    .set-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 2rem;
+    .action-buttons {
+        width: 100%;
+        justify-content: stretch;
+    }
+
+    .action-btn {
+        flex: 1;
+        justify-content: center;
     }
 
     .set-title {
-        font-size: 2.5rem;
-        color: #6a0dad;
-        margin: 0;
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
+        font-size: 2rem;
     }
 
-    .extinct-icon {
-        font-size: 1.8rem;
-        vertical-align: middle;
+    .card-grid {
+        grid-template-columns: 1fr;
     }
 
-    .member-actions {
-        display: flex;
-        gap: 1rem;
-        align-items: center;
-    }
-
-    .edit-btn, .delete-btn {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.5rem;
-        padding: 0.5rem 1rem;
-        border-radius: 4px;
-        text-decoration: none;
-        transition: all 0.2s ease;
-        background: transparent;
-        border: none;
-        font-size: 0.9rem;
-    }
-
-    .edit-btn {
-        color: #ef8732;
-    }
-
-    .delete-btn {
-        color: #ff4d4d;
-    }
-
-    .edit-btn:hover, .delete-btn:hover {
-        opacity: 0.8;
-    }
-
-    .relationship-section {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 1rem;
-        margin: 2rem 0;
-    }
-
-    .relationship-card {
-        background: #1e1e1e;
-        padding: 1.5rem;
-        border-radius: 8px;
-        border: 1px solid #2d2d2d;
-    }
-
-    .relationship-card h3 {
-        margin-top: 0;
-        margin-bottom: 1rem;
-    }
-
-    .relationship-list {
-        list-style: none;
-        padding: 0;
-        margin: 0;
-    }
-
-    .relationship-item {
-        color: #e0e0e0;
-        text-decoration: none;
-        padding: 0.5rem 0;
-        display: block;
-        transition: color 0.2s;
-    }
-
-    .relationship-item:hover {
-        color: #8c32ef;
-    }
-
-    .empty-state {
-        color: #888;
-        text-align: center;
-        padding: 1.5rem;
-        border: 1px dashed #333;
-        border-radius: 6px;
-    }
-
-    .murders-section {
-        margin: 2rem 0;
-        padding: 1.5rem;
-        background: #1e1e1e;
-        border-radius: 8px;
-        border: 1px solid #2d2d2d;
-    }
-
-    .murders-list {
-        margin-top: 1rem;
-    }
-
-    .murder-item {
-        display: flex;
-        align-items: center;
-        padding: 1rem;
-        margin-bottom: 0.5rem;
-        background: #242424;
-        border-radius: 6px;
-    }
-
-    .murder-details {
-        color: #e0e0e0;
-        flex-grow: 1;
-    }
-
-    .murder-date {
-        color: #888;
-        font-size: 0.9rem;
-    }
-
-    .shooter {
-        color: #ef8732;
-        font-weight: 500;
-        text-decoration: none;
-    }
-
-    .victim {
-        color: #ff4d4d;
-        text-decoration: none;
-        font-weight: 500;
-    }
-
-    .victim-set {
-        color: #8c32ef;
-        text-decoration: none;
-    }
-
-    .victim:hover, .victim-set:hover {
-        text-decoration: underline;
-    }
-
-    .members-section {
-        margin-top: 2rem;
-    }
-
-    .members-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 1rem;
-    }
-
-    .members-controls {
-        display: flex;
-        gap: 1rem;
-        align-items: center;
+    .header-actions {
+        flex-direction: column;
+        align-items: stretch;
     }
 
     .sort-controls {
-        display: flex;
-        gap: 0.5rem;
-        align-items: center;
+        justify-content: center;
     }
-
-    .sort-select {
-        background: #2a2a2a;
-        color: #e0e0e0;
-        border: 1px solid #444;
-        padding: 0.5rem 1rem;
-        border-radius: 4px;
-        cursor: pointer;
-    }
-
-    .sort-order-btn {
-        background: #3a3a3a;
-        color: #e0e0e0;
-        border: 1px solid #444;
-        padding: 0.5rem 1rem;
-        border-radius: 4px;
-        cursor: pointer;
-        transition: all 0.2s;
-    }
-
-    .sort-order-btn:hover {
-        background: #4a4a4a;
-    }
-
-    .members-list {
-        list-style: none;
-        padding: 0;
-        margin: 0;
-    }
-
-    .member-item {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 1rem;
-        background: #1e1e1e;
-        margin-bottom: 0.5rem;
-        border-radius: 6px;
-        transition: transform 0.2s;
-    }
-
-    .member-item:hover {
-        transform: translateX(5px);
-    }
-
-    .member-name {
-        color: #e0e0e0;
-        text-decoration: none;
-        flex-grow: 1;
-    }
-
-    .member-status {
-        font-size: 1.2rem;
-        min-width: 40px;
-        text-align: right;
-    }
-
-    .status.alive {
-        color: #4CAF50;
-    }
-
-    .status.locked-up {
-        color: #FF9800;
-    }
-
-    .status.deceased {
-        color: #F44336;
-    }
-
-    .add-member-btn {
-        background: #6a0dad;
-        color: white;
-        padding: 0.5rem 1rem;
-        border-radius: 4px;
-        text-decoration: none;
-        transition: background 0.2s;
-    }
-
-    .add-member-btn:hover {
-        background: #8c32ef;
-    }
-
-    @media (max-width: 768px) {
-        .relationship-section {
-            grid-template-columns: 1fr;
-        }
-
-        .set-header {
-            flex-direction: column;
-            gap: 1rem;
-            align-items: flex-start;
-        }
-
-        .members-header {
-            flex-direction: column;
-            gap: 1rem;
-            align-items: flex-start;
-        }
-    }
+}
 </style>
 
 <script>
-    document.addEventListener('DOMContentLoaded', () => {
-        const sortBy = document.getElementById('sort-by');
-        const sortOrderBtn = document.getElementById('sort-order');
-        let currentOrder = 'asc';
+// Sort functionality
+const sortSelect = document.getElementById('sort-by');
+const sortOrderBtn = document.getElementById('sort-order');
+const membersList = document.querySelector('.members-list');
 
-        const statusOrder = { 'alive': 1, 'locked_up': 2, 'dead': 3 };
+function sortMembers() {
+    const members = Array.from(membersList.children);
+    const sortBy = sortSelect.value;
+    const order = sortOrderBtn.dataset.order;
 
-        function sortMembers() {
-            const memberList = document.querySelector('.members-list');
-            const members = Array.from(memberList.children);
+    members.sort((a, b) => {
+        let aValue, bValue;
 
-            members.sort((a, b) => {
-                let aValue, bValue;
-
-                if (sortBy.value === 'name') {
-                    aValue = a.querySelector('.member-name').textContent.toLowerCase();
-                    bValue = b.querySelector('.member-name').textContent.toLowerCase();
-                    return currentOrder === 'asc'
-                        ? aValue.localeCompare(bValue, undefined, { sensitivity: 'base' })
-                        : bValue.localeCompare(aValue, undefined, { sensitivity: 'base' });
-                } else {
-                    aValue = statusOrder[a.dataset.status];
-                    bValue = statusOrder[b.dataset.status];
-                    return currentOrder === 'asc'
-                        ? aValue - bValue
-                        : bValue - aValue;
-                }
-            });
-
-            memberList.append(...members);
+        if (sortBy === 'name') {
+            aValue = a.querySelector('.member-name').textContent;
+            bValue = b.querySelector('.member-name').textContent;
+        } else {
+            aValue = a.dataset.status;
+            bValue = b.dataset.status;
         }
 
-        sortBy.addEventListener('change', sortMembers);
-
-        sortOrderBtn.addEventListener('click', () => {
-            currentOrder = currentOrder === 'asc' ? 'desc' : 'asc';
-            sortOrderBtn.textContent = currentOrder === 'asc' ? '↑' : '↓';
-            sortMembers();
-        });
-
-        sortMembers();
+        return order === 'asc' ?
+            aValue.localeCompare(bValue) :
+            bValue.localeCompare(aValue);
     });
+
+    members.forEach(member => membersList.appendChild(member));
+}
+
+sortSelect.addEventListener('change', sortMembers);
+
+sortOrderBtn.addEventListener('click', () => {
+    const order = sortOrderBtn.dataset.order;
+    sortOrderBtn.dataset.order = order === 'asc' ? 'desc' : 'asc';
+    sortOrderBtn.querySelector('svg').style.transform =
+        order === 'asc' ? 'rotate(180deg)' : 'rotate(0deg)';
+    sortMembers();
+});
+
+// Initial sort
+sortMembers();
 </script>
 {% endblock %}

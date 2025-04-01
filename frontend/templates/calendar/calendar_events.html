@@ -1,18 +1,30 @@
 {% extends "base.html" %}
 {% block content %}
 <div class="container">
-  <h2 class="my-2 text-center">Upcoming and Latest Events</h2>
+  <div class="header-container">
+    <h2 class="title">Calendar Events</h2>
+    <a href="/calendar" class="view-calendar-btn">View Full Calendar</a>
+  </div>
 
   <!-- Upcoming Events -->
   <div class="section">
     <h3>Upcoming Events</h3>
     <ul class="event-list">
       {% for event in upcoming_events %}
-      <li style="color: {{ event.color }};">
-        <strong>{{ event.title }}</strong> - {{ event.date }}
+      <li class="event-item" style="--event-color: {{ event.color }};">
+        <div class="event-date">{{ event.date }}</div>
+        <div class="event-title">{{ event.title }}</div>
+        {% if event.eventType == "release" or event.eventType == "death" or event.eventType == "anniversary" %}
+        <a href="/members/{{ event.memberId }}" class="event-link">View Member</a>
+        {% elif event.eventType == "murder" or event.eventType == "shooting" %}
+        <a href="/members/{{ event.shooterId }}" class="event-link">View Shooter</a>
+        {% if event.victimId %}
+        <a href="/members/{{ event.victimId }}" class="event-link">View Victim</a>
+        {% endif %}
+        {% endif %}
       </li>
       {% else %}
-      <li>No upcoming events.</li>
+      <li class="no-events">No upcoming events.</li>
       {% endfor %}
     </ul>
   </div>
@@ -22,11 +34,20 @@
     <h3>Latest Past Events</h3>
     <ul class="event-list">
       {% for event in latest_past_events %}
-      <li style="color: {{ event.color }};">
-        <strong>{{ event.title }}</strong> - {{ event.date }}
+      <li class="event-item" style="--event-color: {{ event.color }};">
+        <div class="event-date">{{ event.date }}</div>
+        <div class="event-title">{{ event.title }}</div>
+        {% if event.eventType == "release" or event.eventType == "death" or event.eventType == "anniversary" %}
+        <a href="/members/{{ event.memberId }}" class="event-link">View Member</a>
+        {% elif event.eventType == "murder" or event.eventType == "shooting" %}
+        <a href="/members/{{ event.shooterId }}" class="event-link">View Shooter</a>
+        {% if event.victimId %}
+        <a href="/members/{{ event.victimId }}" class="event-link">View Victim</a>
+        {% endif %}
+        {% endif %}
       </li>
       {% else %}
-      <li>No recent events.</li>
+      <li class="no-events">No recent events.</li>
       {% endfor %}
     </ul>
   </div>
@@ -41,9 +62,46 @@
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
   }
 
+  .header-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+  }
+
+  .title {
+    font-size: 2rem;
+    font-weight: 600;
+    margin: 0;
+    color: #eee;
+  }
+
+  .view-calendar-btn {
+    background-color: #007bff;
+    color: white;
+    padding: 8px 16px;
+    border-radius: 4px;
+    text-decoration: none;
+    font-weight: 500;
+    transition: background-color 0.2s;
+  }
+
+  .view-calendar-btn:hover {
+    background-color: #0069d9;
+    text-decoration: none;
+    color: white;
+  }
+
   h2, h3 {
     color: #eee;
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  }
+
+  h3 {
+    border-bottom: 1px solid #444;
+    padding-bottom: 8px;
+    margin-bottom: 16px;
   }
 
   .event-list {
@@ -51,14 +109,70 @@
     padding: 0;
   }
 
-  .event-list li {
-    margin: 10px 0;
-    font-size: 1rem;
+  .event-item {
+    margin: 12px 0;
+    padding: 12px 16px;
+    background-color: #2c2c2c;
+    border-radius: 4px;
     color: #eee;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+    border-left: 4px solid var(--event-color);
+  }
+
+  .event-date {
+    font-weight: 500;
+    min-width: 100px;
+  }
+
+  .event-title {
+    flex-grow: 1;
+  }
+
+  .event-link {
+    background-color: #444;
+    color: #fff;
+    text-decoration: none;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.9rem;
+    transition: background-color 0.2s;
+  }
+
+  .event-link:hover {
+    background-color: #555;
+    text-decoration: none;
+    color: white;
+  }
+
+  .no-events {
+    color: #999;
+    font-style: italic;
+    padding: 8px 0;
   }
 
   .section {
-    margin-bottom: 20px;
+    margin-bottom: 30px;
+  }
+
+  /* Mobile responsiveness */
+  @media (max-width: 576px) {
+    .header-container {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 10px;
+    }
+
+    .event-item {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+
+    .event-date {
+      min-width: auto;
+    }
   }
 </style>
 {% endblock %}

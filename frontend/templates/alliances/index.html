@@ -2,20 +2,35 @@
 
 {% block content %}
 <div class="alliances-container">
-    <div class="header-container">
-        <h2 class="page-title">DETROIT ALLIANCES</h2>
-        <a href="/alliances/add" class="add-alliance-button">+ Add Alliance</a>
+    <!-- Page Header -->
+    <div class="page-header">
+        <h1 class="page-title">Detroit Alliances</h1>
+        <a href="/alliances/add" class="action-btn add-btn" title="Add new alliance">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                <circle cx="8.5" cy="7" r="4"></circle>
+                <line x1="20" y1="8" x2="20" y2="14"></line>
+                <line x1="23" y1="11" x2="17" y2="11"></line>
+            </svg>
+            <span>Add Alliance</span>
+        </a>
     </div>
 
-    <!-- Controls Container -->
-    <div class="controls-container">
-        <!-- Search Bar -->
-        <input type="text" id="searchInput" placeholder="Search for an alliance..."
-               class="search-bar" aria-label="Search alliances">
+    <!-- Controls Card -->
+    <div class="controls-card">
+        <div class="search-section">
+            <div class="search-wrapper">
+                <svg class="search-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                </svg>
+                <input type="text" id="searchInput" placeholder="Search for an alliance..." class="search-bar" aria-label="Search alliances">
+            </div>
+        </div>
 
-        <!-- Filter & Sort Controls -->
         <div class="filter-sort-controls">
             <div class="filter-group">
+                <label for="filter-status">Status</label>
                 <select id="filter-status" class="filter-select" aria-label="Filter by status">
                     <option value="all">All Statuses</option>
                     <option value="active">Active</option>
@@ -24,289 +39,417 @@
             </div>
 
             <div class="sort-group">
-                <select id="sort-by" class="sort-select" aria-label="Sort by">
-                    <option value="name">Name</option>
-                    <option value="status">Status</option>
-                </select>
-                <button id="sort-order" class="sort-order-btn" data-order="asc"
-                        aria-label="Toggle sort order">↑</button>
+                <label for="sort-by">Sort By</label>
+                <div class="sort-controls">
+                    <select id="sort-by" class="sort-select" aria-label="Sort by">
+                        <option value="name">Name</option>
+                        <option value="status">Status</option>
+                    </select>
+                    <button id="sort-order" class="sort-order-btn" data-order="asc" aria-label="Sort order">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M12 20V4"></path>
+                            <polyline points="6 10 12 4 18 10"></polyline>
+                        </svg>
+                    </button>
+                </div>
             </div>
         </div>
     </div>
 
-    <!-- Alliances List -->
-    <ul class="alliances-list">
+    <!-- Alliances Grid -->
+    <div class="alliances-grid">
         {% for alliance in alliances %}
-        <li class="alliance-item" data-status="{{ alliance.status }}">
-            <div class="alliance-info">
-                <a href="/alliances/{{ alliance.id }}" class="alliance-name">
-                    {{ alliance.name }}
-                </a>
-                <span class="alliance-description">{{ alliance.description }}</span>
+        <a href="/alliances/{{ alliance.id }}" class="alliance-card" data-status="{{ alliance.status }}">
+            <div class="alliance-content">
+                <div class="alliance-info">
+                    <h3 class="alliance-name">{{ alliance.name }}</h3>
+                    {% if alliance.description %}
+                    <p class="alliance-description">{{ alliance.description }}</p>
+                    {% endif %}
+                </div>
+                <div class="alliance-status">
+                    {% if alliance.status == "active" %}
+                        <span class="status-icon active" title="Active Alliance" role="img" aria-label="Active Alliance">🔰</span>
+                    {% else %}
+                        <span class="status-icon inactive" title="Inactive Alliance" role="img" aria-label="Inactive Alliance">⛔</span>
+                    {% endif %}
+                </div>
             </div>
-            <div class="alliance-status">
-                {% if alliance.status == "active" %}
-                    <span class="status active" role="img" aria-label="Active">🔰</span>
-                {% else %}
-                    <span class="status inactive" role="img" aria-label="Inactive">⛔</span>
-                {% endif %}
-            </div>
-        </li>
+            <div class="alliance-arrow">→</div>
+        </a>
         {% endfor %}
-    </ul>
+    </div>
 
     <!-- Empty State -->
     <div class="empty-state" id="emptyState">
-        No alliances found matching your criteria
+        <div class="empty-icon">🔍</div>
+        <div class="empty-text">No alliances found matching your criteria</div>
     </div>
 </div>
 
 <style>
-    .alliances-container {
-        max-width: 1200px;
-        margin: 2rem auto;
-        padding: 0 1rem;
-    }
+:root {
+    --card-hover-transform: translateY(-4px);
+    --transition-speed: 0.3s;
+}
 
-    .header-container {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 2rem;
+.alliances-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 2rem 1rem;
+}
+
+.page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+}
+
+.page-title {
+    color: var(--primary-color);
+    font-size: 2.5rem;
+    font-weight: 700;
+    margin: 0;
+}
+
+.action-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.25rem;
+    border-radius: 12px;
+    text-decoration: none;
+    transition: all var(--transition-speed) ease;
+    cursor: pointer;
+}
+
+.add-btn {
+    background: var(--primary-color);
+    color: white;
+    border: none;
+}
+
+.add-btn:hover {
+    background: var(--primary-color-hover);
+    transform: var(--card-hover-transform);
+}
+
+.controls-card {
+    background: var(--surface-color);
+    border-radius: 16px;
+    border: 1px solid var(--border-color);
+    box-shadow: 0 4px 12px var(--shadow-color);
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.search-section {
+    margin-bottom: 1.5rem;
+}
+
+.search-wrapper {
+    position: relative;
+}
+
+.search-icon {
+    position: absolute;
+    left: 1rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--helper-text-color);
+}
+
+.search-bar {
+    width: 100%;
+    padding: 0.75rem 1rem 0.75rem 3rem;
+    border-radius: 12px;
+    border: 1px solid var(--border-color);
+    background: var(--bg-color);
+    color: var(--text-color);
+    font-size: 1rem;
+    transition: all var(--transition-speed) ease;
+}
+
+.search-bar:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 2px var(--primary-color-hover);
+}
+
+.filter-sort-controls {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+}
+
+.filter-group, .sort-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+label {
+    color: var(--helper-text-color);
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+
+.sort-controls {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.filter-select, .sort-select {
+    padding: 0.75rem 1rem;
+    border-radius: 12px;
+    border: 1px solid var(--border-color);
+    background: var(--bg-color);
+    color: var(--text-color);
+    font-size: 0.95rem;
+    transition: all var(--transition-speed) ease;
+}
+
+.filter-select:focus, .sort-select:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 2px var(--primary-color-hover);
+}
+
+.sort-order-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
+    border: 1px solid var(--border-color);
+    background: var(--bg-color);
+    color: var(--text-color);
+    cursor: pointer;
+    transition: all var(--transition-speed) ease;
+}
+
+.sort-order-btn:hover {
+    border-color: var(--primary-color);
+    color: var(--primary-color);
+}
+
+.alliances-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+    gap: 1rem;
+    margin-bottom: 2rem;
+}
+
+.alliance-card {
+    background: var(--surface-color);
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    padding: 1.25rem;
+    text-decoration: none;
+    color: var(--text-color);
+    transition: all var(--transition-speed) ease;
+}
+
+.alliance-card:hover {
+    transform: var(--card-hover-transform);
+    border-color: var(--primary-color);
+    box-shadow: 0 4px 12px var(--shadow-color);
+}
+
+.alliance-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 0.5rem;
+}
+
+.alliance-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.alliance-name {
+    font-size: 1.1rem;
+    font-weight: 500;
+    margin: 0 0 0.5rem;
+}
+
+.alliance-description {
+    color: var(--helper-text-color);
+    font-size: 0.9rem;
+    margin: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+}
+
+.alliance-status {
+    margin-left: 1rem;
+    font-size: 1.2rem;
+}
+
+.status-icon {
+    font-size: 1.2rem;
+}
+
+.status-icon.active {
+    color: #4CAF50;
+}
+
+.status-icon.inactive {
+    color: #F44336;
+}
+
+.alliance-arrow {
+    color: var(--primary-color);
+    opacity: 0;
+    transform: translateX(-10px);
+    transition: all var(--transition-speed) ease;
+}
+
+.alliance-card:hover .alliance-arrow {
+    opacity: 1;
+    transform: translateX(0);
+}
+
+.empty-state {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 2rem;
+    color: var(--helper-text-color);
+    text-align: center;
+}
+
+.empty-icon {
+    font-size: 2rem;
+}
+
+.empty-text {
+    font-size: 1rem;
+}
+
+@media (max-width: 768px) {
+    .page-header {
+        flex-direction: column;
+        gap: 1rem;
+        text-align: center;
     }
 
     .page-title {
-        margin: 0;
+        font-size: 2rem;
     }
 
-    .add-alliance-button {
-        background-color: #4CAF50;
-        color: white;
-        padding: 0.5rem 1rem;
-        border-radius: 4px;
-        text-decoration: none;
-        font-size: 1rem;
-        transition: background-color 0.2s;
-    }
-
-    .add-alliance-button:hover {
-        background-color: #45a049;
-    }
-
-    .controls-container {
-        margin-bottom: 2rem;
-    }
-
-    .search-bar {
+    .action-btn {
         width: 100%;
-        padding: 0.8rem;
-        margin-bottom: 1rem;
-        background: #2a2a2a;
-        border: 1px solid #444;
-        color: #e0e0e0;
-        border-radius: 4px;
-        font-size: 1rem;
+        justify-content: center;
     }
 
     .filter-sort-controls {
-        display: grid;
-        grid-template-columns: 1fr auto;
-        gap: 1rem;
+        grid-template-columns: 1fr;
     }
 
-    .filter-group, .sort-group {
-        display: flex;
-        gap: 0.5rem;
+    .alliances-grid {
+        grid-template-columns: 1fr;
     }
-
-    .filter-select, .sort-select {
-        background: #2a2a2a;
-        color: #e0e0e0;
-        border: 1px solid #444;
-        padding: 0.5rem 1rem;
-        border-radius: 4px;
-        cursor: pointer;
-        min-width: 160px;
-    }
-
-    .sort-order-btn {
-        background: #3a3a3a;
-        color: #e0e0e0;
-        border: 1px solid #444;
-        padding: 0.5rem 1rem;
-        border-radius: 4px;
-        cursor: pointer;
-        transition: all 0.2s;
-        width: 50px;
-    }
-
-    .alliances-list {
-        list-style: none;
-        padding: 0;
-        margin: 0;
-    }
-
-    .alliance-item {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 1rem;
-        background: #1e1e1e;
-        margin-bottom: 0.5rem;
-        border-radius: 6px;
-        transition: transform 0.2s;
-    }
-
-    .alliance-info {
-        flex-grow: 1;
-    }
-
-    .alliance-name {
-        color: #e0e0e0;
-        text-decoration: none;
-        font-size: 1.1rem;
-        margin-right: 0.5rem;
-    }
-
-    .alliance-description {
-        color: #888;
-        font-size: 0.9rem;
-    }
-
-    .alliance-status {
-        font-size: 1.2rem;
-        min-width: 40px;
-        text-align: right;
-    }
-
-    .status.active {
-        color: #4CAF50;
-    }
-
-    .status.inactive {
-        color: #F44336;
-    }
-
-    .empty-state {
-        text-align: center;
-        color: #666;
-        padding: 2rem;
-        display: none;
-    }
-
-    @media (max-width: 768px) {
-        .filter-sort-controls {
-            grid-template-columns: 1fr;
-        }
-
-        .filter-group, .sort-group {
-            flex-direction: column;
-        }
-
-        .alliance-item {
-            flex-direction: column;
-            align-items: flex-start;
-            padding: 1rem 0.5rem;
-        }
-
-        .alliance-status {
-            margin-top: 0.5rem;
-            text-align: left;
-        }
-    }
+}
 </style>
 
 <script>
-    document.addEventListener('DOMContentLoaded', () => {
-        const searchInput = document.getElementById('searchInput');
-        const filterStatus = document.getElementById('filter-status');
-        const sortBy = document.getElementById('sort-by');
-        const sortOrderBtn = document.getElementById('sort-order');
-        const allianceList = document.querySelector('.alliances-list');
-        const emptyState = document.getElementById('emptyState');
-        let currentOrder = 'asc';
+document.addEventListener('DOMContentLoaded', () => {
+    const searchInput = document.getElementById('searchInput');
+    const filterStatus = document.getElementById('filter-status');
+    const sortBy = document.getElementById('sort-by');
+    const sortOrderBtn = document.getElementById('sort-order');
+    const alliancesGrid = document.querySelector('.alliances-grid');
+    const emptyState = document.getElementById('emptyState');
+    let currentOrder = 'asc';
 
-        const statusOrder = { 'active': 1, 'inactive': 2 };
+    const statusOrder = { 'active': 1, 'inactive': 2 };
 
-        // Debounce function
-        const debounce = (func, timeout = 300) => {
-            let timer;
-            return (...args) => {
-                clearTimeout(timer);
-                timer = setTimeout(() => func.apply(this, args), timeout);
-            };
+    // Debounce function
+    const debounce = (func, timeout = 300) => {
+        let timer;
+        return (...args) => {
+            clearTimeout(timer);
+            timer = setTimeout(() => func.apply(this, args), timeout);
         };
+    };
 
-        // Combined filter function
-        const filterAndSortAlliances = debounce(() => {
-            const searchTerm = searchInput.value.toLowerCase();
-            const statusFilter = filterStatus.value;
+    // Combined filter function
+    const filterAndSortAlliances = debounce(() => {
+        const searchTerm = searchInput.value.toLowerCase();
+        const statusFilter = filterStatus.value;
 
-            let visibleCount = 0;
+        let visibleCount = 0;
 
-            document.querySelectorAll('.alliance-item').forEach(item => {
-                const name = item.querySelector('.alliance-name').textContent.toLowerCase();
-                const description = item.querySelector('.alliance-description').textContent.toLowerCase();
+        document.querySelectorAll('.alliance-card').forEach(card => {
+            const name = card.querySelector('.alliance-name').textContent.toLowerCase();
+            const description = card.querySelector('.alliance-description')?.textContent.toLowerCase() || '';
 
-                const matchesSearch = name.includes(searchTerm) || description.includes(searchTerm);
-                const matchesStatus = statusFilter === 'all' || item.dataset.status === statusFilter;
+            const matchesSearch = name.includes(searchTerm) || description.includes(searchTerm);
+            const matchesStatus = statusFilter === 'all' || card.dataset.status === statusFilter;
 
-                const shouldShow = matchesSearch && matchesStatus;
-                item.style.display = shouldShow ? 'flex' : 'none';
-                if(shouldShow) visibleCount++;
-            });
-
-            emptyState.style.display = visibleCount ? 'none' : 'block';
-            sortAlliances();
+            const shouldShow = matchesSearch && matchesStatus;
+            card.style.display = shouldShow ? 'block' : 'none';
+            if(shouldShow) visibleCount++;
         });
 
-        // Sorting function
-        const sortAlliances = () => {
-            const alliances = Array.from(allianceList.children).filter(item =>
-                item.style.display !== 'none'
-            );
+        emptyState.style.display = visibleCount ? 'none' : 'flex';
+        sortAlliances();
+    });
 
-            alliances.sort((a, b) => {
-                let aValue, bValue;
+    // Sorting function
+    const sortAlliances = () => {
+        const alliances = Array.from(alliancesGrid.children).filter(card =>
+            card.style.display !== 'none'
+        );
 
-                switch(sortBy.value) {
-                    case 'name':
-                        aValue = a.querySelector('.alliance-name').textContent.toLowerCase();
-                        bValue = b.querySelector('.alliance-name').textContent.toLowerCase();
-                        break;
-                    case 'status':
-                        aValue = statusOrder[a.dataset.status];
-                        bValue = statusOrder[b.dataset.status];
-                        return currentOrder === 'asc' ? aValue - bValue : bValue - aValue;
-                }
+        alliances.sort((a, b) => {
+            let aValue, bValue;
 
-                return currentOrder === 'asc'
-                    ? aValue.localeCompare(bValue)
-                    : bValue.localeCompare(aValue);
-            });
-
-            allianceList.append(...alliances);
-        };
-
-        // Event Listeners
-        [searchInput, filterStatus].forEach(element => {
-            element.addEventListener('input', filterAndSortAlliances);
+            switch(sortBy.value) {
+                case 'name':
+                    aValue = a.querySelector('.alliance-name').textContent.toLowerCase();
+                    bValue = b.querySelector('.alliance-name').textContent.toLowerCase();
+                    return currentOrder === 'asc'
+                        ? aValue.localeCompare(bValue)
+                        : bValue.localeCompare(aValue);
+                case 'status':
+                    aValue = statusOrder[a.dataset.status];
+                    bValue = statusOrder[b.dataset.status];
+                    return currentOrder === 'asc'
+                        ? aValue - bValue
+                        : bValue - aValue;
+            }
         });
 
-        sortBy.addEventListener('change', () => {
-            filterAndSortAlliances();
-            sortAlliances();
-        });
+        alliancesGrid.append(...alliances);
+    };
 
-        sortOrderBtn.addEventListener('click', () => {
-            currentOrder = currentOrder === 'asc' ? 'desc' : 'asc';
-            sortOrderBtn.textContent = currentOrder === 'asc' ? '↑' : '↓';
-            sortOrderBtn.setAttribute('data-order', currentOrder);
-            filterAndSortAlliances();
-        });
+    // Event Listeners
+    [searchInput, filterStatus].forEach(element => {
+        element.addEventListener('input', filterAndSortAlliances);
+    });
 
-        // Initial setup
+    sortBy.addEventListener('change', () => {
         filterAndSortAlliances();
     });
+
+    sortOrderBtn.addEventListener('click', () => {
+        currentOrder = currentOrder === 'asc' ? 'desc' : 'asc';
+        sortOrderBtn.querySelector('svg').style.transform = 
+            currentOrder === 'asc' ? 'rotate(0deg)' : 'rotate(180deg)';
+        filterAndSortAlliances();
+    });
+
+    // Initial setup
+    filterAndSortAlliances();
+});
 </script>
 {% endblock %}

@@ -6,34 +6,222 @@
         <!-- Stats Section -->
         <div class="stats-container">
             <h2 class="dashboard-title">SquiidVault Overview</h2>
-            <div class="horizontal-stats">
-                <a href="/sets" class="compact-stat">
-                    <div class="stat-value">{{ total_sets }}</div>
-                    <div class="stat-label">Total Sets</div>
+            <div class="stats-grid">
+                <a href="/sets" class="stat-card">
+                    <div class="stat-icon">🏘️</div>
+                    <div class="stat-content">
+                        <div class="stat-value">{{ total_sets }}</div>
+                        <div class="stat-label">Total Sets</div>
+                    </div>
+                    <div class="stat-arrow">→</div>
                 </a>
-                <a href="/members" class="compact-stat">
-                    <div class="stat-value">{{ total_members }}</div>
-                    <div class="stat-label">Members</div>
+                <a href="/members" class="stat-card">
+                    <div class="stat-icon">👤</div>
+                    <div class="stat-content">
+                        <div class="stat-value">{{ total_members }}</div>
+                        <div class="stat-label">Members</div>
+                    </div>
+                    <div class="stat-arrow">→</div>
                 </a>
-                <a href="/alliances" class="compact-stat">
-                    <div class="stat-value">{{ total_alliances }}</div>
-                    <div class="stat-label">Active Alliances</div>
+                <a href="/alliances" class="stat-card">
+                    <div class="stat-icon">🤝</div>
+                    <div class="stat-content">
+                        <div class="stat-value">{{ total_alliances }}</div>
+                        <div class="stat-label">Active Alliances</div>
+                    </div>
+                    <div class="stat-arrow">→</div>
                 </a>
             </div>
         </div>
 
         <!-- Welcome Message -->
-        <div class="welcome-message">
-            <p>
-                Welcome to the SquiidVault! If you can read this message, it means you're one of the few privileged individuals who have access to this rich and complex database.
-                <br><br>
-                The pieces of information you'll find here are the result of years of research and discussions with members. All of it can't be perfectly on point, but it's the best I can.
-                <br><br>
-                I hope you'll find what you're looking for, and if you don't, please let me know so I can improve the database.
-                <br><br>
-                <span class="signature">presented to you by Q aka IrishRugbyman</span>
-            </p>
+        <div class="welcome-card">
+            <div class="welcome-content">
+                <h3 class="welcome-title">Welcome to SquiidVault</h3>
+                <div class="welcome-text">
+                    <p>
+                        If you can read this message, it means you're one of the few privileged individuals who have access to this rich and complex database.
+                    </p>
+                    <p>
+                        The pieces of information you'll find here are the result of years of research and discussions with members. All of it can't be perfectly on point, but it's the best I can.
+                    </p>
+                    <p>
+                        I hope you'll find what you're looking for, and if you don't, please let me know so I can improve the database.
+                    </p>
+                </div>
+                <div class="signature-container">
+                    <span class="signature">presented to you by Q aka IrishRugbyman</span>
+                </div>
+            </div>
         </div>
     </div>
 </section>
+
+<style>
+.dashboard {
+    padding: 1rem;
+}
+
+.dashboard-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.stats-container {
+    background-color: var(--surface-color);
+    border-radius: 16px;
+    padding: 2rem;
+    box-shadow: 0 4px 12px var(--shadow-color);
+}
+
+.dashboard-title {
+    color: var(--primary-color);
+    font-size: 1.75rem;
+    font-weight: 700;
+    margin: 0 0 1.5rem 0;
+    text-align: center;
+}
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1.5rem;
+}
+
+.stat-card {
+    background-color: var(--bg-color);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 1.5rem;
+    text-decoration: none;
+    color: var(--text-color);
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    transition: all 0.3s ease;
+}
+
+.stat-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 4px 12px var(--shadow-color);
+    border-color: var(--primary-color);
+}
+
+.stat-icon {
+    font-size: 2rem;
+    background-color: var(--primary-color);
+    color: white;
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.stat-content {
+    flex: 1;
+}
+
+.stat-value {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--primary-color);
+    line-height: 1.2;
+}
+
+.stat-label {
+    font-size: 0.9rem;
+    color: var(--helper-text-color);
+    margin-top: 0.25rem;
+}
+
+.stat-arrow {
+    font-size: 1.5rem;
+    color: var(--primary-color);
+    opacity: 0;
+    transform: translateX(-10px);
+    transition: all 0.3s ease;
+}
+
+.stat-card:hover .stat-arrow {
+    opacity: 1;
+    transform: translateX(0);
+}
+
+.welcome-card {
+    background-color: var(--surface-color);
+    border-radius: 16px;
+    box-shadow: 0 4px 12px var(--shadow-color);
+    overflow: hidden;
+}
+
+.welcome-content {
+    padding: 2rem;
+}
+
+.welcome-title {
+    color: var(--primary-color);
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin: 0 0 1.5rem 0;
+}
+
+.welcome-text {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.welcome-text p {
+    margin: 0;
+    line-height: 1.6;
+}
+
+.signature-container {
+    margin-top: 2rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--border-color);
+}
+
+.signature {
+    font-style: italic;
+    color: var(--helper-text-color);
+}
+
+@media (max-width: 768px) {
+    .stats-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .welcome-content {
+        padding: 1.5rem;
+    }
+
+    .stat-card {
+        padding: 1rem;
+    }
+
+    .stat-icon {
+        width: 40px;
+        height: 40px;
+        font-size: 1.5rem;
+    }
+
+    .stat-value {
+        font-size: 1.5rem;
+    }
+}
+
+@media (min-width: 1024px) {
+    .dashboard-grid {
+        display: grid;
+        grid-template-columns: 2fr 3fr;
+        align-items: start;
+    }
+}
+</style>
 {% endblock %}

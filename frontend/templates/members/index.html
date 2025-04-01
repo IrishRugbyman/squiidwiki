@@ -2,57 +2,358 @@
 
 {% block content %}
 <div class="members-container">
-    <h2 class="page-title">DETROIT MEMBERS</h2>
-    <input type="text" id="searchInput" placeholder="Search for a member..." class="search-bar">
+    <div class="page-header">
+        <h1 class="page-title">Detroit Members</h1>
+    </div>
 
-    <!-- Filter and Sort Controls -->
-    <div class="filter-sort-controls">
-        <div class="filter-group">
-            <select id="filter-status" class="filter-select">
-                <option value="all">All Statuses</option>
-                <option value="alive">Active</option>
-                <option value="locked_up">Locked Up</option>
-                <option value="dead">Deceased</option>
-            </select>
-            <select id="filter-set" class="filter-select">
-                <option value="all">All Sets</option>
-                {% for set in sets %}
-                <option value="{{ set.id }}">{{ set.name }}</option>
-                {% endfor %}
-            </select>
-        </div>
-        <div class="sort-group">
-            <select id="sort-by" class="sort-select">
-                <option value="name">Name</option>
-                <option value="status">Status</option>
-                <option value="set">Set</option>
-            </select>
-            <button id="sort-order" class="sort-order-btn" data-order="asc" aria-label="Toggle sort order">↑</button>
+    <div class="search-section">
+        <div class="search-wrapper">
+            <svg class="search-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="11" cy="11" r="8"></circle>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+            <input type="text" id="searchInput" placeholder="Search for a member..." class="search-bar">
         </div>
     </div>
 
-    <!-- Members List -->
-    <ul class="members-list">
+    <div class="filters-card">
+        <div class="filters-content">
+            <div class="filter-group">
+                <label for="filter-status">Status</label>
+                <select id="filter-status" class="filter-select">
+                    <option value="all">All Statuses</option>
+                    <option value="eStatus.ALIVE">Active</option>
+                    <option value="eStatus.LOCKED_UP">Locked Up</option>
+                    <option value="eStatus.DEAD">Deceased</option>
+                </select>
+            </div>
+
+            <div class="filter-group">
+                <label for="filter-set">Set</label>
+                <select id="filter-set" class="filter-select">
+                    <option value="all">All Sets</option>
+                    {% for set in sets %}
+                    <option value="{{ set.id }}">{{ set.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="filter-group">
+                <label for="sort-by">Sort By</label>
+                <div class="sort-controls">
+                    <select id="sort-by" class="sort-select">
+                        <option value="name">Name</option>
+                        <option value="status">Status</option>
+                        <option value="set">Set</option>
+                    </select>
+                    <button id="sort-order" class="sort-order-btn" data-order="asc" aria-label="Sort order">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M12 20V4"></path>
+                            <polyline points="6 10 12 4 18 10"></polyline>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="members-grid">
         {% for member in members %}
-        <li class="member-item" data-status="{{ member.status }}" data-set="{{ member.set_id }}">
-            <div class="member-info">
-                <a href="/members/{{ member.id }}" class="member-name">{{ member.name }}</a>
-                <a href="/sets/{{ member.set_id }}" class="member-set">({% if member.set_name %}{{ member.set_name }}{% else %}Unknown Set{% endif %})</a>
+        <a href="/members/{{ member.id }}" class="member-card" data-status="{{ member.status }}" data-set="{{ member.set_id|default('') }}">
+            <div class="member-content">
+                <div class="member-info">
+                    <h3 class="member-name">{{ member.name }}</h3>
+                    <div class="member-set">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                        </svg>
+                        <span>{% if member.set_name %}{{ member.set_name }}{% else %}Unknown Set{% endif %}</span>
+                    </div>
+                </div>
+                <div class="member-status">
+                    {% if member.status == "locked_up" %}
+                        <span class="status-icon locked-up" title="Locked Up" role="img" aria-label="Locked Up">🔒</span>
+                    {% elif member.status == "dead" %}
+                        <span class="status-icon deceased" title="Deceased" role="img" aria-label="Deceased">💀</span>
+                    {% else %}
+                        <span class="status-icon alive" title="Active" role="img" aria-label="Active">🟢</span>
+                    {% endif %}
+                </div>
             </div>
-            <div class="member-status">
-                {% if member.status == "locked_up" %}
-                    <span class="status locked-up" role="img" aria-label="Locked Up">🔒</span>
-                {% elif member.status == "dead" %}
-                    <span class="status deceased" role="img" aria-label="Deceased">💀</span>
-                {% else %}
-                    <span class="status alive" role="img" aria-label="Active">🟢</span>
-                {% endif %}
-            </div>
-        </li>
+            <div class="member-arrow">→</div>
+        </a>
         {% endfor %}
-    </ul>
-    <div id="emptyState" style="display: none;">No members found</div>
+    </div>
+
+    <div id="emptyState" class="empty-state">
+        <div class="empty-icon">🔍</div>
+        <div class="empty-text">No members found</div>
+    </div>
 </div>
+
+<style>
+:root {
+    --card-hover-transform: translateY(-4px);
+    --transition-speed: 0.3s;
+}
+
+.members-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 2rem 1rem;
+}
+
+.page-header {
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+.page-title {
+    color: var(--primary-color);
+    font-size: 2rem;
+    font-weight: 700;
+    margin: 0;
+}
+
+.search-section {
+    margin-bottom: 2rem;
+}
+
+.search-wrapper {
+    position: relative;
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+.search-icon {
+    position: absolute;
+    left: 1rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--helper-text-color);
+}
+
+.search-bar {
+    width: 100%;
+    padding: 1rem 1rem 1rem 3rem;
+    border-radius: 12px;
+    border: 1px solid var(--border-color);
+    background-color: var(--surface-color);
+    color: var(--text-color);
+    font-size: 1rem;
+    transition: all var(--transition-speed) ease;
+}
+
+.search-bar:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 2px var(--primary-color-hover);
+}
+
+.filters-card {
+    background: var(--surface-color);
+    border-radius: 12px;
+    border: 1px solid var(--border-color);
+    margin-bottom: 2rem;
+    box-shadow: 0 2px 8px var(--shadow-color);
+}
+
+.filters-content {
+    padding: 1.5rem;
+    display: flex;
+    gap: 2rem;
+    align-items: flex-end;
+}
+
+.filter-group {
+    flex: 1;
+    min-width: 0;
+}
+
+.filter-group label {
+    display: block;
+    color: var(--helper-text-color);
+    font-size: 0.9rem;
+    margin-bottom: 0.5rem;
+}
+
+.filter-select,
+.sort-select {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    background: var(--bg-color);
+    color: var(--text-color);
+    font-size: 0.95rem;
+    transition: all var(--transition-speed) ease;
+}
+
+.filter-select:focus,
+.sort-select:focus {
+    outline: none;
+    border-color: var(--primary-color);
+}
+
+.sort-controls {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.sort-select {
+    flex: 1;
+}
+
+.sort-order-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 42px;
+    height: 42px;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    background: var(--bg-color);
+    color: var(--text-color);
+    cursor: pointer;
+    transition: all var(--transition-speed) ease;
+}
+
+.sort-order-btn:hover {
+    border-color: var(--primary-color);
+    color: var(--primary-color);
+}
+
+.members-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1rem;
+    margin-bottom: 2rem;
+}
+
+.member-card {
+    background: var(--surface-color);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 1rem;
+    text-decoration: none;
+    color: var(--text-color);
+    transition: all var(--transition-speed) ease;
+}
+
+.member-card:hover {
+    transform: var(--card-hover-transform);
+    border-color: var(--primary-color);
+    box-shadow: 0 4px 12px var(--shadow-color);
+}
+
+.member-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 0.25rem;
+}
+
+.member-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.member-name {
+    font-size: 1.1rem;
+    font-weight: 500;
+    margin: 0 0 0.25rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.member-set {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--helper-text-color);
+    font-size: 0.9rem;
+}
+
+.member-set svg {
+    flex-shrink: 0;
+}
+
+.member-status {
+    margin-left: 1rem;
+    font-size: 1.2rem;
+}
+
+.status-icon {
+    font-size: 1.1rem;
+}
+
+.status-icon.alive {
+    color: #4CAF50;
+}
+
+.status-icon.locked-up {
+    color: #FF9800;
+}
+
+.status-icon.deceased {
+    color: #F44336;
+}
+
+.member-arrow {
+    color: var(--primary-color);
+    opacity: 0;
+    transform: translateX(-10px);
+    transition: all var(--transition-speed) ease;
+}
+
+.member-card:hover .member-arrow {
+    opacity: 1;
+    transform: translateX(0);
+}
+
+.empty-state {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+    padding: 3rem;
+    text-align: center;
+    color: var(--helper-text-color);
+}
+
+.empty-state.visible {
+    display: flex;
+}
+
+.empty-icon {
+    font-size: 2rem;
+}
+
+.empty-text {
+    font-size: 1.1rem;
+}
+
+@media (max-width: 768px) {
+    .members-container {
+        padding: 1rem;
+    }
+
+    .filters-content {
+        flex-direction: column;
+        gap: 1rem;
+        padding: 1rem;
+    }
+
+    .filter-group {
+        width: 100%;
+    }
+
+    .members-grid {
+        grid-template-columns: 1fr;
+    }
+}
+</style>
 
 <script>
 document.addEventListener('DOMContentLoaded', () => {
@@ -61,217 +362,102 @@ document.addEventListener('DOMContentLoaded', () => {
     const filterSet = document.getElementById('filter-set');
     const sortBy = document.getElementById('sort-by');
     const sortOrderBtn = document.getElementById('sort-order');
-    const memberList = document.querySelector('.members-list');
+    const membersGrid = document.querySelector('.members-grid');
     const emptyState = document.getElementById('emptyState');
+
     let currentOrder = 'asc';
 
-    const statusOrder = { 'alive': 1, 'locked_up': 2, 'dead': 3 };
-
-    // Debounce function to prevent excessive function calls
-    const debounce = (func, timeout = 300) => {
-        let timer;
-        return (...args) => {
-            clearTimeout(timer);
-            timer = setTimeout(() => func.apply(this, args), timeout);
-        };
-    };
-
-    // Combined filtering and sorting function
-    const filterAndSortMembers = debounce(() => {
+    // Filter function
+    function filterMembers() {
         const searchTerm = searchInput.value.toLowerCase();
         const statusFilter = filterStatus.value;
         const setFilter = filterSet.value;
         let visibleCount = 0;
 
-        document.querySelectorAll('.member-item').forEach(item => {
-            const name = item.querySelector('.member-name').textContent.toLowerCase();
-            const memberSetText = item.querySelector('.member-set').textContent.toLowerCase();
-            const itemSetId = item.dataset.set;
-
-            const matchesSearch = name.includes(searchTerm) || memberSetText.includes(searchTerm);
-            const matchesStatus = statusFilter === 'all' || item.dataset.status === statusFilter;
-            const matchesSet = setFilter === 'all' || itemSetId === setFilter;
-
+        // Get all member cards
+        const memberCards = document.querySelectorAll('.member-card');
+        
+        // Loop through each card and check filters
+        memberCards.forEach(card => {
+            const name = card.querySelector('.member-name').textContent.toLowerCase();
+            const setName = card.querySelector('.member-set span').textContent.toLowerCase();
+            const status = card.getAttribute('data-status') || '';
+            const setId = card.getAttribute('data-set') || '';
+            
+            // Check if card matches all filters
+            const matchesSearch = name.includes(searchTerm) || setName.includes(searchTerm);
+            
+            // Status matching
+            let matchesStatus = false;
+            if (statusFilter === 'all') {
+                matchesStatus = true;
+            } else if (status === statusFilter) {
+                matchesStatus = true;
+            }
+            
+            const matchesSet = setFilter === 'all' || setId === setFilter;
+            
+            // Show or hide the card
             const shouldShow = matchesSearch && matchesStatus && matchesSet;
-            item.style.display = shouldShow ? 'flex' : 'none';
+            card.style.display = shouldShow ? 'block' : 'none';
+            
             if (shouldShow) visibleCount++;
         });
-
-        emptyState.style.display = visibleCount ? 'none' : 'block';
+        
+        // Show empty state if no cards visible
+        emptyState.classList.toggle('visible', visibleCount === 0);
+        
+        // Sort the visible cards
         sortMembers();
-    });
+    }
 
-    // Sorting function
-    const sortMembers = () => {
-        const members = Array.from(memberList.children).filter(item =>
-            item.style.display !== 'none'
+    // Sort function
+    function sortMembers() {
+        const members = Array.from(membersGrid.children).filter(card => 
+            card.style.display !== 'none'
         );
 
         members.sort((a, b) => {
             let aValue, bValue;
-            switch(sortBy.value) {
-                case 'name':
-                    aValue = a.querySelector('.member-name').textContent.toLowerCase();
-                    bValue = b.querySelector('.member-name').textContent.toLowerCase();
-                    break;
-                case 'status':
-                    aValue = statusOrder[a.dataset.status];
-                    bValue = statusOrder[b.dataset.status];
-                    // For numeric values, subtract; no need to use localeCompare
-                    return currentOrder === 'asc' ? aValue - bValue : bValue - aValue;
-                case 'set':
-                    aValue = a.querySelector('.member-set').textContent.toLowerCase();
-                    bValue = b.querySelector('.member-set').textContent.toLowerCase();
-                    break;
+            
+            if (sortBy.value === 'name') {
+                aValue = a.querySelector('.member-name').textContent.toLowerCase();
+                bValue = b.querySelector('.member-name').textContent.toLowerCase();
             }
-            return currentOrder === 'asc'
-                ? aValue.localeCompare(bValue)
-                : bValue.localeCompare(aValue);
+            else if (sortBy.value === 'status') {
+                aValue = a.getAttribute('data-status') || '';
+                bValue = b.getAttribute('data-status') || '';
+            }
+            else if (sortBy.value === 'set') {
+                aValue = a.querySelector('.member-set span').textContent.toLowerCase();
+                bValue = b.querySelector('.member-set span').textContent.toLowerCase();
+            }
+
+            return currentOrder === 'asc' ? 
+                aValue.localeCompare(bValue) : 
+                bValue.localeCompare(aValue);
         });
 
-        memberList.append(...members);
-    };
+        // Re-append in sorted order
+        members.forEach(member => membersGrid.appendChild(member));
+    }
 
-    // Event Listeners
-    [searchInput, filterStatus, filterSet].forEach(element => {
-        element.addEventListener('input', filterAndSortMembers);
-    });
-
-    sortBy.addEventListener('change', () => {
-        filterAndSortMembers();
-        sortMembers();
-    });
+    // Set up event listeners
+    searchInput.addEventListener('input', filterMembers);
+    filterStatus.addEventListener('change', filterMembers);
+    filterSet.addEventListener('change', filterMembers);
+    sortBy.addEventListener('change', filterMembers);
 
     sortOrderBtn.addEventListener('click', () => {
         currentOrder = currentOrder === 'asc' ? 'desc' : 'asc';
-        sortOrderBtn.textContent = currentOrder === 'asc' ? '↑' : '↓';
+        sortOrderBtn.querySelector('svg').style.transform = 
+            currentOrder === 'asc' ? 'rotate(0deg)' : 'rotate(180deg)';
         sortOrderBtn.setAttribute('data-order', currentOrder);
-        filterAndSortMembers();
+        filterMembers();
     });
 
-    // Initial setup
-    filterAndSortMembers();
+    // Initial filter and sort
+    filterMembers();
 });
 </script>
-
-<style>
-    .members-container {
-        max-width: 1200px;
-        margin: 2rem auto;
-        padding: 0 1rem;
-    }
-    .search-bar {
-        width: 100%;
-        padding: 0.8rem;
-        margin-bottom: 1rem;
-        background: #2a2a2a;
-        border: 1px solid #444;
-        color: #e0e0e0;
-        border-radius: 4px;
-        font-size: 1rem;
-    }
-    .filter-sort-controls {
-        display: grid;
-        grid-template-columns: 1fr auto;
-        gap: 1rem;
-        margin-bottom: 1rem;
-    }
-    .filter-group, .sort-group {
-        display: flex;
-        gap: 0.5rem;
-    }
-    .filter-select, .sort-select {
-        background: #2a2a2a;
-        color: #e0e0e0;
-        border: 1px solid #444;
-        padding: 0.5rem 1rem;
-        border-radius: 4px;
-        cursor: pointer;
-        min-width: 160px;
-    }
-    .sort-order-btn {
-        background: #3a3a3a;
-        color: #e0e0e0;
-        border: 1px solid #444;
-        padding: 0.5rem 1rem;
-        border-radius: 4px;
-        cursor: pointer;
-        transition: all 0.2s;
-        width: 50px;
-    }
-    .members-list {
-        list-style: none;
-        padding: 0;
-        margin: 0;
-    }
-    .member-item {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 1rem;
-        background: #1e1e1e;
-        margin-bottom: 0.5rem;
-        border-radius: 6px;
-        transition: transform 0.2s;
-    }
-    .member-info {
-        flex-grow: 1;
-    }
-    .member-name {
-        color: #e0e0e0;
-        text-decoration: none;
-        font-size: 1.1rem;
-        margin-right: 0.5rem;
-    }
-    .member-set {
-        color: #888;
-        font-size: 0.9rem;
-        text-decoration: none;
-    }
-    .member-status {
-        font-size: 1.2rem;
-        min-width: 40px;
-        text-align: right;
-    }
-    .status.alive {
-        color: #4CAF50;
-    }
-    .status.locked-up {
-        color: #FF9800;
-    }
-    .status.deceased {
-        color: #F44336;
-    }
-    .empty-state {
-        text-align: center;
-        color: #666;
-        padding: 2rem;
-        display: none;
-    }
-    @media (max-width: 768px) {
-        .filter-sort-controls {
-            grid-template-columns: 1fr;
-        }
-        .filter-group, .sort-group {
-            flex-direction: column;
-        }
-        .member-item {
-            flex-direction: column;
-            align-items: flex-start;
-            padding: 1rem 0.5rem;
-        }
-        .member-status {
-            margin-top: 0.5rem;
-            text-align: left;
-        }
-    }
-    @keyframes pulse {
-        0% { opacity: 0.6; }
-        50% { opacity: 1; }
-        100% { opacity: 0.6; }
-    }
-    .loading .member-item {
-        animation: pulse 1.5s infinite;
-    }
-</style>
 {% endblock %}

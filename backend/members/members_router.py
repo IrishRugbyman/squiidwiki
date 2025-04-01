@@ -1,0 +1,382 @@
+from datetime import datetime
+from typing import Optional
+
+from fastapi import APIRouter, Request, Form, HTTPException, Depends
+from fastapi.responses import HTMLResponse, RedirectResponse
+from sqlalchemy.orm import Session, joinedload
+# from backend.database.database import get_db
+from backend.config.templates import templates
+
+# Import your SQLAlchemy ORM models.
+from backend.database.db_alchemy_models import (
+    Members, Sets, Alliances,
+    Shootings, Murders, Assists, get_db
+)
+
+# Import your Pydantic models.
+from backend.database.models import Member, MemberCreate, Shooting, Murder, Assist
+
+router = APIRouter()
+
+# -------------------------------------------------------------------
+# List Members
+# -------------------------------------------------------------------
+@router.get("/", response_class=HTMLResponse)
+def list_members(request: Request, db: Session = Depends(get_db)):
+    # Query members with their related set and alliance (using joinedload for efficiency)
+    members = db.query(Members).options(
+        joinedload(Members.set)
+    ).all()
+    
+    members_data = []
+    for member in members:
+        # Convert to a Pydantic model then to a dict
+        member_data = Member.from_orm(member).dict()
+        # Add the set name (if available)
+        member_data["set_name"] = member.set.name if member.set else "Unknown Set"
+        
+        # Add alliance information if available
+        if member.alliance_id:
+            alliance = db.get(Alliances, member.alliance_id)
+            if alliance:
+                member_data["alliance_name"] = alliance.name
+        
+        members_data.append(member_data)
+    
+    # Get all sets for the filter dropdown
+    sets = db.query(Sets).order_by(Sets.name).all()
+    sets_data = [{"id": s.id, "name": s.name} for s in sets]
+    
+    # Sort case–insensitively by name
+    members_data = sorted(members_data, key=lambda m: m["name"].lower())
+    return templates.TemplateResponse("members/index.html", {
+        "request": request,
+        "members": members_data,
+        "sets": sets_data
+    })
+
+# -------------------------------------------------------------------
+# Display the Add Member Form
+# -------------------------------------------------------------------
+@router.get("/add/{set_id}", response_class=HTMLResponse)
+def add_member_form(request: Request, set_id: int, db: Session = Depends(get_db)):
+    set_obj = db.get(Sets, set_id)
+    if not set_obj:
+        raise HTTPException(status_code=404, detail="Set not found")
+    return templates.TemplateResponse("members/add_member.html", {
+        "request": request,
+        "set_id": set_id,
+        "set_name": set_obj.name,
+        "current_year": datetime.now().year
+    })
+
+# -------------------------------------------------------------------
+# Process Adding a New Member
+# -------------------------------------------------------------------
+@router.post("/add/{set_id}", response_class=RedirectResponse)
+def add_member(
+    set_id: int,
+    name: str = Form(...),
+    description: str = Form(None),
+    status: str = Form(...),
+    # For "locked_up" status
+    release_date_precision: str = Form(None),  # 'exact', 'year', or 'life'
+    release_date_exact: str = Form(None),
+    release_date_year: str = Form(None),
+    # For "dead" status
+    death_date_exact: str = Form(None),
+    death_date_year: str = Form(None),
+    alliance_id: str = Form(None),
+    db: Session = Depends(get_db)
+):
+    valid_statuses = {'alive', 'locked_up', 'dead', 'unknown'}
+    if status not in valid_statuses:
+        raise HTTPException(status_code=400, detail="Invalid status value")
+
+    # Process release date values for "locked_up" status
+    release_date = None
+    release_date_approx = None
+    if status == 'locked_up':
+        if release_date_precision == 'life':
+            release_date_approx = "life"
+        elif release_date_precision == 'year' and release_date_year:
+            if not release_date_year.isdigit() or len(release_date_year) != 4:
+                raise HTTPException(400, "Invalid release year format (must be YYYY)")
+            release_date_approx = release_date_year
+        elif release_date_precision == 'exact' and release_date_exact:
+            try:
+                parsed_date = datetime.strptime(release_date_exact, "%Y-%m-%d").date()
+                release_date = parsed_date
+                release_date_approx = parsed_date.strftime("%Y")
+            except ValueError:
+                raise HTTPException(400, "Invalid release date format (must be YYYY-MM-DD)")
+        else:
+            release_date_approx = 'unknown'
+
+    # Process death date values for "dead" status
+    death_date = None
+    death_date_approx = None
+    if status == "dead":
+        if death_date_year:
+            if not death_date_year.isdigit() or len(death_date_year) != 4:
+                raise HTTPException(400, "Invalid death year format (must be YYYY)")
+            death_date_approx = death_date_year
+        elif death_date_exact:
+            try:
+                parsed_date = datetime.strptime(death_date_exact, "%Y-%m-%d").date()
+                death_date = parsed_date
+                death_date_approx = parsed_date.strftime("%Y")
+            except ValueError:
+                raise HTTPException(400, "Invalid death date format (must be YYYY-MM-DD)")
+        else:
+            death_date_approx = 'unknown'
+
+    alliance_id_int = int(alliance_id) if alliance_id and alliance_id.strip() else None
+
+    # Validate and build a new member using your Pydantic schema.
+    new_member = MemberCreate(
+        name=name,
+        description=description,
+        status=status,
+        release_date=release_date,
+        release_date_approx=release_date_approx,
+        death_date=death_date,
+        death_date_approx=death_date_approx,
+        set_id=set_id,
+        alliance_id=alliance_id_int
+    )
+    data = new_member.dict()
+    # Create and persist a new ORM instance
+    member_obj = Members(**data)
+    db.add(member_obj)
+    db.commit()
+    db.refresh(member_obj)
+    return RedirectResponse(url=f"/sets/{set_id}", status_code=303)
+
+# -------------------------------------------------------------------
+# Display the Edit Member Form
+# -------------------------------------------------------------------
+@router.get("/edit/{member_id}", response_class=HTMLResponse)
+def edit_member_form(request: Request, member_id: int, db: Session = Depends(get_db)):
+    member_obj = db.get(Members, member_id)
+    if not member_obj:
+        raise HTTPException(status_code=404, detail="Member not found")
+
+    member_data = Member.from_orm(member_obj).dict()
+    set_name = member_obj.set.name if member_obj.set else "Unknown Set"
+
+    return templates.TemplateResponse(
+        "members/edit_member.html",
+        {
+            "request": request,
+            "member": member_data,
+            "set_name": set_name
+        }
+    )
+
+# -------------------------------------------------------------------
+# Process Editing an Existing Member
+# -------------------------------------------------------------------
+@router.post("/edit/{member_id}", response_class=RedirectResponse)
+def edit_member(
+    member_id: int,
+    name: str = Form(...),
+    description: Optional[str] = Form(None),
+    status: str = Form(...),
+    # For "locked_up" status
+    release_date_precision: Optional[str] = Form(None),
+    release_date_exact: Optional[str] = Form(None),
+    release_date_year: Optional[str] = Form(None),
+    # For "dead" status
+    death_date_exact: Optional[str] = Form(None),
+    death_date_year: Optional[str] = Form(None),
+    alliance_id: Optional[str] = Form(None),
+    db: Session = Depends(get_db)
+):
+    member_obj = db.get(Members, member_id)
+    if not member_obj:
+        raise HTTPException(status_code=404, detail="Member not found")
+
+    valid_statuses = {'alive', 'locked_up', 'dead', 'unknown'}
+    if status not in valid_statuses:
+        raise HTTPException(status_code=400, detail="Invalid status value")
+
+    # Process release date values for "locked_up" status
+    release_date = None
+    release_date_approx = None
+    if status == 'locked_up':
+        if release_date_precision == 'life':
+            release_date_approx = "life"
+        elif release_date_precision == 'year' and release_date_year:
+            if not release_date_year.isdigit() or len(release_date_year) != 4:
+                raise HTTPException(400, "Invalid release year format (must be YYYY)")
+            release_date_approx = release_date_year
+        elif release_date_precision == 'exact' and release_date_exact:
+            try:
+                parsed_date = datetime.strptime(release_date_exact, "%Y-%m-%d").date()
+                release_date = parsed_date
+                release_date_approx = parsed_date.strftime("%Y")
+            except ValueError:
+                raise HTTPException(400, "Invalid release date format (must be YYYY-MM-DD)")
+        else:
+            release_date_approx = 'unknown'
+
+    # Process death date values for "dead" status
+    death_date = None
+    death_date_approx = None
+    if status == "dead":
+        if death_date_year:
+            if not death_date_year.isdigit() or len(death_date_year) != 4:
+                raise HTTPException(400, "Invalid death year format (must be YYYY)")
+            death_date_approx = death_date_year
+        elif death_date_exact:
+            try:
+                parsed_date = datetime.strptime(death_date_exact, "%Y-%m-%d").date()
+                death_date = parsed_date
+                death_date_approx = parsed_date.strftime("%Y")
+            except ValueError:
+                raise HTTPException(400, "Invalid death date format (must be YYYY-MM-DD)")
+        else:
+            death_date_approx = 'unknown'
+
+    alliance_id_int = int(alliance_id) if alliance_id and alliance_id.strip() else None
+
+    # Update member fields
+    member_obj.name = name
+    member_obj.description = description
+    member_obj.status = status
+    member_obj.release_date = release_date
+    member_obj.release_date_approx = release_date_approx
+    member_obj.death_date = death_date
+    member_obj.death_date_approx = death_date_approx
+    member_obj.alliance_id = alliance_id_int
+
+    db.commit()
+    return RedirectResponse(url=f"/members/{member_id}", status_code=303)
+
+# -------------------------------------------------------------------
+# Confirm Deletion of a Member
+# -------------------------------------------------------------------
+@router.get("/delete/{member_id}", response_class=HTMLResponse)
+def delete_member_confirmation(request: Request, member_id: int, db: Session = Depends(get_db)):
+    member_obj = db.get(Members, member_id)
+    if not member_obj:
+        raise HTTPException(status_code=404, detail="Member not found")
+
+    member_data = Member.from_orm(member_obj).dict()
+    set_name = member_obj.set.name if member_obj.set else "Unknown Set"
+
+    # Get related events count
+    shootings_count = db.query(Shootings).filter(
+        (Shootings.shooter_id == member_id) | (Shootings.victim_id == member_id)
+    ).count()
+    murders_count = db.query(Murders).filter(
+        (Murders.shooter_id == member_id) | (Murders.victim_id == member_id)
+    ).count()
+    assists_count = db.query(Assists).filter(
+        (Assists.shooter_id == member_id) | (Assists.victim_id == member_id)
+    ).count()
+
+    return templates.TemplateResponse(
+        "members/delete_member.html",
+        {
+            "request": request,
+            "member": member_data,
+            "set_name": set_name,
+            "shootings_count": shootings_count,
+            "murders_count": murders_count,
+            "assists_count": assists_count
+        }
+    )
+
+# -------------------------------------------------------------------
+# Process Deleting a Member (and Related Events)
+# -------------------------------------------------------------------
+@router.post("/delete/{member_id}", response_class=RedirectResponse)
+def delete_member(member_id: int, db: Session = Depends(get_db)):
+    member_obj = db.get(Members, member_id)
+    if not member_obj:
+        raise HTTPException(status_code=404, detail="Member not found")
+    set_id = member_obj.set_id
+
+    # Delete related events first.
+    db.query(Shootings).filter(
+        (Shootings.shooter_id == member_id) | (Shootings.victim_id == member_id)
+    ).delete(synchronize_session=False)
+    db.query(Murders).filter(
+        (Murders.shooter_id == member_id) | (Murders.victim_id == member_id)
+    ).delete(synchronize_session=False)
+    db.query(Assists).filter(
+        (Assists.shooter_id == member_id) | (Assists.victim_id == member_id)
+    ).delete(synchronize_session=False)
+
+    # Delete the member.
+    db.delete(member_obj)
+    db.commit()
+
+    redirect_url = f"/sets/{set_id}" if set_id is not None else "/"
+    return RedirectResponse(url=redirect_url, status_code=303)
+
+# -------------------------------------------------------------------
+# Display Member Details with Activities
+# -------------------------------------------------------------------
+@router.get("/{member_id}", response_class=HTMLResponse)
+def member_details(request: Request, member_id: int, db: Session = Depends(get_db)):
+    # Fetch member
+    member_obj = db.get(Members, member_id)
+    if not member_obj:
+        raise HTTPException(status_code=404, detail="Member not found")
+    member_data = Member.from_orm(member_obj).dict()
+
+    # Get set name
+    set_name = member_obj.set.name if member_obj.set else "Unknown Set"
+
+    # Fetch alliance name (if applicable)
+    alliance_name = None
+    if member_obj.alliance_id:
+        alliance_obj = db.get(Alliances, member_obj.alliance_id)
+        alliance_name = alliance_obj.name if alliance_obj else None
+
+    # Retrieve related activities
+    shootings = db.query(Shootings).filter(Shootings.shooter_id == member_id).all()
+    murders = db.query(Murders).filter(Murders.shooter_id == member_id).all()
+    assists = db.query(Assists).filter(Assists.shooter_id == member_id).all()
+
+    # Include victim_set_id in event data
+    shootings_data = [
+        {**Shooting.from_orm(s).dict(), "victim_set_id": db.get(Members, s.victim_id).set_id if db.get(Members, s.victim_id) and db.get(Members, s.victim_id).set_id else None}
+        for s in shootings
+    ]
+    murders_data = [
+        {**Murder.from_orm(m).dict(), "victim_set_id": db.get(Members, m.victim_id).set_id if db.get(Members, m.victim_id) and db.get(Members, m.victim_id).set_id else None}
+        for m in murders
+    ]
+    assists_data = [
+        {**Assist.from_orm(a).dict(), "victim_set_id": db.get(Members, a.victim_id).set_id if db.get(Members, a.victim_id) and db.get(Members, a.victim_id).set_id else None}
+        for a in assists
+    ]
+
+    # Gather victim IDs from all events
+    victim_ids = {event["victim_id"] for event in shootings_data + murders_data + assists_data if event.get("victim_id")}
+
+    # Fetch victim details
+    member_names = {}
+    victim_sets = {}
+    if victim_ids:
+        victims = db.query(Members).filter(Members.id.in_(victim_ids)).all()
+        member_names = {v.id: v.name for v in victims}
+        victim_sets = {v.id: (v.set.name if v.set else "Unknown Set") for v in victims}
+
+    return templates.TemplateResponse("members/member_details.html", {
+        "request": request,
+        "member": member_data,
+        "set_name": set_name,
+        "alliance_name": alliance_name,
+        "member_names": member_names,
+        "victim_sets": victim_sets,
+        "activities": {
+            "shootings": shootings_data,
+            "murders": murders_data,
+            "assists": assists_data
+        }
+    })

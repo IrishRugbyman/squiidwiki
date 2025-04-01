@@ -1,8 +1,6 @@
-from fastapi import APIRouter, Request, Form, HTTPException
-from fastapi.responses import HTMLResponse, RedirectResponse
-import sqlite3
+from fastapi import APIRouter, Request
 from backend.database.database import get_total_sets, get_total_members, get_total_alliances
-from ..config.templates import templates
+from backend.config.templates import templates
 
 
 router = APIRouter()

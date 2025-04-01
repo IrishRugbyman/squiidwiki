@@ -1,0 +1,468 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container">
+    <h1>Edit Murder Event</h1>
+    <form method="post" action="/events/murders/edit/{{ murder.id }}" id="edit-murder-form" novalidate>
+        <!-- CSRF Protection -->
+
+        <fieldset class="form-section">
+            <legend>Event Details</legend>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="shooter_id">Shooter:</label>
+                    <select id="shooter_id" name="shooter_id" required aria-required="true">
+                        {% for member in all_members %}
+                            <option value="{{ member.id }}" {% if member.id == murder.shooter_id %}selected{% endif %}>
+                                {{ member.name }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                    <div id="shooter-error" class="error-message" aria-live="polite"></div>
+                </div>
+
+                <div class="form-group">
+                    <label for="victim_name">Victim:</label>
+                    <input type="text" id="victim_name" value="{{ murder.victim.name }}" disabled>
+                    <input type="hidden" name="victim_id" value="{{ murder.victim_id }}">
+                    <small class="helper-text">Victim cannot be changed</small>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="date_exact">Date:</label>
+                    <input type="date" id="date_exact" name="date_exact" 
+                           value="{{ murder.date.strftime('%Y-%m-%d') if murder.date else '' }}"
+                           required aria-required="true">
+                    <div id="date-error" class="error-message" aria-live="polite"></div>
+                </div>
+            </div>
+
+            <div class="form-group checkbox-group hidden" id="update-victim-death-container">
+                <input type="checkbox" name="update_victim_death" id="update_victim_death" value="true">
+                <label for="update_victim_death">Update victim's death date to match this murder date</label>
+            </div>
+        </fieldset>
+
+        <div class="form-actions">
+            <a href="/members/{{ murder.shooter_id }}" class="secondary-button">Cancel</a>
+            <button type="submit" id="submit-button">
+                <span class="button-text">Save Changes</span>
+                <span class="spinner hidden"></span>
+            </button>
+        </div>
+    </form>
+</div>
+
+<!-- Modal Dialog -->
+<div id="confirmation-modal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>Update Victim's Death Date?</h2>
+            <span class="close-modal">&times;</span>
+        </div>
+        <div class="modal-body">
+            <p id="modal-message"></p>
+        </div>
+        <div class="modal-footer">
+            <button id="update-death-date" class="btn btn-primary">Update Death Date</button>
+            <button id="keep-death-date" class="btn btn-secondary">Keep Original Date</button>
+        </div>
+    </div>
+</div>
+
+<style>
+.container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+h1 {
+    color: var(--primary-color);
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+.form-section {
+    background-color: var(--bg-color);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 20px;
+}
+
+legend {
+    color: var(--primary-color);
+    font-weight: bold;
+    padding: 0 10px;
+}
+
+.form-row {
+    display: flex;
+    gap: 20px;
+    margin-bottom: 15px;
+}
+
+.form-group {
+    flex: 1;
+}
+
+label {
+    display: block;
+    margin-bottom: 5px;
+    color: var(--text-color);
+}
+
+input, select {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    background-color: var(--input-bg);
+    color: var(--text-color);
+}
+
+select {
+    appearance: auto; /* Ensure native dropdown styling */
+}
+
+select option {
+    background-color: #2b2b2b !important; /* Dark background */
+    color: #ffffff !important; /* White text */
+    padding: 8px 12px;
+}
+
+input:disabled {
+    background-color: var(--border-color, #2b2b2b);
+    cursor: not-allowed;
+}
+
+.helper-text {
+    font-size: 0.85em;
+    color: var(--helper-text-color);
+    margin-top: 4px;
+}
+
+.error-message {
+    color: var(--error-color);
+    font-size: 0.85em;
+    margin-top: 4px;
+    min-height: 20px;
+}
+
+.form-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 20px;
+}
+
+button, .secondary-button {
+    padding: 10px 20px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 1em;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    text-decoration: none;
+}
+
+button[type="submit"] {
+    background-color: var(--primary-color);
+    color: white;
+    border: none;
+}
+
+button[type="submit"]:hover {
+    background-color: var(--primary-color-hover);
+}
+
+.secondary-button {
+    background-color: transparent;
+    border: 1px solid var(--border-color);
+    color: var(--text-color);
+}
+
+.secondary-button:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+.spinner {
+    width: 16px;
+    height: 16px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-radius: 50%;
+    border-top-color: white;
+    animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+.hidden {
+    display: none;
+}
+
+@media (max-width: 600px) {
+    .form-row {
+        flex-direction: column;
+        gap: 15px;
+    }
+}
+
+/* Modal styles */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0, 0, 0, 0.5);
+}
+
+.modal-content {
+    background: var(--card-bg);
+    margin: 15% auto;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    max-width: 500px;
+    width: 80%;
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.modal-header h2 {
+    margin: 0;
+    font-size: 1.5em;
+    color: var(--text-primary);
+}
+
+.close-modal {
+    color: var(--text-secondary);
+    font-size: 28px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.modal-body {
+    margin-bottom: 20px;
+}
+
+.modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+}
+
+.checkbox-group {
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+}
+
+.checkbox-group input[type="checkbox"] {
+    margin: 0;
+}
+
+.btn {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 4px;
+    font-size: 1em;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-primary {
+    background: var(--primary-color);
+    color: white;
+}
+
+.btn-primary:hover {
+    background: var(--primary-color-dark);
+}
+
+.btn-secondary {
+    background: var(--secondary-color);
+    color: var(--text-primary);
+}
+
+.btn-secondary:hover {
+    background: var(--secondary-color-dark);
+}
+
+@media (max-width: 600px) {
+    .container {
+        padding: 10px;
+    }
+
+    h1 {
+        font-size: 1.5em;
+    }
+
+    .form-actions {
+        flex-direction: column;
+    }
+
+    .btn {
+        width: 100%;
+    }
+    
+    .modal-content {
+        width: 95%;
+        margin: 30% auto;
+    }
+    
+    .modal-footer {
+        flex-direction: column;
+    }
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('edit-murder-form');
+    const submitButton = document.getElementById('submit-button');
+    const spinner = document.querySelector('.spinner');
+    const buttonText = document.querySelector('.button-text');
+    const shooterError = document.getElementById('shooter-error');
+    const dateError = document.getElementById('date-error');
+    const updateCheckbox = document.getElementById('update_victim_death');
+    const updateContainer = document.getElementById('update-victim-death-container');
+    const modal = document.getElementById('confirmation-modal');
+    const closeModal = document.querySelector('.close-modal');
+    const modalMessage = document.getElementById('modal-message');
+    const updateButton = document.getElementById('update-death-date');
+    const keepButton = document.getElementById('keep-death-date');
+    
+    let formSubmitting = false;
+
+    function validateForm() {
+        let isValid = true;
+        const shooter = document.getElementById('shooter_id').value;
+        const date = document.getElementById('date_exact').value;
+
+        // Clear previous errors
+        shooterError.textContent = '';
+        dateError.textContent = '';
+
+        if (!shooter) {
+            shooterError.textContent = 'Shooter is required';
+            isValid = false;
+        }
+
+        if (!date) {
+            dateError.textContent = 'Date is required';
+            isValid = false;
+        }
+
+        return isValid;
+    }
+
+    form.addEventListener('submit', async function(event) {
+        if (formSubmitting) return; // Don't intercept if we're already submitting
+        
+        event.preventDefault();
+
+        if (!validateForm()) {
+            return;
+        }
+
+        // Show loading state
+        submitButton.disabled = true;
+        spinner.classList.remove('hidden');
+        buttonText.textContent = 'Saving...';
+
+        try {
+            // Submit form with fetch API to check for errors
+            const formData = new FormData(form);
+            const response = await fetch(form.action || window.location.href, {
+                method: 'POST',
+                body: formData,
+                redirect: 'manual' // Don't automatically follow redirects
+            });
+            
+            // Check if there was a redirect (success)
+            if (response.status === 303 || response.redirected) {
+                window.location.href = response.url || '/members/' + form.querySelector('[name="shooter_id"]').value;
+                return;
+            }
+            
+            // If we get here, there was an error
+            const data = await response.json();
+            
+            // Reset loading state
+            submitButton.disabled = false;
+            spinner.classList.add('hidden');
+            buttonText.textContent = 'Save Changes';
+            
+            // Check for death date conflict error
+            if (data.detail && data.detail.includes("Update victim death date")) {
+                // Show modal with the error message
+                modalMessage.textContent = data.detail;
+                modal.style.display = 'block';
+            } else {
+                // Show other error
+                alert(data.detail || 'An error occurred');
+            }
+        } catch (error) {
+            // Likely a successful redirect that couldn't be parsed as JSON
+            if (error instanceof SyntaxError) {
+                window.location.reload();
+                return;
+            }
+            
+            console.error('Error:', error);
+            submitButton.disabled = false;
+            spinner.classList.add('hidden');
+            buttonText.textContent = 'Save Changes';
+        }
+    });
+    
+    // Handle update death date button
+    updateButton.addEventListener('click', function() {
+        updateCheckbox.checked = true;
+        modal.style.display = 'none';
+        formSubmitting = true;
+        
+        // Show loading state again
+        submitButton.disabled = true;
+        spinner.classList.remove('hidden');
+        buttonText.textContent = 'Saving...';
+        
+        // Submit the form with the update_victim_death checkbox checked
+        form.submit();
+    });
+    
+    // Handle keep original date button
+    keepButton.addEventListener('click', function() {
+        modal.style.display = 'none';
+    });
+    
+    // Close modal when clicking the X
+    closeModal.addEventListener('click', function() {
+        modal.style.display = 'none';
+    });
+    
+    // Close modal when clicking outside
+    window.addEventListener('click', function(event) {
+        if (event.target == modal) {
+            modal.style.display = 'none';
+        }
+    });
+});
+</script>
+{% endblock %}

@@ -8,6 +8,8 @@
       <span>Released: <span id="stats-released">0</span></span>
       <span>Died: <span id="stats-died">0</span></span>
       <span>Death Anniversaries: <span id="stats-anniversaries">0</span></span>
+      <span>Murders: <span id="stats-murders">0</span></span>
+      <span>Shootings: <span id="stats-shootings">0</span></span>
     </div>
   </div>
   <!-- Legend -->
@@ -39,23 +41,27 @@
   </div>
   <!-- Calendar -->
   <div id="calendar"></div>
+  <div id="debug-info" style="margin-top: 20px; display: none;"></div>
 </div>
 <!-- FullCalendar CSS & JS -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.css">
 <script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-  // Build events array from backend data.
-  const events = [
-    {% for event in events %}
-    {
-      title: "{{ event.title }}",
-      start: "{{ event.date }}",
-      color: "{{ event.color }}",
-      extendedProps: {{ event.extendedProps | tojson }}
-    },
-    {% endfor %}
-  ];
+  // Build events array
+  const eventsData = [];
+  {% for event in events %}
+  eventsData.push({
+    title: "{{ event.title }}",
+    start: "{{ event.date }}",
+    color: "{{ event.color }}",
+    extendedProps: {{ event.extendedProps | tojson }}
+  });
+  {% endfor %}
+  
+  // Debug event data
+  console.log("Total events:", eventsData.length);
+  
   const calendarEl = document.getElementById('calendar');
   const calendar = new FullCalendar.Calendar(calendarEl, {
     initialView: 'dayGridMonth',
@@ -64,7 +70,7 @@ document.addEventListener('DOMContentLoaded', function() {
       center: 'title',
       right: 'dayGridMonth,timeGridWeek,timeGridDay'
     },
-    events: events,
+    events: eventsData,
     datesSet: function(info) {
       updateStats();
     },
@@ -76,12 +82,19 @@ document.addEventListener('DOMContentLoaded', function() {
       let titleElement = document.createElement('div');
       titleElement.innerHTML = arg.event.title;
       titleElement.style.textAlign = 'center';
+      // Make text smaller if it contains † (death anniversary symbol) to fit cell
+      if (arg.event.title.includes('†')) {
+        titleElement.style.fontSize = '0.85em';
+      }
       arrayOfDomNodes.push(titleElement);
       return { domNodes: arrayOfDomNodes };
     },
     eventClick: function(info) {
       const ev = info.event;
       const props = ev.extendedProps;
+      
+      if (!props) return;
+      
       if (props.eventType === "release" || props.eventType === "death" || props.eventType === "anniversary") {
         window.location.href = `/members/${props.memberId}`;
       } else if (props.eventType === "murder" || props.eventType === "shooting") {
@@ -90,24 +103,32 @@ document.addEventListener('DOMContentLoaded', function() {
     },
     fixedWeekCount: false // Removes the extra row for the next month
   });
+  
   calendar.render();
 
   function updateStats() {
     const currentDate = calendar.getDate();
     const currentMonth = currentDate.getMonth();
     const currentYear = currentDate.getFullYear();
-    let releasedCount = 0, diedCount = 0, anniversaryCount = 0;
+    let releasedCount = 0, diedCount = 0, anniversaryCount = 0, murderCount = 0, shootingCount = 0;
 
     calendar.getEvents().forEach(function(ev) {
       const eventDate = ev.start;
-      if (eventDate.getMonth() === currentMonth && eventDate.getFullYear() === currentYear) {
+      if (eventDate && eventDate.getMonth() === currentMonth && eventDate.getFullYear() === currentYear) {
         const col = ev.backgroundColor || ev.color;
-        if (col === 'green') {
+        const props = ev.extendedProps || {};
+        const eventType = props.eventType || '';
+        
+        if (eventType === 'release' || col === 'green') {
           releasedCount++;
-        } else if (col === 'red' || col === 'darkred') {
+        } else if (eventType === 'death' || col === 'red') {
           diedCount++;
-        } else if (col === 'black') {
+        } else if (eventType === 'anniversary' || col === 'black') {
           anniversaryCount++;
+        } else if (eventType === 'murder' || col === 'darkred') {
+          murderCount++;
+        } else if (eventType === 'shooting' || col === 'orange') {
+          shootingCount++;
         }
       }
     });
@@ -115,12 +136,24 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('stats-released').innerText = releasedCount;
     document.getElementById('stats-died').innerText = diedCount;
     document.getElementById('stats-anniversaries').innerText = anniversaryCount;
+    document.getElementById('stats-murders').innerText = murderCount;
+    document.getElementById('stats-shootings').innerText = shootingCount;
   }
 
   window.filterEvents = function(type) {
-    const filteredEvents = events.filter(event => type === 'all' || event.extendedProps.eventType === type);
+    console.log("Filtering events by type:", type);
+    
+    const filteredEvents = eventsData.filter(function(event) {
+      const eventType = event.extendedProps ? event.extendedProps.eventType : null;
+      return type === 'all' || eventType === type;
+    });
+    
+    console.log("Filtered events:", filteredEvents.length);
     calendar.removeAllEvents();
     calendar.addEventSource(filteredEvents);
+    
+    // Update stats after filtering
+    setTimeout(updateStats, 100);
   };
 });
 </script>
@@ -149,6 +182,7 @@ body {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 10px;
+  flex-wrap: wrap;
 }
 
 .title {
@@ -161,6 +195,7 @@ body {
   display: flex;
   gap: 10px;
   font-size: 0.9rem;
+  flex-wrap: wrap;
 }
 
 .header-stats span {
@@ -206,6 +241,27 @@ body {
   background-color: #2c2c2c;
   border: 1px solid #444;
   border-radius: 4px;
+}
+
+/* Make death anniversary text smaller to fit cells */
+.fc-event-title.anniversary {
+  font-size: 0.85em;
+}
+
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+  .header-container {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .header-stats {
+    margin-top: 10px;
+  }
+  
+  .calendar-legend {
+    justify-content: flex-start;
+  }
 }
 </style>
 {% endblock %}

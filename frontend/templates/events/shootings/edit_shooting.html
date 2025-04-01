@@ -1,0 +1,178 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="edit-shooting-container">
+    <div class="page-header">
+        <h1>Edit Shooting</h1>
+    </div>
+
+    <div class="edit-card">
+        <form method="POST" class="edit-form">
+            <div class="form-group">
+                <label for="shooter_id">Shooter:</label>
+                <select name="shooter_id" id="shooter_id" required>
+                    {% for member in shooter_members %}
+                    <option value="{{ member.id }}" {% if member.id == shooting.shooter_id %}selected{% endif %}>
+                        {{ member.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="victim_name">Victim:</label>
+                <input type="text" id="victim_name" value="{{ shooting.victim.name }}" disabled>
+                <input type="hidden" name="victim_id" value="{{ shooting.victim_id }}">
+                <small class="helper-text">Victim cannot be changed</small>
+            </div>
+
+            <div class="form-group">
+                <label for="date_exact">Date:</label>
+                <input type="date" name="date_exact" id="date_exact" value="{{ shooting.date }}" required>
+            </div>
+
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary">Save Changes</button>
+                <a href="/members/{{ shooting.shooter_id }}" class="btn btn-secondary">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<style>
+    .edit-shooting-container {
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 20px;
+    }
+
+    .page-header {
+        margin-bottom: 30px;
+    }
+
+    .page-header h1 {
+        color: var(--text-primary);
+        font-size: 2em;
+        margin: 0;
+    }
+
+    .edit-card {
+        background: var(--card-bg);
+        border-radius: 8px;
+        padding: 20px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    .edit-form {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+    }
+
+    .form-group {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .form-group label {
+        color: var(--text-primary);
+        font-weight: 500;
+    }
+
+    .form-group select,
+    .form-group input:not([type="hidden"]) {
+        padding: 8px 12px;
+        border: 1px solid var(--border-color);
+        border-radius: 4px;
+        background: var(--input-bg);
+        color: var(--text-primary);
+        font-size: 1em;
+    }
+
+    .form-group select {
+        background-color: var(--input-bg);
+        color: var(--text-primary);
+        appearance: auto;
+    }
+
+    .form-group select option {
+        background-color: #2b2b2b !important;
+        color: #ffffff !important;
+        padding: 8px 12px;
+    }
+
+    .form-group input:disabled {
+        background-color: var(--input-disabled-bg, #2b2b2b);
+        cursor: not-allowed;
+    }
+
+    .helper-text {
+        font-size: 0.85em;
+        color: var(--helper-text-color, #6c757d);
+        margin-top: 4px;
+    }
+
+    .form-group select:focus,
+    .form-group input:focus {
+        outline: none;
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 2px var(--primary-color-light);
+    }
+
+    .form-actions {
+        display: flex;
+        gap: 10px;
+        margin-top: 20px;
+    }
+
+    .btn {
+        padding: 8px 16px;
+        border: none;
+        border-radius: 4px;
+        font-size: 1em;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+    .btn-primary {
+        background: var(--primary-color);
+        color: white;
+    }
+
+    .btn-primary:hover {
+        background: var(--primary-color-dark);
+    }
+
+    .btn-secondary {
+        background: var(--secondary-color);
+        color: var(--text-primary);
+    }
+
+    .btn-secondary:hover {
+        background: var(--secondary-color-dark);
+    }
+
+    @media (max-width: 600px) {
+        .edit-shooting-container {
+            padding: 10px;
+        }
+
+        .page-header h1 {
+            font-size: 1.5em;
+        }
+
+        .edit-card {
+            padding: 15px;
+        }
+
+        .form-actions {
+            flex-direction: column;
+        }
+
+        .btn {
+            width: 100%;
+        }
+    }
+</style>
+{% endblock %}

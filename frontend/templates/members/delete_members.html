@@ -7,7 +7,6 @@
         <p>This action will also remove all related incidents (shootings, murders, assists).</p>
         
         <form method="post">
-            <input type="hidden" name="csrf_token" value="{{ request.session.get('csrf_token', '') }}">
             <button type="submit" class="btn btn-danger">Confirm Delete</button>
             <a href="{{ url_for('member_details', member_id=member.id) }}" class="btn btn-secondary">Cancel</a>
         </form>
