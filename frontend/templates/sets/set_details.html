@@ -5,29 +5,42 @@
     <!-- Set Header -->
     <div class="set-header">
         <div class="title-section">
-            <h1 class="set-title">
-                {{ set.name }}
-                {% if set.type == "extinct" %}
-                    <span class="extinct-icon" title="Extinct Set" role="img" aria-label="Extinct Set">🪦</span>
+            <div class="title-row">
+                <h1 class="set-title">
+                    {{ set.name }}
+                    {% if set.type == "extinct" %}
+                        <span class="extinct-icon" title="Extinct Set"><i class="fas fa-circle"></i></span>
+                    {% endif %}
+                </h1>
+                {% if alliances %}
+                <div class="alliance-badges">
+                    {% for alliance in alliances %}
+                    <a href="/alliances/{{ alliance.id }}" class="alliance-badge" title="Member of {{ alliance.name }} Alliance">
+                        <i class="fas fa-handshake"></i> {{ alliance.name }}
+                    </a>
+                    {% endfor %}
+                </div>
                 {% endif %}
-            </h1>
+            </div>
             <p class="set-description">{{ set.description or "No description available" }}</p>
         </div>
-        <div class="action-buttons">
-            <a href="/sets/edit/{{ set.id }}" class="action-btn edit-btn" title="Edit set">
-                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-                </svg>
-                <span>Edit</span>
-            </a>
-            <a href="/sets/delete/{{set.id }}" class="action-btn delete-btn" data-bs-toggle="modal" data-bs-target="#deleteModal" title="Delete set">
-                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <polyline points="3 6 5 6 21 6"></polyline>
-                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                </svg>
-                <span>Delete</span>
-            </a>
+        <div class="header-actions">
+            <div class="action-buttons">
+                <a href="/sets/edit/{{ set.id }}" class="action-btn edit-btn" title="Edit set">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                    </svg>
+                    <span>Edit</span>
+                </a>
+                <a href="/sets/delete/{{set.id }}" class="action-btn delete-btn" data-bs-toggle="modal" data-bs-target="#deleteModal" title="Delete set">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="3 6 5 6 21 6"></polyline>
+                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                    </svg>
+                    <span>Delete</span>
+                </a>
+            </div>
         </div>
     </div>
 
@@ -40,7 +53,7 @@
                 <div class="card-grid">
                     <div class="relationship-section allies">
                         <h3 class="section-title">
-                            <span class="icon" role="img" aria-label="Allies">🤝</span>
+                            <i class="fas fa-handshake"></i>
                             Allies
                         </h3>
                         {% if allies %}
@@ -57,14 +70,14 @@
                         {% else %}
                             <div class="empty-state">
                                 No allies found
-                                <span class="empty-icon" role="img" aria-label="No entries">❌</span>
+                                <i class="fas fa-times"></i>
                             </div>
                         {% endif %}
                     </div>
 
                     <div class="relationship-section enemies">
                         <h3 class="section-title">
-                            <span class="icon" role="img" aria-label="Enemies">⚔️</span>
+                            <i class="fas fa-crosshairs"></i>
                             Enemies
                         </h3>
                         {% if enemies %}
@@ -81,7 +94,7 @@
                         {% else %}
                             <div class="empty-state">
                                 No enemies found
-                                <span class="empty-icon" role="img" aria-label="No entries">❌</span>
+                                <i class="fas fa-times"></i>
                             </div>
                         {% endif %}
                     </div>
@@ -91,7 +104,7 @@
             <!-- Murders Section -->
             <div class="card murders-card">
                 <h3 class="murders-title">
-                    <span class="icon" role="img" aria-label="Murders">🔪</span>
+                    <i class="fas fa-skull"></i>
                     Murders Committed
                 </h3>
 
@@ -123,7 +136,7 @@
                 {% else %}
                 <div class="empty-state">
                     No recorded murders
-                    <span class="empty-icon" role="img" aria-label="Peace">🕊️</span>
+                    <i class="fas fa-dove"></i>
                 </div>
                 {% endif %}
             </div>
@@ -135,7 +148,7 @@
             <div class="card members-card">
                 <div class="card-header">
                     <h3 class="section-title">
-                        <span class="icon" role="img" aria-label="Members">👥</span>
+                        <i class="fas fa-users"></i>
                         Members
                     </h3>
                     <div class="header-actions">
@@ -171,11 +184,11 @@
                                 <span class="member-name">{{ member.name }}</span>
                                 <div class="member-status">
                                     {% if member.status == "locked_up" %}
-                                        <span class="status-icon locked-up" title="Locked Up" role="img" aria-label="Locked Up">🔒</span>
+                                        <i class="fas fa-lock status-icon locked-up" title="Locked Up"></i>
                                     {% elif member.status == "dead" %}
-                                        <span class="status-icon deceased" title="Deceased" role="img" aria-label="Deceased">💀</span>
+                                        <i class="fas fa-skull status-icon deceased" title="Deceased"></i>
                                     {% else %}
-                                        <span class="status-icon alive" title="Active" role="img" aria-label="Active">🟢</span>
+                                        <i class="fas fa-circle status-icon alive" title="Active"></i>
                                     {% endif %}
                                 </div>
                             </div>
@@ -186,7 +199,7 @@
                 {% else %}
                     <div class="empty-state">
                         No members found
-                        <span class="empty-icon" role="img" aria-label="No entries">❌</span>
+                        <i class="fas fa-times"></i>
                     </div>
                 {% endif %}
             </div>
@@ -215,24 +228,28 @@
     align-items: flex-start;
     margin-bottom: 0.5rem;
     gap: 0.5rem;
+    flex-wrap: wrap;
 }
 
 .title-section {
     flex: 1;
 }
 
+.title-row {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
 .set-title {
-    color: var(--primary-color);
+    color: var(--text-color);
     font-size: 2.5rem;
     font-weight: 700;
     margin: 0;
     display: flex;
     align-items: center;
     gap: 0.5rem;
-}
-
-.extinct-icon {
-    font-size: 2rem;
 }
 
 .set-description {
@@ -242,9 +259,51 @@
     line-height: 1.6;
 }
 
+.header-actions {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.5rem;
+}
+
 .action-buttons {
     display: flex;
     gap: 0.5rem;
+}
+
+.alliance-badges {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.alliance-badge {
+    display: inline-flex;
+    align-items: center;
+    background-color: rgba(var(--primary-color-rgb, 74, 0, 114), 0.1);
+    color: var(--primary-color);
+    padding: 0.25rem 0.75rem;
+    border-radius: 4px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    text-decoration: none;
+    transition: all 0.2s ease;
+    border: 1px solid rgba(var(--primary-color-rgb, 74, 0, 114), 0.2);
+    gap: 0.4rem;
+}
+
+.alliance-badge i {
+    font-size: 0.8rem;
+}
+
+.alliance-badge:hover {
+    background-color: rgba(var(--primary-color-rgb, 74, 0, 114), 0.2);
+    transform: translateY(-1px);
+}
+
+.extinct-icon {
+    font-size: 0.8rem;
+    color: #ff4d4d;
 }
 
 .action-btn {
@@ -315,7 +374,7 @@
 }
 
 .section-title {
-    color: var(--primary-color);
+    color: var(--text-color);
     font-size: 1.25rem;
     font-weight: 600;
     margin: 0;
@@ -325,7 +384,7 @@
 }
 
 .murders-title {
-    color: var(--primary-color);
+    color: var(--text-color);
     font-size: 1.25rem;
     font-weight: 600;
     margin: 0;
@@ -465,7 +524,19 @@
 }
 
 .status-icon {
-    font-size: 1.1rem;
+    font-size: 0.8rem;
+}
+
+.status-icon.locked-up {
+    color: #ffa500;
+}
+
+.status-icon.deceased {
+    color: #ff4d4d;
+}
+
+.status-icon.alive {
+    color: #2ecc71;
 }
 
 .member-arrow {
@@ -535,6 +606,11 @@
         flex-direction: column;
     }
 
+    .header-actions {
+        width: 100%;
+        align-items: stretch;
+    }
+
     .action-buttons {
         width: 100%;
         justify-content: stretch;
@@ -543,6 +619,17 @@
     .action-btn {
         flex: 1;
         justify-content: center;
+    }
+
+    .title-row {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.5rem;
+    }
+
+    .alliance-badges {
+        width: 100%;
+        justify-content: flex-start;
     }
 
     .set-title {
@@ -565,46 +652,98 @@
 </style>
 
 <script>
-// Sort functionality
-const sortSelect = document.getElementById('sort-by');
-const sortOrderBtn = document.getElementById('sort-order');
-const membersList = document.querySelector('.members-list');
+// We need to add a CSS variable for the primary color in RGB format to use in rgba()
+document.addEventListener('DOMContentLoaded', function() {
+    // Function to convert hex to rgb
+    function hexToRgb(hex) {
+        // Remove # if present
+        hex = hex.replace('#', '');
 
-function sortMembers() {
-    const members = Array.from(membersList.children);
-    const sortBy = sortSelect.value;
-    const order = sortOrderBtn.dataset.order;
-
-    members.sort((a, b) => {
-        let aValue, bValue;
-
-        if (sortBy === 'name') {
-            aValue = a.querySelector('.member-name').textContent;
-            bValue = b.querySelector('.member-name').textContent;
-        } else {
-            aValue = a.dataset.status;
-            bValue = b.dataset.status;
+        // Convert 3-digit hex to 6-digits
+        if (hex.length === 3) {
+            hex = hex[0] + hex[0] + hex[1] + hex[1] + hex[2] + hex[2];
         }
 
-        return order === 'asc' ?
-            aValue.localeCompare(bValue) :
-            bValue.localeCompare(aValue);
-    });
+        // Parse the hex values
+        const r = parseInt(hex.substring(0, 2), 16);
+        const g = parseInt(hex.substring(2, 4), 16);
+        const b = parseInt(hex.substring(4, 6), 16);
 
-    members.forEach(member => membersList.appendChild(member));
-}
+        return `${r}, ${g}, ${b}`;
+    }
 
-sortSelect.addEventListener('change', sortMembers);
+    // Get the computed style of the primary color
+    const primaryColor = getComputedStyle(document.documentElement).getPropertyValue('--primary-color').trim();
 
-sortOrderBtn.addEventListener('click', () => {
-    const order = sortOrderBtn.dataset.order;
-    sortOrderBtn.dataset.order = order === 'asc' ? 'desc' : 'asc';
-    sortOrderBtn.querySelector('svg').style.transform =
-        order === 'asc' ? 'rotate(180deg)' : 'rotate(0deg)';
-    sortMembers();
+    // Convert it to RGB and set it as a CSS variable
+    if (primaryColor.startsWith('#')) {
+        document.documentElement.style.setProperty('--primary-color-rgb', hexToRgb(primaryColor));
+    } else {
+        // Default values if we can't parse the color
+        document.documentElement.style.setProperty('--primary-color-rgb', '74, 0, 114');
+    }
+
+    // Sorting functionality
+    const sortBySelect = document.getElementById('sort-by');
+    const sortOrderBtn = document.getElementById('sort-order');
+    const membersList = document.querySelector('.members-list');
+
+    if (sortBySelect && sortOrderBtn && membersList) {
+        const memberCards = Array.from(membersList.querySelectorAll('.member-card'));
+
+        function sortMembers() {
+            const sortBy = sortBySelect.value;
+            const sortOrder = sortOrderBtn.getAttribute('data-order');
+            const sortedCards = [...memberCards].sort((a, b) => {
+                let valueA, valueB;
+
+                if (sortBy === 'name') {
+                    valueA = a.querySelector('.member-name').textContent.toLowerCase();
+                    valueB = b.querySelector('.member-name').textContent.toLowerCase();
+                } else if (sortBy === 'status') {
+                    valueA = a.getAttribute('data-status');
+                    valueB = b.getAttribute('data-status');
+                }
+
+                if (sortOrder === 'asc') {
+                    return valueA > valueB ? 1 : -1;
+                } else {
+                    return valueA < valueB ? 1 : -1;
+                }
+            });
+
+            membersList.innerHTML = '';
+            sortedCards.forEach(card => membersList.appendChild(card));
+        }
+
+        sortBySelect.addEventListener('change', sortMembers);
+
+        sortOrderBtn.addEventListener('click', function() {
+            const currentOrder = this.getAttribute('data-order');
+            const newOrder = currentOrder === 'asc' ? 'desc' : 'asc';
+            this.setAttribute('data-order', newOrder);
+
+            // Flip the arrow icon
+            const svg = this.querySelector('svg');
+            if (newOrder === 'desc') {
+                svg.innerHTML = `
+                    <path d="M12 4V20"></path>
+                    <polyline points="18 14 12 20 6 14"></polyline>
+                `;
+            } else {
+                svg.innerHTML = `
+                    <path d="M12 20V4"></path>
+                    <polyline points="6 10 12 4 18 10"></polyline>
+                `;
+            }
+
+            sortMembers();
+        });
+
+        // Initial sort
+        sortMembers();
+    }
 });
-
-// Initial sort
-sortMembers();
 </script>
+
 {% endblock %}
