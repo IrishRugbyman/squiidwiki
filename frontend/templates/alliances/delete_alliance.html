@@ -1,0 +1,200 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="delete-alliance-container">
+    <div class="page-header">
+        <h1 class="page-title">Delete Alliance</h1>
+        <h2 class="alliance-name">{{ alliance.name }}</h2>
+    </div>
+
+    <div class="delete-card">
+        <div class="warning-section">
+            <div class="warning-icon">⚠️</div>
+            <div class="warning-content">
+                <h3 class="warning-title">This action cannot be undone</h3>
+                <p class="warning-text">The following items will be permanently deleted:</p>
+                <ul class="deletion-list">
+                    <li>
+                        <span class="icon">🤝</span>
+                        <span class="text">Alliance: {{ alliance.name }}</span>
+                    </li>
+                    {% if member_sets_count > 0 %}
+                    <li>
+                        <span class="icon">🏘️</span>
+                        <span class="text">{{ member_sets_count }} set(s) will be removed from this alliance</span>
+                    </li>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+
+        <form method="post" action="/alliances/delete/{{ alliance.id }}" class="delete-form">
+            <div class="form-actions">
+                <a href="/alliances/{{ alliance.id }}" class="cancel-btn">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                    Cancel
+                </a>
+                <button type="submit" class="delete-btn">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M3 6h18"></path>
+                        <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
+                        <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
+                    </svg>
+                    Delete Alliance
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<style>
+.delete-alliance-container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 2rem 1rem;
+}
+
+.page-header {
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+.page-title {
+    color: var(--primary-color);
+    margin-bottom: 0.5rem;
+}
+
+.alliance-name {
+    color: var(--text-color);
+    font-size: 1.5rem;
+    font-weight: 500;
+}
+
+.delete-card {
+    background: var(--bg-color);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.warning-section {
+    padding: 2rem;
+    display: flex;
+    gap: 1.5rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.warning-icon {
+    font-size: 2rem;
+}
+
+.warning-content {
+    flex: 1;
+}
+
+.warning-title {
+    color: #ff4d4d;
+    margin-bottom: 1rem;
+    font-size: 1.5rem;
+}
+
+.warning-text {
+    color: var(--text-color);
+    margin-bottom: 1rem;
+}
+
+.deletion-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.deletion-list li {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 0.75rem;
+    color: var(--text-color);
+}
+
+.deletion-list .icon {
+    font-size: 1.25rem;
+}
+
+.delete-form {
+    padding: 2rem;
+}
+
+.form-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 1rem;
+}
+
+.cancel-btn,
+.delete-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.5rem;
+    border-radius: 8px;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.cancel-btn {
+    background: transparent;
+    border: 1px solid var(--border-color);
+    color: var(--text-color);
+    text-decoration: none;
+}
+
+.cancel-btn:hover {
+    border-color: var(--primary-color);
+    color: var(--primary-color);
+}
+
+.delete-btn {
+    background: #ff4d4d;
+    border: none;
+    color: white;
+}
+
+.delete-btn:hover {
+    background: #ff6666;
+    transform: translateY(-2px);
+}
+
+.delete-btn:active {
+    transform: translateY(0);
+}
+
+@media (max-width: 768px) {
+    .delete-alliance-container {
+        padding: 1rem;
+    }
+
+    .warning-section {
+        padding: 1.5rem;
+    }
+
+    .delete-form {
+        padding: 1.5rem;
+    }
+
+    .form-actions {
+        flex-direction: column;
+    }
+
+    .cancel-btn,
+    .delete-btn {
+        width: 100%;
+        justify-content: center;
+    }
+}
+</style>
+{% endblock %} 
