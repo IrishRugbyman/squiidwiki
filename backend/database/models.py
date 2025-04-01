@@ -45,6 +45,7 @@ class AllianceBase(BaseModel):
     description: Optional[str] = None
 
 class AllianceCreate(AllianceBase):
+    status: Optional[str] = "active"
     pass
 
 class Alliance(AllianceBase):

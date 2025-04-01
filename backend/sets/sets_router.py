@@ -7,7 +7,7 @@ from backend.database.enums import eSetType
 from sqlalchemy.orm import Session
 from backend.database.db_alchemy_models import (
     Sets, Members, Config, SetAlliesMap, SetEnemiesMap,
-    Murders, Shootings, Assists
+    Murders, Shootings, Assists, AllianceSetsMap, Alliances
 )
 from backend.sets.sets_funcs import group_sets, process_relations, get_special_set_id
 
@@ -237,6 +237,18 @@ def read_set(request: Request, set_id: int, db: Session = Depends(get_db)):
         "alliance_id": m.alliance_id
     } for m in members]
 
+    # Fetch alliances this set belongs to
+    alliance_maps = db.query(AllianceSetsMap).filter(AllianceSetsMap.set_id == set_id).all()
+    alliances = []
+    for map_obj in alliance_maps:
+        alliance = db.get(Alliances, map_obj.alliance_id)
+        if alliance:
+            alliances.append({
+                "id": alliance.id,
+                "name": alliance.name,
+                "status": alliance.status
+            })
+
     # Fetch allies (union from both directions)
     allies_rel1 = db.query(SetAlliesMap).filter(SetAlliesMap.set_id == set_id).all()
     allies_rel2 = db.query(SetAlliesMap).filter(SetAlliesMap.ally_id == set_id).all()
@@ -288,4 +300,5 @@ def read_set(request: Request, set_id: int, db: Session = Depends(get_db)):
         "enemies": enemies,
         "murders": murders,
         "member_count": member_count,
+        "alliances": alliances
     })

@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 
 from backend.config.templates import templates
 from backend.database.models import AllianceCreate, AllianceOption
-from backend.database.db_alchemy_models import Alliances, AllianceSetsMap, Sets,get_db
+from backend.database.db_alchemy_models import Alliances, AllianceSetsMap, Sets, Members, get_db
 
 router = APIRouter()
 
@@ -34,12 +34,15 @@ def add_alliance_form(request: Request):
 
 @router.post("/add", response_class=RedirectResponse)
 def add_alliance(
-        alliance: AllianceCreate = Depends(), db: Session = Depends(get_db)
+        name: str = Form(...),
+        description: Optional[str] = Form(None),
+        status: str = Form(...),
+        db: Session = Depends(get_db)
 ):
     new_alliance = Alliances(
-        name=alliance.name,
-        description=alliance.description,
-        status=alliance.status,
+        name=name,
+        description=description,
+        status=status,
     )
     db.add(new_alliance)
     db.commit()
@@ -124,9 +127,49 @@ def read_alliance(request: Request, alliance_id: int, db: Session = Depends(get_
         }
         for s in member_sets
     ]
+    
+    # Get human members directly associated with the alliance
+    direct_members = db.query(Members).filter(Members.alliance_id == alliance_id).all()
+    
+    # Get all members who belong to any set in this alliance
+    set_ids = [s.id for s in member_sets]
+    set_members = []
+    if set_ids:
+        set_members = db.query(Members).filter(Members.set_id.in_(set_ids)).filter(Members.alliance_id != alliance_id).all()
+    
+    # Combine and format member data
+    human_members_data = []
+    
+    for member in direct_members:
+        member_data = {
+            "id": member.id,
+            "name": member.name,
+            "status": member.status,
+            "set_id": member.set_id,
+            "set_name": member.set.name if member.set else None,
+            "membership_type": "direct"
+        }
+        human_members_data.append(member_data)
+    
+    for member in set_members:
+        member_data = {
+            "id": member.id,
+            "name": member.name,
+            "status": member.status,
+            "set_id": member.set_id,
+            "set_name": member.set.name if member.set else None,
+            "membership_type": "through_set"
+        }
+        human_members_data.append(member_data)
+    
     return templates.TemplateResponse(
         "alliances/alliance_details.html",
-        {"request": request, "alliance": alliance_data, "member_sets": member_sets_data},
+        {
+            "request": request, 
+            "alliance": alliance_data, 
+            "member_sets": member_sets_data,
+            "human_members": human_members_data
+        },
     )
 
 
@@ -203,3 +246,25 @@ def delete_alliance_confirmation(request: Request, alliance_id: int, db: Session
             "member_sets_count": member_sets_count
         }
     )
+
+
+@router.post("/remove_member/{alliance_id}/{set_id}", response_class=RedirectResponse)
+def remove_alliance_member(
+    alliance_id: int,
+    set_id: int,
+    db: Session = Depends(get_db)
+):
+    # Find the mapping entry
+    mapping = db.query(AllianceSetsMap).filter(
+        AllianceSetsMap.alliance_id == alliance_id,
+        AllianceSetsMap.set_id == set_id
+    ).first()
+    
+    if not mapping:
+        raise HTTPException(status_code=404, detail="Member set not found in alliance")
+    
+    # Remove the mapping
+    db.delete(mapping)
+    db.commit()
+    
+    return RedirectResponse(url=f"/alliances/{alliance_id}", status_code=303)
