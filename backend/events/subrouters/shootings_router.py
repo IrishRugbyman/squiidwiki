@@ -30,12 +30,28 @@ async def get_shootings(request: Request, member_id: int, db: Session = Depends(
 async def show_add_shooting_form(request: Request, member_id: int, db: Session = Depends(get_db)):
     validate_member(db, member_id)
     all_members = db.query(Members).filter(Members.id != member_id).all()
-    all_members_data = [{"id": m.id, "name": m.name} for m in all_members]
+    
+    # Find duplicate names
+    name_counts = {}
+    for member in all_members:
+        name_counts[member.name] = name_counts.get(member.name, 0) + 1
+    duplicate_names = {name for name, count in name_counts.items() if count > 1}
+    
+    all_members_data = [{
+        "id": m.id, 
+        "name": m.name,
+        "set_name": m.set.name if m.set else "Unknown Set",
+        "death_date": m.death_date,
+        "death_date_approx": m.death_date_approx,
+        "status": m.status
+    } for m in all_members]
+    
     return templates.TemplateResponse("events/shootings/add_shooting.html", {
         "request": request,
         "event_type": "shooting",
         "member_id": member_id,
-        "all_members": all_members_data
+        "all_members": all_members_data,
+        "duplicate_names": duplicate_names
     })
 
 # Handle adding a shooting

@@ -32,12 +32,28 @@ async def show_add_assist_form(request: Request, member_id: int, db: Session = D
         Members.id != member_id,
         Members.status == "dead"
     ).all()
-    all_victims_data = [{"id": m.id, "name": m.name, "death_date": m.death_date} for m in all_victims]
+    
+    # Find duplicate names
+    name_counts = {}
+    for member in all_victims:
+        name_counts[member.name] = name_counts.get(member.name, 0) + 1
+    duplicate_names = {name for name, count in name_counts.items() if count > 1}
+    
+    all_victims_data = [{
+        "id": m.id, 
+        "name": m.name,
+        "set_name": m.set.name if m.set else "Unknown Set",
+        "death_date": m.death_date,
+        "death_date_approx": m.death_date_approx,
+        "status": m.status
+    } for m in all_victims]
+    
     return templates.TemplateResponse("events/assists/add_assist.html", {
         "request": request,
         "event_type": "assist",
         "member_id": member_id,
-        "all_victims": all_victims_data
+        "all_members": all_victims_data,
+        "duplicate_names": duplicate_names
     })
 
 # Handle adding an assist

@@ -33,12 +33,28 @@ async def show_add_murder_form(request: Request, member_id: int, db: Session = D
     all_members = db.query(Members).outerjoin(Murders, Members.id == Murders.victim_id).filter(
         Members.id != member_id, Murders.id == None
     ).all()
-    all_members_data = [{"id": m.id, "name": m.name} for m in all_members]
+    
+    # Find duplicate names
+    name_counts = {}
+    for member in all_members:
+        name_counts[member.name] = name_counts.get(member.name, 0) + 1
+    duplicate_names = {name for name, count in name_counts.items() if count > 1}
+    
+    all_members_data = [{
+        "id": m.id, 
+        "name": m.name,
+        "set_name": m.set.name if m.set else "Unknown Set",
+        "death_date": m.death_date,
+        "death_date_approx": m.death_date_approx,
+        "status": m.status
+    } for m in all_members]
+    
     return templates.TemplateResponse("events/murders/add_murder.html", {
         "request": request,
         "event_type": "murder",
         "member_id": member_id,
-        "all_members": all_members_data
+        "all_members": all_members_data,
+        "duplicate_names": duplicate_names
     })
 
 @router.post("/add/{member_id}", response_class=RedirectResponse)

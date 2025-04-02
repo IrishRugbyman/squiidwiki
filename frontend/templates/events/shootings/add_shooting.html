@@ -1,13 +1,15 @@
+{% extends "base.html" %}
+
 {% block extra_styles %}
 <style>
     /* Container Styles */
     .form-container {
-        max-width: 800px;
+        max-width: 600px;
         margin: 2rem auto;
         padding: 2rem;
-        background: #ffffff;
+        background: var(--surface-color);
         border-radius: 8px;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        box-shadow: 0 4px 6px var(--shadow-color);
     }
 
     /* Header Styles */
@@ -16,21 +18,13 @@
         margin-bottom: 2rem;
     }
     .form-header h2 {
-        color: #495057;
+        color: var(--primary-color);
         margin-bottom: 0.5rem;
     }
     .back-link {
-        color: #8c32ef;
+        color: var(--primary-color);
         text-decoration: none;
         font-size: 0.9rem;
-    }
-
-    /* Form Grid Layout */
-    .form-grid {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 1.5rem;
-        margin-bottom: 2rem;
     }
 
     /* Form Group Styles */
@@ -41,25 +35,71 @@
         display: block;
         font-weight: 500;
         margin-bottom: 0.5rem;
-        color: #495057;
+        color: var(--text-color);
     }
     .form-control {
         width: 100%;
         padding: 0.75rem;
-        border: 1px solid #ced4da;
+        border: 1px solid var(--border-color);
         border-radius: 4px;
         font-size: 1rem;
         transition: all 0.2s ease;
+        background: var(--bg-color);
+        color: var(--text-color);
     }
     .form-control:focus {
-        border-color: #8c32ef;
+        border-color: var(--primary-color);
         outline: none;
-        box-shadow: 0 0 0 0.2rem rgba(140, 50, 239, 0.25);
+        box-shadow: 0 0 0 0.2rem rgba(74, 0, 114, 0.25);
+    }
+
+    /* Search Input Styles */
+    .search-container {
+        position: relative;
+        margin-bottom: 0.5rem;
+    }
+    .search-input {
+        width: 100%;
+        padding: 0.75rem;
+        padding-left: 2.5rem;
+        border: 1px solid var(--border-color);
+        border-radius: 4px;
+        font-size: 1rem;
+        transition: all 0.2s ease;
+        background: var(--bg-color);
+        color: var(--text-color);
+    }
+    .search-input:focus {
+        border-color: var(--primary-color);
+        outline: none;
+        box-shadow: 0 0 0 0.2rem rgba(74, 0, 114, 0.25);
+    }
+    .search-icon {
+        position: absolute;
+        left: 0.75rem;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--helper-text-color);
+    }
+
+    /* Select Styles */
+    select.form-control {
+        appearance: none;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236c757d' d='M6 8.825L1.175 4 2.238 2.938 6 6.7l3.763-3.763L10.825 4z'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right 0.75rem center;
+        background-size: 12px;
+        padding-right: 2.5rem;
+    }
+    select.form-control option {
+        padding: 0.5rem;
+        background: var(--bg-color);
+        color: var(--text-color);
     }
 
     /* Date Precision Styles */
     .precision-group {
-        background: #f8f9fa;
+        background: var(--bg-color);
         padding: 1rem;
         border-radius: 6px;
         margin-top: 1rem;
@@ -80,7 +120,7 @@
         margin-top: 2rem;
     }
     .save-btn {
-        background: #8c32ef;
+        background: var(--primary-color);
         color: white;
         padding: 0.75rem 1.5rem;
         border: none;
@@ -90,13 +130,13 @@
         flex-grow: 1;
     }
     .save-btn:hover {
-        background-color: #6a26b3;
+        background-color: var(--primary-color-hover);
     }
     .cancel-btn {
-        background: #f8f9fa;
-        color: #6c757d;
+        background: var(--surface-color);
+        color: var(--text-color);
         padding: 0.75rem 1.5rem;
-        border: 1px solid #ced4da;
+        border: 1px solid var(--border-color);
         border-radius: 4px;
         text-decoration: none;
         text-align: center;
@@ -108,9 +148,6 @@
         .form-container {
             padding: 1.5rem;
             margin: 1rem;
-        }
-        .form-grid {
-            grid-template-columns: 1fr;
         }
         .form-header h2 {
             font-size: 1.5rem;
@@ -127,43 +164,56 @@
     </div>
 
     <form method="POST" action="/events/shootings/add/{{ member_id }}">
-        <div class="form-grid">
-            <!-- Victim Selection -->
-            <div class="form-group">
-                <label for="victim_id">Victim</label>
-                <select name="victim_id" class="form-control" required>
-                    {% for member in all_members %}
-                        <option value="{{ member.id }}" {% if form_data and member.id == form_data.victim_id %}selected{% endif %}>
-                            {{ member.name }}
-                            {% if member.death_date %}
-                                (Deceased on {{ member.death_date }})
-                            {% endif %}
-                        </option>
-                    {% else %}
-                        <option disabled>No members available</option>
-                    {% endfor %}
-                </select>
+        <!-- Victim Selection -->
+        <div class="form-group">
+            <label for="victim_id">Victim</label>
+            <div class="search-container">
+                <span class="search-icon">🔍</span>
+                <input type="text" id="victimSearch" class="search-input" placeholder="Search for a victim...">
             </div>
+            <select name="victim_id" id="victimSelect" class="form-control" required>
+                {% for member in all_members %}
+                    <option value="{{ member.id }}" 
+                        {% if form_data and member.id == form_data.victim_id %}selected{% endif %}
+                        data-name="{{ member.name }}"
+                        data-set_name="{{ member.set_name }}"
+                        data-death_date="{{ member.death_date or '' }}"
+                        data-death_approx="{{ member.death_date_approx or '' }}">
+                        {{ member.name }}{% if member.name in duplicate_names %} ({{ member.set_name }}){% endif %}
+                        {% if member.death_date %}
+                            (Deceased on {{ member.death_date|format_special_date|safe }})
+                        {% elif member.death_date_approx and member.death_date_approx != 'unknown' %}
+                            (Deceased approximately in {{ member.death_date_approx }})
+                        {% elif member.death_date_approx == 'unknown' %}
+                            (Death date unknown)
+                        {% else %}
+                            (Alive)
+                        {% endif %}
+                    </option>
+                {% else %}
+                    <option disabled>No members available</option>
+                {% endfor %}
+            </select>
+        </div>
 
-            <!-- Date Precision -->
-            <div class="form-group">
-                <label>Date Precision</label>
-                <div class="precision-group">
-                    <select name="date_precision" id="datePrecision" class="form-control" required>
-                        <option value="exact" {% if form_data and form_data.date_precision == 'exact' %}selected{% endif %}>Exact Date</option>
-                        <option value="year" {% if form_data and form_data.date_precision == 'year' %}selected{% endif %}>Year Only</option>
-                        <option value="unknown" {% if form_data and form_data.date_precision == 'unknown' %}selected{% endif %}>Unknown</option>
-                    </select>
+        <!-- Date Precision -->
+        <div class="form-group">
+            <label>Date Precision</label>
+            <div class="precision-group">
+                <select name="date_precision" id="datePrecision" class="form-control" required>
+                    <option value="exact" {% if form_data and form_data.date_precision == 'exact' %}selected{% endif %}>Exact Date</option>
+                    <option value="year" {% if form_data and form_data.date_precision == 'year' %}selected{% endif %}>Year Only</option>
+                    <option value="unknown" {% if form_data and form_data.date_precision == 'unknown' %}selected{% endif %}>Unknown</option>
+                </select>
 
-                    <div id="exactDateGroup" style="margin-top: 1rem;">
-                        <label>Exact Date</label>
-                        <input type="date" name="date_exact" class="form-control" value="{{ form_data.date_exact if form_data and form_data.date_exact }}">
-                    </div>
+                <div id="exactDateGroup" style="margin-top: 1rem;">
+                    <label>Exact Date</label>
+                    <input type="date" name="date_exact" class="form-control" value="{{ form_data.date_exact if form_data and form_data.date_exact }}">
+                </div>
 
-                    <div id="yearGroup" style="margin-top: 1rem;">
-                        <label>Year</label>
-                        <input type="text" name="date_year" class="form-control" placeholder="YYYY" pattern="\d{4}" value="{{ form_data.date_year if form_data and form_data.date_year }}">
-                    </div>
+                <div id="yearGroup" style="margin-top: 1rem;">
+                    <label>Year</label>
+                    <input type="text" name="date_year" class="form-control" placeholder="YYYY" pattern="\d{4}" value="{{ form_data.date_year if form_data and form_data.date_year }}">
                 </div>
             </div>
         </div>
@@ -174,7 +224,7 @@
         </div>
 
         {% if error_message %}
-        <div class="error-message" style="color: red; margin-top: 1rem;">
+        <div class="error-message" style="color: var(--error-color); margin-top: 1rem;">
             {{ error_message }}
         </div>
         {% endif %}
@@ -184,30 +234,64 @@
 
 {% block extra_scripts %}
 <script>
-    // Show/hide fields based on precision selection
-    document.addEventListener('DOMContentLoaded', function () {
-        const precisionSelect = document.getElementById('datePrecision');
-        const exactDateGroup = document.getElementById('exactDateGroup');
-        const yearGroup = document.getElementById('yearGroup');
+document.addEventListener('DOMContentLoaded', function () {
+    const precisionSelect = document.getElementById('datePrecision');
+    const exactDateGroup = document.getElementById('exactDateGroup');
+    const yearGroup = document.getElementById('yearGroup');
+    const victimSelect = document.getElementById('victimSelect');
+    const victimSearch = document.getElementById('victimSearch');
 
-        function updateDateFields() {
-            if (precisionSelect.value === 'exact') {
-                exactDateGroup.style.display = 'block';
-                yearGroup.style.display = 'none';
-            } else if (precisionSelect.value === 'year') {
-                exactDateGroup.style.display = 'none';
-                yearGroup.style.display = 'block';
+    // Search functionality
+    victimSearch.addEventListener('input', function() {
+        const searchTerm = this.value.toLowerCase();
+        const options = victimSelect.options;
+
+        for (let option of options) {
+            const name = option.getAttribute('data-name').toLowerCase();
+            const setName = option.getAttribute('data-set_name').toLowerCase();
+            const deathDate = option.getAttribute('data-death_date');
+            const deathApprox = option.getAttribute('data-death_approx');
+            
+            let deathInfo = '';
+            if (deathDate) {
+                deathInfo = `(Deceased on ${deathDate})`;
+            } else if (deathApprox && deathApprox !== 'unknown') {
+                deathInfo = `(Deceased approximately in ${deathApprox})`;
+            } else if (deathApprox === 'unknown') {
+                deathInfo = '(Death date unknown)';
             } else {
-                exactDateGroup.style.display = 'none';
-                yearGroup.style.display = 'none';
+                deathInfo = '(Alive)';
             }
+
+            const fullText = `${name} ${setName} ${deathInfo}`.toLowerCase();
+            option.style.display = fullText.includes(searchTerm) ? '' : 'none';
         }
 
-        // Initial setup
-        updateDateFields();
-
-        // Update on change
-        precisionSelect.addEventListener('change', updateDateFields);
+        // If there's only one visible option, select it
+        const visibleOptions = Array.from(options).filter(opt => opt.style.display !== 'none');
+        if (visibleOptions.length === 1) {
+            victimSelect.value = visibleOptions[0].value;
+        }
     });
+
+    function updateDateFields() {
+        if (precisionSelect.value === 'exact') {
+            exactDateGroup.style.display = 'block';
+            yearGroup.style.display = 'none';
+        } else if (precisionSelect.value === 'year') {
+            exactDateGroup.style.display = 'none';
+            yearGroup.style.display = 'block';
+        } else {
+            exactDateGroup.style.display = 'none';
+            yearGroup.style.display = 'none';
+        }
+    }
+
+    // Initial setup
+    updateDateFields();
+
+    // Update on change
+    precisionSelect.addEventListener('change', updateDateFields);
+});
 </script>
 {% endblock %}

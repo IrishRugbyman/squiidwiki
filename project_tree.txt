@@ -35,9 +35,25 @@ C:.
 |   |       profiles_settings.xml
 |   |       
 |   \---shelf
-|       \---Uncommitted_changes_before_Checkout_at_01_04_2025_20_55_[Changes]
+|       |   Changes.xml
+|       |   Changes1.xml
+|       |   Uncommitted_changes_before_Checkout_at_01_04_2025_20_55__Changes_.xml
+|       |   Uncommitted_changes_before_Checkout_at_02_04_2025_02_24__Changes_.xml
+|       |   
+|       +---Changes
+|       |       shelved.patch
+|       |       squiidvault.db
+|       |       
+|       +---Changes1
+|       |       shelved.patch
+|       |       squiidvault.db
+|       |       
+|       +---Uncommitted_changes_before_Checkout_at_01_04_2025_20_55_[Changes]
+|       |       shelved.patch
+|       |       squiidvault.db
+|       |       
+|       \---Uncommitted_changes_before_Checkout_at_02_04_2025_02_24_[Changes]
 |               shelved.patch
-|               squiidvault.db
 |               
 +---backend
 |   |   cemetary.py
