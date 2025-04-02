@@ -18,12 +18,12 @@ router = APIRouter()
 def read_root(request: Request, db: Session = Depends(get_db)):
     # Query all sets via ORM.
     sets_list = db.query(Sets).all()
-    grouped = group_sets(sets_list)
+    grouped = group_sets(sets_list, db)
     sorted_groups = sorted(grouped.items(), key=lambda x: x[0])
     sorted_grouped_sets = {char: sorted(group, key=lambda s: s.name) for char, group in sorted_groups}
     # Convert ORM models to dictionaries for the template.
     grouped_dict = {
-        char: [{"id": s.id, "name": s.name, "description": s.description, "type": s.type}
+        char: [{"id": s.id, "name": s.name, "description": s.description, "type": s.type, "emoji": s.emoji}
                for s in group]
         for char, group in sorted_grouped_sets.items()
     }
@@ -45,6 +45,7 @@ def add_set(
         allies: Optional[str] = Form(None),
         enemies: Optional[str] = Form(None),
         is_extinct: bool = Form(False),
+        emoji: Optional[str] = Form(None),
         db: Session = Depends(get_db)
 ):
     # Validate allies and enemies.
@@ -59,7 +60,8 @@ def add_set(
     set_type = eSetType.EXTINCT if is_extinct else eSetType.ACTIVE
     # Create a new set via ORM.
     new_set = Sets(name=name, description=description,
-                   type=(set_type.value if hasattr(set_type, 'value') else set_type))
+                   type=(set_type.value if hasattr(set_type, 'value') else set_type),
+                   emoji=emoji)
     db.add(new_set)
     db.commit()
     db.refresh(new_set)
@@ -104,7 +106,7 @@ def edit_set_form(request: Request, set_id: int, db: Session = Depends(get_db)):
     enemies = [db.query(Sets).filter(Sets.id == rel.enemy_id).first().name for rel in enemies_relations if
                db.query(Sets).filter(Sets.id == rel.enemy_id).first()]
 
-    set_dict = {"id": set_obj.id, "name": set_obj.name, "description": set_obj.description, "type": set_obj.type}
+    set_dict = {"id": set_obj.id, "name": set_obj.name, "description": set_obj.description, "type": set_obj.type, "emoji": set_obj.emoji}
     return templates.TemplateResponse("sets/edit_set.html", {
         "request": request,
         "set": set_dict,
@@ -122,6 +124,7 @@ def edit_set(
         allies: Optional[str] = Form(None),
         enemies: Optional[str] = Form(None),
         is_extinct: bool = Form(False),
+        emoji: Optional[str] = Form(None),
         db: Session = Depends(get_db)
 ):
     special_configs = db.query(Config).filter(Config.key.in_(["unknown_set_id", "civilian_set_id"])).all()
@@ -150,6 +153,7 @@ def edit_set(
     set_obj.name = name
     set_obj.description = description
     set_obj.type = (set_type.value if hasattr(set_type, 'value') else set_type)
+    set_obj.emoji = emoji
     db.commit()
     process_relations(db, set_id, allies, SetAlliesMap)
     process_relations(db, set_id, enemies, SetEnemiesMap)
@@ -221,7 +225,7 @@ def read_set(request: Request, set_id: int, db: Session = Depends(get_db)):
     set_obj = db.query(Sets).filter(Sets.id == set_id).first()
     if not set_obj:
         raise HTTPException(status_code=404, detail="Set not found")
-    set_dict = {"id": set_obj.id, "name": set_obj.name, "description": set_obj.description, "type": set_obj.type}
+    set_dict = {"id": set_obj.id, "name": set_obj.name, "description": set_obj.description, "type": set_obj.type, "emoji": set_obj.emoji}
     member_count = db.query(Members).filter(Members.set_id == set_id).count()
     members = db.query(Members).filter(Members.set_id == set_id).all()
     members_list = [{
@@ -301,4 +305,18 @@ def read_set(request: Request, set_id: int, db: Session = Depends(get_db)):
         "murders": murders,
         "member_count": member_count,
         "alliances": alliances
+    })
+
+
+@router.get("/check_name", response_class=JSONResponse)
+def check_name(name: str, exclude_id: Optional[int] = None, db: Session = Depends(get_db)):
+    # Check if a set with this name already exists
+    query = db.query(Sets).filter(Sets.name == name)
+    if exclude_id:
+        query = query.filter(Sets.id != exclude_id)
+    existing_set = query.first()
+    
+    return JSONResponse(content={
+        "available": existing_set is None,
+        "message": "Name is available" if existing_set is None else "A set with this name already exists"
     })

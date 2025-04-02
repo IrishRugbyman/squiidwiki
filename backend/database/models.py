@@ -11,6 +11,7 @@ class SetBase(BaseModel):
     name: str
     description: Optional[str] = None
     type: eSetType = eSetType.ACTIVE  # Default to ACTIVE
+    emoji: Optional[str] = None  # Optional emoji representing the set
 
 class SetCreate(SetBase):
     pass

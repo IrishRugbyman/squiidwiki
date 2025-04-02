@@ -1,11 +1,13 @@
 Folder PATH listing for volume OS
 Volume serial number is 3647-A969
 C:.
+|   .cursorignore
 |   .gitignore
 |   main.py
 |   project_tree.txt
 |   requirements.txt
 |   squiidvault.db
+|   SquiidWiki.code-workspace
 |   
 +---.idea
 |   |   .name
@@ -29,9 +31,14 @@ C:.
 |   |                       main.uQUzAA.meta
 |   |                       main.uQUzAA.zip
 |   |                       
-|   \---inspectionProfiles
-|           profiles_settings.xml
-|           
+|   +---inspectionProfiles
+|   |       profiles_settings.xml
+|   |       
+|   \---shelf
+|       \---Uncommitted_changes_before_Checkout_at_01_04_2025_20_55_[Changes]
+|               shelved.patch
+|               squiidvault.db
+|               
 +---backend
 |   |   cemetary.py
 |   |   server.py
@@ -39,54 +46,125 @@ C:.
 |   |   __init__.py
 |   |   
 |   +---alliances
-|   |       alliances_funcs.py
-|   |       alliances_router.py
-|   |       __init__.py
-|   |       
+|   |   |   alliances_funcs.py
+|   |   |   alliances_router.py
+|   |   |   __init__.py
+|   |   |   
+|   |   \---__pycache__
+|   |           alliances_router.cpython-311.pyc
+|   |           alliances_router.cpython-312.pyc
+|   |           __init__.cpython-311.pyc
+|   |           __init__.cpython-312.pyc
+|   |           
 |   +---calendar
-|   |       calendar_router.py
-|   |       __init__.py
-|   |       
+|   |   |   calendar_router.py
+|   |   |   __init__.py
+|   |   |   
+|   |   \---__pycache__
+|   |           calendar_router.cpython-311.pyc
+|   |           calendar_router.cpython-312.pyc
+|   |           __init__.cpython-311.pyc
+|   |           __init__.cpython-312.pyc
+|   |           
 |   +---config
-|   |       templates.py
-|   |       
+|   |   |   templates.py
+|   |   |   
+|   |   \---__pycache__
+|   |           templates.cpython-311.pyc
+|   |           templates.cpython-312.pyc
+|   |           
 |   +---database
-|   |       create_models.py
-|   |       database.py
-|   |       db_alchemy_models.py
-|   |       enums.py
-|   |       models.py
-|   |       __init__.py
-|   |       
+|   |   |   cleanup.py
+|   |   |   create_models.py
+|   |   |   database.py
+|   |   |   db_alchemy_models.py
+|   |   |   enums.py
+|   |   |   migrate_sets_type.py
+|   |   |   models.py
+|   |   |   __init__.py
+|   |   |   
+|   |   \---__pycache__
+|   |           database.cpython-311.pyc
+|   |           database.cpython-312.pyc
+|   |           db_alchemy_models.cpython-311.pyc
+|   |           db_alchemy_models.cpython-312.pyc
+|   |           enums.cpython-311.pyc
+|   |           enums.cpython-312.pyc
+|   |           models.cpython-311.pyc
+|   |           models.cpython-312.pyc
+|   |           __init__.cpython-311.pyc
+|   |           __init__.cpython-312.pyc
+|   |           
 |   +---events
 |   |   |   events_funcs.py
 |   |   |   events_router.py
 |   |   |   __init__.py
 |   |   |   
-|   |   \---subrouters
-|   |           assists_router.py
-|   |           murders_router.py
-|   |           shootings_router.py
+|   |   +---subrouters
+|   |   |   |   assists_router.py
+|   |   |   |   murders_router.py
+|   |   |   |   shootings_router.py
+|   |   |   |   
+|   |   |   \---__pycache__
+|   |   |           assists_router.cpython-311.pyc
+|   |   |           assists_router.cpython-312.pyc
+|   |   |           murders_router.cpython-311.pyc
+|   |   |           murders_router.cpython-312.pyc
+|   |   |           shootings_router.cpython-311.pyc
+|   |   |           shootings_router.cpython-312.pyc
+|   |   |           
+|   |   \---__pycache__
+|   |           events_funcs.cpython-311.pyc
+|   |           events_funcs.cpython-312.pyc
+|   |           events_router.cpython-311.pyc
+|   |           events_router.cpython-312.pyc
+|   |           __init__.cpython-311.pyc
+|   |           __init__.cpython-312.pyc
 |   |           
 |   +---home
-|   |       home_router.py
-|   |       __init__.py
-|   |       
+|   |   |   home_router.py
+|   |   |   __init__.py
+|   |   |   
+|   |   \---__pycache__
+|   |           home_router.cpython-311.pyc
+|   |           home_router.cpython-312.pyc
+|   |           __init__.cpython-311.pyc
+|   |           __init__.cpython-312.pyc
+|   |           
 |   +---members
-|   |       members_router.py
-|   |       __init__.py
-|   |       
+|   |   |   members_router.py
+|   |   |   __init__.py
+|   |   |   
+|   |   \---__pycache__
+|   |           members_router.cpython-311.pyc
+|   |           members_router.cpython-312.pyc
+|   |           __init__.cpython-311.pyc
+|   |           __init__.cpython-312.pyc
+|   |           
 |   +---sets
-|   |       sets_funcs.py
-|   |       sets_router.py
-|   |       __init__.py
-|   |       
+|   |   |   sets_funcs.py
+|   |   |   sets_router.py
+|   |   |   __init__.py
+|   |   |   
+|   |   \---__pycache__
+|   |           sets_funcs.cpython-311.pyc
+|   |           sets_funcs.cpython-312.pyc
+|   |           sets_router.cpython-311.pyc
+|   |           sets_router.cpython-312.pyc
+|   |           __init__.cpython-311.pyc
+|   |           __init__.cpython-312.pyc
+|   |           
 |   \---__pycache__
+|           database.cpython-311.pyc
+|           models.cpython-311.pyc
 |           server.cpython-311.pyc
+|           server.cpython-312.pyc
 |           __init__.cpython-311.pyc
+|           __init__.cpython-312.pyc
 |           
 +---frontend
 |   +---static
+|   |   |   app.js
 |   |   |   styles.css
 |   |   |   
 |   |   \---icons
@@ -139,3 +217,5 @@ C:.
 |               set_details.html
 |               
 \---__pycache__
+        main.cpython-312.pyc
+        

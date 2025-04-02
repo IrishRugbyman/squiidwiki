@@ -26,18 +26,26 @@
             {% for letter in 'ABCDEFGHIJKLMNOPQRSTUVWXYZ' %}
             <a href="#{{ letter }}" class="nav-item">{{ letter }}</a>
             {% endfor %}
+            <a href="#★" class="nav-item special">★</a>
         </div>
     </div>
 
     <div class="sets-list" id="setsList">
         {% for char, group in grouped_sets.items() %}
         <div class="section">
-            <h3 id="{{ char }}" class="section-title">{{ char }}</h3>
+            <h3 id="{{ char }}" class="section-title {% if char == '★' %}special{% endif %}">
+                {% if char == '★' %}System Sets{% else %}{{ char }}{% endif %}
+            </h3>
             <div class="sets-grid">
                 {% for set in group %}
                 <a href="/sets/{{ set.id }}" class="set-card">
                     <div class="set-content">
-                        <h4 class="set-name">{{ set.name }}</h4>
+                        <div class="set-name">
+                            {{ set.name }}
+                            {% if set.emoji and set.emoji.strip() %}
+                            <span class="set-emoji">{{ set.emoji|safe }}</span>
+                            {% endif %}
+                        </div>
                         <div class="set-arrow">→</div>
                     </div>
                 </a>
@@ -134,31 +142,61 @@
 .alphabet-nav {
     background-color: var(--surface-color);
     border-radius: 12px;
-    padding: 1rem;
+    padding: 0.75rem;
     margin-bottom: 2rem;
     box-shadow: 0 2px 8px var(--shadow-color);
 }
 
 .nav-wrapper {
     display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem;
+    flex-wrap: nowrap;
+    gap: 0.25rem;
     justify-content: center;
+    overflow-x: auto;
+    padding-bottom: 0.5rem;
+    scrollbar-width: thin;
+    scrollbar-color: var(--primary-color) var(--surface-color);
+}
+
+.nav-wrapper::-webkit-scrollbar {
+    height: 4px;
+}
+
+.nav-wrapper::-webkit-scrollbar-track {
+    background: var(--surface-color);
+    border-radius: 2px;
+}
+
+.nav-wrapper::-webkit-scrollbar-thumb {
+    background: var(--primary-color);
+    border-radius: 2px;
 }
 
 .nav-item {
     color: var(--text-color);
     text-decoration: none;
-    padding: 0.5rem 0.75rem;
-    border-radius: 8px;
+    padding: 0.4rem 0.6rem;
+    border-radius: 6px;
     transition: all var(--transition-speed) ease;
     font-weight: 500;
+    font-size: 0.9rem;
+    white-space: nowrap;
 }
 
 .nav-item:hover {
     background-color: var(--primary-color);
     color: white;
     transform: var(--card-hover-transform);
+}
+
+.nav-item.special {
+    color: var(--primary-color);
+    font-size: 1.1em;
+}
+
+.nav-item.special:hover {
+    background-color: var(--primary-color);
+    color: white;
 }
 
 .section {
@@ -172,6 +210,18 @@
     margin: 0 0 1rem 0;
     padding-bottom: 0.5rem;
     border-bottom: 1px solid var(--border-color);
+}
+
+.section-title.special {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.section-title.special::before {
+    content: '★';
+    color: var(--primary-color);
+    font-size: 1.2em;
 }
 
 .sets-grid {
@@ -200,12 +250,24 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
+    gap: 0.5rem;
 }
 
 .set-name {
     margin: 0;
     font-size: 1rem;
     font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.set-emoji {
+    font-size: 1.2rem;
+    line-height: 1;
+    vertical-align: middle;
+    display: inline-block;
+    font-family: "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
 }
 
 .set-arrow {

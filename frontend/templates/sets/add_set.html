@@ -17,6 +17,17 @@
                     <div id="name-error" class="error-message" aria-live="polite"></div>
                 </div>
 
+                <div class="form-group">
+                    <label for="emoji">Emoji:</label>
+                    <div class="emoji-picker-container">
+                        <input type="text" id="emoji" name="emoji" placeholder="Set emoji" readonly>
+                        <button type="button" class="emoji-picker-button" id="emoji-picker-button">
+                            <i class="fas fa-smile"></i>
+                        </button>
+                    </div>
+                    <small id="emoji-help" class="helper-text">Choose an emoji to represent this set</small>
+                </div>
+
                 <div class="form-group checkbox-group">
                     <label for="is_extinct" class="checkbox-label">
                         <input type="checkbox" id="is_extinct" name="is_extinct">
@@ -80,6 +91,9 @@
 <script src="https://cdn.jsdelivr.net/npm/@yaireo/tagify"></script>
 <script src="https://cdn.jsdelivr.net/npm/@yaireo/tagify/dist/tagify.polyfills.min.js"></script>
 
+<!-- Include Emoji Picker -->
+<script type="module" src="https://cdn.jsdelivr.net/npm/emoji-picker-element@1.18.3/index.js"></script>
+
 <style>
 /* CSS Styles */
 :root {
@@ -87,8 +101,8 @@
     --primary-color-hover: #8c32ef;
     --text-color: #e0e0e0;
     --bg-color: #121212;
-    --input-bg: #9e3b3b;
-    --border-color: #b53b3b;
+    --input-bg: var(--surface-color);
+    --border-color: #2d2d2d;
     --error-color: #ff5252;
     --success-color: #4caf50;
     --helper-text-color: #aaa;
@@ -98,9 +112,9 @@
     --primary-color: #6a0dad;
     --primary-color-hover: #8c32ef;
     --text-color: #333;
-    --bg-color: #ff0000;
-    --input-bg: #9a4747;
-    --border-color: #ff0000;
+    --bg-color: #f5f5f5;
+    --input-bg: var(--surface-color);
+    --border-color: #e0e0e0;
     --error-color: #f44336;
     --success-color: #4caf50;
     --helper-text-color: #666;
@@ -352,6 +366,47 @@ button[type="submit"]:active {
         width: 100%;
     }
 }
+
+.emoji-picker-container {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.emoji-picker-container input {
+    flex: 1;
+}
+
+.emoji-picker-button {
+    background: var(--bg-color);
+    border: 1px solid var(--border-color);
+    color: var(--text-color);
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all var(--transition-speed) ease;
+}
+
+.emoji-picker-button:hover {
+    border-color: var(--primary-color);
+    color: var(--primary-color);
+}
+
+.emoji-picker-button i {
+    font-size: 1.2rem;
+}
+
+emoji-picker {
+    position: absolute;
+    top: calc(100% + 0.5rem);
+    right: 0;
+    z-index: 1000;
+}
 </style>
 
 <script>
@@ -571,6 +626,35 @@ document.addEventListener("DOMContentLoaded", function () {
             });
         };
     }
+
+    // Emoji Picker Setup
+    const emojiInput = document.getElementById('emoji');
+    const emojiButton = document.getElementById('emoji-picker-button');
+    const emojiContainer = emojiButton.parentElement;
+    let emojiPicker = null;
+
+    emojiButton.addEventListener('click', () => {
+        if (!emojiPicker) {
+            emojiPicker = document.createElement('emoji-picker');
+            emojiPicker.addEventListener('emoji-click', event => {
+                emojiInput.value = event.detail.unicode;
+                emojiPicker.remove();
+                emojiPicker = null;
+            });
+            emojiContainer.appendChild(emojiPicker);
+        } else {
+            emojiPicker.remove();
+            emojiPicker = null;
+        }
+    });
+
+    // Close emoji picker when clicking outside
+    document.addEventListener('click', (event) => {
+        if (emojiPicker && !emojiButton.contains(event.target) && !emojiPicker.contains(event.target)) {
+            emojiPicker.remove();
+            emojiPicker = null;
+        }
+    });
 });
 </script>
 {% endblock %} 

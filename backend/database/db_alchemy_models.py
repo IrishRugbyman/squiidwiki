@@ -54,9 +54,10 @@ class Sets(Base):
     __tablename__ = 'sets'
 
     name = mapped_column(Text, nullable=False, unique=True)
-    type = mapped_column(Enum('active', 'extinct'), nullable=False, server_default=text("'active'"))
+    type = mapped_column(Enum('active', 'extinct', 'system'), nullable=False, server_default=text("'active'"))
     id = mapped_column(Integer, primary_key=True)
     description = mapped_column(Text)
+    emoji = mapped_column(Text)
 
     alliance_sets_map: Mapped[List['AllianceSetsMap']] = relationship('AllianceSetsMap', uselist=True, back_populates='set')
     members: Mapped[List['Members']] = relationship('Members', uselist=True, back_populates='set')

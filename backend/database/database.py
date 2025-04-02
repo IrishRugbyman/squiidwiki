@@ -53,7 +53,8 @@ def init_db(drop_existing: bool = False):
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 name TEXT NOT NULL UNIQUE,  -- Name of the set (gang/clique)
                 description TEXT,          -- Description of the set
-                type TEXT NOT NULL CHECK (type IN ('active', 'extinct')) DEFAULT 'active'  -- Status of the set
+                type TEXT NOT NULL CHECK (type IN ('active', 'extinct', 'system')) DEFAULT 'active',  -- Status of the set
+                emoji TEXT                 -- Emoji representing the set
             )
         ''')
 
@@ -172,25 +173,22 @@ def init_db(drop_existing: bool = False):
 
         # --- REST OF INITIALIZATION CODE ---
 
-        # Insert special sets into the `sets` table
-        special_sets = [
-            ('?', 'Default set for unknown affiliations'), # Set for unknown affiliations
-            ('Civilians', 'Default set for non-gang members')  # Set for civilians
-        ]
-
-        for name, desc in special_sets:
-            cursor.execute('''
-                INSERT OR IGNORE INTO sets (name, description, type)
-                VALUES (?, ?, 'active')
-            ''', (name, desc))
-
-        # Retrieve and store special set IDs in the `config` table
-        cursor.execute('SELECT id FROM sets WHERE name = "?"')
+        # Initialize Default Sets
+        cursor.execute('''
+            INSERT OR IGNORE INTO sets (name, description, type, emoji)
+            VALUES ('Unknown', 'Default set for members with unknown set affiliation', 'system', '❓')
+        ''')
+        cursor.execute('SELECT id FROM sets WHERE name = "Unknown"')
         unknown_id = cursor.fetchone()[0]
 
-        cursor.execute('SELECT id FROM sets WHERE name = "Civilians"')
+        cursor.execute('''
+            INSERT OR IGNORE INTO sets (name, description, type, emoji)
+            VALUES ('Civilian', 'Default set for non-gang affiliated victims', 'system', '👤')
+        ''')
+        cursor.execute('SELECT id FROM sets WHERE name = "Civilian"')
         civilian_id = cursor.fetchone()[0]
 
+        # Retrieve and store special set IDs in the `config` table
         cursor.execute('''
             INSERT OR REPLACE INTO config (key, value)
             VALUES ('unknown_set_id', ?), ('civilian_set_id', ?)

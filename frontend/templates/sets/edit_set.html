@@ -4,6 +4,9 @@
 <!-- Include Tagify CSS -->
 <link href="https://cdn.jsdelivr.net/npm/@yaireo/tagify/dist/tagify.css" rel="stylesheet" type="text/css">
 
+<!-- Include Emoji Picker -->
+<script type="module" src="https://cdn.jsdelivr.net/npm/emoji-picker-element@1.18.3/index.js"></script>
+
 <style>
 :root {
     --form-gap: 1.5rem;
@@ -222,6 +225,49 @@ textarea.form-control {
         justify-content: center;
     }
 }
+
+.emoji-picker-container {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.emoji-picker-container input {
+    flex: 1;
+    font-size: 1.2rem;
+    padding: 0.75rem 1rem;
+}
+
+.emoji-picker-button {
+    background: var(--bg-color);
+    border: 1px solid var(--border-color);
+    color: var(--text-color);
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all var(--transition-speed) ease;
+}
+
+.emoji-picker-button:hover {
+    border-color: var(--primary-color);
+    color: var(--primary-color);
+}
+
+.emoji-picker-button i {
+    font-size: 1.2rem;
+}
+
+emoji-picker {
+    position: absolute;
+    top: calc(100% + 0.5rem);
+    right: 0;
+    z-index: 1000;
+}
 </style>
 {% endblock %}
 
@@ -253,6 +299,16 @@ textarea.form-control {
                 <div class="form-group">
                     <label for="name">Name</label>
                     <input type="text" id="name" name="name" class="form-control" placeholder="Enter set name" value="{{ set.name }}" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="emoji">Emoji</label>
+                    <div class="emoji-picker-container">
+                        <input type="text" id="emoji" name="emoji" class="form-control" placeholder="Set emoji" value="{{ set.emoji or '' }}" readonly>
+                        <button type="button" class="emoji-picker-button" id="emoji-picker-button">
+                            <i class="fas fa-smile"></i>
+                        </button>
+                    </div>
                 </div>
 
                 <div class="form-group">
@@ -397,6 +453,35 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     `;
     document.head.appendChild(style);
+
+    // Emoji Picker Setup
+    const emojiInput = document.getElementById('emoji');
+    const emojiButton = document.getElementById('emoji-picker-button');
+    const emojiContainer = emojiButton.parentElement;
+    let emojiPicker = null;
+
+    emojiButton.addEventListener('click', () => {
+        if (!emojiPicker) {
+            emojiPicker = document.createElement('emoji-picker');
+            emojiPicker.addEventListener('emoji-click', event => {
+                emojiInput.value = event.detail.unicode;
+                emojiPicker.remove();
+                emojiPicker = null;
+            });
+            emojiContainer.appendChild(emojiPicker);
+        } else {
+            emojiPicker.remove();
+            emojiPicker = null;
+        }
+    });
+
+    // Close emoji picker when clicking outside
+    document.addEventListener('click', (event) => {
+        if (emojiPicker && !emojiButton.contains(event.target) && !emojiPicker.contains(event.target)) {
+            emojiPicker.remove();
+            emojiPicker = null;
+        }
+    });
 });
 </script>
 {% endblock %}
