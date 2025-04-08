@@ -107,21 +107,39 @@ def get_victim_info(db: Session, events: List[Any]) -> Dict[str, Any]:
 def parse_date(date_precision: str, date_exact: Optional[str], date_year: Optional[str]):
     event_date = None
     date_approx = None
-    if date_precision == "exact" and date_exact:
-        try:
-            parsed_date = datetime.strptime(date_exact, "%Y-%m-%d").date()
-            event_date = parsed_date
-            date_approx = parsed_date.strftime("%Y")
-        except ValueError:
-            raise HTTPException(status_code=400, detail="Invalid date format (must be YYYY-MM-DD)")
-    elif date_precision == "year" and date_year:
-        if not date_year.isdigit() or len(date_year) != 4:
-            raise HTTPException(status_code=400, detail="Invalid year format (must be YYYY)")
-        date_approx = date_year
-    elif date_precision == "unknown":
-        date_approx = "unknown"
-    else:
-        raise HTTPException(status_code=400, detail="Invalid date precision")
+    try:
+        if date_precision == "exact" and date_exact:
+            try:
+                parsed_date = datetime.strptime(date_exact, "%Y-%m-%d").date()
+                event_date = parsed_date
+                date_approx = parsed_date.strftime("%Y")
+            except ValueError:
+                raise HTTPException(
+                    status_code=400, 
+                    detail="Invalid date format. Please use the format YYYY-MM-DD (e.g., 2023-05-15)."
+                )
+        elif date_precision == "year" and date_year:
+            if not date_year.isdigit() or len(date_year) != 4:
+                raise HTTPException(
+                    status_code=400, 
+                    detail="Invalid year format. Please enter a 4-digit year (e.g., 2023)."
+                )
+            date_approx = date_year
+        elif date_precision == "unknown":
+            date_approx = "unknown"
+        else:
+            raise HTTPException(
+                status_code=400, 
+                detail=f"Invalid date precision: '{date_precision}'. Please select from 'exact', 'year', or 'unknown'."
+            )
+    except Exception as e:
+        # Catch any other unexpected errors to prevent app crashes
+        if isinstance(e, HTTPException):
+            raise e
+        raise HTTPException(
+            status_code=400,
+            detail=f"Error processing date: {str(e)}. Please check your input and try again."
+        )
     return event_date, date_approx
 
 def handle_error(
@@ -133,20 +151,66 @@ def handle_error(
     date_precision: Optional[str],
     date_exact: Optional[str],
     date_year: Optional[str],
-    error: HTTPException
+    error: Exception
 ):
-    all_members = db.query(Members).filter(Members.id != member_id).all()
-    all_members_data = [{"id": m.id, "name": m.name} for m in all_members]
-    return templates.TemplateResponse("events/add_event.html", {
+    """
+    Handles errors during event creation or editing by rendering the form again with the error message.
+    Also preserves the user's input to avoid data loss.
+    """
+    all_members = db.query(Members).filter(Members.id != member_id).order_by(Members.name).all()
+    member = db.get(Members, member_id)
+    
+    # Create a list of dictionaries with member data, including death dates if available
+    all_members_data = []
+    duplicate_names = set()
+    name_counts = {}
+    
+    for m in all_members:
+        name_counts[m.name] = name_counts.get(m.name, 0) + 1
+    
+    for name, count in name_counts.items():
+        if count > 1:
+            duplicate_names.add(name)
+    
+    for m in all_members:
+        all_members_data.append({
+            "id": m.id, 
+            "name": m.name,
+            "set_name": m.set_name,
+            "death_date": m.death_date,
+            "death_date_approx": m.death_date_approx
+        })
+    
+    # Extract error detail
+    error_message = str(error)
+    if hasattr(error, 'detail'):
+        error_message = error.detail
+    
+    # Get the status code, default to 400 if not available
+    status_code = 400
+    if hasattr(error, 'status_code'):
+        status_code = error.status_code
+    
+    # Determine template based on event type
+    template_name = f"events/{event_type}/add_{event_type[:-1]}.html"
+    if event_type == "murders":
+        template_name = "events/murders/add_murder.html"
+    elif event_type == "shootings":
+        template_name = "events/shootings/add_shooting.html"
+    elif event_type == "assists":
+        template_name = "events/assists/add_assist.html"
+    
+    return templates.TemplateResponse(template_name, {
         "request": request,
-        "event_type": event_type,
         "member_id": member_id,
+        "member_name": member.name if member else "Unknown Member",
         "all_members": all_members_data,
-        "error_message": error.detail,
+        "duplicate_names": duplicate_names,
+        "error_message": error_message,
         "form_data": {
             "victim_id": victim_id,
             "date_precision": date_precision,
             "date_exact": date_exact,
             "date_year": date_year
         }
-    }, status_code=error.status_code)
+    }, status_code=status_code)

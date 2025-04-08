@@ -1,8 +1,11 @@
 import os
+import sys
+import socket
+import uvicorn
 
 from backend.server import app
 from backend.database.database import init_db, get_db
-import uvicorn
+from backend.config.config import settings
 
 
 def add_test_data():
@@ -191,14 +194,59 @@ def add_test_data():
         conn.close()
 
 
-drop_existing = True
-init_db(drop_existing=drop_existing)
-if drop_existing:
-    add_test_data()
-os.system("tree /F /A > project_tree.txt")
-print("Project tree saved to project_tree.txt")
-# os.system("pip freeze > requirements.txt")
-# print("Requirements saved to requirements.txt")
+def is_port_in_use(port: int) -> bool:
+    """
+    Check if a port is already in use.
+    """
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        return s.connect_ex(('localhost', port)) == 0
+
+
+def find_available_port(start_port: int, max_attempts: int = 10) -> int:
+    """
+    Find an available port starting from start_port.
+    """
+    port = start_port
+    attempts = 0
+    while is_port_in_use(port) and attempts < max_attempts:
+        port += 1
+        attempts += 1
+    return port
+
+
+def initialize_database():
+    """
+    Initialize the database if needed.
+    """
+    drop_existing = False
+    if not os.path.exists(settings.get_db_path()):
+        print(f"Database file not found. Creating new database at {settings.get_db_path()}")
+        drop_existing = True
+    elif settings.is_test():
+        print(f"Test mode enabled. Resetting database at {settings.get_db_path()}")
+        drop_existing = True
+        
+    init_db(drop_existing=drop_existing)
+    if drop_existing:
+        add_test_data()
+        print(f"Database initialized with test data: {settings.get_db_path()}")
+
 
 if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    # Initialize the database if needed
+    initialize_database()
+    
+    # Generate project tree if requested
+    if settings.DEBUG:
+        os.system("tree /F /A > project_tree.txt")
+        print("Project tree saved to project_tree.txt")
+    
+    # Find an available port (handle the case where the default port is in use)
+    port = find_available_port(settings.PORT)
+    if port != settings.PORT:
+        print(f"Port {settings.PORT} is already in use. Using port {port} instead.")
+    
+    # Start the server
+    print(f"Starting server with database: {settings.DB_NAME}")
+    print(f"Server running at http://localhost:{port}")
+    uvicorn.run(app, host=settings.HOST, port=port)

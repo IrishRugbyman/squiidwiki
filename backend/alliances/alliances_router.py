@@ -1,7 +1,7 @@
 from typing import List, Optional
 
-from fastapi import APIRouter, Request, Form, HTTPException, Depends
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi import APIRouter, Request, Form, HTTPException, Depends, Body
+from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from sqlalchemy.orm import Session
 
 from backend.config.templates import templates
@@ -49,8 +49,8 @@ def add_alliance(
     return RedirectResponse(url="/alliances", status_code=303)
 
 
-@router.get("/add_member/{alliance_id}", response_class=HTMLResponse)
-def add_member_form(request: Request, alliance_id: int, db: Session = Depends(get_db)):
+@router.get("/add_set/{alliance_id}", response_class=HTMLResponse)
+def add_set_form(request: Request, alliance_id: int, db: Session = Depends(get_db)):
     alliance = db.get(Alliances, alliance_id)
     if not alliance:
         raise HTTPException(status_code=404, detail="Alliance not found")
@@ -75,13 +75,13 @@ def add_member_form(request: Request, alliance_id: int, db: Session = Depends(ge
         "status": alliance.status,
     }
     return templates.TemplateResponse(
-        "alliances/add_alliance_member.html",
+        "alliances/add_alliance_set.html",
         {"request": request, "alliance": alliance_data, "available_sets": available_sets_data},
     )
 
 
-@router.post("/add_member/{alliance_id}")
-def add_member(
+@router.post("/add_set/{alliance_id}")
+def add_set(
         alliance_id: int, set_id: int = Form(...), db: Session = Depends(get_db)
 ):
     set_obj = db.get(Sets, set_id)
@@ -92,6 +92,19 @@ def add_member(
     db.add(new_mapping)
     db.commit()
     return RedirectResponse(url=f"/alliances/{alliance_id}", status_code=303)
+
+
+# Alias for backward compatibility
+@router.get("/add_member/{alliance_id}", response_class=HTMLResponse)
+def add_member_form(request: Request, alliance_id: int, db: Session = Depends(get_db)):
+    return add_set_form(request, alliance_id, db)
+
+
+@router.post("/add_member/{alliance_id}")
+def add_member(
+        alliance_id: int, set_id: int = Form(...), db: Session = Depends(get_db)
+):
+    return add_set(alliance_id, set_id, db)
 
 
 @router.get("/options", response_model=List[AllianceOption])
@@ -124,6 +137,7 @@ def read_alliance(request: Request, alliance_id: int, db: Session = Depends(get_
             "name": s.name,
             "description": s.description,
             "type": s.type,
+            "members_count": db.query(Members).filter(Members.set_id == s.id).count()
         }
         for s in member_sets
     ]
@@ -248,6 +262,32 @@ def delete_alliance_confirmation(request: Request, alliance_id: int, db: Session
     )
 
 
+@router.post("/remove_set", response_class=JSONResponse)
+def remove_alliance_set(
+    alliance_id: int = Body(...), 
+    set_id: int = Body(...),
+    db: Session = Depends(get_db)
+):
+    # Find the mapping entry
+    mapping = db.query(AllianceSetsMap).filter(
+        AllianceSetsMap.alliance_id == alliance_id,
+        AllianceSetsMap.set_id == set_id
+    ).first()
+    
+    if not mapping:
+        return JSONResponse(
+            status_code=404,
+            content={"success": False, "message": "Association not found"}
+        )
+    
+    db.delete(mapping)
+    db.commit()
+
+    return JSONResponse(
+        content={"success": True, "message": "Set removed from alliance successfully"}
+    )
+
+
 @router.post("/remove_member/{alliance_id}/{set_id}", response_class=RedirectResponse)
 def remove_alliance_member(
     alliance_id: int,
@@ -261,10 +301,54 @@ def remove_alliance_member(
     ).first()
     
     if not mapping:
-        raise HTTPException(status_code=404, detail="Member set not found in alliance")
+        raise HTTPException(status_code=404, detail="Alliance-set association not found")
     
-    # Remove the mapping
     db.delete(mapping)
     db.commit()
     
     return RedirectResponse(url=f"/alliances/{alliance_id}", status_code=303)
+
+
+# API Endpoints for AJAX operations
+
+@router.delete("/{alliance_id}", response_class=JSONResponse)
+def api_delete_alliance(alliance_id: int, db: Session = Depends(get_db)):
+    alliance = db.get(Alliances, alliance_id)
+    if not alliance:
+        return JSONResponse(
+            status_code=404,
+            content={"success": False, "message": "Alliance not found"}
+        )
+    
+    # Delete alliance
+    db.delete(alliance)
+    db.commit()
+    
+    return JSONResponse(
+        content={"success": True, "message": "Alliance deleted successfully"}
+    )
+
+
+@router.get("/api/activity", response_class=JSONResponse)
+def get_recent_activity(db: Session = Depends(get_db)):
+    # This is a placeholder for actual activity data
+    # In a real implementation, you would query from an activity log table
+    return JSONResponse(content={
+        "success": True,
+        "activities": [
+            {
+                "type": "alliance_created",
+                "entity_id": 1,
+                "entity_name": "Sample Alliance",
+                "timestamp": "2023-04-01T12:30:00Z",
+                "actor": "Admin"
+            },
+            {
+                "type": "set_added",
+                "entity_id": 2,
+                "entity_name": "Sample Set",
+                "timestamp": "2023-04-01T12:35:00Z",
+                "actor": "Admin"
+            }
+        ]
+    })

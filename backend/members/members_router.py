@@ -31,7 +31,13 @@ def list_members(request: Request, db: Session = Depends(get_db)):
     members_data = []
     for member in members:
         # Convert to a Pydantic model then to a dict
-        member_data = Member.from_orm(member).dict()
+        try:
+            # Try the newer Pydantic v2 method first
+            member_data = Member.model_validate(member).model_dump()
+        except AttributeError:
+            # Fall back to older Pydantic v1 method
+            member_data = Member.from_orm(member).dict()
+            
         # Add the set name (if available)
         member_data["set_name"] = member.set.name if member.set else "Unknown Set"
         
@@ -145,7 +151,15 @@ def add_member(
         set_id=set_id,
         alliance_id=alliance_id_int
     )
-    data = new_member.dict()
+    
+    # Get data as dict using either v1 or v2 method
+    try:
+        # Try newer Pydantic v2 method first
+        data = new_member.model_dump()
+    except AttributeError:
+        # Fall back to older Pydantic v1 method
+        data = new_member.dict()
+        
     # Create and persist a new ORM instance
     member_obj = Members(**data)
     db.add(member_obj)
@@ -162,7 +176,13 @@ def edit_member_form(request: Request, member_id: int, db: Session = Depends(get
     if not member_obj:
         raise HTTPException(status_code=404, detail="Member not found")
 
-    member_data = Member.from_orm(member_obj).dict()
+    try:
+        # Try the newer Pydantic v2 method first
+        member_data = Member.model_validate(member_obj).model_dump()
+    except AttributeError:
+        # Fall back to older Pydantic v1 method
+        member_data = Member.from_orm(member_obj).dict()
+        
     set_name = member_obj.set.name if member_obj.set else "Unknown Set"
 
     return templates.TemplateResponse(
@@ -263,7 +283,14 @@ def delete_member_confirmation(request: Request, member_id: int, db: Session = D
     if not member_obj:
         raise HTTPException(status_code=404, detail="Member not found")
 
-    member_data = Member.from_orm(member_obj).dict()
+    # Convert to dict using Pydantic v2/v1 compatibility approach
+    try:
+        # Try newer Pydantic v2 method first
+        member_data = Member.model_validate(member_obj).model_dump()
+    except AttributeError:
+        # Fall back to older Pydantic v1 method
+        member_data = Member.from_orm(member_obj).dict()
+        
     set_name = member_obj.set.name if member_obj.set else "Unknown Set"
 
     # Get related events count
@@ -326,7 +353,14 @@ def member_details(request: Request, member_id: int, db: Session = Depends(get_d
     member_obj = db.get(Members, member_id)
     if not member_obj:
         raise HTTPException(status_code=404, detail="Member not found")
-    member_data = Member.from_orm(member_obj).dict()
+    
+    # Convert to dict using Pydantic v2/v1 compatibility approach
+    try:
+        # Try newer Pydantic v2 method first
+        member_data = Member.model_validate(member_obj).model_dump()
+    except AttributeError:
+        # Fall back to older Pydantic v1 method
+        member_data = Member.from_orm(member_obj).dict()
 
     # Get set name
     set_name = member_obj.set.name if member_obj.set else "Unknown Set"
@@ -343,18 +377,50 @@ def member_details(request: Request, member_id: int, db: Session = Depends(get_d
     assists = db.query(Assists).filter(Assists.shooter_id == member_id).all()
 
     # Include victim_set_id in event data
-    shootings_data = [
-        {**Shooting.from_orm(s).dict(), "victim_set_id": db.get(Members, s.victim_id).set_id if db.get(Members, s.victim_id) and db.get(Members, s.victim_id).set_id else None}
-        for s in shootings
-    ]
-    murders_data = [
-        {**Murder.from_orm(m).dict(), "victim_set_id": db.get(Members, m.victim_id).set_id if db.get(Members, m.victim_id) and db.get(Members, m.victim_id).set_id else None}
-        for m in murders
-    ]
-    assists_data = [
-        {**Assist.from_orm(a).dict(), "victim_set_id": db.get(Members, a.victim_id).set_id if db.get(Members, a.victim_id) and db.get(Members, a.victim_id).set_id else None}
-        for a in assists
-    ]
+    shootings_data = []
+    for s in shootings:
+        try:
+            # Try Pydantic v2 method
+            shooting_dict = Shooting.model_validate(s).model_dump()
+        except AttributeError:
+            # Fall back to v1 method
+            shooting_dict = Shooting.from_orm(s).dict()
+            
+        # Add victim set info
+        victim = db.get(Members, s.victim_id)
+        victim_set_id = victim.set_id if victim and hasattr(victim, 'set_id') else None
+        shooting_dict["victim_set_id"] = victim_set_id
+        shootings_data.append(shooting_dict)
+    
+    murders_data = []
+    for m in murders:
+        try:
+            # Try Pydantic v2 method
+            murder_dict = Murder.model_validate(m).model_dump()
+        except AttributeError:
+            # Fall back to v1 method
+            murder_dict = Murder.from_orm(m).dict()
+            
+        # Add victim set info
+        victim = db.get(Members, m.victim_id)
+        victim_set_id = victim.set_id if victim and hasattr(victim, 'set_id') else None
+        murder_dict["victim_set_id"] = victim_set_id
+        murders_data.append(murder_dict)
+    
+    assists_data = []
+    for a in assists:
+        try:
+            # Try Pydantic v2 method
+            assist_dict = Assist.model_validate(a).model_dump()
+        except AttributeError:
+            # Fall back to v1 method
+            assist_dict = Assist.from_orm(a).dict()
+            
+        # Add victim set info
+        victim = db.get(Members, a.victim_id)
+        victim_set_id = victim.set_id if victim and hasattr(victim, 'set_id') else None
+        assist_dict["victim_set_id"] = victim_set_id
+        assists_data.append(assist_dict)
 
     # Gather victim IDs from all events
     victim_ids = {event["victim_id"] for event in shootings_data + murders_data + assists_data if event.get("victim_id")}

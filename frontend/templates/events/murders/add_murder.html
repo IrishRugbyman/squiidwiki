@@ -143,6 +143,69 @@
         transition: background-color 0.2s ease;
     }
 
+    /* Modal Styles */
+    .modal {
+        display: none;
+        position: fixed;
+        z-index: 1000;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        overflow: auto;
+        background-color: rgba(0, 0, 0, 0.5);
+    }
+    .modal-content {
+        background: var(--card-bg);
+        margin: 15% auto;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        max-width: 500px;
+        width: 80%;
+    }
+    .modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 15px;
+    }
+    .modal-header h2 {
+        margin: 0;
+        color: var(--primary-color);
+    }
+    .close-modal {
+        color: var(--text-muted);
+        font-size: 24px;
+        cursor: pointer;
+    }
+    .modal-body {
+        margin-bottom: 20px;
+    }
+    .modal-footer {
+        display: flex;
+        justify-content: flex-end;
+        gap: 10px;
+    }
+    .modal-footer button {
+        padding: 8px 16px;
+        border-radius: 4px;
+        cursor: pointer;
+    }
+    .btn-primary {
+        background-color: var(--primary-color);
+        color: white;
+        border: none;
+    }
+    .btn-primary:hover {
+        background-color: var(--primary-color-hover);
+    }
+    .btn-secondary {
+        background-color: transparent;
+        border: 1px solid var(--border-color);
+        color: var(--text-color);
+    }
+    
     /* Responsive Design */
     @media (max-width: 768px) {
         .form-container {
@@ -163,7 +226,7 @@
         <a href="/members/{{ member_id }}" class="back-link">← Back to Member</a>
     </div>
 
-    <form method="POST" action="/events/murders/add/{{ member_id }}">
+    <form method="POST" action="/events/murders/add/{{ member_id }}" id="add-murder-form">
         <!-- Victim Selection -->
         <div class="form-group">
             <label for="victim_id">Victim</label>
@@ -208,18 +271,26 @@
 
                 <div id="exactDateGroup" style="margin-top: 1rem;">
                     <label>Exact Date</label>
-                    <input type="date" name="date_exact" class="form-control" value="{{ form_data.date_exact if form_data and form_data.date_exact }}">
+                    <input type="date" name="date_exact" id="date_exact" class="form-control" value="{{ form_data.date_exact if form_data and form_data.date_exact }}">
                 </div>
 
                 <div id="yearGroup" style="margin-top: 1rem;">
                     <label>Year</label>
-                    <input type="text" name="date_year" class="form-control" placeholder="YYYY" pattern="\d{4}" value="{{ form_data.date_year if form_data and form_data.date_year }}">
+                    <input type="text" name="date_year" id="date_year" class="form-control" placeholder="YYYY" pattern="\d{4}" value="{{ form_data.date_year if form_data and form_data.date_year }}">
                 </div>
             </div>
         </div>
 
+        <div class="form-group checkbox-group hidden" id="update-victim-death-container">
+            <input type="checkbox" name="update_victim_death" id="update_victim_death" value="true">
+            <label for="update_victim_death">Update victim's death date to match this murder date</label>
+        </div>
+        
         <div class="form-actions">
-            <button type="submit" class="save-btn">Create Murder</button>
+            <button type="submit" id="submit-button" class="save-btn">
+                <span class="button-text">Create Murder</span>
+                <span class="spinner hidden"></span>
+            </button>
             <a href="/members/{{ member_id }}" class="cancel-btn">Cancel</a>
         </div>
 
@@ -229,6 +300,23 @@
         </div>
         {% endif %}
     </form>
+</div>
+
+<!-- Modal Dialog -->
+<div id="confirmation-modal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>Update Victim's Death Date?</h2>
+            <span class="close-modal">&times;</span>
+        </div>
+        <div class="modal-body">
+            <p id="modal-message"></p>
+        </div>
+        <div class="modal-footer">
+            <button id="update-death-date" class="btn btn-primary">Update Death Date</button>
+            <button id="keep-death-date" class="btn btn-secondary">Keep Original Date</button>
+        </div>
+    </div>
 </div>
 {% endblock %}
 
@@ -240,6 +328,23 @@ document.addEventListener('DOMContentLoaded', function () {
     const yearGroup = document.getElementById('yearGroup');
     const victimSelect = document.getElementById('victimSelect');
     const victimSearch = document.getElementById('victimSearch');
+    const form = document.getElementById('add-murder-form');
+    const submitButton = document.getElementById('submit-button');
+    const buttonText = submitButton.querySelector('.button-text');
+    const spinner = submitButton.querySelector('.spinner');
+    const updateVictimDeathContainer = document.getElementById('update-victim-death-container');
+    const updateVictimDeath = document.getElementById('update_victim_death');
+    const memberId = "{{ member_id }}"; // Store member_id from template
+    
+    // Modal elements
+    const modal = document.getElementById('confirmation-modal');
+    const modalMessage = document.getElementById('modal-message');
+    const updateButton = document.getElementById('update-death-date');
+    const keepButton = document.getElementById('keep-death-date');
+    const closeModal = document.querySelector('.close-modal');
+    
+    // Flag to prevent duplicate form submissions
+    let formSubmitting = false;
 
     // Search functionality
     victimSearch.addEventListener('input', function() {
@@ -286,6 +391,151 @@ document.addEventListener('DOMContentLoaded', function () {
             yearGroup.style.display = 'none';
         }
     }
+
+    // Validate form before submission
+    function validateForm() {
+        let isValid = true;
+        const datePrecision = precisionSelect.value;
+        
+        // Check required fields
+        if (!victimSelect.value) {
+            displayError("Please select a victim");
+            isValid = false;
+            return isValid;
+        }
+        
+        // Validate date based on precision
+        if (datePrecision === 'exact') {
+            const dateExact = document.getElementById('date_exact').value;
+            if (!dateExact) {
+                displayError("Please select an exact date");
+                isValid = false;
+            }
+        } else if (datePrecision === 'year') {
+            const dateYear = document.getElementById('date_year').value;
+            if (!dateYear || !/^\d{4}$/.test(dateYear)) {
+                displayError("Please enter a valid 4-digit year");
+                isValid = false;
+            }
+        }
+        
+        return isValid;
+    }
+    
+    // Display error message
+    function displayError(message) {
+        // Check if error message element exists, if not create one
+        let errorElement = document.querySelector('.error-message');
+        if (!errorElement) {
+            errorElement = document.createElement('div');
+            errorElement.className = 'error-message';
+            errorElement.style.color = 'var(--error-color)';
+            errorElement.style.marginTop = '1rem';
+            form.appendChild(errorElement);
+        }
+        
+        errorElement.textContent = message;
+        errorElement.scrollIntoView({ behavior: 'smooth' });
+    }
+
+    // Form submission handler
+    form.addEventListener('submit', async function(event) {
+        if (formSubmitting) return; // Don't intercept if we're already submitting
+        
+        event.preventDefault();
+
+        if (!validateForm()) {
+            return;
+        }
+
+        // Show loading state
+        submitButton.disabled = true;
+        spinner.classList.remove('hidden');
+        buttonText.textContent = 'Creating...';
+
+        try {
+            // Submit form with fetch API to check for errors
+            const formData = new FormData(form);
+            const response = await fetch(form.action, {
+                method: 'POST',
+                body: formData,
+                redirect: 'manual' // Don't automatically follow redirects
+            });
+            
+            // Check if there was a redirect (success)
+            if (response.status === 303 || response.redirected) {
+                window.location.href = response.url || '/members/' + memberId;
+                return;
+            }
+            
+            // If we get here, there was an error
+            const contentType = response.headers.get('content-type');
+            if (contentType && contentType.includes('application/json')) {
+                const data = await response.json();
+                
+                // Reset loading state
+                submitButton.disabled = false;
+                spinner.classList.add('hidden');
+                buttonText.textContent = 'Create Murder';
+                
+                // Check for death date conflict error
+                if (data.detail && data.detail.includes("death date")) {
+                    // Show modal with the error message
+                    modalMessage.textContent = data.detail;
+                    updateVictimDeathContainer.classList.remove('hidden');
+                    modal.style.display = 'block';
+                } else {
+                    // Show other error
+                    displayError(data.detail || 'An error occurred');
+                }
+            } else {
+                // Handle non-JSON response (likely HTML)
+                const text = await response.text();
+                submitButton.disabled = false;
+                spinner.classList.add('hidden');
+                buttonText.textContent = 'Create Murder';
+                displayError('An error occurred. Please try again.');
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            submitButton.disabled = false;
+            spinner.classList.add('hidden');
+            buttonText.textContent = 'Create Murder';
+            displayError('An unexpected error occurred. Please try again.');
+        }
+    });
+    
+    // Handle update death date button
+    updateButton.addEventListener('click', function() {
+        updateVictimDeath.checked = true;
+        modal.style.display = 'none';
+        formSubmitting = true;
+        
+        // Show loading state again
+        submitButton.disabled = true;
+        spinner.classList.remove('hidden');
+        buttonText.textContent = 'Creating...';
+        
+        // Submit the form with the update_victim_death checkbox checked
+        form.submit();
+    });
+    
+    // Handle keep original date button
+    keepButton.addEventListener('click', function() {
+        modal.style.display = 'none';
+    });
+    
+    // Close modal when clicking the X
+    closeModal.addEventListener('click', function() {
+        modal.style.display = 'none';
+    });
+    
+    // Close modal when clicking outside
+    window.addEventListener('click', function(event) {
+        if (event.target == modal) {
+            modal.style.display = 'none';
+        }
+    });
 
     // Initial setup
     updateDateFields();

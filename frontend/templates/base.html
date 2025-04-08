@@ -85,6 +85,25 @@
                     <path class="moon" d="M12 3a9 9 0 019 9m-9 9a9 9 0 01-9-9"></path>
                 </svg>
             </button>
+            
+            <!-- User dropdown -->
+            <div class="dropdown user-dropdown">
+                <a href="#" class="nav-link dropdown-toggle">
+                    <i class="fas fa-user-circle"></i>
+                    <span class="dropdown-arrow">▼</span>
+                </a>
+                <div class="dropdown-content">
+                    <a href="/auth/profile" class="nav-link"><i class="fas fa-id-card"></i> Profile</a>
+                    {% if request.state.user %}
+                    {% if request.state.is_admin %}
+                    <a href="/auth/users" class="nav-link"><i class="fas fa-users-cog"></i> Manage Users</a>
+                    {% endif %}
+                    <a href="/auth/logout" class="nav-link"><i class="fas fa-sign-out-alt"></i> Logout</a>
+                    {% else %}
+                    <a href="/auth/login" class="nav-link"><i class="fas fa-sign-in-alt"></i> Login</a>
+                    {% endif %}
+                </div>
+            </div>
         </div>
     </header>
 
@@ -221,42 +240,76 @@
         position: relative;
     }
 
-    .dropdown-content {
-        display: none;
-        position: absolute;
-        background: var(--surface-color);
-        box-shadow: 0 8px 16px var(--shadow-color);
-        border: 1px solid var(--border-color);
-        border-radius: 4px;
-        z-index: 1;
-        top: 100%;
-        left: 50%;
-        transform: translateX(-50%);
-        min-width: 180px;
-        padding: 0.5rem;
-        margin-top: 0.5rem;
-    }
-
-    .dropdown-content .nav-link {
+    .dropdown-toggle {
+        cursor: pointer;
         display: flex;
-        padding: 0.75rem 1rem;
-        border-radius: 4px;
+        align-items: center;
     }
-
-    .dropdown:hover .dropdown-content,
-    .dropdown:focus-within .dropdown-content {
-        display: block;
-        animation: fadeIn 0.2s ease;
-    }
-
+    
     .dropdown-arrow {
-        font-size: 0.7em;
         margin-left: 0.25rem;
+        font-size: 0.75rem;
         transition: transform 0.2s ease;
     }
-
-    .dropdown:hover .dropdown-arrow {
+    
+    .dropdown-content {
+        position: absolute;
+        right: 0;
+        top: 100%;
+        background-color: var(--surface-color);
+        border: 1px solid var(--border-color);
+        border-radius: 4px;
+        box-shadow: 0 4px 12px var(--shadow-color);
+        min-width: 180px;
+        overflow: hidden;
+        opacity: 0;
+        transform: translateY(-10px);
+        visibility: hidden;
+        transition: all 0.3s ease;
+        z-index: 1000;
+    }
+    
+    .dropdown:hover .dropdown-content,
+    .dropdown:focus-within .dropdown-content {
+        opacity: 1;
+        transform: translateY(0);
+        visibility: visible;
+    }
+    
+    .dropdown:hover .dropdown-arrow,
+    .dropdown:focus-within .dropdown-arrow {
         transform: rotate(180deg);
+    }
+    
+    .dropdown-content .nav-link {
+        padding: 0.75rem 1rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        transition: all 0.2s ease;
+    }
+    
+    .dropdown-content .nav-link:hover {
+        background-color: var(--nav-hover);
+    }
+    
+    /* User dropdown styles */
+    .user-dropdown .dropdown-toggle {
+        padding: 0.5rem;
+        display: flex;
+        align-items: center;
+        border-radius: 50%;
+        color: var(--text-color);
+    }
+    
+    .user-dropdown .fa-user-circle {
+        font-size: 1.5rem;
+        color: var(--primary-color);
+    }
+    
+    .user-dropdown:hover .dropdown-toggle,
+    .user-dropdown:focus-within .dropdown-toggle {
+        background-color: var(--nav-hover);
     }
 
     .main-content {

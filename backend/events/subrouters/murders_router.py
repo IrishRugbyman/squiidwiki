@@ -65,6 +65,7 @@ async def add_murder(
         date_precision: str = Form('keep'),
         date_exact: Optional[str] = Form(None),
         date_year: Optional[str] = Form(None),
+        update_victim_death: bool = Form(False),
         db: Session = Depends(get_db)
 ):
     # Check if victim already has a murder record
@@ -101,18 +102,31 @@ async def add_murder(
 
     # Handle victim's death date logic
     if victim.status == "dead" and date_precision != "keep":
-        if victim.death_date and event_date and event_date > victim.death_date:
-            raise HTTPException(
-                status_code=400,
-                detail=f"Victim died on {victim.death_date}, cannot be murdered on {event_date}"
-            )
+        if victim.death_date and event_date and event_date != victim.death_date:
+            if event_date > victim.death_date:
+                if not update_victim_death:
+                    raise HTTPException(
+                        status_code=400,
+                        detail=f"Victim died on {victim.death_date}, cannot be murdered on {event_date}. Check 'Update victim death date' to proceed."
+                    )
+            elif event_date < victim.death_date and not update_victim_death:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Victim's recorded death date ({victim.death_date}) is later than the murder date ({event_date}). Check 'Update victim death date' to correct this discrepancy."
+                )
         elif (victim.death_date_approx and victim.death_date_approx != "unknown" and
-              date_approx and date_approx != "unknown" and
-              int(date_approx) > int(victim.death_date_approx)):
-            raise HTTPException(
-                status_code=400,
-                detail=f"Victim died approximately in {victim.death_date_approx}, cannot be murdered in {date_approx}"
-            )
+              date_approx and date_approx != "unknown" and date_approx != victim.death_date_approx):
+            if int(date_approx) > int(victim.death_date_approx):
+                if not update_victim_death:
+                    raise HTTPException(
+                        status_code=400,
+                        detail=f"Victim died approximately in {victim.death_date_approx}, cannot be murdered in {date_approx}. Check 'Update victim death date' to proceed."
+                    )
+            elif int(date_approx) < int(victim.death_date_approx) and not update_victim_death:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Victim's recorded death year ({victim.death_date_approx}) is later than the murder year ({date_approx}). Check 'Update victim death date' to correct this discrepancy."
+                )
 
     new_murder = Murders(
         shooter_id=member_id,

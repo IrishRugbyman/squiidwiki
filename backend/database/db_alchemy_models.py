@@ -1,17 +1,30 @@
-from typing import List, Optional
-
-from sqlalchemy import Column, Date, Enum, ForeignKey, Index, Integer, Text, UniqueConstraint, text, create_engine
+from typing import List, Optional, Generator
+from contextlib import contextmanager
+import os
+from sqlalchemy import Column, Date, Enum, ForeignKey, Index, Integer, Text, UniqueConstraint, text, create_engine, Boolean, DateTime
 from sqlalchemy.orm import Mapped, declarative_base, mapped_column, relationship, sessionmaker
-from sqlalchemy.orm.base import Mapped
+from sqlalchemy.ext.declarative import DeclarativeMeta
+from datetime import datetime
 
+from backend.config.config import settings
+
+# Create the SQLAlchemy base class
 Base = declarative_base()
 
-engine = create_engine('sqlite:///squiidvault.db')
+# Use a different database file for testing based on environment variable
+TEST_MODE = os.environ.get("TEST_MODE", "0") == "1"
+if TEST_MODE:
+    engine = create_engine('sqlite:///squiidvault_test.db')
+    print("SQLAlchemy using test database: squiidvault_test.db")
+else:
+    engine = create_engine(settings.get_sqlalchemy_url(), pool_pre_ping=True)
+    
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
-def get_db():
+def get_db() -> Generator:
     """
     Dependency function that provides a SQLAlchemy session.
+    This should be used with FastAPI's dependency injection system.
     """
     db = SessionLocal()
     try:
@@ -20,13 +33,30 @@ def get_db():
         db.close()
 
 
+@contextmanager
+def get_db_context():
+    """
+    Context manager for database sessions.
+    For use in utility functions or scripts outside the API context.
+    """
+    db = SessionLocal()
+    try:
+        yield db
+        db.commit()
+    except Exception:
+        db.rollback()
+        raise
+    finally:
+        db.close()
+
+
 class Alliances(Base):
     __tablename__ = 'alliances'
 
-    name = mapped_column(Text, nullable=False, unique=True)
-    status = mapped_column(Enum('active', 'inactive'), nullable=False, server_default=text("'active'"))
-    id = mapped_column(Integer, primary_key=True)
-    description = mapped_column(Text)
+    name = Column(Text, nullable=False, unique=True)
+    status = Column(Enum('active', 'inactive'), nullable=False, server_default=text("'active'"))
+    id = Column(Integer, primary_key=True)
+    description = Column(Text)
 
     alliance_sets_map: Mapped[List['AllianceSetsMap']] = relationship('AllianceSetsMap', uselist=True, back_populates='alliance')
 
@@ -34,8 +64,8 @@ class Alliances(Base):
 class Config(Base):
     __tablename__ = 'config'
 
-    key = mapped_column(Text, primary_key=True)
-    value = mapped_column(Integer, unique=True)
+    key = Column(Text, primary_key=True)
+    value = Column(Integer, unique=True)
 
 
 class Enums(Base):
@@ -44,20 +74,20 @@ class Enums(Base):
         UniqueConstraint('enum_type', 'enum_key'),
     )
 
-    enum_type = mapped_column(Text, nullable=False)
-    enum_key = mapped_column(Text, nullable=False)
-    enum_value = mapped_column(Text, nullable=False)
-    id = mapped_column(Integer, primary_key=True)
+    enum_type = Column(Text, nullable=False)
+    enum_key = Column(Text, nullable=False)
+    enum_value = Column(Text, nullable=False)
+    id = Column(Integer, primary_key=True)
 
 
 class Sets(Base):
     __tablename__ = 'sets'
 
-    name = mapped_column(Text, nullable=False, unique=True)
-    type = mapped_column(Enum('active', 'extinct', 'system'), nullable=False, server_default=text("'active'"))
-    id = mapped_column(Integer, primary_key=True)
-    description = mapped_column(Text)
-    emoji = mapped_column(Text)
+    name = Column(Text, nullable=False, unique=True)
+    type = Column(Enum('active', 'extinct', 'system'), nullable=False, server_default=text("'active'"))
+    id = Column(Integer, primary_key=True)
+    description = Column(Text)
+    emoji = Column(Text)
 
     alliance_sets_map: Mapped[List['AllianceSetsMap']] = relationship('AllianceSetsMap', uselist=True, back_populates='set')
     members: Mapped[List['Members']] = relationship('Members', uselist=True, back_populates='set')
@@ -73,9 +103,9 @@ class AllianceSetsMap(Base):
         UniqueConstraint('alliance_id', 'set_id'),
     )
 
-    alliance_id = mapped_column(ForeignKey('alliances.id', ondelete='CASCADE'), nullable=False)
-    set_id = mapped_column(ForeignKey('sets.id', ondelete='CASCADE'), nullable=False)
-    id = mapped_column(Integer, primary_key=True)
+    alliance_id = Column(ForeignKey('alliances.id', ondelete='CASCADE'), nullable=False)
+    set_id = Column(ForeignKey('sets.id', ondelete='CASCADE'), nullable=False)
+    id = Column(Integer, primary_key=True)
 
     alliance: Mapped['Alliances'] = relationship('Alliances', back_populates='alliance_sets_map')
     set: Mapped['Sets'] = relationship('Sets', back_populates='alliance_sets_map')
@@ -87,16 +117,16 @@ class Members(Base):
         Index('idx_members_set_id', 'set_id'),
     )
 
-    name = mapped_column(Text, nullable=False)
-    status = mapped_column(Enum('dead', 'alive', 'locked_up', 'unknown'), nullable=False)
-    id = mapped_column(Integer, primary_key=True)
-    description = mapped_column(Text)
-    release_date = mapped_column(Date)
-    release_date_approx = mapped_column(Text, server_default=text("'unknown'"))
-    death_date = mapped_column(Date)
-    death_date_approx = mapped_column(Text, server_default=text("'unknown'"))
-    set_id = mapped_column(ForeignKey('sets.id', ondelete='SET NULL'))
-    alliance_id = mapped_column(Integer, server_default=text('NULL'))
+    name = Column(Text, nullable=False)
+    status = Column(Enum('dead', 'alive', 'locked_up', 'unknown'), nullable=False)
+    id = Column(Integer, primary_key=True)
+    description = Column(Text)
+    release_date = Column(Date)
+    release_date_approx = Column(Text, server_default=text("'unknown'"))
+    death_date = Column(Date)
+    death_date_approx = Column(Text, server_default=text("'unknown'"))
+    set_id = Column(ForeignKey('sets.id', ondelete='SET NULL'))
+    alliance_id = Column(Integer, server_default=text('NULL'))
 
     set: Mapped[Optional['Sets']] = relationship('Sets', back_populates='members')
     assists: Mapped[List['Assists']] = relationship('Assists', uselist=True, foreign_keys='[Assists.shooter_id]', back_populates='shooter')
@@ -113,9 +143,9 @@ class SetAlliesMap(Base):
         UniqueConstraint('set_id', 'ally_id'),
     )
 
-    set_id = mapped_column(ForeignKey('sets.id', ondelete='CASCADE'), nullable=False)
-    ally_id = mapped_column(ForeignKey('sets.id', ondelete='CASCADE'), nullable=False)
-    id = mapped_column(Integer, primary_key=True)
+    set_id = Column(ForeignKey('sets.id', ondelete='CASCADE'), nullable=False)
+    ally_id = Column(ForeignKey('sets.id', ondelete='CASCADE'), nullable=False)
+    id = Column(Integer, primary_key=True)
 
     ally: Mapped['Sets'] = relationship('Sets', foreign_keys=[ally_id], back_populates='set_allies_map')
     set: Mapped['Sets'] = relationship('Sets', foreign_keys=[set_id], back_populates='set_allies_map_')
@@ -127,9 +157,9 @@ class SetEnemiesMap(Base):
         UniqueConstraint('set_id', 'enemy_id'),
     )
 
-    set_id = mapped_column(ForeignKey('sets.id', ondelete='CASCADE'), nullable=False)
-    enemy_id = mapped_column(ForeignKey('sets.id', ondelete='CASCADE'), nullable=False)
-    id = mapped_column(Integer, primary_key=True)
+    set_id = Column(ForeignKey('sets.id', ondelete='CASCADE'), nullable=False)
+    enemy_id = Column(ForeignKey('sets.id', ondelete='CASCADE'), nullable=False)
+    id = Column(Integer, primary_key=True)
 
     enemy: Mapped['Sets'] = relationship('Sets', foreign_keys=[enemy_id], back_populates='set_enemies_map')
     set: Mapped['Sets'] = relationship('Sets', foreign_keys=[set_id], back_populates='set_enemies_map_')
@@ -138,11 +168,11 @@ class SetEnemiesMap(Base):
 class Assists(Base):
     __tablename__ = 'assists'
 
-    shooter_id = mapped_column(ForeignKey('members.id'), nullable=False)
-    victim_id = mapped_column(ForeignKey('members.id'), nullable=False)
-    id = mapped_column(Integer, primary_key=True)
-    date = mapped_column(Date)
-    date_approx = mapped_column(Text, server_default=text("'unknown'"))
+    shooter_id = Column(ForeignKey('members.id'), nullable=False)
+    victim_id = Column(ForeignKey('members.id'), nullable=False)
+    id = Column(Integer, primary_key=True)
+    date = Column(Date)
+    date_approx = Column(Text, server_default=text("'unknown'"))
 
     shooter: Mapped['Members'] = relationship('Members', foreign_keys=[shooter_id], back_populates='assists')
     victim: Mapped['Members'] = relationship('Members', foreign_keys=[victim_id], back_populates='assists_')
@@ -151,11 +181,11 @@ class Assists(Base):
 class Murders(Base):
     __tablename__ = 'murders'
 
-    shooter_id = mapped_column(ForeignKey('members.id'), nullable=False)
-    victim_id = mapped_column(ForeignKey('members.id'), nullable=False, unique=True)
-    id = mapped_column(Integer, primary_key=True)
-    date = mapped_column(Date)
-    date_approx = mapped_column(Text, server_default=text("'unknown'"))
+    shooter_id = Column(ForeignKey('members.id'), nullable=False)
+    victim_id = Column(ForeignKey('members.id'), nullable=False, unique=True)
+    id = Column(Integer, primary_key=True)
+    date = Column(Date)
+    date_approx = Column(Text, server_default=text("'unknown'"))
 
     shooter: Mapped['Members'] = relationship('Members', foreign_keys=[shooter_id], back_populates='murders')
     victim: Mapped['Members'] = relationship('Members', foreign_keys=[victim_id], back_populates='murders_')
@@ -164,11 +194,21 @@ class Murders(Base):
 class Shootings(Base):
     __tablename__ = 'shootings'
 
-    shooter_id = mapped_column(ForeignKey('members.id'), nullable=False)
-    victim_id = mapped_column(ForeignKey('members.id'), nullable=False)
-    id = mapped_column(Integer, primary_key=True)
-    date = mapped_column(Date)
-    date_approx = mapped_column(Text, server_default=text("'unknown'"))
+    shooter_id = Column(ForeignKey('members.id'), nullable=False)
+    victim_id = Column(ForeignKey('members.id'), nullable=False)
+    id = Column(Integer, primary_key=True)
+    date = Column(Date)
+    date_approx = Column(Text, server_default=text("'unknown'"))
 
     shooter: Mapped['Members'] = relationship('Members', foreign_keys=[shooter_id], back_populates='shootings')
     victim: Mapped['Members'] = relationship('Members', foreign_keys=[victim_id], back_populates='shootings_')
+
+
+class Users(Base):
+    __tablename__ = 'users'
+
+    id = Column(Integer, primary_key=True)
+    username = Column(Text, nullable=False, unique=True)
+    password_hash = Column(Text, nullable=False)
+    is_admin = Column(Boolean, nullable=False, server_default=text("0"))
+    created_at = Column(DateTime, server_default=text("CURRENT_TIMESTAMP"))

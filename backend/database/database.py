@@ -1,15 +1,24 @@
 import sqlite3
 from pathlib import Path
+import os
+from backend.config.config import settings
 
 # Define the path to the SQLite database file
-DB_PATH = Path(__file__).parent.parent.parent / "squiidvault.db"
+# Use a different database file for testing based on environment variable
+TEST_MODE = os.environ.get("TEST_MODE", "0") == "1"
+if TEST_MODE:
+    DB_PATH = Path(__file__).parent.parent.parent / "squiidvault_test.db"
+    print(f"Running in TEST MODE using database: {DB_PATH}")
+else:
+    DB_PATH = Path(__file__).parent.parent.parent / "squiidvault.db"
 
 
 def get_db():
     """
     Establishes and returns a connection to the SQLite database.
+    Uses the centralized configuration for the database path.
     """
-    conn = sqlite3.connect(DB_PATH)
+    conn = sqlite3.connect(settings.get_db_path())
     conn.row_factory = sqlite3.Row  # Return rows as dictionaries
     return conn
 
@@ -41,6 +50,7 @@ def init_db(drop_existing: bool = False):
             cursor.execute('DROP TABLE IF EXISTS murders')
             cursor.execute('DROP TABLE IF EXISTS assists')
             cursor.execute('DROP TABLE IF EXISTS sets')
+            cursor.execute('DROP TABLE IF EXISTS users')
 
             # Re-enable foreign key constraints after dropping tables
             cursor.execute("PRAGMA foreign_keys = ON")
@@ -171,6 +181,30 @@ def init_db(drop_existing: bool = False):
             )
         ''')
 
+        # Create users table for authentication
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS users (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                username TEXT NOT NULL UNIQUE,
+                password_hash TEXT NOT NULL,
+                is_admin BOOLEAN NOT NULL DEFAULT 0,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        ''')
+        
+        # Create a default admin user (username: admin, password: admin)
+        # Note: In production, you should use a more secure password
+        cursor.execute('''
+            INSERT OR IGNORE INTO users (username, password_hash, is_admin)
+            VALUES ('admin', '$2b$12$oGK0TrigRXOScvPUo3ysROaYq4fmQ5aKb55qL8JudwHLU6WX8D9Xa', 1)
+        ''')
+        
+        # Also add a backup admin user with a simpler hash in case there are bcrypt compatibility issues
+        # cursor.execute('''
+        #     INSERT OR IGNORE INTO users (username, password_hash, is_admin)
+        #     VALUES ('superadmin', 'admin', 1)
+        # ''')
+
         # --- REST OF INITIALIZATION CODE ---
 
         # Initialize Default Sets
@@ -219,8 +253,17 @@ def init_db(drop_existing: bool = False):
             END;
         ''')
 
+        # Use the same PRAGMA settings for all connections to ensure consistency
+        cursor.execute("PRAGMA journal_mode = WAL")  # Write-ahead logging for better concurrency
+        cursor.execute("PRAGMA foreign_keys = ON")   # Enforce foreign key constraints
+
         # Commit the transaction
         conn.commit()
+        
+        if settings.is_test():
+            print(f"Database initialized successfully in TEST MODE: {settings.get_db_path()}")
+        else:
+            print(f"Database initialized successfully: {settings.get_db_path()}")
 
     except Exception as e:
         # Rollback in case of any errors

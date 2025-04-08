@@ -3,11 +3,18 @@ Volume serial number is 3647-A969
 C:.
 |   .cursorignore
 |   .gitignore
+|   backup_db.py
+|   init_test_db.py
 |   main.py
 |   project_tree.txt
+|   README.md
+|   REFACTORING_SUMMARY.md
 |   requirements.txt
+|   setup.py
 |   squiidvault.db
+|   squiidvault_test.db
 |   SquiidWiki.code-workspace
+|   TEST_DB_README.md
 |   
 +---.idea
 |   |   .name
@@ -52,9 +59,24 @@ C:.
 |       |       shelved.patch
 |       |       squiidvault.db
 |       |       
-|       \---Uncommitted_changes_before_Checkout_at_02_04_2025_02_24_[Changes]
+|       +---Uncommitted_changes_before_Checkout_at_02_04_2025_02_24_[Changes]
+|       |       shelved.patch
+|       |       
+|       +---Uncommitted_changes_before_Checkout_at_02_04_2025_03_22_[Changes]
+|       |       shelved.patch
+|       |       squiidvault.db
+|       |       
+|       +---Uncommitted_changes_before_Merge_at_02_04_2025_03_21_[Changes]
+|       |       shelved.patch
+|       |       squiidvault.db
+|       |       
+|       \---Uncommitted_changes_before_Merge_at_02_04_2025_03_23_[Changes]
 |               shelved.patch
+|               squiidvault.db
 |               
++---.vscode
+|       launch.json
+|       
 +---backend
 |   |   cemetary.py
 |   |   server.py
@@ -72,6 +94,18 @@ C:.
 |   |           __init__.cpython-311.pyc
 |   |           __init__.cpython-312.pyc
 |   |           
+|   +---auth
+|   |   |   auth_middleware.py
+|   |   |   auth_router.py
+|   |   |   auth_utils.py
+|   |   |   __init__.py
+|   |   |   
+|   |   \---__pycache__
+|   |           auth_middleware.cpython-312.pyc
+|   |           auth_router.cpython-312.pyc
+|   |           auth_utils.cpython-312.pyc
+|   |           __init__.cpython-312.pyc
+|   |           
 |   +---calendar
 |   |   |   calendar_router.py
 |   |   |   __init__.py
@@ -83,9 +117,11 @@ C:.
 |   |           __init__.cpython-312.pyc
 |   |           
 |   +---config
+|   |   |   config.py
 |   |   |   templates.py
 |   |   |   
 |   |   \---__pycache__
+|   |           config.cpython-312.pyc
 |   |           templates.cpython-311.pyc
 |   |           templates.cpython-312.pyc
 |   |           
@@ -97,6 +133,7 @@ C:.
 |   |   |   enums.py
 |   |   |   migrate_sets_type.py
 |   |   |   models.py
+|   |   |   utils.py
 |   |   |   __init__.py
 |   |   |   
 |   |   \---__pycache__
@@ -110,6 +147,12 @@ C:.
 |   |           models.cpython-312.pyc
 |   |           __init__.cpython-311.pyc
 |   |           __init__.cpython-312.pyc
+|   |           
+|   +---errors
+|   |   |   error_handler.py
+|   |   |   
+|   |   \---__pycache__
+|   |           error_handler.cpython-312.pyc
 |   |           
 |   +---events
 |   |   |   events_funcs.py
@@ -157,6 +200,13 @@ C:.
 |   |           __init__.cpython-311.pyc
 |   |           __init__.cpython-312.pyc
 |   |           
+|   +---routes
+|   |   \---__pycache__
+|   |           alliances.cpython-311.pyc
+|   |           calendar.cpython-311.pyc
+|   |           members.cpython-311.pyc
+|   |           sets.cpython-311.pyc
+|   |           
 |   +---sets
 |   |   |   sets_funcs.py
 |   |   |   sets_router.py
@@ -178,6 +228,7 @@ C:.
 |           __init__.cpython-311.pyc
 |           __init__.cpython-312.pyc
 |           
++---backups
 +---frontend
 |   +---static
 |   |   |   app.js
@@ -200,9 +251,20 @@ C:.
 |       |       edit_alliance.html
 |       |       index.html
 |       |       
+|       +---auth
+|       |       login.html
+|       |       profile.html
+|       |       register.html
+|       |       users.html
+|       |       
 |       +---calendar
 |       |       calendar.html
 |       |       calendar_events.html
+|       |       
+|       +---errors
+|       |       404.html
+|       |       500.html
+|       |       error.html
 |       |       
 |       +---events
 |       |   +---assists
