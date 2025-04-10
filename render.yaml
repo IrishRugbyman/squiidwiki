@@ -1,0 +1,29 @@
+services:
+  - type: web
+    name: squiidwiki
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn backend.server:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: DEBUG
+        value: false
+      - key: DB_NAME
+        value: squiidvault.db
+      - key: JWT_SECRET_KEY
+        generateValue: true
+      - key: PORT
+        fromService:
+          type: web
+          name: squiidwiki
+          envVarKey: PORT
+      - key: TEST_MODE
+        value: 0
+      - key: AUTH_BYPASS_ENABLED
+        value: false
+    healthCheckPath: /health
+    disk:
+      name: sqlite-data
+      mountPath: /data
+      sizeGB: 1 

@@ -1,8 +1,8 @@
 from datetime import datetime
-from typing import Optional
+from typing import Optional, List
 
-from fastapi import APIRouter, Request, Form, HTTPException, Depends
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi import APIRouter, Request, Form, HTTPException, Depends, Body, Query
+from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from sqlalchemy.orm import Session, joinedload
 # from backend.database.database import get_db
 from backend.config.templates import templates
@@ -446,3 +446,306 @@ def member_details(request: Request, member_id: int, db: Session = Depends(get_d
             "assists": assists_data
         }
     })
+
+# -------------------------------------------------------------------
+# API Endpoints for JSON responses
+# -------------------------------------------------------------------
+
+@router.get("/api", response_class=JSONResponse)
+def api_list_members(db: Session = Depends(get_db), set_id: Optional[int] = None, status: Optional[str] = None):
+    """List members, optionally filtered by set_id or status"""
+    query = db.query(Members).options(joinedload(Members.set))
+    
+    # Apply filters if provided
+    if set_id:
+        query = query.filter(Members.set_id == set_id)
+    if status:
+        query = query.filter(Members.status == status)
+    
+    members = query.all()
+    
+    members_data = []
+    for member in members:
+        try:
+            # Try the newer Pydantic v2 method first
+            member_data = Member.model_validate(member).model_dump()
+        except AttributeError:
+            # Fall back to older Pydantic v1 method
+            member_data = Member.from_orm(member).dict()
+            
+        # Add the set name (if available)
+        member_data["set_name"] = member.set.name if member.set else "Unknown Set"
+        
+        # Add alliance information if available
+        if member.alliance_id:
+            alliance = db.get(Alliances, member.alliance_id)
+            if alliance:
+                member_data["alliance_name"] = alliance.name
+        
+        members_data.append(member_data)
+    
+    # Sort case–insensitively by name
+    members_data = sorted(members_data, key=lambda m: m["name"].lower())
+    return {"members": members_data}
+
+@router.get("/api/{member_id}", response_class=JSONResponse)
+def api_get_member(member_id: int, db: Session = Depends(get_db)):
+    """Get details for a specific member"""
+    member_obj = db.get(Members, member_id)
+    if not member_obj:
+        raise HTTPException(status_code=404, detail="Member not found")
+    
+    try:
+        # Try newer Pydantic v2 method first
+        member_data = Member.model_validate(member_obj).model_dump()
+    except AttributeError:
+        # Fall back to older Pydantic v1 method
+        member_data = Member.from_orm(member_obj).dict()
+
+    # Get set name
+    set_name = member_obj.set.name if member_obj.set else "Unknown Set"
+    member_data["set_name"] = set_name
+
+    # Fetch alliance name (if applicable)
+    alliance_name = None
+    if member_obj.alliance_id:
+        alliance_obj = db.get(Alliances, member_obj.alliance_id)
+        alliance_name = alliance_obj.name if alliance_obj else None
+    member_data["alliance_name"] = alliance_name
+
+    # Retrieve related activities
+    shootings = db.query(Shootings).filter(Shootings.shooter_id == member_id).all()
+    murders = db.query(Murders).filter(Murders.shooter_id == member_id).all()
+    assists = db.query(Assists).filter(Assists.shooter_id == member_id).all()
+
+    # Format activity data
+    activities = {
+        "shootings": [_format_activity(db, s, Shooting) for s in shootings],
+        "murders": [_format_activity(db, m, Murder) for m in murders],
+        "assists": [_format_activity(db, a, Assist) for a in assists]
+    }
+    
+    member_data["activities"] = activities
+    
+    return member_data
+
+def _format_activity(db, event, model_class):
+    """Helper function to format activity data with victim information"""
+    try:
+        # Try Pydantic v2 method
+        event_dict = model_class.model_validate(event).model_dump()
+    except AttributeError:
+        # Fall back to v1 method
+        event_dict = model_class.from_orm(event).dict()
+        
+    # Add victim info
+    victim = db.get(Members, event.victim_id)
+    if victim:
+        event_dict["victim_name"] = victim.name
+        event_dict["victim_set_id"] = victim.set_id
+        event_dict["victim_set_name"] = victim.set.name if victim.set else "Unknown Set"
+    
+    return event_dict
+
+@router.post("/api", response_class=JSONResponse)
+def api_create_member(
+    member_data: dict = Body(...),
+    db: Session = Depends(get_db)
+):
+    """Create a new member"""
+    # Extract and validate data
+    set_id = member_data.get('set_id')
+    if not set_id:
+        raise HTTPException(status_code=400, detail="set_id is required")
+    
+    name = member_data.get('name')
+    if not name:
+        raise HTTPException(status_code=400, detail="name is required")
+    
+    status = member_data.get('status')
+    if not status or status not in {'alive', 'locked_up', 'dead', 'unknown'}:
+        raise HTTPException(status_code=400, detail="Valid status is required")
+    
+    # Process release date for locked_up status
+    release_date = None
+    release_date_approx = None
+    if status == 'locked_up':
+        release_date_precision = member_data.get('release_date_precision')
+        if release_date_precision == 'life':
+            release_date_approx = "life"
+        elif release_date_precision == 'year' and member_data.get('release_date_year'):
+            release_date_year = member_data.get('release_date_year')
+            if not str(release_date_year).isdigit() or len(str(release_date_year)) != 4:
+                raise HTTPException(400, "Invalid release year format (must be YYYY)")
+            release_date_approx = str(release_date_year)
+        elif release_date_precision == 'exact' and member_data.get('release_date_exact'):
+            try:
+                parsed_date = datetime.strptime(member_data.get('release_date_exact'), "%Y-%m-%d").date()
+                release_date = parsed_date
+                release_date_approx = parsed_date.strftime("%Y")
+            except ValueError:
+                raise HTTPException(400, "Invalid release date format (must be YYYY-MM-DD)")
+        else:
+            release_date_approx = 'unknown'
+
+    # Process death date for dead status
+    death_date = None
+    death_date_approx = None
+    if status == "dead":
+        if member_data.get('death_date_year'):
+            death_date_year = member_data.get('death_date_year')
+            if not str(death_date_year).isdigit() or len(str(death_date_year)) != 4:
+                raise HTTPException(400, "Invalid death year format (must be YYYY)")
+            death_date_approx = str(death_date_year)
+        elif member_data.get('death_date_exact'):
+            try:
+                parsed_date = datetime.strptime(member_data.get('death_date_exact'), "%Y-%m-%d").date()
+                death_date = parsed_date
+                death_date_approx = parsed_date.strftime("%Y")
+            except ValueError:
+                raise HTTPException(400, "Invalid death date format (must be YYYY-MM-DD)")
+        else:
+            death_date_approx = 'unknown'
+
+    alliance_id = member_data.get('alliance_id')
+    alliance_id_int = int(alliance_id) if alliance_id and str(alliance_id).strip() else None
+
+    # Create the new member
+    new_member = MemberCreate(
+        name=name,
+        description=member_data.get('description'),
+        status=status,
+        release_date=release_date,
+        release_date_approx=release_date_approx,
+        death_date=death_date,
+        death_date_approx=death_date_approx,
+        set_id=set_id,
+        alliance_id=alliance_id_int
+    )
+    
+    # Get data as dict using either v1 or v2 method
+    try:
+        # Try newer Pydantic v2 method first
+        data = new_member.model_dump()
+    except AttributeError:
+        # Fall back to older Pydantic v1 method
+        data = new_member.dict()
+        
+    # Create and persist a new ORM instance
+    member_obj = Members(**data)
+    db.add(member_obj)
+    db.commit()
+    db.refresh(member_obj)
+    
+    # Return the created member
+    try:
+        return Member.model_validate(member_obj).model_dump()
+    except AttributeError:
+        return Member.from_orm(member_obj).dict()
+
+@router.put("/api/{member_id}", response_class=JSONResponse)
+def api_update_member(
+    member_id: int, 
+    member_data: dict = Body(...),
+    db: Session = Depends(get_db)
+):
+    """Update an existing member"""
+    # Check if member exists
+    member_obj = db.get(Members, member_id)
+    if not member_obj:
+        raise HTTPException(status_code=404, detail="Member not found")
+    
+    # Validate status if provided
+    status = member_data.get('status', member_obj.status)
+    if status not in {'alive', 'locked_up', 'dead', 'unknown'}:
+        raise HTTPException(status_code=400, detail="Invalid status value")
+
+    # Process release date values for "locked_up" status
+    release_date = member_obj.release_date
+    release_date_approx = member_obj.release_date_approx
+    
+    if status == 'locked_up':
+        release_date_precision = member_data.get('release_date_precision')
+        if release_date_precision == 'life':
+            release_date_approx = "life"
+        elif release_date_precision == 'year' and member_data.get('release_date_year'):
+            release_date_year = member_data.get('release_date_year')
+            if not str(release_date_year).isdigit() or len(str(release_date_year)) != 4:
+                raise HTTPException(400, "Invalid release year format (must be YYYY)")
+            release_date_approx = str(release_date_year)
+        elif release_date_precision == 'exact' and member_data.get('release_date_exact'):
+            try:
+                parsed_date = datetime.strptime(member_data.get('release_date_exact'), "%Y-%m-%d").date()
+                release_date = parsed_date
+                release_date_approx = parsed_date.strftime("%Y")
+            except ValueError:
+                raise HTTPException(400, "Invalid release date format (must be YYYY-MM-DD)")
+
+    # Process death date values for "dead" status
+    death_date = member_obj.death_date
+    death_date_approx = member_obj.death_date_approx
+    
+    if status == "dead":
+        if member_data.get('death_date_year'):
+            death_date_year = member_data.get('death_date_year')
+            if not str(death_date_year).isdigit() or len(str(death_date_year)) != 4:
+                raise HTTPException(400, "Invalid death year format (must be YYYY)")
+            death_date_approx = str(death_date_year)
+        elif member_data.get('death_date_exact'):
+            try:
+                parsed_date = datetime.strptime(member_data.get('death_date_exact'), "%Y-%m-%d").date()
+                death_date = parsed_date
+                death_date_approx = parsed_date.strftime("%Y")
+            except ValueError:
+                raise HTTPException(400, "Invalid death date format (must be YYYY-MM-DD)")
+
+    # Process alliance ID
+    alliance_id = member_data.get('alliance_id', member_obj.alliance_id)
+    alliance_id_int = int(alliance_id) if alliance_id and str(alliance_id).strip() else None
+
+    # Update member fields
+    member_obj.name = member_data.get('name', member_obj.name)
+    member_obj.description = member_data.get('description', member_obj.description)
+    member_obj.status = status
+    member_obj.release_date = release_date
+    member_obj.release_date_approx = release_date_approx
+    member_obj.death_date = death_date
+    member_obj.death_date_approx = death_date_approx
+    member_obj.set_id = member_data.get('set_id', member_obj.set_id)
+    member_obj.alliance_id = alliance_id_int
+
+    db.commit()
+    db.refresh(member_obj)
+    
+    # Return the updated member
+    try:
+        return Member.model_validate(member_obj).model_dump()
+    except AttributeError:
+        return Member.from_orm(member_obj).dict()
+
+@router.delete("/api/{member_id}", response_class=JSONResponse)
+def api_delete_member(member_id: int, db: Session = Depends(get_db)):
+    """Delete a member and related events"""
+    member_obj = db.get(Members, member_id)
+    if not member_obj:
+        raise HTTPException(status_code=404, detail="Member not found")
+
+    # Delete related events first
+    db.query(Shootings).filter(
+        (Shootings.shooter_id == member_id) | (Shootings.victim_id == member_id)
+    ).delete(synchronize_session=False)
+    db.query(Murders).filter(
+        (Murders.shooter_id == member_id) | (Murders.victim_id == member_id)
+    ).delete(synchronize_session=False)
+    db.query(Assists).filter(
+        (Assists.shooter_id == member_id) | (Assists.victim_id == member_id)
+    ).delete(synchronize_session=False)
+
+    # Store member details before deletion for return value
+    member_data = {"id": member_obj.id, "name": member_obj.name}
+    
+    # Delete the member
+    db.delete(member_obj)
+    db.commit()
+
+    return {"success": True, "deleted": member_data, "message": "Member deleted successfully"}

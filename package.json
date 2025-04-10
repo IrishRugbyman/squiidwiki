@@ -1,0 +1,21 @@
+{
+  "name": "squiidwiki",
+  "version": "1.0.0",
+  "description": "SquiidWiki project with TypeScript frontend",
+  "main": "frontend/static/js/app.js",
+  "scripts": {
+    "build": "webpack --mode production",
+    "dev": "webpack --mode development --watch",
+    "tsc": "tsc",
+    "tsc:watch": "tsc --watch"
+  },
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "ts-loader": "^9.5.1",
+    "typescript": "^5.3.3",
+    "webpack": "^5.89.0",
+    "webpack-cli": "^5.1.4"
+  }
+} 

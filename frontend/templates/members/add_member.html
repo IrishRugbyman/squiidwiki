@@ -436,10 +436,9 @@ document.addEventListener('DOMContentLoaded', function() {
     // Initialize form state
     toggleFields();
 
-    // Populate alliances dynamically
+    // Populate alliances dynamically using the API utility
     const allianceSelect = document.getElementById("alliance_id");
-    fetch("/alliances/options")
-        .then(response => response.json())
+    API.get('/alliances/options')
         .then(data => {
             data.forEach(alliance => {
                 const option = document.createElement("option");
@@ -448,7 +447,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 allianceSelect.appendChild(option);
             });
         })
-        .catch(error => console.error('Error fetching alliances:', error));
+        .catch(error => {
+            console.error('Error fetching alliances:', error);
+            showNotification('Failed to load alliances. Please refresh and try again.', 'error');
+        });
 
     // Add event listeners for release date precision
     document.querySelectorAll('input[name="release_date_precision"]').forEach(radio => {

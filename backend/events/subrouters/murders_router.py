@@ -6,7 +6,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from sqlalchemy.orm import Session
 from backend.config.templates import templates
 from backend.database.db_alchemy_models import Members, Murders, Assists, get_db
-from ..events_funcs import validate_member, get_events_by_type, get_victim_info, parse_date
+from ..events_funcs import validate_member, get_events_by_type, get_victim_info, parse_date, transaction_scope
 
 router = APIRouter()
 
@@ -40,14 +40,22 @@ async def show_add_murder_form(request: Request, member_id: int, db: Session = D
         name_counts[member.name] = name_counts.get(member.name, 0) + 1
     duplicate_names = {name for name, count in name_counts.items() if count > 1}
     
-    all_members_data = [{
-        "id": m.id, 
-        "name": m.name,
-        "set_name": m.set.name if m.set else "Unknown Set",
-        "death_date": m.death_date,
-        "death_date_approx": m.death_date_approx,
-        "status": m.status
-    } for m in all_members]
+    all_members_data = []
+    for m in all_members:
+        # Clear death_date_approx if it's 'unknown' and member is alive
+        if m.status == "alive" and m.death_date_approx == "unknown":
+            m.death_date_approx = None
+            
+        all_members_data.append({
+            "id": m.id, 
+            "name": m.name,
+            "set_name": m.set.name if m.set else "Unknown Set",
+            "death_date": m.death_date,
+            "death_date_approx": m.death_date_approx,
+            "status": m.status,
+            "release_date": m.release_date,
+            "release_date_approx": m.release_date_approx
+        })
     
     return templates.TemplateResponse("events/murders/add_murder.html", {
         "request": request,
@@ -175,7 +183,23 @@ async def show_edit_murder_form(request: Request, event_id: int, db: Session = D
         # Fallback: only include the current shooter
         shooter_members = [current_shooter]
     
-    all_members_data = [{"id": m.id, "name": m.name} for m in shooter_members]
+    # Create full member data including status information
+    all_members_data = []
+    for m in shooter_members:
+        # Clear death_date_approx if it's 'unknown' and member is alive
+        if m.status == "alive" and m.death_date_approx == "unknown":
+            m.death_date_approx = None
+            
+        all_members_data.append({
+            "id": m.id, 
+            "name": m.name,
+            "set_name": m.set.name if m.set else "Unknown Set",
+            "death_date": m.death_date,
+            "death_date_approx": m.death_date_approx,
+            "status": m.status,
+            "release_date": m.release_date,
+            "release_date_approx": m.release_date_approx
+        })
     
     return templates.TemplateResponse("events/murders/edit_murder.html", {
         "request": request,
@@ -189,66 +213,120 @@ async def edit_murder(
     request: Request,
     event_id: int,
     shooter_id: int = Form(...),
+    date_precision: str = Form('exact'),
     date_exact: Optional[str] = Form(None),
+    date_year: Optional[str] = Form(None),
     update_victim_death: bool = Form(False),
     db: Session = Depends(get_db)
 ):
+    # Fetch the murder record
     murder = db.query(Murders).get(event_id)
     if not murder:
         raise HTTPException(status_code=404, detail="Murder event not found")
+        
+    original_shooter_id = murder.shooter_id
+    victim_id = murder.victim_id
 
-    # Update shooter if changed
-    if murder.shooter_id != shooter_id:
-        validate_member(db, shooter_id, date_exact or str(murder.date), check_alive=True)
-        murder.shooter_id = shooter_id
+    # Start a managed transaction
+    with transaction_scope(db, error_message="Failed to update murder"):
+        # Update shooter if changed
+        if murder.shooter_id != shooter_id:
+            # Validate new shooter exists and is a valid member
+            validate_member(db, shooter_id, check_alive=False)
+            
+            # Validate shooter was alive at event time - will be checked with the date below
+            murder.shooter_id = shooter_id
 
-    # Update date if provided and different
-    if date_exact and date_exact != str(murder.date):
-        try:
-            event_date = datetime.strptime(date_exact, "%Y-%m-%d").date()
-        except ValueError:
-            raise HTTPException(status_code=400, detail="Invalid date format (must be YYYY-MM-DD)")
+        # Get victim for validation
+        victim = db.query(Members).get(victim_id)
+        if not victim:
+            raise HTTPException(status_code=404, detail="Victim not found")
 
-        # Validate shooter was alive at event time
-        validate_member(db, murder.shooter_id, date_exact, check_alive=True)
-
-        # Validate against victim's death date
-        victim = murder.victim
-        if victim.death_date and event_date > victim.death_date:
-            if not update_victim_death:
+        # Parse and validate date based on precision
+        original_date = murder.date
+        original_date_approx = murder.date_approx
+        event_date = original_date
+        date_approx = original_date_approx
+        
+        if date_precision == 'exact' and date_exact:
+            try:
+                event_date = datetime.strptime(date_exact, "%Y-%m-%d").date()
+                date_approx = event_date.strftime("%Y")
+            except ValueError:
+                raise HTTPException(status_code=400, detail="Invalid date format (must be YYYY-MM-DD)")
+        elif date_precision == 'year' and date_year:
+            if not date_year.isdigit() or len(date_year) != 4:
+                raise HTTPException(status_code=400, detail="Invalid year format (must be YYYY)")
+            date_approx = date_year
+            event_date = None
+        
+        # Only perform validation if date has changed
+        if event_date != original_date or date_approx != original_date_approx:
+            # Validate shooter was alive at event time
+            shooter = db.query(Members).get(shooter_id)
+            if event_date and shooter.status == 'dead' and shooter.death_date and event_date > shooter.death_date:
                 raise HTTPException(
                     status_code=400,
-                    detail=f"Victim died on {victim.death_date}, cannot be murdered on {event_date}. Check 'Update victim death date' to proceed."
+                    detail=f"Shooter died on {shooter.death_date}, cannot commit murder on {event_date}"
                 )
-        elif (victim.death_date_approx and victim.death_date_approx != "unknown" and
-              int(event_date.strftime("%Y")) > int(victim.death_date_approx)):
-            if not update_victim_death:
+            elif (shooter.status == 'dead' and shooter.death_date_approx and 
+                  shooter.death_date_approx != "unknown" and date_approx > shooter.death_date_approx):
                 raise HTTPException(
                     status_code=400,
-                    detail=f"Victim died approximately in {victim.death_date_approx}, cannot be murdered in {event_date.strftime('%Y')}. Check 'Update victim death date' to proceed."
+                    detail=f"Shooter died approximately in {shooter.death_date_approx}, cannot commit murder in {date_approx}"
                 )
 
-        # Update murder date
-        murder.date = event_date
-        murder.date_approx = event_date.strftime("%Y")
+            # Validate against victim's death date if not updating it
+            if not update_victim_death:
+                if victim.death_date and event_date and event_date != victim.death_date:
+                    # Check if date is before or after current death date
+                    if event_date > victim.death_date:
+                        raise HTTPException(
+                            status_code=400,
+                            detail=f"Victim died on {victim.death_date}, cannot be murdered on {event_date}. Check 'Update victim death date' to proceed."
+                        )
+                    elif event_date < victim.death_date:
+                        raise HTTPException(
+                            status_code=400,
+                            detail=f"New murder date ({event_date}) is earlier than victim's death date ({victim.death_date}). Check 'Update victim death date' to update records."
+                        )
+                elif (victim.death_date_approx and victim.death_date_approx != "unknown" and
+                      date_approx and date_approx != victim.death_date_approx):
+                    # Check if year is before or after current death year
+                    if date_approx > victim.death_date_approx:
+                        raise HTTPException(
+                            status_code=400,
+                            detail=f"Victim died approximately in {victim.death_date_approx}, cannot be murdered in {date_approx}. Check 'Update victim death date' to proceed."
+                        )
+                    elif date_approx < victim.death_date_approx:
+                        raise HTTPException(
+                            status_code=400,
+                            detail=f"New murder year ({date_approx}) is earlier than victim's death year ({victim.death_date_approx}). Check 'Update victim death date' to update records."
+                        )
 
-        # Update victim's death date if requested
-        if update_victim_death:
-            victim.death_date = event_date
-            victim.death_date_approx = event_date.strftime("%Y")
+            # Update murder date
+            murder.date = event_date
+            murder.date_approx = date_approx
 
-        # Sync assists
-        assists = db.query(Assists).filter(Assists.victim_id == murder.victim_id).all()
-        for assist in assists:
-            assist.date = event_date
-            assist.date_approx = event_date.strftime("%Y")
+            # Update victim's death date if requested
+            if update_victim_death:
+                victim.death_date = event_date
+                victim.death_date_approx = date_approx
 
-    try:
-        db.commit()
-        return RedirectResponse(url=f"/members/{murder.shooter_id}", status_code=303)
-    except Exception as e:
-        db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
+            # Sync assists - all assists for this victim should have the same date as the murder
+            assists = db.query(Assists).filter(Assists.victim_id == murder.victim_id).all()
+            for assist in assists:
+                assist.date = event_date
+                assist.date_approx = date_approx
+
+    # Ensure we're returning a proper 303 redirect response
+    # This will force the browser to perform a GET request to the new URL
+    target_url = f"/members/{murder.shooter_id}"
+    return RedirectResponse(
+        url=target_url, 
+        status_code=303,
+        headers={"Location": target_url}
+    )
 
 # Delete a murder
 @router.post("/delete/{event_id}", response_class=RedirectResponse)
@@ -258,15 +336,42 @@ async def delete_murder(event_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Murder event not found")
     member_id = murder.shooter_id
     victim_id = murder.victim_id
+    
+    # Start a transaction
     try:
-        db.query(Assists).filter(Assists.victim_id == victim_id).delete()
-        victim = db.query(Members).get(victim_id)
-        victim.status = "unknown"
-        victim.death_date = None
-        victim.death_date_approx = "unknown"
+        # Delete all assists related to this victim first
+        db.query(Assists).filter(Assists.victim_id == victim_id).delete(synchronize_session=False)
+        
+        # Delete the murder record
         db.delete(murder)
+        
+        # Check if there are any other murders for this victim before changing status
+        other_murders = db.query(Murders).filter(Murders.victim_id == victim_id).first()
+        if not other_murders:
+            # No other murders, so update victim status based on other events
+            victim = db.query(Members).get(victim_id)
+            if victim:
+                # Default to unknown status unless we have more information
+                new_status = "unknown"
+                # Check for shootings - if victim has shooting events, they were at least alive then
+                shootings = db.query(Shootings).filter(Shootings.victim_id == victim_id).order_by(Shootings.date.desc()).first()
+                if shootings:
+                    new_status = "alive"
+                
+                # Update victim status
+                victim.status = new_status
+                victim.death_date = None
+                victim.death_date_approx = None if new_status == "alive" else "unknown"
+        
         db.commit()
     except Exception as e:
         db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
-    return RedirectResponse(url=f"/members/{member_id}", status_code=303)
+        raise HTTPException(status_code=500, detail=f"Failed to delete murder: {str(e)}")
+    
+    # Ensure we're returning a proper 303 redirect response
+    target_url = f"/members/{member_id}"
+    return RedirectResponse(
+        url=target_url, 
+        status_code=303,
+        headers={"Location": target_url}
+    )

@@ -178,16 +178,29 @@
                         data-name="{{ member.name }}"
                         data-set_name="{{ member.set_name }}"
                         data-death_date="{{ member.death_date or '' }}"
-                        data-death_approx="{{ member.death_date_approx or '' }}">
+                        data-death_approx="{{ member.death_date_approx or '' }}"
+                        data-status="{{ member.status }}"
+                        data-release_date="{{ member.release_date or '' }}"
+                        data-release_approx="{{ member.release_date_approx or '' }}">
                         {{ member.name }}{% if member.name in duplicate_names %} ({{ member.set_name }}){% endif %}
-                        {% if member.death_date %}
+                        {% if member.status == "alive" %}
+                            (Alive)
+                        {% elif member.status == "locked_up" %}
+                            {% if member.release_date %}
+                                (Locked Up until {{ member.release_date|format_special_date|safe }})
+                            {% elif member.release_date_approx == "life" %}
+                                (Locked Up for Life)
+                            {% elif member.release_date_approx and member.release_date_approx != 'unknown' %}
+                                (Locked Up until approximately {{ member.release_date_approx }})
+                            {% else %}
+                                (Locked Up - release date unknown)
+                            {% endif %}
+                        {% elif member.death_date %}
                             (Deceased on {{ member.death_date|format_special_date|safe }})
                         {% elif member.death_date_approx and member.death_date_approx != 'unknown' %}
                             (Deceased approximately in {{ member.death_date_approx }})
-                        {% elif member.death_date_approx == 'unknown' %}
-                            (Death date unknown)
                         {% else %}
-                            (Alive)
+                            (Death date unknown)
                         {% endif %}
                     </option>
                 {% else %}
@@ -249,21 +262,34 @@ document.addEventListener('DOMContentLoaded', function () {
         for (let option of options) {
             const name = option.getAttribute('data-name').toLowerCase();
             const setName = option.getAttribute('data-set_name').toLowerCase();
+            const status = option.getAttribute('data-status');
             const deathDate = option.getAttribute('data-death_date');
             const deathApprox = option.getAttribute('data-death_approx');
+            const releaseDate = option.getAttribute('data-release_date');
+            const releaseApprox = option.getAttribute('data-release_approx');
             
-            let deathInfo = '';
-            if (deathDate) {
-                deathInfo = `(Deceased on ${deathDate})`;
+            let statusInfo = '';
+            if (status === "alive") {
+                statusInfo = '(Alive)';
+            } else if (status === "locked_up") {
+                if (releaseDate) {
+                    statusInfo = `(Locked Up until ${releaseDate})`;
+                } else if (releaseApprox === "life") {
+                    statusInfo = '(Locked Up for Life)';
+                } else if (releaseApprox && releaseApprox !== 'unknown') {
+                    statusInfo = `(Locked Up until approximately ${releaseApprox})`;
+                } else {
+                    statusInfo = '(Locked Up - release date unknown)';
+                }
+            } else if (deathDate) {
+                statusInfo = `(Deceased on ${deathDate})`;
             } else if (deathApprox && deathApprox !== 'unknown') {
-                deathInfo = `(Deceased approximately in ${deathApprox})`;
-            } else if (deathApprox === 'unknown') {
-                deathInfo = '(Death date unknown)';
+                statusInfo = `(Deceased approximately in ${deathApprox})`;
             } else {
-                deathInfo = '(Alive)';
+                statusInfo = '(Death date unknown)';
             }
 
-            const fullText = `${name} ${setName} ${deathInfo}`.toLowerCase();
+            const fullText = `${name} ${setName} ${statusInfo}`.toLowerCase();
             option.style.display = fullText.includes(searchTerm) ? '' : 'none';
         }
 
