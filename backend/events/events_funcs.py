@@ -1,10 +1,12 @@
-from typing import Optional, List, Any, Dict
+from typing import Optional, List, Any, Dict, Tuple, Union
 from fastapi import Request, HTTPException
 from backend.config.templates import templates
 from sqlalchemy import or_
 from sqlalchemy.orm import Session
 from datetime import datetime
 from backend.database.db_alchemy_models import Members, Murders, Shootings, Assists, Sets
+from contextlib import contextmanager
+from sqlalchemy.exc import SQLAlchemyError
 
 VALID_EVENT_TYPES = {"shootings": "shootings", "murders": "murders", "assists": "assists"}
 
@@ -14,6 +16,29 @@ VALID_EVENT_TYPES = {"shootings": "shootings", "murders": "murders", "assists": 
 def normalize_event_type(event_type: str) -> str:
     return event_type.strip().lower()
 
+# --------------------------
+# Transaction Management
+# --------------------------
+
+@contextmanager
+def transaction_scope(db: Session, error_message: str = "Database transaction failed"):
+    """Provide a transactional scope around a series of operations."""
+    try:
+        yield
+        db.commit()
+    except HTTPException as e:
+        db.rollback()
+        raise  # Re-raise HTTP exceptions as they are already properly formatted
+    except SQLAlchemyError as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"{error_message}: {str(e)}")
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"{error_message}: {str(e)}")
+
+# -------------------------------------------------------------------
+# Member Validation
+# -------------------------------------------------------------------
 def validate_member(
         db: Session,
         member_id: int,
@@ -104,42 +129,30 @@ def get_victim_info(db: Session, events: List[Any]) -> Dict[str, Any]:
         "victim_set_ids": victim_set_ids
     }
 
-def parse_date(date_precision: str, date_exact: Optional[str], date_year: Optional[str]):
+# --------------------------
+# Date Parsing Functions
+# --------------------------
+
+def parse_date(date_precision: str, date_exact: Optional[str], date_year: Optional[str]) -> Tuple[Optional[datetime.date], str]:
+    """Parse date based on precision and return (date, approximate_date)."""
     event_date = None
-    date_approx = None
-    try:
-        if date_precision == "exact" and date_exact:
-            try:
-                parsed_date = datetime.strptime(date_exact, "%Y-%m-%d").date()
-                event_date = parsed_date
-                date_approx = parsed_date.strftime("%Y")
-            except ValueError:
-                raise HTTPException(
-                    status_code=400, 
-                    detail="Invalid date format. Please use the format YYYY-MM-DD (e.g., 2023-05-15)."
-                )
-        elif date_precision == "year" and date_year:
-            if not date_year.isdigit() or len(date_year) != 4:
-                raise HTTPException(
-                    status_code=400, 
-                    detail="Invalid year format. Please enter a 4-digit year (e.g., 2023)."
-                )
-            date_approx = date_year
-        elif date_precision == "unknown":
-            date_approx = "unknown"
-        else:
-            raise HTTPException(
-                status_code=400, 
-                detail=f"Invalid date precision: '{date_precision}'. Please select from 'exact', 'year', or 'unknown'."
-            )
-    except Exception as e:
-        # Catch any other unexpected errors to prevent app crashes
-        if isinstance(e, HTTPException):
-            raise e
-        raise HTTPException(
-            status_code=400,
-            detail=f"Error processing date: {str(e)}. Please check your input and try again."
-        )
+    date_approx = "unknown"
+    
+    if date_precision == 'exact' and date_exact:
+        try:
+            event_date = datetime.strptime(date_exact, "%Y-%m-%d").date()
+            date_approx = event_date.strftime("%Y")
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Invalid date format (must be YYYY-MM-DD)")
+    elif date_precision == 'year' and date_year:
+        if not date_year.isdigit() or len(date_year) != 4:
+            raise HTTPException(status_code=400, detail="Invalid year format (must be YYYY)")
+        date_approx = date_year
+    elif date_precision == 'keep':
+        # Special case for murders keeping victim's death date
+        # The actual value is handled by the calling function
+        pass
+    
     return event_date, date_approx
 
 def handle_error(
@@ -173,12 +186,19 @@ def handle_error(
             duplicate_names.add(name)
     
     for m in all_members:
+        # If member is alive but has death_date_approx set to 'unknown', clear it
+        if m.status == "alive" and m.death_date_approx == "unknown":
+            m.death_date_approx = None
+            
         all_members_data.append({
             "id": m.id, 
             "name": m.name,
-            "set_name": m.set_name,
+            "set_name": m.set.name if m.set else "Unknown Set",
             "death_date": m.death_date,
-            "death_date_approx": m.death_date_approx
+            "death_date_approx": m.death_date_approx,
+            "status": m.status,
+            "release_date": m.release_date,
+            "release_date_approx": m.release_date_approx
         })
     
     # Extract error detail

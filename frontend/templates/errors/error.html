@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Error {{ status_code }}</title>
+</head>
+<body>
+    <h1>Error {{ status_code }}</h1>
+    <p>{{ error_message }}</p>
+    {% if debug %}
+    <h2>Details:</h2>
+    <pre>{{ error_details | tojson(indent=2) }}</pre>
+    {% endif %}
+</body>
+</html>

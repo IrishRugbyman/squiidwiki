@@ -172,12 +172,23 @@ def delete_set_confirmation(request: Request, set_id: int, db: Session = Depends
         raise HTTPException(status_code=404, detail="Set not found")
     member_count = db.query(Members).filter(Members.set_id == set_id).count()
     special_set_id = get_special_set_id(db, 'unknown')
-    set_dict = {"id": set_obj.id, "name": set_obj.name, "description": set_obj.description, "type": set_obj.type}
+    
+    # Change the set representation to a tuple format as expected by the template
+    set_data = (set_obj.id, set_obj.name, set_obj.description, set_obj.type)
+    
+    # Get available sets for member transfer
+    available_sets = db.query(Sets).filter(Sets.id != set_id).all()
+    available_sets_data = [
+        {"id": s.id, "name": s.name}
+        for s in available_sets if s.id not in special_ids
+    ]
+    
     return templates.TemplateResponse("sets/delete_set.html", {
         "request": request,
-        "set": set_dict,
+        "set": set_data,
         "member_count": member_count,
-        "special_set_id": special_set_id
+        "special_set_id": special_set_id,
+        "available_sets": available_sets_data
     })
 
 

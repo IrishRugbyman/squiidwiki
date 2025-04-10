@@ -50,7 +50,7 @@ register_exception_handlers(app)
 # Serve static files
 app.mount("/static", StaticFiles(directory="frontend/static"), name="static")
 
-# Include routes
+# Include routes for HTML endpoints
 app.include_router(auth_router, prefix="/auth", tags=["auth"])
 app.include_router(home_router, tags=["home"])
 app.include_router(sets_router, prefix="/sets", tags=["sets"])
@@ -59,9 +59,13 @@ app.include_router(alliances_router, prefix="/alliances", tags=["alliances"])
 app.include_router(calendar_router, prefix="/calendar", tags=["calendar"])
 app.include_router(events_router, prefix="/events", tags=["events"])
 
-# API routes for JSON endpoints
+# Create API app for JSON endpoints
 app_api = FastAPI(title="SquiidWiki API")
 app.mount("/api", app_api)
+
+# Include all routes in the API with consistent paths
+app_api.include_router(auth_router, prefix="/auth", tags=["auth"])
+app_api.include_router(home_router, tags=["home"])
 app_api.include_router(sets_router, prefix="/sets", tags=["sets"])
 app_api.include_router(members_router, prefix="/members", tags=["members"])
 app_api.include_router(alliances_router, prefix="/alliances", tags=["alliances"])

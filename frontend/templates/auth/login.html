@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="auth-container">
+    <div class="auth-card">
+        <div class="auth-header">
+            <h2>Login to SquiidVault</h2>
+            {% if error %}
+            <div class="error-message">
+                {{ error }}
+            </div>
+            {% endif %}
+        </div>
+        <form method="post" action="/auth/login" class="auth-form">
+            <div class="form-group">
+                <label for="username">Username</label>
+                <input type="text" id="username" name="username" placeholder="Enter your username" required>
+            </div>
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" name="password" placeholder="Enter your password" required>
+            </div>
+            <div class="form-actions">
+                <button type="submit" class="btn-primary">Log In</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<style>
+    .auth-container {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: calc(100vh - var(--header-height) - 60px);
+        padding: 1rem;
+    }
+    
+    .auth-card {
+        background: var(--surface-color);
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        width: 100%;
+        max-width: 400px;
+        padding: 2rem;
+        border: 1px solid var(--border-color);
+    }
+    
+    .auth-header {
+        margin-bottom: 1.5rem;
+        text-align: center;
+    }
+    
+    .auth-header h2 {
+        font-size: 1.75rem;
+        margin-bottom: 0.5rem;
+        color: var(--primary-color);
+    }
+    
+    .auth-form .form-group {
+        margin-bottom: 1.25rem;
+    }
+    
+    .auth-form label {
+        display: block;
+        margin-bottom: 0.5rem;
+        font-weight: 500;
+    }
+    
+    .auth-form input {
+        width: 100%;
+        padding: 0.75rem;
+        border: 1px solid var(--border-color);
+        border-radius: 4px;
+        background: var(--bg-color);
+        color: var(--text-color);
+        font-size: 1rem;
+    }
+    
+    .auth-form input:focus {
+        border-color: var(--primary-color);
+        outline: none;
+        box-shadow: 0 0 0 2px rgba(74, 0, 114, 0.2);
+    }
+    
+    .form-actions {
+        margin-top: 1.5rem;
+    }
+    
+    .btn-primary {
+        background: var(--primary-color);
+        color: white;
+        border: none;
+        border-radius: 4px;
+        padding: 0.75rem 1.5rem;
+        font-size: 1rem;
+        font-weight: 500;
+        cursor: pointer;
+        width: 100%;
+        transition: background-color 0.2s;
+    }
+    
+    .btn-primary:hover {
+        background: var(--primary-color-hover);
+    }
+    
+    .error-message {
+        background: rgba(220, 53, 69, 0.1);
+        color: #dc3545;
+        padding: 0.75rem;
+        border-radius: 4px;
+        margin-top: 1rem;
+        font-size: 0.9rem;
+    }
+</style>
+{% endblock %} 
