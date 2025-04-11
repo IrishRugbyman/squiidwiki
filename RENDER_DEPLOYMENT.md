@@ -1,66 +1,76 @@
-# Deploying SquiidWiki to Render
+# Déploiement SquiidWiki sur Render
 
-This guide explains how to deploy SquiidWiki to Render for continuous hosting, even when your local machine is turned off.
+Ce guide explique comment déployer SquiidWiki sur la plateforme [Render](https://render.com).
 
-## Prerequisites
+## Prérequis
 
-- A [Render](https://render.com) account (free tier is available)
-- Your SquiidWiki codebase in a Git repository (GitHub, GitLab, etc.)
+- Un compte [Render](https://render.com)
+- Un dépôt GitHub contenant votre code SquiidWiki
 
-## Deployment Steps
+## Étapes de déploiement
 
-1. **Sign up for Render** (if you haven't already)
-   - Visit [render.com](https://render.com) and create an account
+### 1. Créer le service Web
 
-2. **Connect your Git repository**
-   - From the Render dashboard, click "New" and select "Blueprint"
-   - Connect to your GitHub/GitLab account
-   - Select your SquiidWiki repository
+1. Connectez-vous à votre compte Render
+2. Allez dans le tableau de bord et cliquez sur "New +"
+3. Sélectionnez "Blueprint" (cela va configurer tous les services définis dans votre fichier `render.yaml`)
+4. Connectez votre dépôt GitHub et sélectionnez le dépôt SquiidWiki
+5. Suivez les étapes de configuration
 
-3. **Configure the deployment**
-   - Render will automatically detect the `render.yaml` file in your repository
-   - Review the settings and click "Apply"
+Le fichier `render.yaml` de SquiidWiki définit deux services qui seront créés automatiquement :
+- Un service web pour l'application
+- Un service PostgreSQL pour la base de données
 
-4. **Wait for deployment**
-   - Render will build and deploy your application
-   - This may take a few minutes
+### 2. Configuration des variables d'environnement
 
-5. **Access your application**
-   - Once deployed, Render will provide a URL (e.g., `https://squiidwiki.onrender.com`)
-   - Your application will now be accessible via this URL from anywhere
+Le fichier `render.yaml` définit déjà les variables d'environnement nécessaires, notamment :
 
-## Environment Variables
+- `APP_ENV` : environment (production)
+- `DEBUG` : désactivé en production
+- `POSTGRES_DB` : nom de la base de données
+- `POSTGRES_HOST` : hôte de la base de données
+- `POSTGRES_PORT` : port de la base de données
+- `POSTGRES_USER` : utilisateur PostgreSQL
+- `POSTGRES_PASSWORD` : mot de passe PostgreSQL
+- `JWT_SECRET_KEY` : clé secrète pour l'authentification JWT
+- `TEST_MODE` : désactivé en production
+- `AUTH_BYPASS_ENABLED` : désactivé en production
 
-The following environment variables are configured in `render.yaml`:
+### 3. Initialisation de la base de données
 
-- `APP_ENV`: Set to "production"
-- `DEBUG`: Set to "false"
-- `DB_NAME`: The name of your database file
-- `JWT_SECRET_KEY`: Automatically generated secure key
-- `PORT`: Automatically assigned by Render
-- `TEST_MODE`: Set to "0"
-- `AUTH_BYPASS_ENABLED`: Set to "false"
+La première fois que votre application se lance, la base de données PostgreSQL est créée automatiquement, mais vous devez initialiser sa structure :
 
-## Persistent Storage
+1. Allez dans le shell de votre service web sur Render
+2. Exécutez `python -m backend.database.migrate_to_postgres`
 
-Your SQLite database is stored in Render's persistent disk storage at `/data/squiidvault.db`. This ensures your data remains intact even when the service restarts.
+### 4. Vérification du déploiement
 
-## Troubleshooting
+1. Une fois le déploiement terminé, cliquez sur l'URL de votre application
+2. Vérifiez que l'application fonctionne correctement en accédant à `/docs` pour voir la documentation Swagger de l'API
 
-- If your deployment fails, check the build logs in the Render dashboard
-- Make sure all required dependencies are in your `requirements.txt` file
-- Verify that the startup command in `render.yaml` is correct
+## Base de données PostgreSQL
 
-## Manual Deployment (Alternative)
+Votre base de données PostgreSQL est gérée par Render et est accessible uniquement par votre service web par défaut. Pour y accéder directement :
 
-If you prefer to set up the service manually instead of using the Blueprint feature:
+1. Allez dans le tableau de bord de votre service PostgreSQL sur Render
+2. Récupérez les informations de connexion (hôte, port, utilisateur, mot de passe)
+3. Utilisez un client PostgreSQL pour vous connecter
 
-1. In Render dashboard, select "New" → "Web Service"
-2. Connect your repository
-3. Name your service (e.g., "squiidwiki")
-4. Set the build command to: `pip install -r requirements.txt`
-5. Set the start command to: `uvicorn backend.server:app --host 0.0.0.0 --port $PORT`
-6. Select a free or paid plan as needed
-7. Set the environment variables as listed above
-8. Add a persistent disk with mount path `/data` and at least 1GB of storage
-9. Click "Create Web Service" 
+## Sauvegarde et restauration
+
+### Sauvegarder la base de données 
+
+1. Allez dans le shell de votre service web sur Render
+2. Exécutez `python db_manager.py backup`
+3. Téléchargez le fichier de sauvegarde créé
+
+### Restaurer une sauvegarde
+
+1. Téléversez votre fichier de sauvegarde vers votre service web sur Render
+2. Exécutez `python db_manager.py restore votre_fichier_sauvegarde.sql`
+
+## Dépannage
+
+- **Problème de connexion à la base de données** : Vérifiez les variables d'environnement dans le tableau de bord Render
+- **Erreurs 500** : Consultez les logs du service web sur Render
+- **Application lente au démarrage** : C'est normal pour les services sur le plan gratuit, qui se mettent en veille après une période d'inactivité 

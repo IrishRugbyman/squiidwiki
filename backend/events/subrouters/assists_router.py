@@ -1,27 +1,22 @@
+from datetime import datetime
+from typing import Optional
+
 from fastapi import APIRouter, Request, Form, HTTPException, Depends
 from fastapi.responses import HTMLResponse, RedirectResponse
 from sqlalchemy.orm import Session
 from backend.config.templates import templates
-from backend.database.db_alchemy_models import Members, Assists, Murders, get_db
-from ..events_funcs import validate_member, get_events_by_type, get_victim_info, handle_error, transaction_scope
-from typing import Optional
+from backend.database import get_db
+from backend.events.models import Assists
+from backend.members.models import Members
+from ..events_funcs import validate_member, get_events_by_type, get_victim_info, parse_date, transaction_scope
 
 router = APIRouter()
 
 @router.get("/{member_id}", response_class=HTMLResponse)
 async def get_assists(request: Request, member_id: int, db: Session = Depends(get_db)):
     validate_member(db, member_id)
-    assists = get_events_by_type(db, member_id, "assists")
-    victim_info = get_victim_info(db, assists)
-    all_members = [{"id": m.id, "name": m.name} for m in db.query(Members).filter(Members.id != member_id).all()]
-    return templates.TemplateResponse("events/assists/list_assists.html", {
-        "request": request,
-        "events": assists,
-        "event_type": "assist",
-        "member_id": member_id,
-        "all_members": all_members,
-        **victim_info
-    })
+    # Instead of trying to render a non-existent template, redirect to the member details page
+    return RedirectResponse(url=f"/members/{member_id}", status_code=303)
 
 # Show form to add an assist
 @router.get("/add/{member_id}", response_class=HTMLResponse)

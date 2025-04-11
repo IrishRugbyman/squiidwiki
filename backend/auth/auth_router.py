@@ -10,8 +10,8 @@ from backend.auth.auth_utils import (
 )
 from backend.config.config import settings
 from backend.config.templates import templates
-from backend.database.db_alchemy_models import Users, get_db
-from backend.database.models import User, UserCreate
+from backend.database.imports import Users, get_db
+from backend.auth.schemas import User, UserCreate
 
 router = APIRouter()
 

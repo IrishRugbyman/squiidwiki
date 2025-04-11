@@ -7,8 +7,9 @@ from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
 
 from backend.config.templates import templates
-from backend.database.models import AllianceCreate, AllianceOption
-from backend.database.db_alchemy_models import Alliances, AllianceSetsMap, Sets, Members, get_db
+from backend.alliances.schemas import AllianceOption, AllianceCreate, AllianceUpdate, AllianceResponse, SetInAlliance
+from backend.database.imports import Alliance, AllianceSetsMap, Sets, Members, get_db
+from backend.alliances.service.alliance_service import alliance_service
 
 router = APIRouter()
 
@@ -31,7 +32,7 @@ def transaction_scope(db: Session, error_message: str = "Database transaction fa
 
 @router.get("/", response_class=HTMLResponse)
 def read_alliances(request: Request, db: Session = Depends(get_db)):
-    alliances = db.query(Alliances).all()
+    alliances = db.query(Alliance).all()
     # Convert ORM objects to dicts for templating.
     alliances_data = [
         {
@@ -71,7 +72,7 @@ def add_alliance(
                 )
             
             # Check if alliance with the same name already exists
-            existing_alliance = db.query(Alliances).filter(Alliances.name == name).first()
+            existing_alliance = db.query(Alliance).filter(Alliance.name == name).first()
             if existing_alliance:
                 return templates.TemplateResponse(
                     "alliances/add_alliance.html",
@@ -82,7 +83,7 @@ def add_alliance(
                 )
             
             # Create new alliance
-            alliance = Alliances(
+            alliance = Alliance(
                 name=name,
                 description=description,
                 status=status
@@ -104,7 +105,7 @@ def add_alliance(
 
 @router.get("/add_set/{alliance_id}", response_class=HTMLResponse)
 def add_set_form(request: Request, alliance_id: int, db: Session = Depends(get_db)):
-    alliance = db.get(Alliances, alliance_id)
+    alliance = db.get(Alliance, alliance_id)
     if not alliance:
         raise HTTPException(status_code=404, detail="Alliance not found")
 
@@ -166,7 +167,7 @@ def get_alliance_options(db: Session = Depends(get_db)):
     Returns a list of active alliances.
     Each alliance is represented as a dictionary with keys 'id' and 'name'.
     """
-    alliances = db.query(Alliances).filter(Alliances.status == "active").all()
+    alliances = db.query(Alliance).filter(Alliance.status == "active").all()
     return [AllianceOption(id=alliance.id, name=alliance.name) for alliance in alliances]
 
 
@@ -176,14 +177,14 @@ def api_get_alliance_options(db: Session = Depends(get_db)):
     API endpoint that returns a list of active alliances.
     Each alliance is represented as a dictionary with keys 'id' and 'name'.
     """
-    alliances = db.query(Alliances).filter(Alliances.status == "active").all()
+    alliances = db.query(Alliance).filter(Alliance.status == "active").all()
     alliance_options = [{"id": alliance.id, "name": alliance.name} for alliance in alliances]
     return alliance_options
 
 
 @router.get("/{alliance_id}", response_class=HTMLResponse)
 def read_alliance(request: Request, alliance_id: int, db: Session = Depends(get_db)):
-    alliance = db.get(Alliances, alliance_id)
+    alliance = db.get(Alliance, alliance_id)
     if not alliance:
         raise HTTPException(status_code=404, detail="Alliance not found")
 
@@ -253,7 +254,7 @@ def read_alliance(request: Request, alliance_id: int, db: Session = Depends(get_
 
 @router.get("/edit/{alliance_id}", response_class=HTMLResponse)
 def edit_alliance_form(request: Request, alliance_id: int, db: Session = Depends(get_db)):
-    alliance = db.get(Alliances, alliance_id)
+    alliance = db.get(Alliance, alliance_id)
     if not alliance:
         raise HTTPException(status_code=404, detail="Alliance not found")
 
@@ -283,30 +284,30 @@ def edit_alliance(
             # Validate status
             if status not in ["active", "inactive"]:
                 return templates.TemplateResponse(
-                    "alliances/edit.html",
+                    "alliances/edit_alliance.html",
                     {
                         "request": request,
-                        "alliance": db.query(Alliances).filter(Alliances.id == alliance_id).first(),
+                        "alliance": db.query(Alliance).filter(Alliance.id == alliance_id).first(),
                         "error": "Status must be either 'active' or 'inactive'"
                     }
                 )
             
             # Check if alliance exists
-            alliance = db.query(Alliances).filter(Alliances.id == alliance_id).first()
+            alliance = db.query(Alliance).filter(Alliance.id == alliance_id).first()
             if not alliance:
                 return templates.TemplateResponse(
-                    "alliances/list.html",
+                    "alliances/index.html",
                     {
                         "request": request,
-                        "alliances": db.query(Alliances).all(),
+                        "alliances": db.query(Alliance).all(),
                         "error": f"Alliance with ID {alliance_id} not found."
                     }
                 )
             
             # Check if name already exists for another alliance
-            existing_alliance = db.query(Alliances).filter(
-                Alliances.name == name,
-                Alliances.id != alliance_id
+            existing_alliance = db.query(Alliance).filter(
+                Alliance.name == name,
+                Alliance.id != alliance_id
             ).first()
             
             if existing_alliance:
@@ -330,7 +331,7 @@ def edit_alliance(
         except Exception as e:
             # Handle any exceptions and return error
             return templates.TemplateResponse(
-                "alliances/edit.html",
+                "alliances/edit_alliance.html",
                 {
                     "request": request,
                     "alliance": alliance,
@@ -348,14 +349,14 @@ def delete_alliance(
     with transaction_scope(db) as db:
         try:
             # Find the alliance
-            alliance = db.query(Alliances).filter(Alliances.id == alliance_id).first()
+            alliance = db.query(Alliance).filter(Alliance.id == alliance_id).first()
             if not alliance:
                 # Alliance not found, redirect to alliances list with an error
                 return templates.TemplateResponse(
-                    "alliances/list.html",
+                    "alliances/index.html",
                     {
                         "request": request,
-                        "alliances": db.query(Alliances).all(),
+                        "alliances": db.query(Alliance).all(),
                         "error": f"Alliance with ID {alliance_id} not found."
                     }
                 )
@@ -364,16 +365,16 @@ def delete_alliance(
             db.query(AllianceSetsMap).filter(AllianceSetsMap.alliance_id == alliance_id).delete()
             
             # Delete the alliance
-            db.query(Alliances).filter(Alliances.id == alliance_id).delete()
+            db.query(Alliance).filter(Alliance.id == alliance_id).delete()
             
             # Redirect to alliance list
             response = RedirectResponse(url="/alliances", status_code=303)
             return response
         except Exception as e:
             # Handle any exceptions and return error
-            alliances = db.query(Alliances).all()
+            alliances = db.query(Alliance).all()
             return templates.TemplateResponse(
-                "alliances/list.html",
+                "alliances/index.html",
                 {
                     "request": request,
                     "alliances": alliances,
@@ -389,7 +390,7 @@ def delete_alliance_confirmation(
     db: Session = Depends(get_db)
 ):
     try:
-        alliance = db.query(Alliances).filter(Alliances.id == alliance_id).first()
+        alliance = db.query(Alliance).filter(Alliance.id == alliance_id).first()
         if not alliance:
             return templates.TemplateResponse(
                 "alliances/delete_alliance.html",
@@ -400,7 +401,7 @@ def delete_alliance_confirmation(
             )
         
         # Count members in this alliance
-        member_sets_count = db.query(MemberAlliancesMap).filter(MemberAlliancesMap.alliance_id == alliance_id).count()
+        member_sets_count = db.query(AllianceSetsMap).filter(AllianceSetsMap.alliance_id == alliance_id).count()
         
         return templates.TemplateResponse(
             "alliances/delete_alliance.html",
@@ -471,7 +472,7 @@ def remove_alliance_member(
 
 @router.delete("/{alliance_id}", response_class=JSONResponse)
 def api_delete_alliance(alliance_id: int, db: Session = Depends(get_db)):
-    alliance = db.get(Alliances, alliance_id)
+    alliance = db.get(Alliance, alliance_id)
     if not alliance:
         return JSONResponse(
             status_code=404,
@@ -510,3 +511,90 @@ def get_recent_activity(db: Session = Depends(get_db)):
             }
         ]
     })
+
+
+# API Endpoints for Alliances
+@router.get("/api/alliances", response_model=List[AllianceResponse])
+def api_get_alliances(
+    skip: int = 0, 
+    limit: int = 100, 
+    db: Session = Depends(get_db)
+):
+    """API endpoint to get all alliances with pagination"""
+    alliances = alliance_service.get_multi(db, skip=skip, limit=limit)
+    return alliances
+
+
+@router.get("/api/alliances/{alliance_id}", response_model=AllianceResponse)
+def api_get_alliance(alliance_id: int, db: Session = Depends(get_db)):
+    """API endpoint to get an alliance by ID"""
+    alliance = alliance_service.get(db, alliance_id)
+    if not alliance:
+        raise HTTPException(status_code=404, detail="Alliance not found")
+    return alliance
+
+
+@router.post("/api/alliances", response_model=AllianceResponse)
+def api_create_alliance(alliance: AllianceCreate, db: Session = Depends(get_db)):
+    """API endpoint to create a new alliance"""
+    return alliance_service.create_alliance(db, alliance)
+
+
+@router.put("/api/alliances/{alliance_id}", response_model=AllianceResponse)
+def api_update_alliance(
+    alliance_id: int, 
+    alliance: AllianceUpdate, 
+    db: Session = Depends(get_db)
+):
+    """API endpoint to update an alliance"""
+    updated_alliance = alliance_service.update_alliance(db, alliance_id, alliance)
+    if not updated_alliance:
+        raise HTTPException(status_code=404, detail="Alliance not found")
+    return updated_alliance
+
+
+@router.delete("/api/alliances/{alliance_id}", response_model=bool)
+def api_delete_alliance(alliance_id: int, db: Session = Depends(get_db)):
+    """API endpoint to delete an alliance"""
+    success = alliance_service.remove(db, id=alliance_id)
+    return True
+
+
+@router.post("/api/alliances/{alliance_id}/sets/{set_id}", response_model=AllianceResponse)
+def api_add_set_to_alliance(
+    alliance_id: int, 
+    set_id: int, 
+    db: Session = Depends(get_db)
+):
+    """API endpoint to add a set to an alliance"""
+    updated_alliance = alliance_service.add_set_to_alliance(db, alliance_id, set_id)
+    return updated_alliance
+
+
+@router.delete("/api/alliances/{alliance_id}/sets/{set_id}", response_model=AllianceResponse)
+def api_remove_set_from_alliance(
+    alliance_id: int, 
+    set_id: int, 
+    db: Session = Depends(get_db)
+):
+    """API endpoint to remove a set from an alliance"""
+    updated_alliance = alliance_service.remove_set_from_alliance(db, alliance_id, set_id)
+    return updated_alliance
+
+
+@router.get("/api/alliances/{alliance_id}/sets", response_model=List[SetInAlliance])
+def api_get_alliance_sets(alliance_id: int, db: Session = Depends(get_db)):
+    """API endpoint to get all sets in an alliance"""
+    sets = alliance_service.get_sets_in_alliance(db, alliance_id)
+    if sets == []:
+        raise HTTPException(status_code=404, detail="Alliance not found")
+    return sets
+
+
+@router.get("/api/alliances/{alliance_id}/available-sets", response_model=List[SetInAlliance])
+def api_get_available_sets(alliance_id: int, db: Session = Depends(get_db)):
+    """API endpoint to get sets not in an alliance"""
+    sets = alliance_service.get_available_sets_for_alliance(db, alliance_id)
+    if sets == []:
+        raise HTTPException(status_code=404, detail="Alliance not found")
+    return sets

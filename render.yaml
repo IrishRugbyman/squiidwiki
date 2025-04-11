@@ -9,8 +9,25 @@ services:
         value: production
       - key: DEBUG
         value: false
-      - key: DB_NAME
-        value: squiidvault.db
+      - key: POSTGRES_DB
+        value: squiidvault
+      - key: POSTGRES_HOST
+        fromService:
+          type: postgres
+          name: squiidwiki-db
+          property: host
+      - key: POSTGRES_PORT
+        value: 5432
+      - key: POSTGRES_USER
+        fromService:
+          type: postgres
+          name: squiidwiki-db
+          property: user
+      - key: POSTGRES_PASSWORD
+        fromService:
+          type: postgres
+          name: squiidwiki-db
+          property: password
       - key: JWT_SECRET_KEY
         generateValue: true
       - key: PORT
@@ -23,7 +40,8 @@ services:
       - key: AUTH_BYPASS_ENABLED
         value: false
     healthCheckPath: /health
-    disk:
-      name: sqlite-data
-      mountPath: /data
-      sizeGB: 1 
+
+  - type: postgres
+    name: squiidwiki-db
+    plan: free
+    ipAllowList: [] 

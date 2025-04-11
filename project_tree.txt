@@ -2,23 +2,25 @@ Folder PATH listing for volume OS
 Volume serial number is 3647-A969
 C:.
 |   .cursorignore
+|   .env.sample
 |   .gitignore
-|   backup_db.py
 |   build.ps1
+|   DB_MANAGEMENT.md
+|   db_manager.py
 |   dev.ps1
-|   init_test_db.py
+|   LICENSE
 |   main.py
 |   package-lock.json
 |   package.json
+|   Procfile
 |   project_tree.txt
 |   README.md
-|   REFACTORING_SUMMARY.md
+|   render.yaml
+|   RENDER_DEPLOYMENT.md
 |   requirements.txt
+|   runtime.txt
 |   setup.py
-|   squiidvault.db
-|   squiidvault_test.db
 |   SquiidWiki.code-workspace
-|   TEST_DB_README.md
 |   tsconfig.json
 |   webpack.config.js
 |   
@@ -61,13 +63,6 @@ C:.
 |       |       shelved.patch
 |       |       squiidvault.db
 |       |       
-|       +---Uncommitted_changes_before_Checkout_at_01_04_2025_20_55_[Changes]
-|       |       shelved.patch
-|       |       squiidvault.db
-|       |       
-|       +---Uncommitted_changes_before_Checkout_at_02_04_2025_02_24_[Changes]
-|       |       shelved.patch
-|       |       
 |       +---Uncommitted_changes_before_Checkout_at_02_04_2025_03_22_[Changes]
 |       |       shelved.patch
 |       |       squiidvault.db
@@ -84,9 +79,8 @@ C:.
 |       launch.json
 |       
 +---backend
-|   |   cemetary.py
+|   |   cemetary_stuff_to_delete_soon.py
 |   |   server.py
-|   |   squiidvault.db
 |   |   __init__.py
 |   |   
 |   +---alliances
@@ -94,10 +88,32 @@ C:.
 |   |   |   alliances_router.py
 |   |   |   __init__.py
 |   |   |   
+|   |   +---models
+|   |   |   |   alliances_models.py
+|   |   |   |   __init__.py
+|   |   |   |   
+|   |   |   \---__pycache__
+|   |   |           alliances_models.cpython-312.pyc
+|   |   |           __init__.cpython-312.pyc
+|   |   |           
+|   |   +---schemas
+|   |   |   |   alliance_schemas.py
+|   |   |   |   __init__.py
+|   |   |   |   
+|   |   |   \---__pycache__
+|   |   |           alliance_schemas.cpython-312.pyc
+|   |   |           __init__.cpython-312.pyc
+|   |   |           
+|   |   +---service
+|   |   |   |   alliance_service.py
+|   |   |   |   __init__.py
+|   |   |   |   
+|   |   |   \---__pycache__
+|   |   |           alliance_service.cpython-312.pyc
+|   |   |           __init__.cpython-312.pyc
+|   |   |           
 |   |   \---__pycache__
-|   |           alliances_router.cpython-311.pyc
 |   |           alliances_router.cpython-312.pyc
-|   |           __init__.cpython-311.pyc
 |   |           __init__.cpython-312.pyc
 |   |           
 |   +---auth
@@ -106,6 +122,25 @@ C:.
 |   |   |   auth_utils.py
 |   |   |   __init__.py
 |   |   |   
+|   |   +---models
+|   |   |   |   users_models.py
+|   |   |   |   __init__.py
+|   |   |   |   
+|   |   |   \---__pycache__
+|   |   |           users_models.cpython-312.pyc
+|   |   |           __init__.cpython-312.pyc
+|   |   |           
+|   |   +---schemas
+|   |   |   |   auth_schemas.py
+|   |   |   |   __init__.py
+|   |   |   |   
+|   |   |   \---__pycache__
+|   |   |           auth_schemas.cpython-312.pyc
+|   |   |           __init__.cpython-312.pyc
+|   |   |           
+|   |   +---service
+|   |   |       __init__.py
+|   |   |       
 |   |   \---__pycache__
 |   |           auth_middleware.cpython-312.pyc
 |   |           auth_router.cpython-312.pyc
@@ -116,125 +151,213 @@ C:.
 |   |   |   calendar_router.py
 |   |   |   __init__.py
 |   |   |   
+|   |   +---models
+|   |   |       __init__.py
+|   |   |       
+|   |   +---schemas
+|   |   |       __init__.py
+|   |   |       
+|   |   +---service
+|   |   |       __init__.py
+|   |   |       
 |   |   \---__pycache__
-|   |           calendar_router.cpython-311.pyc
 |   |           calendar_router.cpython-312.pyc
-|   |           __init__.cpython-311.pyc
 |   |           __init__.cpython-312.pyc
 |   |           
 |   +---config
 |   |   |   config.py
 |   |   |   templates.py
+|   |   |   __init__.py
 |   |   |   
+|   |   +---models
+|   |   |   |   config_models.py
+|   |   |   |   __init__.py
+|   |   |   |   
+|   |   |   \---__pycache__
+|   |   |           config_models.cpython-312.pyc
+|   |   |           __init__.cpython-312.pyc
+|   |   |           
+|   |   +---schemas
+|   |   |       __init__.py
+|   |   |       
+|   |   +---service
+|   |   |       __init__.py
+|   |   |       
 |   |   \---__pycache__
 |   |           config.cpython-312.pyc
-|   |           templates.cpython-311.pyc
 |   |           templates.cpython-312.pyc
+|   |           __init__.cpython-312.pyc
 |   |           
 |   +---database
-|   |   |   cleanup.py
-|   |   |   create_models.py
-|   |   |   database.py
-|   |   |   db_alchemy_models.py
+|   |   |   add_timestamps_to_alliances.sql
+|   |   |   base_class.py
+|   |   |   database_pg.py
+|   |   |   empty_prod.py
 |   |   |   enums.py
-|   |   |   migrate_sets_type.py
-|   |   |   models.py
+|   |   |   imports.py
+|   |   |   migrate_to_postgres.py
+|   |   |   run_migration.py
+|   |   |   service_base.py
 |   |   |   utils.py
 |   |   |   __init__.py
 |   |   |   
 |   |   \---__pycache__
-|   |           database.cpython-311.pyc
-|   |           database.cpython-312.pyc
-|   |           db_alchemy_models.cpython-311.pyc
-|   |           db_alchemy_models.cpython-312.pyc
-|   |           enums.cpython-311.pyc
+|   |           base_class.cpython-312.pyc
+|   |           base_models.cpython-312.pyc
+|   |           database_pg.cpython-312.pyc
 |   |           enums.cpython-312.pyc
-|   |           models.cpython-311.pyc
-|   |           models.cpython-312.pyc
-|   |           __init__.cpython-311.pyc
+|   |           imports.cpython-312.pyc
+|   |           run_migration.cpython-312.pyc
+|   |           service_base.cpython-312.pyc
+|   |           utils.cpython-312.pyc
 |   |           __init__.cpython-312.pyc
 |   |           
 |   +---errors
 |   |   |   error_handler.py
+|   |   |   __init__.py
 |   |   |   
+|   |   +---models
+|   |   |       __init__.py
+|   |   |       
+|   |   +---schemas
+|   |   |       __init__.py
+|   |   |       
+|   |   +---service
+|   |   |       __init__.py
+|   |   |       
 |   |   \---__pycache__
 |   |           error_handler.cpython-312.pyc
+|   |           __init__.cpython-312.pyc
 |   |           
 |   +---events
 |   |   |   events_funcs.py
 |   |   |   events_router.py
 |   |   |   __init__.py
 |   |   |   
+|   |   +---models
+|   |   |   |   events_models.py
+|   |   |   |   __init__.py
+|   |   |   |   
+|   |   |   \---__pycache__
+|   |   |           events_models.cpython-312.pyc
+|   |   |           __init__.cpython-312.pyc
+|   |   |           
+|   |   +---schemas
+|   |   |   |   events_schemas.py
+|   |   |   |   __init__.py
+|   |   |   |   
+|   |   |   \---__pycache__
+|   |   |           events_schemas.cpython-312.pyc
+|   |   |           __init__.cpython-312.pyc
+|   |   |           
+|   |   +---service
+|   |   |       events_service_base.py
+|   |   |       __init__.py
+|   |   |       
 |   |   +---subrouters
 |   |   |   |   assists_router.py
 |   |   |   |   murders_router.py
 |   |   |   |   shootings_router.py
 |   |   |   |   
 |   |   |   \---__pycache__
-|   |   |           assists_router.cpython-311.pyc
 |   |   |           assists_router.cpython-312.pyc
-|   |   |           murders_router.cpython-311.pyc
 |   |   |           murders_router.cpython-312.pyc
-|   |   |           shootings_router.cpython-311.pyc
 |   |   |           shootings_router.cpython-312.pyc
 |   |   |           
 |   |   \---__pycache__
-|   |           events_funcs.cpython-311.pyc
 |   |           events_funcs.cpython-312.pyc
-|   |           events_router.cpython-311.pyc
 |   |           events_router.cpython-312.pyc
-|   |           __init__.cpython-311.pyc
 |   |           __init__.cpython-312.pyc
 |   |           
 |   +---home
 |   |   |   home_router.py
 |   |   |   __init__.py
 |   |   |   
+|   |   +---models
+|   |   |       __init__.py
+|   |   |       
+|   |   +---schemas
+|   |   |       __init__.py
+|   |   |       
+|   |   +---service
+|   |   |       __init__.py
+|   |   |       
 |   |   \---__pycache__
-|   |           home_router.cpython-311.pyc
 |   |           home_router.cpython-312.pyc
-|   |           __init__.cpython-311.pyc
 |   |           __init__.cpython-312.pyc
 |   |           
 |   +---members
-|   |   |   members_router.py
+|   |   |   routes.py
 |   |   |   __init__.py
 |   |   |   
+|   |   +---models
+|   |   |   |   members_models.py
+|   |   |   |   member_models.py
+|   |   |   |   __init__.py
+|   |   |   |   
+|   |   |   \---__pycache__
+|   |   |           members_models.cpython-312.pyc
+|   |   |           member_models.cpython-312.pyc
+|   |   |           __init__.cpython-312.pyc
+|   |   |           
+|   |   +---schemas
+|   |   |   |   member_schemas.py
+|   |   |   |   __init__.py
+|   |   |   |   
+|   |   |   \---__pycache__
+|   |   |           member_schemas.cpython-312.pyc
+|   |   |           __init__.cpython-312.pyc
+|   |   |           
+|   |   +---service
+|   |   |   |   member_service.py
+|   |   |   |   __init__.py
+|   |   |   |   
+|   |   |   \---__pycache__
+|   |   |           member_service.cpython-312.pyc
+|   |   |           __init__.cpython-312.pyc
+|   |   |           
 |   |   \---__pycache__
-|   |           members_router.cpython-311.pyc
-|   |           members_router.cpython-312.pyc
-|   |           __init__.cpython-311.pyc
+|   |           routes.cpython-312.pyc
 |   |           __init__.cpython-312.pyc
 |   |           
-|   +---routes
-|   |   \---__pycache__
-|   |           alliances.cpython-311.pyc
-|   |           calendar.cpython-311.pyc
-|   |           members.cpython-311.pyc
-|   |           sets.cpython-311.pyc
-|   |           
+|   +---schemas
+|   |       base_schemas.py
+|   |       
 |   +---sets
-|   |   |   sets_funcs.py
-|   |   |   sets_router.py
+|   |   |   routes.py
 |   |   |   __init__.py
 |   |   |   
+|   |   +---models
+|   |   |   |   sets_models.py
+|   |   |   |   set_models.py
+|   |   |   |   __init__.py
+|   |   |   |   
+|   |   |   \---__pycache__
+|   |   |           sets_models.cpython-312.pyc
+|   |   |           __init__.cpython-312.pyc
+|   |   |           
+|   |   +---schemas
+|   |   |       set_schemas.py
+|   |   |       __init__.py
+|   |   |       
+|   |   +---service
+|   |   |   |   sets_service.py
+|   |   |   |   __init__.py
+|   |   |   |   
+|   |   |   \---__pycache__
+|   |   |           sets_service.cpython-312.pyc
+|   |   |           __init__.cpython-312.pyc
+|   |   |           
 |   |   \---__pycache__
-|   |           sets_funcs.cpython-311.pyc
-|   |           sets_funcs.cpython-312.pyc
-|   |           sets_router.cpython-311.pyc
-|   |           sets_router.cpython-312.pyc
-|   |           __init__.cpython-311.pyc
+|   |           routes.cpython-312.pyc
 |   |           __init__.cpython-312.pyc
 |   |           
 |   \---__pycache__
-|           database.cpython-311.pyc
-|           models.cpython-311.pyc
-|           server.cpython-311.pyc
 |           server.cpython-312.pyc
-|           __init__.cpython-311.pyc
 |           __init__.cpython-312.pyc
 |           
 +---backups
++---exports
 +---frontend
 |   +---src
 |   |   \---ts
@@ -321,6 +444,7 @@ C:.
 |               index.html
 |               set_details.html
 |               
++---logs
 +---node_modules
 |   |   .package-lock.json
 |   |   

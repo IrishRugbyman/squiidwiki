@@ -5,8 +5,11 @@ from fastapi.responses import JSONResponse, HTMLResponse
 from fastapi.requests import Request
 import logging
 
-from backend.sets.sets_router import router as sets_router
-from backend.members.members_router import router as members_router
+# Import all models to ensure they are registered with SQLAlchemy metadata
+from backend.database.imports import *
+
+from backend.sets.routes import router as sets_router
+from backend.members.routes import router as members_router
 from backend.alliances.alliances_router import router as alliances_router
 from backend.calendar.calendar_router import router as calendar_router
 from backend.events.events_router import router as events_router

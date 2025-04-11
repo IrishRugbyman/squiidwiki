@@ -8,8 +8,8 @@ from fastapi.security.utils import get_authorization_scheme_param
 from sqlalchemy.orm import Session
 import bcrypt
 
-from backend.database.db_alchemy_models import Users, get_db
-from backend.database.models import TokenData, User, UserInDB
+from backend.database.imports import Users, get_db
+from backend.auth.schemas import TokenData, User, UserInDB
 from backend.config.config import settings
 
 # Password hashing configuration

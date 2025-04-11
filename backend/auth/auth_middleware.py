@@ -1,11 +1,13 @@
-from fastapi import Request, HTTPException, status
+from fastapi import Request, Response, status, HTTPException
 from fastapi.responses import RedirectResponse
-from jose import JWTError, jwt
+from starlette.middleware.base import BaseHTTPMiddleware
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import SQLAlchemyError
+from jose import JWTError, jwt
 
 from backend.auth.auth_utils import ALGORITHM
 from backend.config.config import settings
-from backend.database.db_alchemy_models import get_db, Users
+from backend.database.imports import get_db, Users
 
 class AuthMiddleware:
     async def __call__(self, request: Request, call_next):

@@ -4,9 +4,13 @@ from backend.config.templates import templates
 from sqlalchemy import or_
 from sqlalchemy.orm import Session
 from datetime import datetime
-from backend.database.db_alchemy_models import Members, Murders, Shootings, Assists, Sets
 from contextlib import contextmanager
 from sqlalchemy.exc import SQLAlchemyError
+
+from backend.events.models import Assists, Murders, Shootings
+from backend.members.models import Members
+from backend.sets.models import Sets
+from backend.database.utils import transaction_scope, parse_date_string
 
 VALID_EVENT_TYPES = {"shootings": "shootings", "murders": "murders", "assists": "assists"}
 
@@ -15,26 +19,6 @@ VALID_EVENT_TYPES = {"shootings": "shootings", "murders": "murders", "assists": 
 # -------------------------------------------------------------------
 def normalize_event_type(event_type: str) -> str:
     return event_type.strip().lower()
-
-# --------------------------
-# Transaction Management
-# --------------------------
-
-@contextmanager
-def transaction_scope(db: Session, error_message: str = "Database transaction failed"):
-    """Provide a transactional scope around a series of operations."""
-    try:
-        yield
-        db.commit()
-    except HTTPException as e:
-        db.rollback()
-        raise  # Re-raise HTTP exceptions as they are already properly formatted
-    except SQLAlchemyError as e:
-        db.rollback()
-        raise HTTPException(status_code=500, detail=f"{error_message}: {str(e)}")
-    except Exception as e:
-        db.rollback()
-        raise HTTPException(status_code=500, detail=f"{error_message}: {str(e)}")
 
 # -------------------------------------------------------------------
 # Member Validation
@@ -46,6 +30,22 @@ def validate_member(
         event_date_approx: Optional[str] = None,
         check_alive: bool = False
 ) -> Members:
+    """
+    Validate that a member exists and optionally check date constraints.
+    
+    Args:
+        db: SQLAlchemy database session
+        member_id: ID of the member to validate
+        event_date: Optional date string for validation checks
+        event_date_approx: Optional approximate date (year) for validation
+        check_alive: Whether to check if the member was alive at the event date
+        
+    Returns:
+        The validated member object
+        
+    Raises:
+        HTTPException: If validation fails
+    """
     member = db.get(Members, member_id)
     if not member:
         raise HTTPException(status_code=404, detail="Member not found")
@@ -85,26 +85,52 @@ def validate_member(
     return member
 
 def get_events_by_type(db: Session, member_id: int, event_type: str) -> List[Any]:
+    """
+    Get events of a specific type for a member.
+    
+    Args:
+        db: SQLAlchemy database session
+        member_id: Member ID to get events for
+        event_type: Type of events to retrieve ("shootings", "murders", "assists")
+        
+    Returns:
+        List of events
+        
+    Raises:
+        HTTPException: If the event type is invalid
+    """
     event_type = normalize_event_type(event_type)
     if event_type not in VALID_EVENT_TYPES:
         raise HTTPException(status_code=400, detail="Invalid event type")
-    if event_type == "shootings":
-        events = db.query(Shootings).filter(
+    
+    # Use a dictionary to map event types to their respective models and queries
+    queries = {
+        "shootings": db.query(Shootings).filter(
             or_(Shootings.shooter_id == member_id, Shootings.victim_id == member_id)
-        ).order_by(Shootings.date.desc()).all()
-    elif event_type == "murders":
-        events = db.query(Murders).filter(
+        ),
+        "murders": db.query(Murders).filter(
             or_(Murders.shooter_id == member_id, Murders.victim_id == member_id)
-        ).order_by(Murders.date.desc()).all()
-    elif event_type == "assists":
-        events = db.query(Assists).filter(
+        ),
+        "assists": db.query(Assists).filter(
             or_(Assists.shooter_id == member_id, Assists.victim_id == member_id)
-        ).order_by(Assists.date.desc()).all()
-    else:
-        events = []
+        )
+    }
+    
+    # Execute the appropriate query
+    events = queries.get(event_type, db.query(None)).order_by(None).all()
     return events
 
 def get_victim_info(db: Session, events: List[Any]) -> Dict[str, Any]:
+    """
+    Get information about victims from a list of events.
+    
+    Args:
+        db: SQLAlchemy database session
+        events: List of event objects (Murders, Shootings, Assists)
+        
+    Returns:
+        Dictionary containing victim information including names and sets
+    """
     # Gather unique victim IDs from events (skip None)
     victim_ids = {event.victim_id for event in events if event.victim_id is not None}
     member_names: Dict[int, str] = {}
@@ -134,7 +160,17 @@ def get_victim_info(db: Session, events: List[Any]) -> Dict[str, Any]:
 # --------------------------
 
 def parse_date(date_precision: str, date_exact: Optional[str], date_year: Optional[str]) -> Tuple[Optional[datetime.date], str]:
-    """Parse date based on precision and return (date, approximate_date)."""
+    """
+    Parse date based on precision and return (date, approximate_date).
+    
+    Args:
+        date_precision: Type of date precision ("exact", "year", "keep")
+        date_exact: Exact date string in format YYYY-MM-DD
+        date_year: Year string in format YYYY
+        
+    Returns:
+        Tuple containing the parsed date object and the approximate date string
+    """
     event_date = None
     date_approx = "unknown"
     
@@ -169,6 +205,20 @@ def handle_error(
     """
     Handles errors during event creation or editing by rendering the form again with the error message.
     Also preserves the user's input to avoid data loss.
+    
+    Args:
+        request: FastAPI request object
+        db: SQLAlchemy database session
+        member_id: ID of the member (shooter)
+        event_type: Type of event
+        victim_id: ID of the victim
+        date_precision: Date precision type
+        date_exact: Exact date string
+        date_year: Year string
+        error: The exception that occurred
+        
+    Returns:
+        TemplateResponse with the error message and preserved form data
     """
     all_members = db.query(Members).filter(Members.id != member_id).order_by(Members.name).all()
     member = db.get(Members, member_id)
@@ -201,36 +251,20 @@ def handle_error(
             "release_date_approx": m.release_date_approx
         })
     
-    # Extract error detail
-    error_message = str(error)
-    if hasattr(error, 'detail'):
-        error_message = error.detail
-    
-    # Get the status code, default to 400 if not available
-    status_code = 400
-    if hasattr(error, 'status_code'):
-        status_code = error.status_code
-    
-    # Determine template based on event type
-    template_name = f"events/{event_type}/add_{event_type[:-1]}.html"
-    if event_type == "murders":
-        template_name = "events/murders/add_murder.html"
-    elif event_type == "shootings":
-        template_name = "events/shootings/add_shooting.html"
-    elif event_type == "assists":
-        template_name = "events/assists/add_assist.html"
-    
-    return templates.TemplateResponse(template_name, {
-        "request": request,
-        "member_id": member_id,
-        "member_name": member.name if member else "Unknown Member",
-        "all_members": all_members_data,
-        "duplicate_names": duplicate_names,
-        "error_message": error_message,
-        "form_data": {
-            "victim_id": victim_id,
+    # Render the form template with error message and preserved data
+    template_name = f"events/{event_type.lower()}/add_{event_type.lower()[:-1]}.html"
+    return templates.TemplateResponse(
+        template_name,
+        {
+            "request": request,
+            "member_id": member_id,
+            "error": str(error),
+            "all_members": all_members_data,
+            "duplicate_names": duplicate_names,
+            "selected_victim_id": victim_id,
             "date_precision": date_precision,
             "date_exact": date_exact,
-            "date_year": date_year
+            "date_year": date_year,
+            "event_type": event_type.lower()[:-1]  # Remove 's' to get singular form
         }
-    }, status_code=status_code)
+    )
