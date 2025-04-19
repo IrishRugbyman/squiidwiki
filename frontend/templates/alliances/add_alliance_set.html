@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="add-set-container">
+    <h2>Add Set to {{ alliance.name }}</h2>
+
+    <form method="post" action="/alliances/add_set/{{ alliance.id }}">
+        <div class="form-group">
+            <label for="set_id">Select Set to Add:</label>
+            <select class="form-select" id="set_id" name="set_id" required>
+                {% for set in available_sets %}
+                    <option value="{{ set.id }}">{{ set.name }} ({{ set.type }})</option>
+                {% endfor %}
+            </select>
+        </div>
+        <button type="submit" class="btn primary-button">Add Set to Alliance</button>
+    </form>
+
+    <a href="/alliances/{{ alliance.id }}" class="back-link">← Back to Alliance</a>
+</div>
+
+<style>
+    .add-set-container {
+        max-width: 800px;
+        margin: 2rem auto;
+        padding: 2rem;
+        background: var(--surface-color);
+        border-radius: 12px;
+        border: 1px solid var(--border-color);
+        box-shadow: 0 4px 12px var(--shadow-color);
+    }
+
+    h2 {
+        color: var(--primary-color);
+        margin-bottom: 1.5rem;
+        font-weight: 700;
+    }
+
+    .form-group {
+        margin-bottom: 1.5rem;
+    }
+
+    label {
+        display: block;
+        margin-bottom: 0.5rem;
+        color: var(--text-color);
+        font-weight: 500;
+    }
+
+    .form-select {
+        width: 100%;
+        padding: 0.75rem 1rem;
+        background: var(--input-bg);
+        border: 1px solid var(--border-color);
+        color: var(--text-color);
+        border-radius: 8px;
+        font-size: 1rem;
+        transition: all 0.2s ease;
+    }
+
+    .form-select:focus {
+        outline: none;
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 2px rgba(var(--primary-color-rgb), 0.25);
+    }
+
+    .primary-button {
+        background: var(--primary-color);
+        color: white;
+        border: none;
+        padding: 0.75rem 1.5rem;
+        border-radius: 8px;
+        font-size: 1rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+    .primary-button:hover {
+        background: var(--primary-color-hover);
+        transform: translateY(-2px);
+    }
+
+    .back-link {
+        display: inline-block;
+        margin-top: 1.5rem;
+        color: var(--primary-color);
+        text-decoration: none;
+        transition: all 0.2s ease;
+    }
+
+    .back-link:hover {
+        color: var(--primary-color-hover);
+        text-decoration: underline;
+    }
+</style>
+{% endblock %} 
