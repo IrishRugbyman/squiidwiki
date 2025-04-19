@@ -81,7 +81,52 @@ class AllianceService(BaseService[Alliance, AllianceCreate, AllianceUpdate, Alli
     def __init__(self):
         super().__init__(Alliance)
     
-    # ... existing code ...
+    @db_error_handler
+    def create_alliance(self, db: Session, obj_in: AllianceCreate) -> AllianceResponse:
+        """
+        Create a new alliance with optional set relationships.
+        
+        Args:
+            db: SQLAlchemy database session
+            obj_in: Alliance creation data including optional set IDs
+            
+        Returns:
+            The created alliance with its relationships
+        """
+        # Extract set_ids before creating the alliance
+        set_ids = obj_in.set_ids or []
+        
+        # Create alliance without set_ids (not a column in the model)
+        alliance_data = obj_in.dict(exclude={"set_ids"})
+        alliance = Alliance(**alliance_data)
+        
+        # Set created_at and updated_at timestamps
+        now = datetime.utcnow()
+        alliance.created_at = now
+        alliance.updated_at = now
+        
+        db.add(alliance)
+        db.flush()  # Flush to get the alliance ID
+        
+        # Create relationships with sets if set_ids are provided
+        for set_id in set_ids:
+            # Verify the set exists
+            set_obj = db.query(Sets).filter(Sets.id == set_id).first()
+            if not set_obj:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail=f"Set with id {set_id} not found"
+                )
+            
+            # Create the mapping
+            mapping = AllianceSetsMap(alliance_id=alliance.id, set_id=set_id)
+            db.add(mapping)
+        
+        db.commit()
+        db.refresh(alliance)
+        
+        # Convert to response schema and return
+        return alliance
 
 # Create a singleton instance
 alliance_service = AllianceService()

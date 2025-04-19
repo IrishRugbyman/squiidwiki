@@ -17,7 +17,7 @@ class IDMixin(BaseModel):
 class ResponseBase(IDMixin, TimeStampMixin, BaseModel):
     """Base class for response schemas with ID and timestamps"""
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 class PaginatedResponse(BaseModel):
@@ -33,7 +33,7 @@ class PaginatedResponse(BaseModel):
     pages: int = Field(..., description="Total number of pages")
     
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 # Type variables for the schema factory
@@ -80,7 +80,7 @@ class SchemaFactory(Generic[T]):
                 fields['__annotations__'][field_name] = field_type
                 fields[field_name] = field_default
         
-        # Create the model with orm_mode enabled
+        # Create the model with from_attributes enabled
         return create_model(
             name,
             __base__=(base_schema, ResponseBase),

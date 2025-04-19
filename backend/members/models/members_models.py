@@ -15,7 +15,7 @@ class Members(Base):
 
     id = Column(Integer, primary_key=True)
     name = Column(Text, nullable=False)
-    status = Column(Enum('dead', 'alive', 'locked_up', 'unknown'), nullable=False)
+    status = Column(Enum('dead', 'alive', 'locked_up', 'unknown', name='member_status_enum'), nullable=False)
     description = Column(Text)
     release_date = Column(Date)
     release_date_approx = Column(Text, server_default="unknown")

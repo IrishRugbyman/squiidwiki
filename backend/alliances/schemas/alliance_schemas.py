@@ -43,7 +43,7 @@ class Alliance(AllianceBase):
     sets: List["SetInAlliance"] = []
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 class SetInAlliance(BaseModel):
@@ -52,7 +52,7 @@ class SetInAlliance(BaseModel):
     name: str
     
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 class AllianceResponse(AllianceBase):
@@ -63,7 +63,7 @@ class AllianceResponse(AllianceBase):
     sets: List[SetInAlliance] = []
     
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 class AllianceListResponse(BaseModel):

@@ -54,7 +54,7 @@ class EventMemberInfo(BaseModel):
     status: str
     
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 class EventResponse(EventBase):
@@ -64,7 +64,7 @@ class EventResponse(EventBase):
     victim: EventMemberInfo
     
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 class MurderResponse(EventResponse):

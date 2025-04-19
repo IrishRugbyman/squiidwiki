@@ -30,7 +30,7 @@ class SetResponse(SetBase):
     type: Union[int, str]  # To accommodate both int and enum string representation
     
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 class SetOption(BaseModel):
@@ -39,7 +39,7 @@ class SetOption(BaseModel):
     name: str
     
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 class SetDetail(SetResponse):
@@ -49,4 +49,4 @@ class SetDetail(SetResponse):
     members_count: int = 0
     
     class Config:
-        orm_mode = True 
+        from_attributes = True 

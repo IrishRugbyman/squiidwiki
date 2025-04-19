@@ -1,11 +1,12 @@
 {% extends "base.html" %}
 
 {% block extra_styles %}
-<!-- Include Tagify CSS -->
-<link href="https://cdn.jsdelivr.net/npm/@yaireo/tagify/dist/tagify.css" rel="stylesheet" type="text/css">
-
 <!-- Include Emoji Picker -->
 <script type="module" src="https://cdn.jsdelivr.net/npm/emoji-picker-element@1.18.3/index.js"></script>
+
+<!-- Include TomSelect CSS -->
+<link href="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/css/tom-select.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/css/tom-select.bootstrap5.min.css" rel="stylesheet">
 
 <style>
 :root {
@@ -157,48 +158,81 @@ textarea.form-control {
     resize: vertical;
 }
 
-.tagify {
-    --tags-border-color: var(--border-color);
-    --tags-hover-border-color: var(--primary-color);
-    --tags-focus-border-color: var(--primary-color);
-    --tag-bg: var(--primary-color);
-    --tag-hover: var(--primary-color-hover);
-    --tag-text-color: white;
-    --tag-border-radius: 6px;
-    --tag-pad: 0.5em 0.75em;
-    --tag-inset-shadow-size: 1.1em;
-    --tag-remove-btn-color: white;
-    --tag-remove-btn-bg--hover: rgba(255, 255, 255, 0.3);
-    
+/* TomSelect Customization */
+.ts-wrapper {
     width: 100%;
-    padding: 0.5rem;
-    border-radius: 12px;
-    background: var(--bg-color);
+    border-radius: 5px;
 }
 
-.tagify__input {
-    color: var(--text-color);
+.ts-control {
+    border-radius: 5px !important;
+    border: 1px solid var(--border-color) !important;
+    background: var(--input-bg) !important;
+    color: var(--text-color) !important;
+    padding: 8px !important;
+    box-shadow: none !important;
+    min-height: var(--input-height) !important;
 }
 
-.tagify__input::before {
-    color: var(--helper-text-color);
+.ts-control:focus {
+    border-color: var(--primary-color) !important;
+    box-shadow: 0 0 0 2px rgba(var(--primary-color-rgb), 0.25) !important;
 }
 
-.save-btn {
-    background: var(--primary-color);
-    color: white;
-    border: none;
-    padding: 0.75rem 1.5rem;
-    border-radius: 12px;
-    font-size: 1rem;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all var(--transition-speed) ease;
+.ts-dropdown {
+    border-radius: 5px !important;
+    margin-top: 4px !important;
+    border: 1px solid var(--border-color) !important;
+    background: var(--input-bg) !important;
+    color: var(--text-color) !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1) !important;
+    overflow: hidden;
+    z-index: 100;
 }
 
-.save-btn:hover {
-    background: var(--primary-color-hover);
-    transform: translateY(-4px);
+.ts-dropdown .option {
+    padding: 10px 12px !important;
+    transition: all 0.2s ease;
+}
+
+.ts-dropdown .active {
+    background: var(--primary-color) !important;
+    color: white !important;
+}
+
+.ts-dropdown .option:hover {
+    background: rgba(var(--primary-color-rgb), 0.1) !important;
+}
+
+.ts-dropdown .active:hover {
+    background: var(--primary-color) !important;
+}
+
+.ts-wrapper.multi .ts-control > div {
+    background: rgba(var(--primary-color-rgb), 0.9) !important;
+    color: white !important;
+    border-radius: 4px !important;
+    padding: 4px 8px !important;
+    margin: 3px !important;
+}
+
+.ts-wrapper.multi .ts-control > div.active {
+    background: var(--primary-color) !important;
+}
+
+.ts-wrapper.plugin-remove_button .item .remove {
+    border-left: 1px solid rgba(255, 255, 255, 0.3) !important;
+    padding-left: 6px !important;
+    color: rgba(255, 255, 255, 0.7) !important;
+}
+
+.ts-wrapper.plugin-clear_button .clear-button {
+    color: var(--text-color) !important;
+    opacity: 0.5 !important;
+}
+
+.ts-wrapper.plugin-clear_button .clear-button:hover {
+    opacity: 1 !important;
 }
 
 @media (max-width: 768px) {
@@ -223,6 +257,25 @@ textarea.form-control {
     .extinct-toggle {
         width: 100%;
         justify-content: center;
+    }
+
+    .ts-dropdown {
+        width: calc(100vw - 40px) !important;
+        position: fixed !important;
+        left: 20px !important;
+        right: 20px !important;
+        top: 50% !important;
+        transform: translateY(-50%) !important;
+        max-height: 250px;
+    }
+
+    .ts-wrapper.input-active .ts-control {
+        position: fixed !important;
+        top: calc(50% - 150px) !important;
+        left: 20px !important;
+        right: 20px !important;
+        width: calc(100vw - 40px) !important;
+        z-index: 100;
     }
 }
 
@@ -318,12 +371,17 @@ emoji-picker {
 
                 <div class="form-group">
                     <label for="allies">Allies</label>
-                    <input id="allies" name="allies" value="{{ allies }}" placeholder="Add allies">
+                    <select id="allies" name="allies" multiple placeholder="Add allies"></select>
                 </div>
 
                 <div class="form-group">
                     <label for="enemies">Enemies</label>
-                    <input id="enemies" name="enemies" value="{{ enemies }}" placeholder="Add enemies">
+                    <select id="enemies" name="enemies" multiple placeholder="Add enemies"></select>
+                </div>
+
+                <div class="form-group">
+                    <label for="alliance_names">Alliances</label>
+                    <select id="alliance_names" name="alliance_names" multiple placeholder="Add alliances"></select>
                 </div>
             </div>
         </div>
@@ -332,86 +390,141 @@ emoji-picker {
 {% endblock %}
 
 {% block extra_scripts %}
-<!-- Include Tagify JS -->
-<script src="https://cdn.jsdelivr.net/npm/@yaireo/tagify"></script>
-<script src="https://cdn.jsdelivr.net/npm/@yaireo/tagify/dist/tagify.polyfills.min.js"></script>
+<!-- Include TomSelect JS -->
+<script src="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/js/tom-select.complete.min.js"></script>
 <script>
 document.addEventListener("DOMContentLoaded", function () {
-    // Initialize Tagify for allies and enemies
-    const alliesInput = document.getElementById('allies');
-    const enemiesInput = document.getElementById('enemies');
-
-    const tagifyOptions = {
-        whitelist: [],
-        dropdown: {
-            enabled: 0,
-            maxItems: 5,
-            highlightFirst: true,
-            position: 'text',
-            closeOnSelect: false
+    // TomSelect for allies, enemies, and alliances
+    const alliesSelect = new TomSelect('#allies', {
+        plugins: ['remove_button', 'clear_button'],
+        persist: false,
+        createOnBlur: true,
+        create: true,
+        maxItems: null,
+        delimiter: ',',
+        valueField: 'name',
+        labelField: 'name',
+        searchField: 'name',
+        placeholder: 'Select or type to create allies...',
+        onItemAdd: function(value) {
+            validateRelations();
         },
-        editTags: false,
-        maxTags: 10,
-        backspace: true,
-        placeholder: 'Type to search...',
-        transformTag: (tagData) => {
-            tagData.style = "--tag-bg:" + getRandomColor();
+        render: {
+            option: function(data, escape) {
+                return '<div class="option">' + escape(data.name) + '</div>';
+            },
+            item: function(data, escape) {
+                return '<div>' + escape(data.name) + '</div>';
+            }
         }
-    };
+    });
 
-    const tagifyAllies = new Tagify(alliesInput, tagifyOptions);
-    const tagifyEnemies = new Tagify(enemiesInput, tagifyOptions);
-
-    // Function to get random colors for tags
-    function getRandomColor() {
-        const colors = [
-            '#6a0dad', // Primary purple
-            '#8c32ef', // Light purple
-            '#ef8732', // Orange
-            '#32a852', // Green
-            '#3273ef', // Blue
-            '#ef3273'  // Pink
-        ];
-        return colors[Math.floor(Math.random() * colors.length)];
-    }
-
-    // Fetch and populate whitelist
-    async function populateWhitelist(tagifyInstance, url) {
-        try {
-            const response = await fetch(url);
-            const data = await response.json();
-            tagifyInstance.settings.whitelist = data.map(item => item.name);
-        } catch (error) {
-            console.error('Error fetching set options:', error);
+    const enemiesSelect = new TomSelect('#enemies', {
+        plugins: ['remove_button', 'clear_button'],
+        persist: false,
+        createOnBlur: true,
+        create: true,
+        maxItems: null,
+        delimiter: ',',
+        valueField: 'name',
+        labelField: 'name',
+        searchField: 'name',
+        placeholder: 'Select or type to create enemies...',
+        onItemAdd: function(value) {
+            validateRelations();
+        },
+        render: {
+            option: function(data, escape) {
+                return '<div class="option">' + escape(data.name) + '</div>';
+            },
+            item: function(data, escape) {
+                return '<div>' + escape(data.name) + '</div>';
+            }
         }
-    }
+    });
 
-    populateWhitelist(tagifyAllies, "/sets/set_options?exclude={{ set.id }}");
-    populateWhitelist(tagifyEnemies, "/sets/set_options?exclude={{ set.id }}");
+    const alliancesSelect = new TomSelect('#alliance_names', {
+        plugins: ['remove_button', 'clear_button'],
+        persist: false,
+        createOnBlur: false,
+        create: false,
+        maxItems: null,
+        delimiter: ',',
+        valueField: 'name',
+        labelField: 'name',
+        searchField: 'name',
+        placeholder: 'Select alliances...',
+        render: {
+            option: function(data, escape) {
+                return '<div class="option">' + escape(data.name) + '</div>';
+            },
+            item: function(data, escape) {
+                return '<div>' + escape(data.name) + '</div>';
+            }
+        }
+    });
 
-    // Form validation
-    document.getElementById('edit-set-form').addEventListener('submit', function (event) {
-        const allies = tagifyAllies.value.map(tag => tag.value);
-        const enemies = tagifyEnemies.value.map(tag => tag.value);
+    // Load initial data for the selects
+    fetch("/sets/set_options?exclude={{ set.id }}")
+        .then(response => response.json())
+        .then(data => {
+            alliesSelect.addOptions(data);
+            enemiesSelect.addOptions(data);
+            
+            // Set initial values for allies and enemies
+            const allies = "{{ allies }}".split(',').filter(Boolean).map(item => item.trim());
+            const enemies = "{{ enemies }}".split(',').filter(Boolean).map(item => item.trim());
+            
+            allies.forEach(ally => {
+                alliesSelect.addItem(ally);
+            });
+            
+            enemies.forEach(enemy => {
+                enemiesSelect.addItem(enemy);
+            });
+        });
+    
+    // Load alliances data
+    fetch("/alliances/alliance_options")
+        .then(response => response.json())
+        .then(data => {
+            alliancesSelect.addOptions(data);
+            
+            // Set initial values for alliances
+            const allianceNames = "{{ alliance_names }}".split(',').filter(Boolean).map(item => item.trim());
+            allianceNames.forEach(alliance => {
+                alliancesSelect.addItem(alliance);
+            });
+        });
 
-        // Validate self-reference
-        if (allies.includes("{{ set.name }}") || enemies.includes("{{ set.name }}")) {
-            event.preventDefault();
+    // Form validation function
+    function validateRelations() {
+        const allies = alliesSelect.items;
+        const enemies = enemiesSelect.items;
+        const setName = document.getElementById('name').value;
+        
+        // Check if set is its own ally or enemy
+        if (allies.includes(setName) || enemies.includes(setName)) {
             showError("A set cannot be its own ally or enemy.");
-            return;
+            return false;
         }
-
-        // Validate ally-enemy conflict
+        
+        // Check for overlap between allies and enemies
         const commonSets = allies.filter(value => enemies.includes(value));
         if (commonSets.length > 0) {
-            event.preventDefault();
             showError("A set cannot be both an ally and enemy of the same set.");
+            return false;
+        }
+        
+        return true;
+    }
+
+    // Form submission handler
+    document.getElementById('edit-set-form').addEventListener('submit', function (event) {
+        if (!validateRelations()) {
+            event.preventDefault();
             return;
         }
-
-        // Update form values
-        alliesInput.value = allies.join(",");
-        enemiesInput.value = enemies.join(",");
     });
 
     // Error handling

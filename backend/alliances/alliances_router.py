@@ -47,8 +47,23 @@ def read_alliances(request: Request, db: Session = Depends(get_db)):
 
 
 @router.get("/add", response_class=HTMLResponse)
-def add_alliance_form(request: Request):
-    return templates.TemplateResponse("alliances/add_alliance.html", {"request": request})
+def add_alliance_form(request: Request, db: Session = Depends(get_db)):
+    # Get all available sets to populate the multi-select
+    available_sets = db.query(Sets).order_by(Sets.name).all()
+    available_sets_data = [
+        {
+            "id": s.id,
+            "name": s.name,
+            "description": s.description,
+            "type": s.type,
+        }
+        for s in available_sets
+    ]
+    
+    return templates.TemplateResponse(
+        "alliances/add_alliance.html", 
+        {"request": request, "available_sets": available_sets_data}
+    )
 
 
 @router.post("/add", response_class=HTMLResponse)
@@ -57,50 +72,77 @@ def add_alliance(
     name: str = Form(...),
     description: str = Form(None),
     status: str = Form(...),
+    set_ids: List[int] = Form(None),
     db: Session = Depends(get_db)
 ):
-    with transaction_scope(db) as db:
-        try:
-            # Validate status
-            if status not in ["active", "inactive"]:
-                return templates.TemplateResponse(
-                    "alliances/add_alliance.html",
-                    {
-                        "request": request,
-                        "error": "Invalid status. Must be 'active' or 'inactive'."
-                    }
-                )
+    try:
+        # Validate status
+        if status not in ["active", "inactive"]:
+            # Get all available sets for the form
+            available_sets = db.query(Sets).order_by(Sets.name).all()
+            available_sets_data = [
+                {"id": s.id, "name": s.name, "description": s.description, "type": s.type}
+                for s in available_sets
+            ]
             
-            # Check if alliance with the same name already exists
-            existing_alliance = db.query(Alliance).filter(Alliance.name == name).first()
-            if existing_alliance:
-                return templates.TemplateResponse(
-                    "alliances/add_alliance.html",
-                    {
-                        "request": request,
-                        "error": f"Alliance with name '{name}' already exists."
-                    }
-                )
-            
-            # Create new alliance
-            alliance = Alliance(
-                name=name,
-                description=description,
-                status=status
-            )
-            db.add(alliance)
-            
-            # Redirect to the alliances list page
-            response = RedirectResponse(url="/alliances", status_code=303)
-            return response
-        except Exception as e:
             return templates.TemplateResponse(
                 "alliances/add_alliance.html",
                 {
                     "request": request,
-                    "error": f"Failed to add alliance: {str(e)}"
+                    "error": "Invalid status. Must be 'active' or 'inactive'.",
+                    "available_sets": available_sets_data
                 }
             )
+        
+        # Check if alliance with the same name already exists
+        existing_alliance = db.query(Alliance).filter(Alliance.name == name).first()
+        if existing_alliance:
+            # Get all available sets for the form
+            available_sets = db.query(Sets).order_by(Sets.name).all()
+            available_sets_data = [
+                {"id": s.id, "name": s.name, "description": s.description, "type": s.type}
+                for s in available_sets
+            ]
+            
+            return templates.TemplateResponse(
+                "alliances/add_alliance.html",
+                {
+                    "request": request,
+                    "error": f"Alliance with name '{name}' already exists.",
+                    "available_sets": available_sets_data
+                }
+            )
+        
+        # Create new alliance
+        alliance_data = AllianceCreate(
+            name=name,
+            description=description,
+            status=status,
+            set_ids=set_ids
+        )
+        
+        # Use the service to create the alliance with sets
+        alliance = alliance_service.create_alliance(db, alliance_data)
+        
+        # Redirect to the alliances list page
+        response = RedirectResponse(url="/alliances", status_code=303)
+        return response
+    except Exception as e:
+        # Get all available sets for the form
+        available_sets = db.query(Sets).order_by(Sets.name).all()
+        available_sets_data = [
+            {"id": s.id, "name": s.name, "description": s.description, "type": s.type}
+            for s in available_sets
+        ]
+        
+        return templates.TemplateResponse(
+            "alliances/add_alliance.html",
+            {
+                "request": request,
+                "error": f"Failed to add alliance: {str(e)}",
+                "available_sets": available_sets_data
+            }
+        )
 
 
 @router.get("/add_set/{alliance_id}", response_class=HTMLResponse)
@@ -175,6 +217,17 @@ def get_alliance_options(db: Session = Depends(get_db)):
 def api_get_alliance_options(db: Session = Depends(get_db)):
     """
     API endpoint that returns a list of active alliances.
+    Each alliance is represented as a dictionary with keys 'id' and 'name'.
+    """
+    alliances = db.query(Alliance).filter(Alliance.status == "active").all()
+    alliance_options = [{"id": alliance.id, "name": alliance.name} for alliance in alliances]
+    return alliance_options
+
+
+@router.get("/alliance_options", response_class=JSONResponse)
+def get_alliance_options_for_tagify(db: Session = Depends(get_db)):
+    """
+    Endpoint for the Tagify component that returns a list of all alliances.
     Each alliance is represented as a dictionary with keys 'id' and 'name'.
     """
     alliances = db.query(Alliance).filter(Alliance.status == "active").all()

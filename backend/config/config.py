@@ -41,6 +41,13 @@ class Config:
         "connection_timeout": 30
     }
     
+    # Default Admin User - Will be created if no admin exists
+    DEFAULT_ADMIN = {
+        "username": os.environ.get("DEFAULT_ADMIN_USER", "admin"),
+        "password": os.environ.get("DEFAULT_ADMIN_PASSWORD", "F$SquiidWiki@Admin2025"),
+        "is_admin": True
+    }
+    
     # Chemins pour les sauvegardes et exports
     BACKUP_DIR = ROOT_DIR / "backups"
     EXPORT_DIR = ROOT_DIR / "exports"
@@ -247,6 +254,10 @@ class Settings:
             "access_token_expire_minutes": Config.ACCESS_TOKEN_EXPIRE_MINUTES,
             "refresh_token_expire_days": Config.REFRESH_TOKEN_EXPIRE_DAYS
         }
+    
+    def get_default_admin(self) -> Dict[str, Any]:
+        """Retourne les informations du compte admin par défaut"""
+        return Config.DEFAULT_ADMIN
     
     def get_cors_settings(self) -> Dict[str, Any]:
         """Retourne les paramètres CORS"""

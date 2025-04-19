@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Request, Form, HTTPException, Depends, Query
 from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from backend.config.templates import templates
-from typing import Optional
+from typing import Optional, List
 from backend.database.imports import get_db, Sets, Members, Config, SetAlliesMap, SetEnemiesMap, Murders, Shootings, Assists, Alliance, AllianceSetsMap
 from backend.database.enums import eSetType
 from sqlalchemy.orm import Session
@@ -30,8 +30,21 @@ def read_root(request: Request, db: Session = Depends(get_db)):
 
 
 @router.get("/add", response_class=HTMLResponse)
-def add_set_form(request: Request):
-    return templates.TemplateResponse("sets/add_set.html", {"request": request})
+def add_set_form(request: Request, db: Session = Depends(get_db)):
+    # Get all available alliances for selection
+    available_alliances = db.query(Alliance).filter(Alliance.status == "active").all()
+    available_alliances_data = [
+        {
+            "id": a.id, 
+            "name": a.name
+        } 
+        for a in available_alliances
+    ]
+    
+    return templates.TemplateResponse("sets/add_set.html", {
+        "request": request,
+        "available_alliances": available_alliances_data
+    })
 
 
 @router.post("/add", response_class=RedirectResponse)
@@ -40,6 +53,7 @@ def add_set(
         description: Optional[str] = Form(None),
         allies: Optional[str] = Form(None),
         enemies: Optional[str] = Form(None),
+        alliance_names: Optional[str] = Form(None),
         is_extinct: bool = Form(False),
         emoji: Optional[str] = Form(None),
         db: Session = Depends(get_db)
@@ -65,6 +79,16 @@ def add_set(
     # Process ally and enemy relations.
     process_relations(db, new_set.id, allies, SetAlliesMap)
     process_relations(db, new_set.id, enemies, SetEnemiesMap)
+    
+    # Process alliance associations if provided
+    if alliance_names:
+        alliance_name_list = [n.strip() for n in alliance_names.split(",") if n.strip()]
+        if alliance_name_list:
+            alliances = db.query(Alliance).filter(Alliance.name.in_(alliance_name_list)).all()
+            for alliance in alliances:
+                alliance_mapping = AllianceSetsMap(alliance_id=alliance.id, set_id=new_set.id)
+                db.add(alliance_mapping)
+    
     db.commit()
     return RedirectResponse(url="/sets/", status_code=303)
 
@@ -101,6 +125,26 @@ def edit_set_form(request: Request, set_id: int, db: Session = Depends(get_db)):
     enemies_relations = db.query(SetEnemiesMap).filter(SetEnemiesMap.set_id == set_id).all()
     enemies = [db.query(Sets).filter(Sets.id == rel.enemy_id).first().name for rel in enemies_relations if
                db.query(Sets).filter(Sets.id == rel.enemy_id).first()]
+    
+    # Get alliances this set belongs to
+    alliance_mappings = db.query(AllianceSetsMap).filter(AllianceSetsMap.set_id == set_id).all()
+    current_alliance_ids = [mapping.alliance_id for mapping in alliance_mappings]
+    
+    # Get alliance names for the current set's alliances
+    alliance_names = []
+    if current_alliance_ids:
+        current_alliances = db.query(Alliance).filter(Alliance.id.in_(current_alliance_ids)).all()
+        alliance_names = [alliance.name for alliance in current_alliances]
+    
+    # Get all available alliances for selection
+    available_alliances = db.query(Alliance).filter(Alliance.status == "active").all()
+    available_alliances_data = [
+        {
+            "id": a.id, 
+            "name": a.name
+        } 
+        for a in available_alliances
+    ]
 
     set_dict = {"id": set_obj.id, "name": set_obj.name, "description": set_obj.description, "type": set_obj.type, "emoji": set_obj.emoji}
     return templates.TemplateResponse("sets/edit_set.html", {
@@ -108,7 +152,10 @@ def edit_set_form(request: Request, set_id: int, db: Session = Depends(get_db)):
         "set": set_dict,
         "allies": ", ".join(allies),
         "enemies": ", ".join(enemies),
-        "is_default_set": is_default_set
+        "is_default_set": is_default_set,
+        "available_alliances": available_alliances_data,
+        "current_alliance_ids": current_alliance_ids,
+        "alliance_names": ", ".join(alliance_names)
     })
 
 
@@ -119,6 +166,7 @@ def edit_set(
         description: Optional[str] = Form(None),
         allies: Optional[str] = Form(None),
         enemies: Optional[str] = Form(None),
+        alliance_names: Optional[str] = Form(None),
         is_extinct: bool = Form(False),
         emoji: Optional[str] = Form(None),
         db: Session = Depends(get_db)
@@ -150,9 +198,24 @@ def edit_set(
     set_obj.description = description
     set_obj.type = (set_type.value if hasattr(set_type, 'value') else set_type)
     set_obj.emoji = emoji
-    db.commit()
+    
+    # Process ally and enemy relations
     process_relations(db, set_id, allies, SetAlliesMap)
     process_relations(db, set_id, enemies, SetEnemiesMap)
+    
+    # Update alliance associations
+    # First, remove all existing alliance mappings for this set
+    db.query(AllianceSetsMap).filter(AllianceSetsMap.set_id == set_id).delete()
+    
+    # Then add the new alliance mappings
+    if alliance_names:
+        alliance_name_list = [n.strip() for n in alliance_names.split(",") if n.strip()]
+        if alliance_name_list:
+            alliances = db.query(Alliance).filter(Alliance.name.in_(alliance_name_list)).all()
+            for alliance in alliances:
+                alliance_mapping = AllianceSetsMap(alliance_id=alliance.id, set_id=set_id)
+                db.add(alliance_mapping)
+    
     db.commit()
     return RedirectResponse(url=f"/sets/{set_id}", status_code=303)
 

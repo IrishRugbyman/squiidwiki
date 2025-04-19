@@ -12,7 +12,7 @@ class Sets(Base):
 
     id = Column(Integer, primary_key=True)
     name = Column(Text, nullable=False, unique=True)
-    type = Column(Enum('active', 'extinct', 'system'), nullable=False, server_default="active")
+    type = Column(Enum('active', 'extinct', 'system', name='set_type_enum'), nullable=False, server_default="active")
     description = Column(Text)
     emoji = Column(Text)
 

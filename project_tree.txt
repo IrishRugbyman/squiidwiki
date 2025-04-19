@@ -52,8 +52,6 @@ C:.
 |   \---shelf
 |       |   Changes.xml
 |       |   Changes1.xml
-|       |   Uncommitted_changes_before_Checkout_at_01_04_2025_20_55__Changes_.xml
-|       |   Uncommitted_changes_before_Checkout_at_02_04_2025_02_24__Changes_.xml
 |       |   
 |       +---Changes
 |       |       shelved.patch
@@ -189,26 +187,32 @@ C:.
 |   |           __init__.cpython-312.pyc
 |   |           
 |   +---database
-|   |   |   add_timestamps_to_alliances.sql
 |   |   |   base_class.py
 |   |   |   database_pg.py
+|   |   |   db_init.py
 |   |   |   empty_prod.py
 |   |   |   enums.py
 |   |   |   imports.py
 |   |   |   migrate_to_postgres.py
 |   |   |   run_migration.py
 |   |   |   service_base.py
+|   |   |   update_enums.py
 |   |   |   utils.py
 |   |   |   __init__.py
 |   |   |   
 |   |   \---__pycache__
 |   |           base_class.cpython-312.pyc
 |   |           base_models.cpython-312.pyc
+|   |           create_alliance_set_table.cpython-312.pyc
 |   |           database_pg.cpython-312.pyc
+|   |           db_init.cpython-312.pyc
 |   |           enums.cpython-312.pyc
 |   |           imports.cpython-312.pyc
+|   |           init_admin.cpython-312.pyc
+|   |           init_db.cpython-312.pyc
 |   |           run_migration.cpython-312.pyc
 |   |           service_base.cpython-312.pyc
+|   |           update_enums.cpython-312.pyc
 |   |           utils.cpython-312.pyc
 |   |           __init__.cpython-312.pyc
 |   |           
@@ -354,6 +358,7 @@ C:.
 |   |           
 |   \---__pycache__
 |           server.cpython-312.pyc
+|           update_pydantic_configs.cpython-312.pyc
 |           __init__.cpython-312.pyc
 |           
 +---backups
@@ -396,6 +401,7 @@ C:.
 |       +---alliances
 |       |       add_alliance.html
 |       |       add_alliance_member.html
+|       |       add_alliance_set.html
 |       |       alliance_details.html
 |       |       delete_alliance.html
 |       |       edit_alliance.html

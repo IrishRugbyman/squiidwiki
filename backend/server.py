@@ -3,10 +3,12 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, HTMLResponse
 from fastapi.requests import Request
+from contextlib import asynccontextmanager
 import logging
 
 # Import all models to ensure they are registered with SQLAlchemy metadata
 from backend.database.imports import *
+from backend.database.db_init import init_db
 
 from backend.sets.routes import router as sets_router
 from backend.members.routes import router as members_router
@@ -27,12 +29,33 @@ logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
 )
 
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """
+    Lifespan context manager for FastAPI startup and shutdown events.
+    """
+    # Startup
+    logger.info(f"Starting SquiidWiki in {settings.APP_ENV} environment")
+    logger.info(f"Using database: {settings.DB_PATH}")
+    
+    # Initialize database (create tables and admin user)
+    if init_db():
+        logger.info("Database initialization completed successfully")
+    else:
+        logger.warning("Database initialization completed with warnings")
+        
+    yield
+    
+    # Shutdown
+    logger.info("Shutting down SquiidWiki")
+
 # Create the FastAPI app
 app = FastAPI(
     title="SquiidWiki",
     description="API for SquiidWiki application",
     version="1.0.0",
-    debug=settings.DEBUG
+    debug=settings.DEBUG,
+    lifespan=lifespan
 )
 
 # Add CORS middleware
@@ -79,13 +102,3 @@ app_api.include_router(events_router, prefix="/events", tags=["events"])
 @app.get("/health", tags=["health"])
 async def health_check():
     return {"status": "ok", "environment": settings.APP_ENV}
-
-# Startup and shutdown events
-@app.on_event("startup")
-async def startup_event():
-    logger.info(f"Starting SquiidWiki in {settings.APP_ENV} environment")
-    logger.info(f"Using database: {settings.DB_PATH}")
-
-@app.on_event("shutdown")
-async def shutdown_event():
-    logger.info("Shutting down SquiidWiki")
