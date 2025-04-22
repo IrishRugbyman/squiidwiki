@@ -130,6 +130,72 @@
             {% endif %}
         </div>
 
+        <!-- Human Members Section -->
+        <div class="content-section">
+            <div class="section-header">
+                <h2 class="section-title">
+                    Human Members
+                    {% if human_members %}
+                    <span class="count-badge">{{ human_members|length }}</span>
+                    {% endif %}
+                </h2>
+                <div class="section-actions">
+                    <div class="sort-controls">
+                        <select id="sort-members" class="sort-select" aria-label="Sort members">
+                            <option value="name">Sort by Name</option>
+                            <option value="status">Sort by Status</option>
+                            <option value="membership">Sort by Membership</option>
+                        </select>
+                        <button id="sort-members-order" class="sort-order-btn" data-order="asc" aria-label="Sort order">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M12 20V4"></path>
+                                <polyline points="6 10 12 4 18 10"></polyline>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            {% if human_members %}
+            <div class="members-grid">
+                {% for member in human_members %}
+                <a href="/members/{{ member.id }}" class="member-card" data-status="{{ member.status }}" data-membership="{{ member.membership_type }}">
+                    <div class="member-content">
+                        <div class="member-info">
+                            <h3 class="member-name">{{ member.name }}</h3>
+                            {% if member.set_name %}
+                            <p class="member-set">{{ member.set_name }}</p>
+                            {% endif %}
+                        </div>
+                        <div class="member-status">
+                            {% if member.status == "dead" %}
+                            <span class="status-icon dead" title="Deceased Member" role="img" aria-label="Deceased Member">🪦</span>
+                            {% elif member.status == "incarcerated" %}
+                            <span class="status-icon jailed" title="Incarcerated Member" role="img" aria-label="Incarcerated Member">🔒</span>
+                            {% else %}
+                            <span class="status-icon active" title="Active Member" role="img" aria-label="Active Member">🔰</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="member-type">
+                        {% if member.membership_type == "direct" %}
+                        <span class="membership-badge direct">Direct Member</span>
+                        {% else %}
+                        <span class="membership-badge through-set">Through Set</span>
+                        {% endif %}
+                    </div>
+                    <div class="member-arrow">→</div>
+                </a>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="empty-state">
+                <div class="empty-icon">👤</div>
+                <div class="empty-text">No human members in this alliance yet</div>
+            </div>
+            {% endif %}
+        </div>
+
         <!-- Murders Section -->
         <div class="content-section">
             <div class="section-header">
@@ -471,27 +537,29 @@
 .murders-list {
     display: flex;
     flex-direction: column;
-    gap: 0.25rem;
+    gap: 0.5rem;
 }
 
 .murder-item {
-    background: var(--bg-color);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem;
+    background: var(--surface-color);
     border: 1px solid var(--border-color);
     border-radius: 8px;
-    padding: 0.75rem;
     transition: all var(--transition-speed) ease;
 }
 
 .murder-item:hover {
     border-color: var(--primary-color);
-    transform: translateX(4px);
+    box-shadow: 0 4px 8px var(--shadow-color);
 }
 
 .murder-info {
     display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 0.25rem;
+    flex-direction: column;
+    gap: 0.25rem;
 }
 
 .murder-details {
@@ -500,37 +568,124 @@
     gap: 0.5rem;
 }
 
-.member-link {
-    color: var(--primary-color);
-    text-decoration: none;
-    font-weight: 500;
-}
-
-.member-link:hover {
-    text-decoration: underline;
-}
-
 .murder-arrow {
     color: var(--helper-text-color);
+    font-size: 0.9rem;
 }
 
 .murder-date {
-    color: var(--helper-text-color);
     font-size: 0.9rem;
+    color: var(--helper-text-color);
 }
 
 .murder-set {
     font-size: 0.9rem;
 }
 
-.set-link {
-    color: var(--helper-text-color);
+.member-link, .set-link {
+    color: var(--primary-color);
     text-decoration: none;
+    transition: color var(--transition-speed) ease;
 }
 
-.set-link:hover {
-    color: var(--primary-color);
+.member-link:hover, .set-link:hover {
+    color: var(--primary-color-hover);
     text-decoration: underline;
+}
+
+.members-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 0.75rem;
+}
+
+.member-card {
+    display: flex;
+    flex-direction: column;
+    background: var(--surface-color);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 0.75rem;
+    text-decoration: none;
+    color: var(--text-color);
+    transition: all var(--transition-speed) ease;
+    position: relative;
+}
+
+.member-card:hover {
+    transform: var(--card-hover-transform);
+    border-color: var(--primary-color);
+    box-shadow: 0 4px 8px var(--shadow-color);
+}
+
+.member-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1rem;
+    margin-bottom: 0.5rem;
+}
+
+.member-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.member-name {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin: 0 0 0.25rem;
+    color: var(--text-color);
+}
+
+.member-set {
+    font-size: 0.9rem;
+    color: var(--helper-text-color);
+    margin: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.member-status {
+    flex-shrink: 0;
+}
+
+.member-type {
+    margin-top: auto;
+    margin-bottom: 0.5rem;
+}
+
+.membership-badge {
+    display: inline-block;
+    font-size: 0.8rem;
+    padding: 0.2rem 0.5rem;
+    border-radius: 4px;
+    font-weight: 500;
+}
+
+.membership-badge.direct {
+    background-color: rgba(76, 175, 80, 0.1);
+    color: #4CAF50;
+}
+
+.membership-badge.through-set {
+    background-color: rgba(33, 150, 243, 0.1);
+    color: #2196F3;
+}
+
+.member-arrow {
+    position: absolute;
+    bottom: 0.75rem;
+    right: 0.75rem;
+    color: var(--helper-text-color);
+    font-size: 1rem;
+    transition: transform var(--transition-speed) ease;
+}
+
+.member-card:hover .member-arrow {
+    transform: translateX(3px);
+    color: var(--primary-color);
 }
 
 .empty-state {
@@ -621,73 +776,193 @@
 </style>
 
 <script>
-document.addEventListener('DOMContentLoaded', () => {
-    const sortSetsSelect = document.getElementById('sort-sets');
+document.addEventListener("DOMContentLoaded", () => {
+    // Setup sorting for sets
+    const sortSetsBy = document.getElementById('sort-sets');
     const sortSetsOrderBtn = document.getElementById('sort-sets-order');
-    const setsGrid = document.querySelector('.sets-grid');
-    let currentSetsOrder = 'asc';
-
-    const statusOrder = { 'active': 1, 'extinct': 2 };
-
-    // Sorting function for sets
-    const sortSets = () => {
-        const sets = Array.from(setsGrid.children);
+    
+    if (sortSetsBy && sortSetsOrderBtn) {
+        // Initial sort
+        sortSets();
+        
+        // Event listeners
+        sortSetsBy.addEventListener('change', sortSets);
+        sortSetsOrderBtn.addEventListener('click', () => {
+            const currentOrder = sortSetsOrderBtn.getAttribute('data-order');
+            const newOrder = currentOrder === 'asc' ? 'desc' : 'asc';
+            sortSetsOrderBtn.setAttribute('data-order', newOrder);
+            
+            // Update icon
+            if (newOrder === 'desc') {
+                sortSetsOrderBtn.innerHTML = `
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 4v16"></path>
+                        <polyline points="6 14 12 20 18 14"></polyline>
+                    </svg>
+                `;
+            } else {
+                sortSetsOrderBtn.innerHTML = `
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 20V4"></path>
+                        <polyline points="6 10 12 4 18 10"></polyline>
+                    </svg>
+                `;
+            }
+            
+            sortSets();
+        });
+    }
+    
+    function sortSets() {
+        const setsGrid = document.querySelector('.sets-grid');
+        if (!setsGrid) return;
+        
+        const sortBy = sortSetsBy.value;
+        const sortOrder = sortSetsOrderBtn.getAttribute('data-order');
+        const sets = Array.from(setsGrid.querySelectorAll('.set-card'));
         
         sets.sort((a, b) => {
             let aValue, bValue;
-
-            switch(sortSetsSelect.value) {
-                case 'name':
-                    aValue = a.querySelector('.set-name').textContent.toLowerCase();
-                    bValue = b.querySelector('.set-name').textContent.toLowerCase();
-                    return currentSetsOrder === 'asc'
-                        ? aValue.localeCompare(bValue)
-                        : bValue.localeCompare(aValue);
-                case 'status':
-                    aValue = statusOrder[a.dataset.status];
-                    bValue = statusOrder[b.dataset.status];
-                    return currentSetsOrder === 'asc'
-                        ? aValue - bValue
-                        : bValue - aValue;
+            
+            if (sortBy === 'name') {
+                aValue = a.querySelector('.set-name').textContent.trim().toLowerCase();
+                bValue = b.querySelector('.set-name').textContent.trim().toLowerCase();
+            } else if (sortBy === 'status') {
+                aValue = a.getAttribute('data-status');
+                bValue = b.getAttribute('data-status');
             }
+            
+            // Compare values
+            if (aValue < bValue) return sortOrder === 'asc' ? -1 : 1;
+            if (aValue > bValue) return sortOrder === 'asc' ? 1 : -1;
+            return 0;
         });
-
-        setsGrid.append(...sets);
-    };
-
-    // Event Listeners
-    sortSetsSelect.addEventListener('change', sortSets);
-
-    sortSetsOrderBtn.addEventListener('click', () => {
-        currentSetsOrder = currentSetsOrder === 'asc' ? 'desc' : 'asc';
-        sortSetsOrderBtn.querySelector('svg').style.transform = 
-            currentSetsOrder === 'asc' ? 'rotate(0deg)' : 'rotate(180deg)';
-        sortSets();
-    });
-
-    // Initial sort
-    sortSets();
+        
+        // Reorder the grid
+        sets.forEach(set => setsGrid.appendChild(set));
+    }
     
-    // Handle remove set functionality
-    document.querySelectorAll('.remove-set-btn').forEach(button => {
-        button.addEventListener('click', function(e) {
+    // Remove set button functionality
+    const removeSetBtns = document.querySelectorAll('.remove-set-btn');
+    removeSetBtns.forEach(btn => {
+        btn.addEventListener('click', async (e) => {
             e.preventDefault();
             e.stopPropagation();
             
-            const setId = this.dataset.setId;
-            const allianceId = this.dataset.allianceId;
-            const setName = this.dataset.setName;
+            const setId = btn.getAttribute('data-set-id');
+            const allianceId = btn.getAttribute('data-alliance-id');
+            const setName = btn.getAttribute('data-set-name');
             
-            if (confirm(`Are you sure you want to remove "${setName}" from this alliance?`)) {
-                // Create a form to submit the POST request
-                const form = document.createElement('form');
-                form.method = 'POST';
-                form.action = `/alliances/remove_member/${allianceId}/${setId}`;
-                document.body.appendChild(form);
-                form.submit();
+            // Confirm removal
+            if (!confirm(`Are you sure you want to remove ${setName} from this alliance?`)) {
+                return;
+            }
+            
+            try {
+                const response = await fetch('/alliances/remove_set', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        alliance_id: allianceId,
+                        set_id: setId
+                    })
+                });
+                
+                if (response.ok) {
+                    // Remove the set card from the DOM
+                    const setCard = btn.closest('.set-card');
+                    setCard.remove();
+                    
+                    // If no more sets, show empty state
+                    const remainingSets = document.querySelectorAll('.set-card');
+                    if (remainingSets.length === 0) {
+                        const emptyState = document.createElement('div');
+                        emptyState.className = 'empty-state';
+                        emptyState.innerHTML = `
+                            <div class="empty-icon">🏢</div>
+                            <div class="empty-text">No sets in this alliance yet</div>
+                        `;
+                        document.querySelector('.sets-grid').replaceWith(emptyState);
+                    }
+                } else {
+                    const error = await response.json();
+                    alert(`Failed to remove set: ${error.detail || 'Unknown error'}`);
+                }
+            } catch (error) {
+                alert(`Error: ${error.message}`);
             }
         });
     });
+
+    // Setup sorting for members
+    const sortMembersBy = document.getElementById('sort-members');
+    const sortMembersOrderBtn = document.getElementById('sort-members-order');
+    
+    if (sortMembersBy && sortMembersOrderBtn) {
+        // Initial sort
+        sortMembers();
+        
+        // Event listeners
+        sortMembersBy.addEventListener('change', sortMembers);
+        sortMembersOrderBtn.addEventListener('click', () => {
+            const currentOrder = sortMembersOrderBtn.getAttribute('data-order');
+            const newOrder = currentOrder === 'asc' ? 'desc' : 'asc';
+            sortMembersOrderBtn.setAttribute('data-order', newOrder);
+            
+            // Update icon
+            if (newOrder === 'desc') {
+                sortMembersOrderBtn.innerHTML = `
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 4v16"></path>
+                        <polyline points="6 14 12 20 18 14"></polyline>
+                    </svg>
+                `;
+            } else {
+                sortMembersOrderBtn.innerHTML = `
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 20V4"></path>
+                        <polyline points="6 10 12 4 18 10"></polyline>
+                    </svg>
+                `;
+            }
+            
+            sortMembers();
+        });
+    }
+    
+    function sortMembers() {
+        const membersGrid = document.querySelector('.members-grid');
+        if (!membersGrid) return;
+        
+        const sortBy = sortMembersBy.value;
+        const sortOrder = sortMembersOrderBtn.getAttribute('data-order');
+        const members = Array.from(membersGrid.querySelectorAll('.member-card'));
+        
+        members.sort((a, b) => {
+            let aValue, bValue;
+            
+            if (sortBy === 'name') {
+                aValue = a.querySelector('.member-name').textContent.trim().toLowerCase();
+                bValue = b.querySelector('.member-name').textContent.trim().toLowerCase();
+            } else if (sortBy === 'status') {
+                aValue = a.getAttribute('data-status');
+                bValue = b.getAttribute('data-status');
+            } else if (sortBy === 'membership') {
+                aValue = a.getAttribute('data-membership');
+                bValue = b.getAttribute('data-membership');
+            }
+            
+            // Compare values
+            if (aValue < bValue) return sortOrder === 'asc' ? -1 : 1;
+            if (aValue > bValue) return sortOrder === 'asc' ? 1 : -1;
+            return 0;
+        });
+        
+        // Reorder the grid
+        members.forEach(member => membersGrid.appendChild(member));
+    }
 });
 </script>
 {% endblock %}

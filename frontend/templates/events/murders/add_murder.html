@@ -4,53 +4,111 @@
 <style>
     /* Container Styles */
     .form-container {
-        max-width: 600px;
+        max-width: 800px;
         margin: 2rem auto;
-        padding: 2rem;
+        padding: 2.5rem;
         background: var(--surface-color);
-        border-radius: 8px;
-        box-shadow: 0 4px 6px var(--shadow-color);
+        border-radius: 16px;
+        box-shadow: 0 4px 12px var(--shadow-color);
     }
 
     /* Header Styles */
     .form-header {
         text-align: center;
-        margin-bottom: 2rem;
+        margin-bottom: 2.5rem;
     }
     .form-header h2 {
         color: var(--primary-color);
-        margin-bottom: 0.5rem;
+        margin-bottom: 0.75rem;
+        font-size: 2.2rem;
+        font-weight: 700;
     }
     .back-link {
         color: var(--primary-color);
         text-decoration: none;
-        font-size: 0.9rem;
+        font-size: 1.1rem;
+        transition: all 0.2s ease;
+    }
+    .back-link:hover {
+        text-decoration: underline;
+    }
+
+    /* Form Section Styles */
+    .form-section {
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        padding: 20px;
+        margin-bottom: 20px;
+        background-color: rgba(255, 255, 255, 0.05);
+    }
+    
+    .light-theme .form-section {
+        background-color: rgba(0, 0, 0, 0.02);
+    }
+    
+    legend {
+        padding: 0 10px;
+        font-weight: bold;
+        color: var(--primary-color);
+        font-size: 1.3rem;
     }
 
     /* Form Group Styles */
+    .form-row {
+        display: flex;
+        gap: 20px;
+        margin-bottom: 15px;
+    }
+    
     .form-group {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
         margin-bottom: 1.5rem;
     }
+    
+    .full-width {
+        width: 100%;
+    }
+    
     .form-group label {
         display: block;
         font-weight: 500;
-        margin-bottom: 0.5rem;
+        margin-bottom: 0.75rem;
         color: var(--text-color);
+        font-size: 1.1rem;
     }
+    
     .form-control {
         width: 100%;
-        padding: 0.75rem;
+        padding: 12px;
         border: 1px solid var(--border-color);
-        border-radius: 4px;
-        font-size: 1rem;
+        border-radius: 8px;
+        font-size: 1.1rem;
         transition: all 0.2s ease;
         background: var(--bg-color);
         color: var(--text-color);
     }
+    
     .form-control:focus {
         border-color: var(--primary-color);
         outline: none;
-        box-shadow: 0 0 0 0.2rem rgba(74, 0, 114, 0.25);
+        box-shadow: 0 0 0 2px rgba(106, 13, 173, 0.2);
+    }
+
+    /* Helper Text */
+    .helper-text {
+        font-size: 0.85em;
+        color: var(--helper-text-color);
+        margin-top: 3px;
+    }
+
+    /* Error Messages */
+    .error-message {
+        color: var(--error-color);
+        font-size: 0.9em;
+        margin-top: 5px;
+        min-height: 18px;
     }
 
     /* Search Input Styles */
@@ -58,22 +116,25 @@
         position: relative;
         margin-bottom: 0.5rem;
     }
+    
     .search-input {
         width: 100%;
-        padding: 0.75rem;
+        padding: 12px;
         padding-left: 2.5rem;
         border: 1px solid var(--border-color);
-        border-radius: 4px;
+        border-radius: 8px;
         font-size: 1rem;
         transition: all 0.2s ease;
         background: var(--bg-color);
         color: var(--text-color);
     }
+    
     .search-input:focus {
         border-color: var(--primary-color);
         outline: none;
-        box-shadow: 0 0 0 0.2rem rgba(74, 0, 114, 0.25);
+        box-shadow: 0 0 0 2px rgba(106, 13, 173, 0.2);
     }
+    
     .search-icon {
         position: absolute;
         left: 0.75rem;
@@ -82,65 +143,107 @@
         color: var(--helper-text-color);
     }
 
-    /* Select Styles */
-    select.form-control {
-        appearance: none;
-        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236c757d' d='M6 8.825L1.175 4 2.238 2.938 6 6.7l3.763-3.763L10.825 4z'/%3E%3C/svg%3E");
-        background-repeat: no-repeat;
-        background-position: right 0.75rem center;
-        background-size: 12px;
-        padding-right: 2.5rem;
-    }
-    select.form-control option {
-        padding: 0.5rem;
-        background: var(--bg-color);
-        color: var(--text-color);
-    }
-
     /* Date Precision Styles */
     .precision-group {
-        background: var(--bg-color);
-        padding: 1rem;
-        border-radius: 6px;
+        background: rgba(255, 255, 255, 0.05);
+        padding: 1.5rem;
+        border-radius: 8px;
         margin-top: 1rem;
+        border: 1px solid var(--border-color);
     }
-    .form-check {
+    
+    .light-theme .precision-group {
+        background-color: rgba(0, 0, 0, 0.02);
+    }
+    
+    .date-field-container {
+        margin-top: 1.5rem; 
+        padding: 1.2rem; 
+        background-color: rgba(var(--bg-color-rgb), 0.5); 
+        border-radius: 8px;
+        border: 1px solid var(--border-color);
+    }
+
+    /* Checkbox Styles */
+    .checkbox-group {
         display: flex;
         align-items: center;
-        margin-bottom: 0.5rem;
+        margin-top: 1rem;
     }
-    .form-check-input {
-        margin-right: 0.5rem;
+    
+    .checkbox-group input[type="checkbox"] {
+        margin-right: 10px;
     }
 
     /* Button Styles */
     .form-actions {
         display: flex;
-        gap: 1rem;
-        margin-top: 2rem;
+        justify-content: space-between;
+        gap: 10px;
+        margin-top: 20px;
     }
+    
     .save-btn {
-        background: var(--primary-color);
+        background-color: var(--primary-color);
         color: white;
-        padding: 0.75rem 1.5rem;
+        padding: 12px 24px;
         border: none;
-        border-radius: 4px;
+        border-radius: 8px;
+        font-size: 1.1em;
         cursor: pointer;
-        transition: background-color 0.2s ease;
-        flex-grow: 1;
+        transition: all 0.2s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        flex: 1;
     }
+    
     .save-btn:hover {
         background-color: var(--primary-color-hover);
+        transform: translateY(-2px);
     }
+    
+    .save-btn:active {
+        transform: translateY(0);
+    }
+    
     .cancel-btn {
-        background: var(--surface-color);
-        color: var(--text-color);
-        padding: 0.75rem 1.5rem;
+        background-color: transparent;
         border: 1px solid var(--border-color);
-        border-radius: 4px;
+        color: var(--text-color);
+        padding: 12px 24px;
+        border-radius: 8px;
+        font-size: 1.1em;
         text-decoration: none;
         text-align: center;
-        transition: background-color 0.2s ease;
+        transition: all 0.2s ease;
+    }
+    
+    .cancel-btn:hover {
+        background-color: rgba(255, 255, 255, 0.05);
+    }
+    
+    .light-theme .cancel-btn:hover {
+        background-color: rgba(0, 0, 0, 0.05);
+    }
+
+    /* Spinner */
+    .spinner {
+        width: 20px;
+        height: 20px;
+        border: 2px solid rgba(255, 255, 255, 0.3);
+        border-radius: 50%;
+        border-top-color: white;
+        animation: spin 0.8s ease infinite;
+    }
+    
+    @keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+    
+    .hidden {
+        display: none;
     }
 
     /* Modal Styles */
@@ -155,55 +258,133 @@
         overflow: auto;
         background-color: rgba(0, 0, 0, 0.5);
     }
+    
     .modal-content {
-        background: var(--card-bg);
+        background: var(--surface-color);
         margin: 15% auto;
-        padding: 20px;
-        border-radius: 8px;
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        padding: 25px;
+        border-radius: 12px;
+        box-shadow: 0 4px 12px var(--shadow-color);
         max-width: 500px;
         width: 80%;
     }
+    
     .modal-header {
         display: flex;
         justify-content: space-between;
         align-items: center;
         margin-bottom: 15px;
     }
+    
     .modal-header h2 {
         margin: 0;
         color: var(--primary-color);
+        font-size: 1.5rem;
     }
+    
     .close-modal {
-        color: var(--text-muted);
+        color: var(--text-color);
         font-size: 24px;
         cursor: pointer;
+        opacity: 0.7;
+        transition: opacity 0.2s ease;
     }
+    
+    .close-modal:hover {
+        opacity: 1;
+    }
+    
     .modal-body {
         margin-bottom: 20px;
+        font-size: 1.1rem;
     }
+    
     .modal-footer {
         display: flex;
         justify-content: flex-end;
         gap: 10px;
     }
+    
     .modal-footer button {
-        padding: 8px 16px;
-        border-radius: 4px;
+        padding: 10px 20px;
+        border-radius: 8px;
         cursor: pointer;
+        font-size: 1rem;
+        transition: all 0.2s ease;
     }
+    
     .btn-primary {
         background-color: var(--primary-color);
         color: white;
         border: none;
     }
+    
     .btn-primary:hover {
         background-color: var(--primary-color-hover);
     }
+    
     .btn-secondary {
         background-color: transparent;
         border: 1px solid var(--border-color);
         color: var(--text-color);
+    }
+    
+    .btn-secondary:hover {
+        background-color: rgba(255, 255, 255, 0.05);
+    }
+    
+    .light-theme .btn-secondary:hover {
+        background-color: rgba(0, 0, 0, 0.05);
+    }
+    
+    /* TomSelect Customization */
+    .ts-wrapper {
+        width: 100%;
+    }
+    
+    .ts-control {
+        border-radius: 8px !important;
+        border: 1px solid var(--border-color) !important;
+        background: var(--bg-color) !important;
+        color: var(--text-color) !important;
+        padding: 12px !important;
+        box-shadow: none !important;
+        font-size: 1.1rem !important;
+    }
+    
+    .ts-control:focus {
+        border-color: var(--primary-color) !important;
+        box-shadow: 0 0 0 2px rgba(106, 13, 173, 0.2) !important;
+    }
+    
+    .ts-dropdown {
+        border-radius: 8px !important;
+        border: 1px solid var(--border-color) !important;
+        background: var(--bg-color) !important;
+        color: var(--text-color) !important;
+        box-shadow: 0 4px 12px var(--shadow-color) !important;
+        overflow: hidden;
+        z-index: 100;
+    }
+    
+    .ts-dropdown .option {
+        padding: 10px 12px !important;
+        transition: all 0.2s ease;
+        white-space: normal !important;
+        font-size: 1.1rem !important;
+    }
+    
+    .ts-dropdown .active {
+        background: var(--primary-color) !important;
+        color: white !important;
+    }
+    
+    .ts-dropdown .option:hover {
+        background: rgba(106, 13, 173, 0.1) !important;
+    }
+    
+    .ts-dropdown .active:hover {
+        background: var(--primary-color) !important;
     }
     
     /* Responsive Design */
@@ -212,11 +393,29 @@
             padding: 1.5rem;
             margin: 1rem;
         }
+        
         .form-header h2 {
-            font-size: 1.5rem;
+            font-size: 1.8rem;
+        }
+        
+        .form-row {
+            flex-direction: column;
+            gap: 15px;
+        }
+        
+        .form-actions {
+            flex-direction: column;
+        }
+        
+        .save-btn, .cancel-btn {
+            width: 100%;
         }
     }
 </style>
+
+<!-- Include TomSelect CSS -->
+<link href="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/css/tom-select.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/css/tom-select.bootstrap5.min.css" rel="stylesheet">
 {% endblock %}
 
 {% block content %}
@@ -227,84 +426,94 @@
     </div>
 
     <form method="POST" action="/events/murders/add/{{ member_id }}" id="add-murder-form">
-        <!-- Victim Selection -->
-        <div class="form-group">
-            <label for="victim_id">Victim</label>
-            <div class="search-container">
-                <span class="search-icon">🔍</span>
-                <input type="text" id="victimSearch" class="search-input" placeholder="Search for a victim...">
-            </div>
-            <select name="victim_id" id="victimSelect" class="form-control" required>
-                {% for member in all_members %}
-                    <option value="{{ member.id }}" 
-                        {% if form_data and member.id == form_data.victim_id %}selected{% endif %}
-                        data-name="{{ member.name }}"
-                        data-set_name="{{ member.set_name }}"
-                        data-death_date="{{ member.death_date or '' }}"
-                        data-death_approx="{{ member.death_date_approx or '' }}"
-                        data-status="{{ member.status }}"
-                        data-release_date="{{ member.release_date or '' }}"
-                        data-release_approx="{{ member.release_date_approx or '' }}">
-                        {{ member.name }}{% if member.name in duplicate_names %} ({{ member.set_name }}){% endif %}
-                        {% if member.status == "alive" %}
-                            (Alive)
-                        {% elif member.status == "locked_up" %}
-                            {% if member.release_date %}
-                                (Locked Up until {{ member.release_date|format_special_date|safe }})
-                            {% elif member.release_date_approx == "life" %}
-                                (Locked Up for Life)
-                            {% elif member.release_date_approx and member.release_date_approx != 'unknown' %}
-                                (Locked Up until approximately {{ member.release_date_approx }})
-                            {% else %}
-                                (Locked Up - release date unknown)
-                            {% endif %}
-                        {% elif member.death_date %}
-                            (Deceased on {{ member.death_date|format_special_date|safe }})
-                        {% elif member.death_date_approx and member.death_date_approx != 'unknown' %}
-                            (Deceased approximately in {{ member.death_date_approx }})
+        <fieldset class="form-section">
+            <legend>Victim Information</legend>
+            
+            <div class="form-row">
+                <div class="form-group full-width">
+                    <label for="victim_id">Victim</label>
+                    <select name="victim_id" id="victimSelect" class="form-control" required>
+                        {% for member in all_members %}
+                            <option value="{{ member.id }}" 
+                                {% if form_data and member.id == form_data.victim_id %}selected{% endif %}
+                                data-name="{{ member.name }}"
+                                data-set_name="{{ member.set_name }}"
+                                data-death_date="{{ member.death_date or '' }}"
+                                data-death_approx="{{ member.death_date_approx or '' }}"
+                                data-status="{{ member.status }}"
+                                data-release_date="{{ member.release_date or '' }}"
+                                data-release_approx="{{ member.release_date_approx or '' }}">
+                                {{ member.name }}{% if member.name in duplicate_names %} ({{ member.set_name }}){% endif %}
+                                {% if member.status == "alive" %}
+                                    (Alive)
+                                {% elif member.status == "locked_up" %}
+                                    {% if member.release_date %}
+                                        (Locked Up until {{ member.release_date|format_special_date|safe }})
+                                    {% elif member.release_date_approx == "life" %}
+                                        (Locked Up for Life)
+                                    {% elif member.release_date_approx and member.release_date_approx != 'unknown' %}
+                                        (Locked Up until approximately {{ member.release_date_approx }})
+                                    {% else %}
+                                        (Locked Up - release date unknown)
+                                    {% endif %}
+                                {% elif member.death_date %}
+                                    (Deceased on {{ member.death_date|format_special_date|safe }})
+                                {% elif member.death_date_approx and member.death_date_approx != 'unknown' %}
+                                    (Deceased approximately in {{ member.death_date_approx }})
+                                {% else %}
+                                    (Death date unknown)
+                                {% endif %}
+                            </option>
                         {% else %}
-                            (Death date unknown)
-                        {% endif %}
-                    </option>
-                {% else %}
-                    <option disabled>No members available</option>
-                {% endfor %}
-            </select>
-        </div>
-
-        <!-- Date Precision -->
-        <div class="form-group">
-            <label>Date Precision</label>
-            <div class="precision-group">
-                <select name="date_precision" id="datePrecision" class="form-control" required>
-                    <option value="exact" {% if form_data and form_data.date_precision == 'exact' %}selected{% endif %}>Exact Date</option>
-                    <option value="year" {% if form_data and form_data.date_precision == 'year' %}selected{% endif %}>Year Only</option>
-                    <option value="unknown" {% if form_data and form_data.date_precision == 'unknown' %}selected{% endif %}>Unknown</option>
-                </select>
-
-                <div id="exactDateGroup" style="margin-top: 1rem;">
-                    <label>Exact Date</label>
-                    <input type="date" name="date_exact" id="date_exact" class="form-control" value="{{ form_data.date_exact if form_data and form_data.date_exact }}">
-                </div>
-
-                <div id="yearGroup" style="margin-top: 1rem;">
-                    <label>Year</label>
-                    <input type="text" name="date_year" id="date_year" class="form-control" placeholder="YYYY" pattern="\d{4}" value="{{ form_data.date_year if form_data and form_data.date_year }}">
+                            <option disabled>No members available</option>
+                        {% endfor %}
+                    </select>
+                    <small id="victim-help" class="helper-text">Select the person who was murdered</small>
                 </div>
             </div>
-        </div>
+        </fieldset>
 
-        <div class="form-group checkbox-group hidden" id="update-victim-death-container">
-            <input type="checkbox" name="update_victim_death" id="update_victim_death" value="true">
-            <label for="update_victim_death">Update victim's death date to match this murder date</label>
-        </div>
+        <fieldset class="form-section">
+            <legend>Date Information</legend>
+            
+            <div class="form-row">
+                <div class="form-group full-width">
+                    <label for="datePrecision">Date Precision</label>
+                    <select name="date_precision" id="datePrecision" class="form-control" required>
+                        <option value="exact" {% if form_data and form_data.date_precision == 'exact' %}selected{% endif %}>Exact Date</option>
+                        <option value="year" {% if form_data and form_data.date_precision == 'year' %}selected{% endif %}>Year Only</option>
+                        <option value="unknown" {% if form_data and form_data.date_precision == 'unknown' %}selected{% endif %}>Unknown</option>
+                    </select>
+                    <small class="helper-text">How precisely is the murder date known</small>
+
+                    <div id="exactDateGroup" class="date-field-container">
+                        <label for="date_exact">Exact Date</label>
+                        <input type="date" name="date_exact" id="date_exact" class="form-control" placeholder="DD/MM/YYYY" value="{{ form_data.date_exact if form_data and form_data.date_exact }}">
+                        <small class="helper-text">Format: DD/MM/YYYY</small>
+                    </div>
+
+                    <div id="yearGroup" class="date-field-container">
+                        <label for="date_year">Year</label>
+                        <input type="text" name="date_year" id="date_year" class="form-control" placeholder="YYYY" pattern="\d{4}" value="{{ form_data.date_year if form_data and form_data.date_year }}">
+                        <small class="helper-text">4-digit year (e.g., 2023)</small>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="form-row">
+                <div class="form-group checkbox-group hidden" id="update-victim-death-container">
+                    <input type="checkbox" name="update_victim_death" id="update_victim_death" value="true">
+                    <label for="update_victim_death">Update victim's death date to match this murder date</label>
+                </div>
+            </div>
+        </fieldset>
         
         <div class="form-actions">
+            <a href="/members/{{ member_id }}" class="cancel-btn">Cancel</a>
             <button type="submit" id="submit-button" class="save-btn">
                 <span class="button-text">Create Murder</span>
                 <span class="spinner hidden"></span>
             </button>
-            <a href="/members/{{ member_id }}" class="cancel-btn">Cancel</a>
         </div>
 
         {% if error_message %}
@@ -334,13 +543,37 @@
 {% endblock %}
 
 {% block extra_scripts %}
+<!-- Include TomSelect JS -->
+<script src="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/js/tom-select.complete.min.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
+    // Initialize TomSelect for victim dropdown
+    const victimSelect = new TomSelect('#victimSelect', {
+        plugins: ['clear_button'],
+        maxItems: 1,
+        create: false,
+        allowEmptyOption: false,
+        // Don't set valueField/labelField to let it use standard select behavior
+        render: {
+            option: function(data, escape) {
+                return '<div class="option">' + escape(data.text) + '</div>';
+            },
+            item: function(data, escape) {
+                return '<div>' + escape(data.text) + '</div>';
+            }
+        },
+        onInitialize: function() {
+            // Ensure default selection is properly set if any
+            const selectedOption = this.input.querySelector('option:checked');
+            if (selectedOption) {
+                console.log("Default victim selected:", selectedOption.value);
+            }
+        }
+    });
+    
     const precisionSelect = document.getElementById('datePrecision');
     const exactDateGroup = document.getElementById('exactDateGroup');
     const yearGroup = document.getElementById('yearGroup');
-    const victimSelect = document.getElementById('victimSelect');
-    const victimSearch = document.getElementById('victimSearch');
     const form = document.getElementById('add-murder-form');
     const submitButton = document.getElementById('submit-button');
     const buttonText = submitButton.querySelector('.button-text');
@@ -348,6 +581,11 @@ document.addEventListener('DOMContentLoaded', function () {
     const updateVictimDeathContainer = document.getElementById('update-victim-death-container');
     const updateVictimDeath = document.getElementById('update_victim_death');
     const memberId = "{{ member_id }}"; // Store member_id from template
+    
+    // Set default value for date precision
+    if (precisionSelect.options.length > 0 && !precisionSelect.value) {
+        precisionSelect.value = 'exact';
+    }
     
     // Modal elements
     const modal = document.getElementById('confirmation-modal');
@@ -358,52 +596,6 @@ document.addEventListener('DOMContentLoaded', function () {
     
     // Flag to prevent duplicate form submissions
     let formSubmitting = false;
-
-    // Search functionality
-    victimSearch.addEventListener('input', function() {
-        const searchTerm = this.value.toLowerCase();
-        const options = victimSelect.options;
-
-        for (let option of options) {
-            const name = option.getAttribute('data-name').toLowerCase();
-            const setName = option.getAttribute('data-set_name').toLowerCase();
-            const status = option.getAttribute('data-status');
-            const deathDate = option.getAttribute('data-death_date');
-            const deathApprox = option.getAttribute('data-death_approx');
-            const releaseDate = option.getAttribute('data-release_date');
-            const releaseApprox = option.getAttribute('data-release_approx');
-            
-            let statusInfo = '';
-            if (status === "alive") {
-                statusInfo = '(Alive)';
-            } else if (status === "locked_up") {
-                if (releaseDate) {
-                    statusInfo = `(Locked Up until ${releaseDate})`;
-                } else if (releaseApprox === "life") {
-                    statusInfo = '(Locked Up for Life)';
-                } else if (releaseApprox && releaseApprox !== 'unknown') {
-                    statusInfo = `(Locked Up until approximately ${releaseApprox})`;
-                } else {
-                    statusInfo = '(Locked Up - release date unknown)';
-                }
-            } else if (deathDate) {
-                statusInfo = `(Deceased on ${deathDate})`;
-            } else if (deathApprox && deathApprox !== 'unknown') {
-                statusInfo = `(Deceased approximately in ${deathApprox})`;
-            } else {
-                statusInfo = '(Death date unknown)';
-            }
-
-            const fullText = `${name} ${setName} ${statusInfo}`.toLowerCase();
-            option.style.display = fullText.includes(searchTerm) ? '' : 'none';
-        }
-
-        // If there's only one visible option, select it
-        const visibleOptions = Array.from(options).filter(opt => opt.style.display !== 'none');
-        if (visibleOptions.length === 1) {
-            victimSelect.value = visibleOptions[0].value;
-        }
-    });
 
     function updateDateFields() {
         if (precisionSelect.value === 'exact') {
@@ -416,15 +608,19 @@ document.addEventListener('DOMContentLoaded', function () {
             exactDateGroup.style.display = 'none';
             yearGroup.style.display = 'none';
         }
+        console.log("Date precision set to:", precisionSelect.value);
     }
 
     // Validate form before submission
     function validateForm() {
         let isValid = true;
         const datePrecision = precisionSelect.value;
+        const victimValue = victimSelect.getValue();
+        
+        console.log("Selected victim ID:", victimValue);
         
         // Check required fields
-        if (!victimSelect.value) {
+        if (!victimValue) {
             displayError("Please select a victim");
             isValid = false;
             return isValid;
@@ -474,6 +670,13 @@ document.addEventListener('DOMContentLoaded', function () {
             return;
         }
 
+        // For debugging - log the form data
+        const formData = new FormData(form);
+        console.log("Form data being submitted:");
+        for (let [key, value] of formData.entries()) {
+            console.log(`${key}: ${value}`);
+        }
+
         // Show loading state
         submitButton.disabled = true;
         spinner.classList.remove('hidden');
@@ -481,16 +684,30 @@ document.addEventListener('DOMContentLoaded', function () {
 
         try {
             // Submit form with fetch API to check for errors
-            const formData = new FormData(form);
             const response = await fetch(form.action, {
                 method: 'POST',
                 body: formData,
                 redirect: 'manual' // Don't automatically follow redirects
             });
             
+            console.log("Response status:", response.status);
+            
             // Check if there was a redirect (success)
             if (response.status === 303 || response.redirected) {
-                window.location.href = response.url || '/members/' + memberId;
+                // Get the redirect URL from the Location header or form the URL manually
+                let redirectUrl = response.headers.get('Location');
+                
+                // If Location header is empty or missing, construct the URL manually
+                if (!redirectUrl) {
+                    // Extract the member_id from the form action URL
+                    const formActionUrl = new URL(form.action, window.location.origin);
+                    const urlParts = formActionUrl.pathname.split('/');
+                    const memberId = urlParts[urlParts.length - 1];
+                    redirectUrl = `/members/${memberId}`;
+                }
+                
+                console.log("Redirect URL:", redirectUrl);
+                window.location.href = redirectUrl;
                 return;
             }
             
@@ -498,6 +715,7 @@ document.addEventListener('DOMContentLoaded', function () {
             const contentType = response.headers.get('content-type');
             if (contentType && contentType.includes('application/json')) {
                 const data = await response.json();
+                console.log("Error response:", data);
                 
                 // Reset loading state
                 submitButton.disabled = false;
@@ -517,6 +735,7 @@ document.addEventListener('DOMContentLoaded', function () {
             } else {
                 // Handle non-JSON response (likely HTML)
                 const text = await response.text();
+                console.log("Non-JSON response:", text.substring(0, 200) + "...");
                 submitButton.disabled = false;
                 spinner.classList.add('hidden');
                 buttonText.textContent = 'Create Murder';

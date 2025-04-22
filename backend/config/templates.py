@@ -24,7 +24,8 @@ def format_special_date(date_value, precision=None):
 
         # Convert datetime.date to string if necessary
         if isinstance(date_value, (date, datetime)):
-            date_value = date_value.strftime("%Y-%m-%d")
+            formatted_date = date_value.strftime("%d/%m/%Y")
+            return Markup(f'<span class="date-exact">{formatted_date}</span>')
 
         # Handle exact dates
         if precision == "exact":
@@ -32,14 +33,14 @@ def format_special_date(date_value, precision=None):
                 d = datetime.strptime(date_value, "%Y-%m-%d")
                 return Markup(f'<span class="date-exact">{d.strftime("%d/%m/%Y")}</span>')
             except ValueError:
-                return Markup('<span class="date-error">Invalid exact date</span>')
+                return Markup('<span class="date-unknown">Unknown</span>')
 
         # Handle year-only dates
         elif precision == "year":
             if date_value.isdigit() and len(date_value) == 4:
                 return Markup(f'<span class="date-year">{date_value}</span> (approx)')
             else:
-                return Markup('<span class="date-error">Invalid year</span>')
+                return Markup('<span class="date-unknown">Unknown</span>')
 
         # Handle approximate metadata (e.g., 'circa 2020')
         elif ":" in date_value:
@@ -49,9 +50,9 @@ def format_special_date(date_value, precision=None):
                 if prefix == "circa" and value.isdigit() and len(value) == 4:
                     return Markup(f'<span class="date-year">{value}</span> (approx)')
                 else:
-                    return Markup('<span class="date-error">Invalid metadata</span>')
+                    return Markup('<span class="date-unknown">Unknown</span>')
             else:
-                return Markup('<span class="date-error">Invalid metadata format</span>')
+                return Markup('<span class="date-unknown">Unknown</span>')
 
         # Fallback for legacy dates (if any)
         else:
@@ -59,10 +60,14 @@ def format_special_date(date_value, precision=None):
                 d = datetime.strptime(date_value, "%Y-%m-%d")
                 return Markup(f'<span class="date-exact">{d.strftime("%d/%m/%Y")}</span>')
             except ValueError:
-                return Markup('<span class="date-error">Invalid legacy date</span>')
+                if date_value.isdigit() and len(date_value) == 4:
+                    # Handle year only
+                    return Markup(f'<span class="date-year">{date_value}</span>')
+                else:
+                    return Markup(f'<span class="date-text">{date_value}</span>')
 
     except Exception as e:
-        return Markup(f'<span class="date-error">Error formatting date: {str(e)}</span>')
+        return Markup('<span class="date-unknown">Unknown</span>')
 
 
 

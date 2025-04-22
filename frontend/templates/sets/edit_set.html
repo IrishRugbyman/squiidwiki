@@ -468,6 +468,12 @@ document.addEventListener("DOMContentLoaded", function () {
     fetch("/sets/set_options?exclude={{ set.id }}")
         .then(response => response.json())
         .then(data => {
+            alliesSelect.clear();
+            enemiesSelect.clear();
+            
+            alliesSelect.clearOptions();
+            enemiesSelect.clearOptions();
+            
             alliesSelect.addOptions(data);
             enemiesSelect.addOptions(data);
             
@@ -476,11 +482,11 @@ document.addEventListener("DOMContentLoaded", function () {
             const enemies = "{{ enemies }}".split(',').filter(Boolean).map(item => item.trim());
             
             allies.forEach(ally => {
-                alliesSelect.addItem(ally);
+                if (ally) alliesSelect.addItem(ally);
             });
             
             enemies.forEach(enemy => {
-                enemiesSelect.addItem(enemy);
+                if (enemy) enemiesSelect.addItem(enemy);
             });
         });
     
@@ -488,12 +494,14 @@ document.addEventListener("DOMContentLoaded", function () {
     fetch("/alliances/alliance_options")
         .then(response => response.json())
         .then(data => {
+            alliancesSelect.clear();
+            alliancesSelect.clearOptions();
             alliancesSelect.addOptions(data);
             
             // Set initial values for alliances
             const allianceNames = "{{ alliance_names }}".split(',').filter(Boolean).map(item => item.trim());
             allianceNames.forEach(alliance => {
-                alliancesSelect.addItem(alliance);
+                if (alliance) alliancesSelect.addItem(alliance);
             });
         });
 

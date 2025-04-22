@@ -1,77 +1,9 @@
 {% extends 'base.html' %}
 
-{% block content %}
-<div class="container">
-    <h1>Edit Murder Event</h1>
-    <form method="post" action="/events/murders/edit/{{ murder.id }}" id="edit-murder-form" novalidate>
-        <!-- CSRF Protection -->
-
-        <fieldset class="form-section">
-            <legend>Event Details</legend>
-            <div class="form-row">
-                <div class="form-group">
-                    <label for="shooter_id">Shooter:</label>
-                    <select id="shooter_id" name="shooter_id" required aria-required="true">
-                        {% for member in all_members %}
-                            <option value="{{ member.id }}" {% if member.id == murder.shooter_id %}selected{% endif %}>
-                                {{ member.name }}
-                            </option>
-                        {% endfor %}
-                    </select>
-                    <div id="shooter-error" class="error-message" aria-live="polite"></div>
-                </div>
-
-                <div class="form-group">
-                    <label for="victim_name">Victim:</label>
-                    <input type="text" id="victim_name" value="{{ murder.victim.name }}" disabled>
-                    <input type="hidden" name="victim_id" value="{{ murder.victim_id }}">
-                    <small class="helper-text">Victim cannot be changed</small>
-                </div>
-            </div>
-
-            <div class="form-row">
-                <div class="form-group">
-                    <label for="date_exact">Date:</label>
-                    <input type="date" id="date_exact" name="date_exact" 
-                           value="{{ murder.date.strftime('%Y-%m-%d') if murder.date else '' }}"
-                           required aria-required="true">
-                    <div id="date-error" class="error-message" aria-live="polite"></div>
-                </div>
-            </div>
-
-            <div class="form-group checkbox-group hidden" id="update-victim-death-container">
-                <input type="checkbox" name="update_victim_death" id="update_victim_death" value="true">
-                <label for="update_victim_death">Update victim's death date to match this murder date</label>
-            </div>
-        </fieldset>
-
-        <div class="form-actions">
-            <a href="/members/{{ murder.shooter_id }}" class="secondary-button">Cancel</a>
-            <button type="submit" id="submit-button">
-                <span class="button-text">Save Changes</span>
-                <span class="spinner hidden"></span>
-            </button>
-        </div>
-    </form>
-</div>
-
-<!-- Modal Dialog -->
-<div id="confirmation-modal" class="modal">
-    <div class="modal-content">
-        <div class="modal-header">
-            <h2>Update Victim's Death Date?</h2>
-            <span class="close-modal">&times;</span>
-        </div>
-        <div class="modal-body">
-            <p id="modal-message"></p>
-        </div>
-        <div class="modal-footer">
-            <button id="update-death-date" class="btn btn-primary">Update Death Date</button>
-            <button id="keep-death-date" class="btn btn-secondary">Keep Original Date</button>
-        </div>
-    </div>
-</div>
-
+{% block extra_styles %}
+<!-- Include TomSelect CSS -->
+<link href="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/css/tom-select.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/css/tom-select.bootstrap5.min.css" rel="stylesheet">
 <style>
 .container {
     max-width: 800px;
@@ -214,6 +146,57 @@ button[type="submit"]:hover {
     }
 }
 
+/* TomSelect Customization */
+.ts-wrapper {
+    width: 100%;
+}
+
+.ts-control {
+    border-radius: 4px !important;
+    border: 1px solid var(--border-color) !important;
+    background: var(--bg-color) !important;
+    color: var(--text-color) !important;
+    padding: 8px !important;
+    box-shadow: none !important;
+    font-size: 1rem !important;
+}
+
+.ts-control:focus {
+    border-color: var(--primary-color) !important;
+    box-shadow: 0 0 0 2px rgba(106, 13, 173, 0.2) !important;
+}
+
+.ts-dropdown {
+    border-radius: 4px !important;
+    border: 1px solid var(--border-color) !important;
+    background: var(--bg-color) !important;
+    color: var(--text-color) !important;
+    box-shadow: 0 4px 12px var(--shadow-color) !important;
+    overflow: hidden;
+    z-index: 100;
+    max-height: 300px;
+}
+
+.ts-dropdown .option {
+    padding: 10px 12px !important;
+    transition: all 0.2s ease;
+    white-space: normal !important;
+    font-size: 1rem !important;
+}
+
+.ts-dropdown .active {
+    background: var(--primary-color) !important;
+    color: white !important;
+}
+
+.ts-dropdown .option:hover {
+    background: rgba(106, 13, 173, 0.1) !important;
+}
+
+.ts-dropdown .active:hover {
+    background: var(--primary-color) !important;
+}
+
 /* Modal styles */
 .modal {
     display: none;
@@ -331,65 +314,138 @@ button[type="submit"]:hover {
     }
 }
 </style>
+{% endblock %}
 
+{% block content %}
+<div class="container">
+    <h1>Edit Murder Event</h1>
+    <form method="post" action="/events/murders/edit/{{ murder.id }}" id="edit-murder-form" novalidate>
+        <!-- CSRF Protection -->
+
+        <fieldset class="form-section">
+            <legend>Event Details</legend>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="shooter_id">Shooter:</label>
+                    <select id="shooter_id" name="shooter_id" required aria-required="true">
+                        {% for member in all_members %}
+                            <option value="{{ member.id }}" {% if member.id == murder.shooter_id %}selected{% endif %}>
+                                {{ member.name }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                    <div id="shooter-error" class="error-message" aria-live="polite"></div>
+                </div>
+
+                <div class="form-group">
+                    <label for="victim_name">Victim:</label>
+                    <input type="text" id="victim_name" value="{{ murder.victim.name }}" disabled>
+                    <input type="hidden" name="victim_id" value="{{ murder.victim_id }}">
+                    <small class="helper-text">Victim cannot be changed</small>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="date_exact">Date:</label>
+                    <input type="date" id="date_exact" name="date_exact" 
+                           value="{{ murder.date.strftime('%Y-%m-%d') if murder.date else '' }}"
+                           required aria-required="true">
+                    <small class="helper-text">Format: MM/DD/YYYY</small>
+                    <div id="date-error" class="error-message" aria-live="polite"></div>
+                </div>
+            </div>
+
+            <div class="form-group checkbox-group hidden" id="update-victim-death-container">
+                <input type="checkbox" name="update_victim_death" id="update_victim_death" value="true">
+                <label for="update_victim_death">Update victim's death date to match this murder date</label>
+            </div>
+        </fieldset>
+
+        <div class="form-actions">
+            <a href="/members/{{ murder.shooter_id }}" class="secondary-button">Cancel</a>
+            <button type="submit" id="submit-button">
+                <span class="button-text">Save Changes</span>
+                <span class="spinner hidden"></span>
+            </button>
+        </div>
+    </form>
+</div>
+
+<!-- Modal Dialog -->
+<div id="confirmation-modal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>Update Victim's Death Date?</h2>
+            <span class="close-modal">&times;</span>
+        </div>
+        <div class="modal-body">
+            <p id="modal-message"></p>
+        </div>
+        <div class="modal-footer">
+            <button id="update-death-date" class="btn btn-primary">Update Death Date</button>
+            <button id="keep-death-date" class="btn btn-secondary">Keep Original Date</button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<!-- Include TomSelect JS -->
+<script src="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/js/tom-select.complete.min.js"></script>
 <script>
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
+    // Initialize TomSelect for shooter dropdown
+    const shooterSelect = new TomSelect('#shooter_id', {
+        plugins: ['clear_button'],
+        maxItems: 1,
+        valueField: 'value',
+        labelField: 'text',
+        searchField: ['text'],
+        create: false,
+        sortField: { field: 'text', direction: 'asc' },
+        render: {
+            option: function(data, escape) {
+                return '<div class="option">' + escape(data.text) + '</div>';
+            },
+            item: function(data, escape) {
+                return '<div>' + escape(data.text) + '</div>';
+            }
+        }
+    });
+    
     const form = document.getElementById('edit-murder-form');
     const submitButton = document.getElementById('submit-button');
-    const spinner = document.querySelector('.spinner');
-    const buttonText = document.querySelector('.button-text');
-    const shooterError = document.getElementById('shooter-error');
-    const dateError = document.getElementById('date-error');
-    const updateCheckbox = document.getElementById('update_victim_death');
-    const updateContainer = document.getElementById('update-victim-death-container');
+    const buttonText = submitButton.querySelector('.button-text');
+    const spinner = submitButton.querySelector('.spinner');
+    const updateVictimDeath = document.getElementById('update_victim_death');
+    const updateVictimDeathContainer = document.getElementById('update-victim-death-container');
+    
+    // Modal elements
     const modal = document.getElementById('confirmation-modal');
-    const closeModal = document.querySelector('.close-modal');
     const modalMessage = document.getElementById('modal-message');
     const updateButton = document.getElementById('update-death-date');
     const keepButton = document.getElementById('keep-death-date');
+    const closeModal = document.querySelector('.close-modal');
     
+    // Flag to prevent duplicate form submissions
     let formSubmitting = false;
 
-    function validateForm() {
-        let isValid = true;
-        const shooter = document.getElementById('shooter_id').value;
-        const date = document.getElementById('date_exact').value;
-
-        // Clear previous errors
-        shooterError.textContent = '';
-        dateError.textContent = '';
-
-        if (!shooter) {
-            shooterError.textContent = 'Shooter is required';
-            isValid = false;
-        }
-
-        if (!date) {
-            dateError.textContent = 'Date is required';
-            isValid = false;
-        }
-
-        return isValid;
-    }
-
+    // Form submission handler with AJAX 
     form.addEventListener('submit', async function(event) {
-        if (formSubmitting) return; // Don't intercept if we're already submitting
+        if (formSubmitting) return; // Don't resubmit if already submitting
         
         event.preventDefault();
-
-        if (!validateForm()) {
-            return;
-        }
-
+        
         // Show loading state
         submitButton.disabled = true;
         spinner.classList.remove('hidden');
         buttonText.textContent = 'Saving...';
-
+        
         try {
             // Submit form with fetch API to check for errors
             const formData = new FormData(form);
-            const response = await fetch(form.action || window.location.href, {
+            const response = await fetch(form.action, {
                 method: 'POST',
                 body: formData,
                 redirect: 'manual' // Don't automatically follow redirects
@@ -434,7 +490,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Handle update death date button
     updateButton.addEventListener('click', function() {
-        updateCheckbox.checked = true;
+        updateVictimDeath.checked = true;
         modal.style.display = 'none';
         formSubmitting = true;
         

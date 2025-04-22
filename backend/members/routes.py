@@ -4,6 +4,7 @@ from typing import Optional, List
 from fastapi import APIRouter, Request, Form, HTTPException, Depends, Body, Query
 from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from sqlalchemy.orm import Session, joinedload
+from sqlalchemy import or_
 from backend.config.templates import templates
 
 # Import your SQLAlchemy ORM models.
@@ -308,9 +309,15 @@ def delete_member_confirmation(request: Request, member_id: int, db: Session = D
     set_name = member_obj.set.name if member_obj.set else "Unknown Set"
     
     # Get counts of activities associated with this member
-    shootings_count = db.query(Shootings).filter_by(member_id=member_id).count()
-    murders_count = db.query(Murders).filter_by(member_id=member_id).count()
-    assists_count = db.query(Assists).filter_by(member_id=member_id).count()
+    shootings_count = db.query(Shootings).filter(
+        or_(Shootings.shooter_id == member_id, Shootings.victim_id == member_id)
+    ).count()
+    murders_count = db.query(Murders).filter(
+        or_(Murders.shooter_id == member_id, Murders.victim_id == member_id)
+    ).count()
+    assists_count = db.query(Assists).filter(
+        or_(Assists.shooter_id == member_id, Assists.victim_id == member_id)
+    ).count()
     total_activity_count = shootings_count + murders_count + assists_count
 
     return templates.TemplateResponse(
@@ -335,9 +342,17 @@ def delete_member(member_id: int, db: Session = Depends(get_db)):
     set_id = member_obj.set_id
     
     # Delete member and associated records
-    db.query(Shootings).filter_by(member_id=member_id).delete()
-    db.query(Murders).filter_by(member_id=member_id).delete()
-    db.query(Assists).filter_by(member_id=member_id).delete()
+    # For Shootings, we need to delete both where member is shooter or victim
+    db.query(Shootings).filter(Shootings.shooter_id == member_id).delete()
+    db.query(Shootings).filter(Shootings.victim_id == member_id).delete()
+    
+    # For Murders, we need to delete both where member is shooter or victim
+    db.query(Murders).filter(Murders.shooter_id == member_id).delete()
+    db.query(Murders).filter(Murders.victim_id == member_id).delete()
+    
+    # For Assists, we need to delete both where member is shooter or victim
+    db.query(Assists).filter(Assists.shooter_id == member_id).delete()
+    db.query(Assists).filter(Assists.victim_id == member_id).delete()
     
     db.delete(member_obj)
     db.commit()
@@ -363,6 +378,7 @@ def member_details(request: Request, member_id: int, db: Session = Depends(get_d
     
     # Get set information
     set_data = None
+    set_name = "Unknown Set"
     if member_obj.set_id:
         set_obj = db.get(Sets, member_obj.set_id)
         if set_obj:
@@ -372,9 +388,11 @@ def member_details(request: Request, member_id: int, db: Session = Depends(get_d
                 "description": set_obj.description,
                 "type": set_obj.type
             }
+            set_name = set_obj.name
     
     # Get alliance information 
     alliance_data = None
+    alliance_name = None
     if member_obj.alliance_id:
         alliance_obj = db.get(Alliances, member_obj.alliance_id)
         if alliance_obj:
@@ -383,18 +401,25 @@ def member_details(request: Request, member_id: int, db: Session = Depends(get_d
                 "name": alliance_obj.name,
                 "description": alliance_obj.description
             }
+            alliance_name = alliance_obj.name
     
     # Get activity history for this member
     # Shootings
-    shootings = db.query(Shootings).filter_by(member_id=member_id).order_by(Shootings.date.desc()).all()
+    shootings = db.query(Shootings).filter(
+        or_(Shootings.shooter_id == member_id, Shootings.victim_id == member_id)
+    ).order_by(Shootings.date.desc()).all()
     shootings_data = [format_activity(db, shooting, Shooting) for shooting in shootings]
     
     # Murders
-    murders = db.query(Murders).filter_by(member_id=member_id).order_by(Murders.date.desc()).all()
+    murders = db.query(Murders).filter(
+        Murders.shooter_id == member_id  # Only include murders where this member is the shooter
+    ).order_by(Murders.date.desc()).all()
     murders_data = [format_activity(db, murder, Murder) for murder in murders]
     
     # Assists
-    assists = db.query(Assists).filter_by(member_id=member_id).order_by(Assists.date.desc()).all()
+    assists = db.query(Assists).filter(
+        or_(Assists.shooter_id == member_id, Assists.victim_id == member_id)
+    ).order_by(Assists.date.desc()).all()
     assists_data = [format_activity(db, assist, Assist) for assist in assists]
     
     # Get total counts
@@ -403,20 +428,66 @@ def member_details(request: Request, member_id: int, db: Session = Depends(get_d
     total_assists = len(assists_data)
     total_events = total_shootings + total_murders + total_assists
     
+    # Group activities data into a single dictionary for the template
+    activities_data = {
+        "shootings": shootings_data,
+        "murders": murders_data,
+        "assists": assists_data
+    }
+    
+    # Get all member and set information needed for the activities
+    member_ids = set()
+    for activity_list in [shootings_data, murders_data, assists_data]:
+        for activity in activity_list:
+            if 'victim_id' in activity:
+                member_ids.add(activity['victim_id'])
+            if 'shooter_id' in activity:
+                member_ids.add(activity['shooter_id'])
+    
+    # Create dictionaries for member names and their sets
+    member_names = {}
+    victim_sets = {}
+    if member_ids:
+        members_info = db.query(Members).filter(Members.id.in_(member_ids)).all()
+        for m in members_info:
+            member_names[m.id] = m.name
+            if m.set_id:
+                set_obj = db.get(Sets, m.set_id)
+                if set_obj:
+                    victim_sets[m.id] = set_obj.name
+                else:
+                    victim_sets[m.id] = "Unknown Set"
+            else:
+                victim_sets[m.id] = "Unknown Set"
+    
+    # Add victim_set_id to each activity for proper linking
+    for activity_list in [shootings_data, murders_data, assists_data]:
+        for activity in activity_list:
+            if 'victim_id' in activity and activity['victim_id'] in member_ids:
+                victim_id = activity['victim_id']
+                victim_member = db.query(Members).filter(Members.id == victim_id).first()
+                if victim_member and victim_member.set_id:
+                    activity['victim_set_id'] = victim_member.set_id
+                else:
+                    # Default to an unknown set if needed
+                    activity['victim_set_id'] = None
+    
     return templates.TemplateResponse(
         "members/member_details.html",
         {
             "request": request,
             "member": member_data,
             "set": set_data,
+            "set_name": set_name,
             "alliance": alliance_data,
+            "alliance_name": alliance_name,
             "total_events": total_events,
             "total_shootings": total_shootings,
             "total_murders": total_murders,
             "total_assists": total_assists,
-            "shootings": shootings_data,
-            "murders": murders_data,
-            "assists": assists_data
+            "activities": activities_data,
+            "member_names": member_names,
+            "victim_sets": victim_sets
         }
     )
 
@@ -479,9 +550,15 @@ def api_get_member(member_id: int, db: Session = Depends(get_db)):
             member_data["alliance_name"] = alliance_obj.name
     
     # Add activity counts
-    member_data["shootings_count"] = db.query(Shootings).filter_by(member_id=member_id).count()
-    member_data["murders_count"] = db.query(Murders).filter_by(member_id=member_id).count()
-    member_data["assists_count"] = db.query(Assists).filter_by(member_id=member_id).count()
+    member_data["shootings_count"] = db.query(Shootings).filter(
+        or_(Shootings.shooter_id == member_id, Shootings.victim_id == member_id)
+    ).count()
+    member_data["murders_count"] = db.query(Murders).filter(
+        or_(Murders.shooter_id == member_id, Murders.victim_id == member_id)
+    ).count()
+    member_data["assists_count"] = db.query(Assists).filter(
+        or_(Assists.shooter_id == member_id, Assists.victim_id == member_id)
+    ).count()
     
     return member_data
 
@@ -654,9 +731,17 @@ def api_delete_member(member_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Member not found")
     
     # Delete associated records
-    db.query(Shootings).filter_by(member_id=member_id).delete()
-    db.query(Murders).filter_by(member_id=member_id).delete()
-    db.query(Assists).filter_by(member_id=member_id).delete()
+    # For Shootings, we need to delete both where member is shooter or victim
+    db.query(Shootings).filter(Shootings.shooter_id == member_id).delete()
+    db.query(Shootings).filter(Shootings.victim_id == member_id).delete()
+    
+    # For Murders, we need to delete both where member is shooter or victim
+    db.query(Murders).filter(Murders.shooter_id == member_id).delete()
+    db.query(Murders).filter(Murders.victim_id == member_id).delete()
+    
+    # For Assists, we need to delete both where member is shooter or victim
+    db.query(Assists).filter(Assists.shooter_id == member_id).delete()
+    db.query(Assists).filter(Assists.victim_id == member_id).delete()
     
     # Delete member
     db.delete(member)

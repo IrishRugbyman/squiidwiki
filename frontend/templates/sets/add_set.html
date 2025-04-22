@@ -66,8 +66,8 @@
             
             <div class="form-row">
                 <div class="form-group">
-                    <label for="alliances">Alliances</label>
-                    <select id="alliances" name="alliances" multiple placeholder="Add alliances"></select>
+                    <label for="alliance_names">Alliances</label>
+                    <select id="alliance_names" name="alliance_names" multiple placeholder="Add alliances"></select>
                 </div>
             </div>
             
@@ -620,7 +620,7 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     });
 
-    const alliancesSelect = new TomSelect('#alliances', {
+    const alliancesSelect = new TomSelect('#alliance_names', {
         plugins: ['remove_button', 'clear_button'],
         persist: false,
         createOnBlur: false,

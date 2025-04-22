@@ -1,5 +1,340 @@
 {% extends "base.html" %}
 
+{% block extra_styles %}
+<style>
+    /* Container Styles */
+    .add-member-container {
+        max-width: 800px;
+        margin: 2rem auto;
+        padding: 2.5rem 1rem;
+    }
+
+    /* Header Styles */
+    .page-header {
+        text-align: center;
+        margin-bottom: 2.5rem;
+    }
+
+    .page-title {
+        color: var(--primary-color);
+        font-size: 2.2rem;
+        font-weight: 700;
+        margin: 0;
+    }
+
+    .set-name {
+        color: var(--helper-text-color);
+        font-size: 1.3rem;
+        margin: 0.75rem 0 0;
+        font-weight: 500;
+    }
+
+    /* Form Section Styles */
+    .form-section {
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        padding: 20px;
+        margin-bottom: 20px;
+        background-color: rgba(255, 255, 255, 0.05);
+    }
+    
+    .light-theme .form-section {
+        background-color: rgba(0, 0, 0, 0.02);
+    }
+
+    .section-title {
+        color: var(--primary-color);
+        font-size: 1.3rem;
+        font-weight: 600;
+        margin: 0 0 1.5rem;
+        padding: 0 10px;
+    }
+
+    .subsection-title {
+        color: var(--text-color);
+        font-size: 1.1rem;
+        font-weight: 500;
+        margin: 1.5rem 0 1rem;
+    }
+
+    /* Form Row and Group Styles */
+    .form-row {
+        display: flex;
+        gap: 20px;
+        margin-bottom: 15px;
+    }
+    
+    .form-group {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        margin-bottom: 1.5rem;
+    }
+    
+    .full-width {
+        width: 100%;
+    }
+    
+    .form-group label {
+        display: block;
+        font-weight: 500;
+        margin-bottom: 0.75rem;
+        color: var(--text-color);
+        font-size: 1.1rem;
+    }
+    
+    .form-control {
+        width: 100%;
+        padding: 12px;
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        font-size: 1.1rem;
+        transition: all 0.2s ease;
+        background: var(--bg-color);
+        color: var(--text-color);
+    }
+    
+    .form-control:focus {
+        border-color: var(--primary-color);
+        outline: none;
+        box-shadow: 0 0 0 2px rgba(106, 13, 173, 0.2);
+    }
+
+    /* Radio Group Styles */
+    .radio-group {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .radio-option {
+        display: flex;
+        align-items: flex-start;
+        padding: 0.75rem;
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all var(--transition-speed) ease;
+    }
+
+    .radio-option:hover {
+        border-color: var(--primary-color);
+        background-color: rgba(var(--primary-color-rgb), 0.05);
+    }
+
+    .radio-option input {
+        margin-top: 0.25rem;
+        margin-right: 0.75rem;
+    }
+
+    .radio-content {
+        flex: 1;
+    }
+
+    .radio-title {
+        font-weight: 500;
+        color: var(--text-color);
+        margin-bottom: 0.25rem;
+    }
+
+    .radio-description {
+        font-size: 0.85rem;
+        color: var(--helper-text-color);
+    }
+
+    /* Conditional Section Styles */
+    .conditional-section {
+        background: rgba(255, 255, 255, 0.05);
+        padding: 1.5rem;
+        border-radius: 8px;
+        margin-top: 1rem;
+        border: 1px solid var(--border-color);
+    }
+    
+    .light-theme .conditional-section {
+        background-color: rgba(0, 0, 0, 0.02);
+    }
+
+    .date-field {
+        margin-top: 1.5rem;
+        padding: 1.2rem;
+        background-color: rgba(var(--bg-color-rgb), 0.5);
+        border-radius: 8px;
+        border: 1px solid var(--border-color);
+    }
+
+    /* Helper Text */
+    .helper-text {
+        font-size: 0.85em;
+        color: var(--helper-text-color);
+        margin-top: 3px;
+    }
+
+    /* Button Styles */
+    .form-actions {
+        display: flex;
+        justify-content: space-between;
+        gap: 10px;
+        margin-top: 20px;
+        padding: 0 20px 20px;
+    }
+    
+    .submit-btn {
+        background-color: var(--primary-color);
+        color: white;
+        padding: 12px 24px;
+        border: none;
+        border-radius: 8px;
+        font-size: 1.1em;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        flex: 1;
+    }
+    
+    .submit-btn:hover {
+        background-color: var(--primary-color-hover);
+        transform: translateY(-2px);
+    }
+    
+    .submit-btn:active {
+        transform: translateY(0);
+    }
+    
+    .cancel-btn {
+        background-color: transparent;
+        border: 1px solid var(--border-color);
+        color: var(--text-color);
+        padding: 12px 24px;
+        border-radius: 8px;
+        font-size: 1.1em;
+        text-decoration: none;
+        text-align: center;
+        transition: all 0.2s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+    }
+    
+    .cancel-btn:hover {
+        background-color: rgba(255, 255, 255, 0.05);
+    }
+    
+    .light-theme .cancel-btn:hover {
+        background-color: rgba(0, 0, 0, 0.05);
+    }
+
+    /* Spinner */
+    .spinner {
+        width: 20px;
+        height: 20px;
+        border: 2px solid rgba(255, 255, 255, 0.3);
+        border-radius: 50%;
+        border-top-color: white;
+        animation: spin 0.8s ease infinite;
+    }
+    
+    @keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+    
+    .hidden {
+        display: none;
+    }
+    
+    /* TomSelect Customization */
+    .ts-wrapper {
+        width: 100%;
+    }
+    
+    .ts-control {
+        border-radius: 8px !important;
+        border: 1px solid var(--border-color) !important;
+        background: var(--bg-color) !important;
+        color: var(--text-color) !important;
+        padding: 12px !important;
+        box-shadow: none !important;
+        font-size: 1.1rem !important;
+    }
+    
+    .ts-control:focus {
+        border-color: var(--primary-color) !important;
+        box-shadow: 0 0 0 2px rgba(106, 13, 173, 0.2) !important;
+    }
+    
+    .ts-dropdown {
+        border-radius: 8px !important;
+        border: 1px solid var(--border-color) !important;
+        background: var(--bg-color) !important;
+        color: var(--text-color) !important;
+        box-shadow: 0 4px 12px var(--shadow-color) !important;
+        overflow: hidden;
+        z-index: 100;
+    }
+    
+    .ts-dropdown .option {
+        padding: 10px 12px !important;
+        transition: all 0.2s ease;
+        white-space: normal !important;
+        font-size: 1.1rem !important;
+    }
+    
+    .ts-dropdown .active {
+        background: var(--primary-color) !important;
+        color: white !important;
+    }
+    
+    .ts-dropdown .option:hover {
+        background: rgba(106, 13, 173, 0.1) !important;
+    }
+    
+    .ts-dropdown .active:hover {
+        background: var(--primary-color) !important;
+    }
+    
+    /* Responsive Design */
+    @media (max-width: 768px) {
+        .add-member-container {
+            padding: 1.5rem 1rem;
+        }
+        
+        .page-title {
+            font-size: 1.8rem;
+        }
+        
+        .set-name {
+            font-size: 1.1rem;
+        }
+        
+        .form-row {
+            flex-direction: column;
+            gap: 15px;
+        }
+        
+        .radio-group {
+            grid-template-columns: 1fr;
+        }
+        
+        .form-actions {
+            flex-direction: column;
+        }
+        
+        .submit-btn, .cancel-btn {
+            width: 100%;
+        }
+    }
+</style>
+
+<!-- Include TomSelect CSS -->
+<link href="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/css/tom-select.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/css/tom-select.bootstrap5.min.css" rel="stylesheet">
+{% endblock %}
+
 {% block content %}
 <div class="add-member-container">
     <div class="page-header">
@@ -7,140 +342,153 @@
         <h2 class="set-name">to {{ set_name }}</h2>
     </div>
 
-    <div class="form-card">
-        <form method="POST" action="/members/add/{{ set_id }}" id="add-member-form">
-            <!-- Basic Information -->
-            <div class="form-section">
-                <h3 class="section-title">Basic Information</h3>
-                
-                <div class="form-group">
+    <form method="POST" action="/members/add/{{ set_id }}" id="add-member-form">
+        <!-- Basic Information -->
+        <div class="form-section">
+            <h3 class="section-title">Basic Information</h3>
+            
+            <div class="form-row">
+                <div class="form-group full-width">
                     <label for="name">Name</label>
                     <input type="text" id="name" name="name" class="form-control" required>
-                </div>
-
-                <div class="form-group">
-                    <label for="description">Description</label>
-                    <textarea id="description" name="description" class="form-control" rows="3"></textarea>
+                    <small class="helper-text">Enter the member's name</small>
                 </div>
             </div>
 
-            <!-- Status Information -->
-            <div class="form-section">
-                <h3 class="section-title">Status Information</h3>
-                
-                <div class="form-group">
+            <div class="form-row">
+                <div class="form-group full-width">
+                    <label for="description">Description</label>
+                    <textarea id="description" name="description" class="form-control" rows="3"></textarea>
+                    <small class="helper-text">Optional details about this member</small>
+                </div>
+            </div>
+        </div>
+
+        <!-- Status Information -->
+        <div class="form-section">
+            <h3 class="section-title">Status Information</h3>
+            
+            <div class="form-row">
+                <div class="form-group full-width">
                     <label for="status">Current Status</label>
                     <select id="status" name="status" class="form-control" required onchange="toggleFields()">
                         <option value="alive">Active</option>
                         <option value="locked_up">Locked Up</option>
                         <option value="dead">Deceased</option>
                     </select>
+                    <small class="helper-text">Select the member's current status</small>
+                </div>
+            </div>
+
+            <!-- Release Date Section -->
+            <div id="release_date_field" class="conditional-section" style="display: none;">
+                <h4 class="subsection-title">Release Date Information</h4>
+                
+                <div class="radio-group">
+                    <label class="radio-option">
+                        <input type="radio" id="release_exact_precision" name="release_date_precision" value="exact">
+                        <div class="radio-content">
+                            <div class="radio-title">Exact Date</div>
+                            <div class="radio-description">You know the specific release date</div>
+                        </div>
+                    </label>
+
+                    <label class="radio-option">
+                        <input type="radio" id="release_year_precision" name="release_date_precision" value="year">
+                        <div class="radio-content">
+                            <div class="radio-title">Year Only</div>
+                            <div class="radio-description">You only know the year of release</div>
+                        </div>
+                    </label>
+
+                    <label class="radio-option">
+                        <input type="radio" id="release_life_precision" name="release_date_precision" value="life">
+                        <div class="radio-content">
+                            <div class="radio-title">Life Sentence</div>
+                            <div class="radio-description">Member is serving life in prison</div>
+                        </div>
+                    </label>
+
+                    <label class="radio-option">
+                        <input type="radio" id="release_unknown_precision" name="release_date_precision" value="unknown" checked>
+                        <div class="radio-content">
+                            <div class="radio-title">Unknown</div>
+                            <div class="radio-description">Release date is not known</div>
+                        </div>
+                    </label>
                 </div>
 
-                <!-- Release Date Section -->
-                <div id="release_date_field" class="conditional-section" style="display: none;">
-                    <h4 class="subsection-title">Release Date Information</h4>
-                    
-                    <div class="radio-group">
-                        <label class="radio-option">
-                            <input type="radio" id="release_exact_precision" name="release_date_precision" value="exact">
-                            <div class="radio-content">
-                                <div class="radio-title">Exact Date</div>
-                                <div class="radio-description">You know the specific release date</div>
-                            </div>
-                        </label>
-
-                        <label class="radio-option">
-                            <input type="radio" id="release_year_precision" name="release_date_precision" value="year">
-                            <div class="radio-content">
-                                <div class="radio-title">Year Only</div>
-                                <div class="radio-description">You only know the year of release</div>
-                            </div>
-                        </label>
-
-                        <label class="radio-option">
-                            <input type="radio" id="release_life_precision" name="release_date_precision" value="life">
-                            <div class="radio-content">
-                                <div class="radio-title">Life Sentence</div>
-                                <div class="radio-description">Member is serving life in prison</div>
-                            </div>
-                        </label>
-
-                        <label class="radio-option">
-                            <input type="radio" id="release_unknown_precision" name="release_date_precision" value="unknown" checked>
-                            <div class="radio-content">
-                                <div class="radio-title">Unknown</div>
-                                <div class="radio-description">Release date is not known</div>
-                            </div>
-                        </label>
-                    </div>
-
-                    <div id="release_exact_date_field" class="date-field" style="display: none;">
-                        <div class="form-group">
-                            <label for="release_date_exact">Exact Release Date</label>
-                            <input type="date" id="release_date_exact" name="release_date_exact" class="form-control">
-                        </div>
-                    </div>
-
-                    <div id="release_year_date_field" class="date-field" style="display: none;">
-                        <div class="form-group">
-                            <label for="release_date_year">Release Year</label>
-                            <input type="number" id="release_date_year" name="release_date_year" class="form-control" placeholder="YYYY">
-                        </div>
+                <div id="release_exact_date_field" class="date-field" style="display: none;">
+                    <div class="form-group">
+                        <label for="release_date_exact">Exact Release Date</label>
+                        <input type="date" id="release_date_exact" name="release_date_exact" class="form-control">
+                        <small class="helper-text">Format: DD/MM/YYYY</small>
                     </div>
                 </div>
 
-                <!-- Death Date Section -->
-                <div id="date_of_death_precision" class="conditional-section" style="display: none;">
-                    <h4 class="subsection-title">Death Date Information</h4>
-                    
-                    <div class="radio-group">
-                        <label class="radio-option">
-                            <input type="radio" id="death_exact_precision" name="death_precision" value="exact">
-                            <div class="radio-content">
-                                <div class="radio-title">Exact Date</div>
-                                <div class="radio-description">You know the specific date of death</div>
-                            </div>
-                        </label>
-
-                        <label class="radio-option">
-                            <input type="radio" id="death_year_precision" name="death_precision" value="year">
-                            <div class="radio-content">
-                                <div class="radio-title">Year Only</div>
-                                <div class="radio-description">You only know the year of death</div>
-                            </div>
-                        </label>
-
-                        <label class="radio-option">
-                            <input type="radio" id="death_unknown_precision" name="death_precision" value="unknown" checked>
-                            <div class="radio-content">
-                                <div class="radio-title">Unknown</div>
-                                <div class="radio-description">Date of death is not known</div>
-                            </div>
-                        </label>
-                    </div>
-
-                    <div id="death_exact_date_field" class="date-field" style="display: none;">
-                        <div class="form-group">
-                            <label for="death_date_exact">Exact Death Date</label>
-                            <input type="date" id="death_date_exact" name="death_date_exact" class="form-control">
-                        </div>
-                    </div>
-
-                    <div id="death_year_date_field" class="date-field" style="display: none;">
-                        <div class="form-group">
-                            <label for="death_date_year">Death Year</label>
-                            <input type="number" id="death_date_year" name="death_date_year" class="form-control" placeholder="YYYY">
-                        </div>
+                <div id="release_year_date_field" class="date-field" style="display: none;">
+                    <div class="form-group">
+                        <label for="release_date_year">Release Year</label>
+                        <input type="number" id="release_date_year" name="release_date_year" class="form-control" placeholder="YYYY">
+                        <small class="helper-text">4-digit year (e.g., 2023)</small>
                     </div>
                 </div>
             </div>
 
-            <!-- Alliance Information -->
-            <div class="form-section">
-                <h3 class="section-title">Alliance Information</h3>
+            <!-- Death Date Section -->
+            <div id="date_of_death_precision" class="conditional-section" style="display: none;">
+                <h4 class="subsection-title">Death Date Information</h4>
                 
-                <div class="form-group">
+                <div class="radio-group">
+                    <label class="radio-option">
+                        <input type="radio" id="death_exact_precision" name="death_precision" value="exact">
+                        <div class="radio-content">
+                            <div class="radio-title">Exact Date</div>
+                            <div class="radio-description">You know the specific date of death</div>
+                        </div>
+                    </label>
+
+                    <label class="radio-option">
+                        <input type="radio" id="death_year_precision" name="death_precision" value="year">
+                        <div class="radio-content">
+                            <div class="radio-title">Year Only</div>
+                            <div class="radio-description">You only know the year of death</div>
+                        </div>
+                    </label>
+
+                    <label class="radio-option">
+                        <input type="radio" id="death_unknown_precision" name="death_precision" value="unknown" checked>
+                        <div class="radio-content">
+                            <div class="radio-title">Unknown</div>
+                            <div class="radio-description">Date of death is not known</div>
+                        </div>
+                    </label>
+                </div>
+
+                <div id="death_exact_date_field" class="date-field" style="display: none;">
+                    <div class="form-group">
+                        <label for="death_date_exact">Exact Death Date</label>
+                        <input type="date" id="death_date_exact" name="death_date_exact" class="form-control">
+                        <small class="helper-text">Format: DD/MM/YYYY</small>
+                    </div>
+                </div>
+
+                <div id="death_year_date_field" class="date-field" style="display: none;">
+                    <div class="form-group">
+                        <label for="death_date_year">Death Year</label>
+                        <input type="number" id="death_date_year" name="death_date_year" class="form-control" placeholder="YYYY">
+                        <small class="helper-text">4-digit year (e.g., 2023)</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Alliance Information -->
+        <div class="form-section">
+            <h3 class="section-title">Alliance Information</h3>
+            
+            <div class="form-row">
+                <div class="form-group full-width">
                     <label for="alliance_id">Alliance (Optional)</label>
                     <select id="alliance_id" name="alliance_id" class="form-control">
                         <option value="">-- None --</option>
@@ -148,364 +496,152 @@
                     <small class="helper-text">Select an alliance if this member is part of one</small>
                 </div>
             </div>
+        </div>
 
-            <div class="form-actions">
-                <button type="submit" class="submit-btn">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
-                        <polyline points="17 21 17 13 7 13 7 21"></polyline>
-                        <polyline points="7 3 7 8 15 8"></polyline>
-                    </svg>
-                    Create Member
-                </button>
-                <a href="/sets/{{ set_id }}" class="cancel-btn">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <line x1="18" y1="6" x2="6" y2="18"></line>
-                        <line x1="6" y1="6" x2="18" y2="18"></line>
-                    </svg>
-                    Cancel
-                </a>
-            </div>
-        </form>
-    </div>
+        <div class="form-actions">
+            <a href="/sets/{{ set_id }}" class="cancel-btn">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+                Cancel
+            </a>
+            <button type="submit" class="submit-btn" id="submit-button">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+                    <polyline points="17 21 17 13 7 13 7 21"></polyline>
+                    <polyline points="7 3 7 8 15 8"></polyline>
+                </svg>
+                <span class="button-text">Create Member</span>
+                <span class="spinner hidden"></span>
+            </button>
+        </div>
+    </form>
 </div>
+{% endblock %}
 
-<style>
-:root {
-    --card-hover-transform: translateY(-4px);
-    --transition-speed: 0.3s;
-}
-
-.add-member-container {
-    max-width: 800px;
-    margin: 0 auto;
-    padding: 2rem 1rem;
-}
-
-.page-header {
-    text-align: center;
-    margin-bottom: 2rem;
-}
-
-.page-title {
-    color: var(--text-color);
-    font-size: 2rem;
-    font-weight: 700;
-    margin: 0;
-}
-
-.set-name {
-    color: var(--helper-text-color);
-    font-size: 1.25rem;
-    margin: 0.5rem 0 0;
-    font-weight: 500;
-}
-
-.form-card {
-    background: var(--surface-color);
-    border-radius: 16px;
-    border: 1px solid var(--border-color);
-    box-shadow: 0 4px 12px var(--shadow-color);
-    overflow: hidden;
-}
-
-.form-section {
-    padding: 2rem;
-    border-bottom: 1px solid var(--border-color);
-}
-
-.form-section:last-child {
-    border-bottom: none;
-}
-
-.section-title {
-    color: var(--text-color);
-    font-size: 1.25rem;
-    font-weight: 600;
-    margin: 0 0 1.5rem;
-}
-
-.subsection-title {
-    color: var(--helper-text-color);
-    font-size: 1.1rem;
-    font-weight: 500;
-    margin: 1.5rem 0 1rem;
-}
-
-.form-group {
-    margin-bottom: 1.5rem;
-}
-
-.form-group:last-child {
-    margin-bottom: 0;
-}
-
-label {
-    display: block;
-    color: var(--text-color);
-    font-size: 0.95rem;
-    margin-bottom: 0.5rem;
-}
-
-.form-control {
-    width: 100%;
-    padding: 0.75rem 1rem;
-    border-radius: 12px;
-    border: 1px solid var(--border-color);
-    background: var(--bg-color);
-    color: var(--text-color);
-    font-size: 1rem;
-    transition: all var(--transition-speed) ease;
-}
-
-.form-control:focus {
-    outline: none;
-    border-color: var(--primary-color);
-    box-shadow: 0 0 0 2px var(--primary-color-hover);
-}
-
-textarea.form-control {
-    resize: vertical;
-    min-height: 100px;
-}
-
-.helper-text {
-    display: block;
-    color: var(--helper-text-color);
-    font-size: 0.9rem;
-    margin-top: 0.5rem;
-}
-
-.radio-group {
-    display: grid;
-    gap: 1rem;
-    margin-bottom: 1.5rem;
-}
-
-.radio-option {
-    cursor: pointer;
-    display: flex;
-    align-items: flex-start;
-    gap: 1rem;
-    padding: 1rem;
-    border: 1px solid var(--border-color);
-    border-radius: 12px;
-    transition: all var(--transition-speed) ease;
-}
-
-.radio-option:hover {
-    background: var(--bg-color);
-}
-
-.radio-option input[type="radio"] {
-    width: 1.25rem;
-    height: 1.25rem;
-    margin-top: 0.25rem;
-    border: 2px solid var(--border-color);
-    border-radius: 50%;
-    appearance: none;
-    -webkit-appearance: none;
-    transition: all var(--transition-speed) ease;
-    position: relative;
-    cursor: pointer;
-}
-
-.radio-option input[type="radio"]:checked {
-    border-color: var(--primary-color);
-    background: var(--primary-color);
-}
-
-.radio-option input[type="radio"]:checked::after {
-    content: '';
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    width: 0.5rem;
-    height: 0.5rem;
-    background: white;
-    border-radius: 50%;
-}
-
-.radio-content {
-    flex: 1;
-}
-
-.radio-title {
-    color: var(--text-color);
-    font-weight: 500;
-    margin-bottom: 0.25rem;
-}
-
-.radio-description {
-    color: var(--helper-text-color);
-    font-size: 0.9rem;
-}
-
-.conditional-section {
-    margin-top: 1.5rem;
-    padding-top: 1.5rem;
-    border-top: 1px solid var(--border-color);
-}
-
-.date-field {
-    margin-top: 1rem;
-    animation: slideDown 0.3s ease;
-}
-
-.form-actions {
-    padding: 2rem;
-    display: flex;
-    gap: 1rem;
-}
-
-.submit-btn,
-.cancel-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.75rem;
-    padding: 0.75rem 1.5rem;
-    border-radius: 12px;
-    font-size: 1rem;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all var(--transition-speed) ease;
-    text-decoration: none;
-}
-
-.submit-btn {
-    background: var(--primary-color);
-    color: white;
-    border: none;
-    flex: 1;
-}
-
-.submit-btn:hover {
-    background: var(--primary-color-hover);
-    transform: var(--card-hover-transform);
-}
-
-.cancel-btn {
-    background: var(--surface-color);
-    color: var(--text-color);
-    border: 1px solid var(--border-color);
-}
-
-.cancel-btn:hover {
-    background: var(--bg-color);
-    transform: var(--card-hover-transform);
-}
-
-@keyframes slideDown {
-    from {
-        opacity: 0;
-        transform: translateY(-10px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-@media (max-width: 768px) {
-    .add-member-container {
-        padding: 1rem;
-    }
-
-    .form-section {
-        padding: 1.5rem;
-    }
-
-    .form-actions {
-        padding: 1.5rem;
-        flex-direction: column;
-    }
-
-    .submit-btn,
-    .cancel-btn {
-        width: 100%;
-        justify-content: center;
-    }
-}
-</style>
-
+{% block extra_scripts %}
+<!-- Include TomSelect JS -->
+<script src="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/js/tom-select.complete.min.js"></script>
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    console.log("Page loaded, initializing Add Member form...");
+document.addEventListener('DOMContentLoaded', function () {
+    // Initialize TomSelect for alliance dropdown
+    const allianceSelect = new TomSelect('#alliance_id', {
+        plugins: ['clear_button'],
+        create: false,
+        maxItems: 1,
+        valueField: 'id',
+        labelField: 'name',
+        searchField: ['name'],
+        render: {
+            option: function(data, escape) {
+                return '<div class="option">' + escape(data.name) + '</div>';
+            },
+            item: function(data, escape) {
+                return '<div>' + escape(data.name) + '</div>';
+            }
+        }
+    });
+
+    // Status select using TomSelect
+    const statusSelect = new TomSelect('#status', {
+        plugins: ['clear_button'],
+        create: false,
+        maxItems: 1,
+        valueField: 'value',
+        labelField: 'text',
+        searchField: ['text'],
+        render: {
+            option: function(data, escape) {
+                return '<div class="option">' + escape(data.text) + '</div>';
+            },
+            item: function(data, escape) {
+                return '<div>' + escape(data.text) + '</div>';
+            }
+        },
+        onChange: function() {
+            toggleFields();
+        }
+    });
+
+    // Function to toggle conditional fields based on status
+    function toggleFields() {
+        const status = statusSelect.getValue();
+        const releaseContainer = document.getElementById('release_date_field');
+        const deathContainer = document.getElementById('date_of_death_precision');
+        
+        // Hide all by default
+        releaseContainer.style.display = 'none';
+        deathContainer.style.display = 'none';
+        
+        // Show relevant sections based on status
+        if (status === 'locked_up') {
+            releaseContainer.style.display = 'block';
+        } else if (status === 'dead') {
+            deathContainer.style.display = 'block';
+        }
+    }
+
+    // Set up event listeners for release date precision
+    document.getElementById('release_exact_precision').addEventListener('change', function() {
+        document.getElementById('release_exact_date_field').style.display = this.checked ? 'block' : 'none';
+        document.getElementById('release_year_date_field').style.display = 'none';
+    });
     
+    document.getElementById('release_year_precision').addEventListener('change', function() {
+        document.getElementById('release_year_date_field').style.display = this.checked ? 'block' : 'none';
+        document.getElementById('release_exact_date_field').style.display = 'none';
+    });
+    
+    document.getElementById('release_life_precision').addEventListener('change', function() {
+        document.getElementById('release_exact_date_field').style.display = 'none';
+        document.getElementById('release_year_date_field').style.display = 'none';
+    });
+    
+    document.getElementById('release_unknown_precision').addEventListener('change', function() {
+        document.getElementById('release_exact_date_field').style.display = 'none';
+        document.getElementById('release_year_date_field').style.display = 'none';
+    });
+
+    // Set up event listeners for death date precision
+    document.getElementById('death_exact_precision').addEventListener('change', function() {
+        document.getElementById('death_exact_date_field').style.display = this.checked ? 'block' : 'none';
+        document.getElementById('death_year_date_field').style.display = 'none';
+    });
+    
+    document.getElementById('death_year_precision').addEventListener('change', function() {
+        document.getElementById('death_year_date_field').style.display = this.checked ? 'block' : 'none';
+        document.getElementById('death_exact_date_field').style.display = 'none';
+    });
+    
+    document.getElementById('death_unknown_precision').addEventListener('change', function() {
+        document.getElementById('death_exact_date_field').style.display = 'none';
+        document.getElementById('death_year_date_field').style.display = 'none';
+    });
+    
+    // Form submission handling with loading state
+    const form = document.getElementById('add-member-form');
+    const submitButton = document.getElementById('submit-button');
+    const buttonText = submitButton.querySelector('.button-text');
+    const spinner = submitButton.querySelector('.spinner');
+    
+    form.addEventListener('submit', function(event) {
+        // Show loading state
+        submitButton.disabled = true;
+        spinner.classList.remove('hidden');
+        buttonText.textContent = 'Creating...';
+    });
+
+    // Fetch alliances for the dropdown
+    fetch('/alliances/alliance_options')
+        .then(response => response.json())
+        .then(data => {
+            allianceSelect.addOptions(data);
+        })
+        .catch(error => console.error('Error loading alliances:', error));
+
     // Initialize form state
     toggleFields();
-
-    // Populate alliances dynamically using the API utility
-    const allianceSelect = document.getElementById("alliance_id");
-    API.get('/alliances/options')
-        .then(data => {
-            data.forEach(alliance => {
-                const option = document.createElement("option");
-                option.value = alliance.id;
-                option.textContent = alliance.name;
-                allianceSelect.appendChild(option);
-            });
-        })
-        .catch(error => {
-            console.error('Error fetching alliances:', error);
-            showNotification('Failed to load alliances. Please refresh and try again.', 'error');
-        });
-
-    // Add event listeners for release date precision
-    document.querySelectorAll('input[name="release_date_precision"]').forEach(radio => {
-        radio.addEventListener('change', toggleReleaseDatePrecision);
-    });
-
-    // Add event listeners for death date precision
-    document.querySelectorAll('input[name="death_precision"]').forEach(radio => {
-        radio.addEventListener('change', toggleDeathDatePrecision);
-    });
 });
-
-function toggleFields() {
-    const status = document.getElementById('status').value;
-    const releaseDateField = document.getElementById('release_date_field');
-    const deathDateField = document.getElementById('date_of_death_precision');
-
-    releaseDateField.style.display = status === 'locked_up' ? 'block' : 'none';
-    deathDateField.style.display = status === 'dead' ? 'block' : 'none';
-
-    // Reset fields when hidden
-    if (status !== 'locked_up') {
-        document.getElementById('release_unknown_precision').checked = true;
-        toggleReleaseDatePrecision();
-    }
-    if (status !== 'dead') {
-        document.getElementById('death_unknown_precision').checked = true;
-        toggleDeathDatePrecision();
-    }
-}
-
-function toggleReleaseDatePrecision() {
-    const precision = document.querySelector('input[name="release_date_precision"]:checked')?.value;
-    const exactField = document.getElementById('release_exact_date_field');
-    const yearField = document.getElementById('release_year_date_field');
-
-    exactField.style.display = precision === 'exact' ? 'block' : 'none';
-    yearField.style.display = precision === 'year' ? 'block' : 'none';
-
-    // Clear fields when hidden
-    if (precision !== 'exact') document.getElementById('release_date_exact').value = '';
-    if (precision !== 'year') document.getElementById('release_date_year').value = '';
-}
-
-function toggleDeathDatePrecision() {
-    const precision = document.querySelector('input[name="death_precision"]:checked')?.value;
-    const exactField = document.getElementById('death_exact_date_field');
-    const yearField = document.getElementById('death_year_date_field');
-
-    exactField.style.display = precision === 'exact' ? 'block' : 'none';
-    yearField.style.display = precision === 'year' ? 'block' : 'none';
-
-    // Clear fields when hidden
-    if (precision !== 'exact') document.getElementById('death_date_exact').value = '';
-    if (precision !== 'year') document.getElementById('death_date_year').value = '';
-}
 </script>
 {% endblock %}

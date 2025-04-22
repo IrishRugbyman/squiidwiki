@@ -318,7 +318,6 @@ def read_set(request: Request, set_id: int, db: Session = Depends(get_db)):
             "id": m.id,
             "name": m.name,
             "description": m.description,
-            "role": m.role,
             "status": m.status
         }
         for m in members

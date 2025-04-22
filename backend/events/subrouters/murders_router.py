@@ -69,10 +69,25 @@ async def add_murder(
         update_victim_death: bool = Form(False),
         db: Session = Depends(get_db)
 ):
+    # Check if member is trying to kill themselves
+    if member_id == victim_id:
+        raise HTTPException(status_code=400, detail="A member cannot murder themselves")
+        
     # Check if victim already has a murder record
     existing_murder = db.query(Murders).filter(Murders.victim_id == victim_id).first()
     if existing_murder:
         raise HTTPException(status_code=400, detail="Victim already has a murder record")
+    
+    # Check for circular murder (victim killed the shooter)
+    shooter_as_victim = db.query(Murders).filter(Murders.victim_id == member_id, Murders.shooter_id == victim_id).first()
+    if shooter_as_victim:
+        # Allow only if it's the same date (mutual killing)
+        event_date, date_approx = parse_date(date_precision, date_exact, date_year)
+        if date_precision != "exact" or not event_date or shooter_as_victim.date != event_date:
+            raise HTTPException(
+                status_code=400, 
+                detail=f"Circular murder detected: {victim_id} already killed {member_id}. Mutual killings are only allowed on the exact same date."
+            )
 
     shooter = validate_member(db, member_id)
     victim = validate_member(db, victim_id)
@@ -219,6 +234,30 @@ async def edit_murder(
         
     original_shooter_id = murder.shooter_id
     victim_id = murder.victim_id
+
+    # Check for circular murder if shooter is being changed
+    if murder.shooter_id != shooter_id:
+        # Check if the new shooter is the victim of the current victim
+        shooter_as_victim = db.query(Murders).filter(
+            Murders.victim_id == shooter_id, 
+            Murders.shooter_id == victim_id
+        ).first()
+        
+        if shooter_as_victim:
+            # Determine the new murder date based on the form inputs
+            new_date = None
+            if date_precision == 'exact' and date_exact:
+                try:
+                    new_date = datetime.strptime(date_exact, "%Y-%m-%d").date()
+                except ValueError:
+                    raise HTTPException(status_code=400, detail="Invalid date format (must be YYYY-MM-DD)")
+            
+            # Allow only if it's the same date (mutual killing)
+            if date_precision != "exact" or not new_date or shooter_as_victim.date != new_date:
+                raise HTTPException(
+                    status_code=400, 
+                    detail=f"Circular murder detected: {victim_id} killed {shooter_id}. Mutual killings are only allowed on the exact same date."
+                )
 
     # Start a managed transaction
     with transaction_scope(db, error_message="Failed to update murder"):

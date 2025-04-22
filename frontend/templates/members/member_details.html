@@ -585,8 +585,12 @@
                 <div class="activity-item">
                     <div class="activity-content">
                         <div class="activity-details">
-                            <a href="/members/{{ murder.victim_id }}" class="victim-link">{{ member_names[murder.victim_id] }}</a>
-                            from <a href="/sets/{{ murder.victim_set_id }}">{{ victim_sets[murder.victim_id] }}</a>
+                            <a href="/members/{{ murder.victim_id }}" class="victim-link">{{ member_names.get(murder.victim_id, "Unknown Member") }}</a>
+                            {% if murder.victim_set_id and murder.victim_id in victim_sets %}
+                            from <a href="/sets/{{ murder.victim_set_id }}">{{ victim_sets.get(murder.victim_id, "Unknown Set") }}</a>
+                            {% else %}
+                            from Unknown Set
+                            {% endif %}
                         </div>
                         <div class="activity-date">
                             {% if murder.date %}
@@ -652,7 +656,7 @@
                         <div class="activity-details">
                             Assisted
                             <span class="assist-details">
-                                to kill <a href="/members/{{ assist.victim_id }}" class="victim-link">{{ member_names[assist.victim_id] }}</a>
+                                to kill <a href="/members/{{ assist.victim_id }}" class="victim-link">{{ member_names.get(assist.victim_id, "Unknown Member") }}</a>
                             </span>
                         </div>
                         <div class="activity-date">
@@ -717,11 +721,13 @@
                 <div class="activity-item">
                     <div class="activity-content">
                         <div class="activity-details">
-                            Shot <a href="/members/{{ shooting.victim_id }}" class="victim-link">{{
-                            member_names[shooting.victim_id] }}</a>
+                            Shot <a href="/members/{{ shooting.victim_id }}" class="victim-link">{{ member_names.get(shooting.victim_id, "Unknown Member") }}</a>
                             <span class="victim-set">
-                                from <a
-                                    href="/sets/{{ shooting.victim_set_id }}">{{ victim_sets[shooting.victim_id] }}</a>
+                                {% if shooting.victim_set_id and shooting.victim_id in victim_sets %}
+                                from <a href="/sets/{{ shooting.victim_set_id }}">{{ victim_sets.get(shooting.victim_id, "Unknown Set") }}</a>
+                                {% else %}
+                                from Unknown Set
+                                {% endif %}
                             </span>
                         </div>
                         <div class="activity-date">
