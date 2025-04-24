@@ -9,7 +9,15 @@ from backend.config.config import settings
 Base = declarative_base()
 
 # Create engine using PostgreSQL configuration
-engine = create_engine(settings.get_sqlalchemy_url(), pool_pre_ping=True)
+pg_config = settings.get_pg_config()
+engine = create_engine(
+    settings.get_sqlalchemy_url(),
+    pool_pre_ping=True,
+    pool_size=pg_config["max_connections"],
+    max_overflow=pg_config["max_connections"] * 2,
+    pool_timeout=pg_config["connection_timeout"],
+    pool_recycle=pg_config.get("pool_recycle", 3600)
+)
 print(f"SQLAlchemy using database: {settings.get_pg_config()['database']}")
     
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)

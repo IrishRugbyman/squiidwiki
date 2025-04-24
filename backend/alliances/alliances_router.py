@@ -241,10 +241,15 @@ def read_alliance(request: Request, alliance_id: int, db: Session = Depends(get_
     if not alliance:
         raise HTTPException(status_code=404, detail="Alliance not found")
 
+    # Add debug logging to see what's in the description
+    description_value = alliance.description
+    if description_value is None:
+        description_value = ""  # Convert None to empty string
+
     alliance_data = {
         "id": alliance.id,
         "name": alliance.name,
-        "description": alliance.description,
+        "description": description_value,  # Use the validated description
         "status": alliance.status,
     }
     # Retrieve sets associated with this alliance via the mapping relationship.
@@ -332,65 +337,83 @@ def edit_alliance(
     description: str = Form(None),
     db: Session = Depends(get_db)
 ):
-    with transaction_scope(db) as db:
-        try:
-            # Validate status
-            if status not in ["active", "inactive"]:
-                return templates.TemplateResponse(
-                    "alliances/edit_alliance.html",
-                    {
-                        "request": request,
-                        "alliance": db.query(Alliance).filter(Alliance.id == alliance_id).first(),
-                        "error": "Status must be either 'active' or 'inactive'"
-                    }
-                )
-            
-            # Check if alliance exists
-            alliance = db.query(Alliance).filter(Alliance.id == alliance_id).first()
-            if not alliance:
-                return templates.TemplateResponse(
-                    "alliances/index.html",
-                    {
-                        "request": request,
-                        "alliances": db.query(Alliance).all(),
-                        "error": f"Alliance with ID {alliance_id} not found."
-                    }
-                )
-            
-            # Check if name already exists for another alliance
-            existing_alliance = db.query(Alliance).filter(
-                Alliance.name == name,
-                Alliance.id != alliance_id
-            ).first()
-            
-            if existing_alliance:
-                return templates.TemplateResponse(
-                    "alliances/edit_alliance.html",
-                    {
-                        "request": request,
-                        "alliance": alliance,
-                        "error": "An alliance with this name already exists."
-                    }
-                )
-            
-            # Update alliance details
-            alliance.name = name
-            alliance.status = status
-            alliance.description = description
-            
-            # Redirect to alliance list
-            response = RedirectResponse(url="/alliances", status_code=303)
-            return response
-        except Exception as e:
-            # Handle any exceptions and return error
+    # Get alliance first, outside the transaction
+    alliance = db.query(Alliance).filter(Alliance.id == alliance_id).first()
+    if not alliance:
+        return templates.TemplateResponse(
+            "alliances/index.html",
+            {
+                "request": request,
+                "alliances": db.query(Alliance).all(),
+                "error": f"Alliance with ID {alliance_id} not found."
+            }
+        )
+    
+    try:
+        # Validate status
+        if status not in ["active", "inactive"]:
             return templates.TemplateResponse(
                 "alliances/edit_alliance.html",
                 {
                     "request": request,
-                    "alliance": alliance,
-                    "error": f"Failed to update alliance: {str(e)}"
+                    "alliance": {
+                        "id": alliance.id,
+                        "name": alliance.name,
+                        "description": alliance.description,
+                        "status": alliance.status,
+                    },
+                    "error": "Status must be either 'active' or 'inactive'"
                 }
             )
+        
+        # Check if name already exists for another alliance
+        existing_alliance = db.query(Alliance).filter(
+            Alliance.name == name,
+            Alliance.id != alliance_id
+        ).first()
+        
+        if existing_alliance:
+            return templates.TemplateResponse(
+                "alliances/edit_alliance.html",
+                {
+                    "request": request,
+                    "alliance": {
+                        "id": alliance.id,
+                        "name": alliance.name,
+                        "description": alliance.description,
+                        "status": alliance.status,
+                    },
+                    "error": "An alliance with this name already exists."
+                }
+            )
+        
+        # Update alliance details
+        alliance.name = name
+        alliance.status = status
+        alliance.description = description
+        
+        # Commit the changes directly without transaction_scope
+        db.commit()
+        
+        # Redirect to alliance detail page, not the list
+        return RedirectResponse(url=f"/alliances/{alliance_id}", status_code=303)
+    except Exception as e:
+        # Handle any exceptions, rollback and return error
+        db.rollback()
+        alliance_data = {
+            "id": alliance_id,
+            "name": name,
+            "description": description,
+            "status": status,
+        }
+        return templates.TemplateResponse(
+            "alliances/edit_alliance.html",
+            {
+                "request": request,
+                "alliance": alliance_data,
+                "error": f"Failed to update alliance: {str(e)}"
+            }
+        )
 
 
 @router.post("/delete/{alliance_id}", response_class=HTMLResponse)

@@ -1,968 +1,592 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="alliance-container">
-    <!-- Page Header -->
-    <div class="page-header">
-        <div class="header-content">
-            <div class="title-status">
-                <h1 class="page-title">{{ alliance.name }}</h1>
-                <div class="alliance-status">
-                    {% if alliance.status == "active" %}
-                    <span class="status-badge active" title="Active Alliance">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
-                            <polyline points="22 4 12 14.01 9 11.01"></polyline>
-                        </svg>
-                        Active
-                    </span>
-                    {% else %}
-                    <span class="status-badge inactive" title="Inactive Alliance">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <circle cx="12" cy="12" r="10"></circle>
-                            <line x1="15" y1="9" x2="9" y2="15"></line>
-                            <line x1="9" y1="9" x2="15" y2="15"></line>
-                        </svg>
-                        Inactive
-                    </span>
-                    {% endif %}
+<div class="wiki-container">
+    <!-- Wiki Header -->
+    <div class="wiki-header">
+        <div class="wiki-title-wrapper">
+            <h1 class="wiki-title">{{ alliance.name }}</h1>
+            <span class="alliance-status {{ alliance.status|lower }}">{{ alliance.status }}</span>
+        </div>
+        <div class="wiki-actions">
+            <a href="/alliances/edit/{{ alliance.id }}" class="wiki-action edit">
+                <i class="fas fa-edit"></i> Edit
+            </a>
+            <a href="#" class="wiki-action delete" id="deleteButton">
+                <i class="fas fa-trash"></i> Delete
+            </a>
+        </div>
+    </div>
+
+    <!-- Main content layout -->
+    <div class="wiki-layout">
+        <!-- Main content -->
+        <div class="wiki-main">
+            <!-- Description Section -->
+            {% if alliance.description and alliance.description|length > 0 %}
+            <div class="wiki-section" id="description">
+                <h2 class="section-title">Description</h2>
+                <div class="wiki-text">
+                    {{ alliance.description|safe }}
                 </div>
             </div>
-        </div>
-        <div class="header-actions">
-            <a href="/alliances/edit/{{ alliance.id }}" class="action-btn edit-btn" title="Edit alliance">
-                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-                </svg>
-                <span>Edit</span>
-            </a>
-            <a href="/alliances/delete/{{ alliance.id }}" class="action-btn delete-btn" title="Delete alliance">
-                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <polyline points="3 6 5 6 21 6"></polyline>
-                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                    <line x1="10" y1="11" x2="10" y2="17"></line>
-                    <line x1="14" y1="11" x2="14" y2="17"></line>
-                </svg>
-                <span>Delete</span>
-            </a>
-        </div>
-    </div>
+            {% endif %}
 
-    {% if alliance.description %}
-    <div class="description-card">
-        <p class="alliance-description">{{ alliance.description }}</p>
-    </div>
-    {% endif %}
-
-    <!-- Content Grid -->
-    <div class="content-grid">
-        <!-- Member Sets Section -->
-        <div class="content-section">
-            <div class="section-header">
-                <h2 class="section-title">Member Sets</h2>
-                <div class="section-actions">
-                    <div class="sort-controls">
-                        <select id="sort-sets" class="sort-select" aria-label="Sort sets">
-                            <option value="name">Sort by Name</option>
-                            <option value="status">Sort by Status</option>
-                        </select>
-                        <button id="sort-sets-order" class="sort-order-btn" data-order="asc" aria-label="Sort order">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M12 20V4"></path>
-                                <polyline points="6 10 12 4 18 10"></polyline>
-                            </svg>
-                        </button>
-                    </div>
-                    <a href="/alliances/add_member/{{ alliance.id }}" class="action-btn add-btn" title="Add set to alliance">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                            <circle cx="8.5" cy="7" r="4"></circle>
-                            <line x1="20" y1="8" x2="20" y2="14"></line>
-                            <line x1="23" y1="11" x2="17" y2="11"></line>
-                        </svg>
-                        <span>Add Set</span>
+            <!-- Member Sets Section -->
+            {% if member_sets %}
+            <div class="wiki-section" id="sets">
+                <h2 class="section-title">Sets</h2>
+                <div class="sets-grid">
+                    {% for set in member_sets %}
+                    <a href="/sets/{{ set.id }}" class="wiki-card">
+                        <div class="card-content">
+                            <div class="card-title">{{ set.name }}</div>
+                            <div class="card-meta">{{ set.members_count }} members</div>
+                        </div>
                     </a>
+                    {% endfor %}
                 </div>
-            </div>
-
-            <div class="sets-grid">
-                {% for set in member_sets %}
-                <a href="/sets/{{ set.id }}" class="set-card" data-status="{{ set.type }}">
-                    <div class="set-content">
-                        <div class="set-info">
-                            <h3 class="set-name">{{ set.name }}</h3>
-                            {% if set.description %}
-                            <p class="set-description">{{ set.description }}</p>
-                            {% endif %}
-                        </div>
-                        <div class="set-status">
-                            {% if set.type == "extinct" %}
-                            <span class="status-icon extinct" title="Extinct Set" role="img" aria-label="Extinct Set">🪦</span>
-                            {% else %}
-                            <span class="status-icon active" title="Active Set" role="img" aria-label="Active Set">🔰</span>
-                            {% endif %}
-                        </div>
-                    </div>
-                    <div class="set-actions">
-                        <div class="set-arrow">→</div>
-                        <button type="button" class="remove-set-btn" 
-                                data-set-id="{{ set.id }}" 
-                                data-alliance-id="{{ alliance.id }}"
-                                data-set-name="{{ set.name }}"
-                                title="Remove from alliance">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <circle cx="12" cy="12" r="10"></circle>
-                                <line x1="15" y1="9" x2="9" y2="15"></line>
-                                <line x1="9" y1="9" x2="15" y2="15"></line>
-                            </svg>
-                        </button>
-                    </div>
-                </a>
-                {% endfor %}
-            </div>
-
-            {% if not member_sets %}
-            <div class="empty-state">
-                <div class="empty-icon">🏢</div>
-                <div class="empty-text">No sets in this alliance yet</div>
             </div>
             {% endif %}
-        </div>
 
-        <!-- Human Members Section -->
-        <div class="content-section">
-            <div class="section-header">
-                <h2 class="section-title">
-                    Human Members
-                    {% if human_members %}
-                    <span class="count-badge">{{ human_members|length }}</span>
-                    {% endif %}
-                </h2>
-                <div class="section-actions">
-                    <div class="sort-controls">
-                        <select id="sort-members" class="sort-select" aria-label="Sort members">
-                            <option value="name">Sort by Name</option>
-                            <option value="status">Sort by Status</option>
-                            <option value="membership">Sort by Membership</option>
-                        </select>
-                        <button id="sort-members-order" class="sort-order-btn" data-order="asc" aria-label="Sort order">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M12 20V4"></path>
-                                <polyline points="6 10 12 4 18 10"></polyline>
-                            </svg>
-                        </button>
-                    </div>
-                </div>
-            </div>
-
+            <!-- Human Members Section -->
             {% if human_members %}
-            <div class="members-grid">
-                {% for member in human_members %}
-                <a href="/members/{{ member.id }}" class="member-card" data-status="{{ member.status }}" data-membership="{{ member.membership_type }}">
-                    <div class="member-content">
-                        <div class="member-info">
-                            <h3 class="member-name">{{ member.name }}</h3>
-                            {% if member.set_name %}
-                            <p class="member-set">{{ member.set_name }}</p>
-                            {% endif %}
+            <div class="wiki-section" id="members">
+                <h2 class="section-title">Members</h2>
+                <div class="members-grid">
+                    {% for member in human_members %}
+                    <a href="/members/{{ member.id }}" class="wiki-card">
+                        <div class="card-content">
+                            <div class="card-title">{{ member.name }}</div>
+                            <div class="member-details">
+                                {% if member.set_name %}
+                                <div class="member-set">{{ member.set_name }}</div>
+                                {% endif %}
+                                <div class="card-status {{ member.status|lower }}">{{ member.status }}</div>
+                            </div>
                         </div>
-                        <div class="member-status">
-                            {% if member.status == "dead" %}
-                            <span class="status-icon dead" title="Deceased Member" role="img" aria-label="Deceased Member">🪦</span>
-                            {% elif member.status == "incarcerated" %}
-                            <span class="status-icon jailed" title="Incarcerated Member" role="img" aria-label="Incarcerated Member">🔒</span>
-                            {% else %}
-                            <span class="status-icon active" title="Active Member" role="img" aria-label="Active Member">🔰</span>
-                            {% endif %}
-                        </div>
-                    </div>
-                    <div class="member-type">
-                        {% if member.membership_type == "direct" %}
-                        <span class="membership-badge direct">Direct Member</span>
-                        {% else %}
-                        <span class="membership-badge through-set">Through Set</span>
-                        {% endif %}
-                    </div>
-                    <div class="member-arrow">→</div>
-                </a>
-                {% endfor %}
-            </div>
-            {% else %}
-            <div class="empty-state">
-                <div class="empty-icon">👤</div>
-                <div class="empty-text">No human members in this alliance yet</div>
+                    </a>
+                    {% endfor %}
+                </div>
             </div>
             {% endif %}
         </div>
 
-        <!-- Murders Section -->
-        <div class="content-section">
-            <div class="section-header">
-                <h2 class="section-title">
-                    Murders
-                    {% if murders %}
-                    <span class="count-badge">{{ murders|length }}</span>
-                    {% endif %}
-                </h2>
-            </div>
-
-            {% if murders %}
-            <div class="murders-list">
-                {% for murder in murders %}
-                <div class="murder-item">
-                    <div class="murder-info">
-                        <div class="murder-details">
-                            <a href="/members/{{ murder.shooter_id }}" class="member-link">{{ murder.shooter_name }}</a>
-                            <span class="murder-arrow">→</span>
-                            <a href="/members/{{ murder.victim_id }}" class="member-link">{{ murder.victim_name }}</a>
-                        </div>
-                        <div class="murder-date">{{ murder.date }}</div>
-                    </div>
-                    <div class="murder-set">
-                        <a href="/sets/{{ murder.victim_set_id }}" class="set-link">{{ murder.victim_set_name }}</a>
+        <!-- Wiki Sidebar -->
+        <aside class="wiki-sidebar">
+            <!-- Infobox moved to sidebar -->
+            <div class="sidebar-box infobox">
+                <div class="sidebar-title">Alliance Info</div>
+                <div class="infobox-content">
+                    <div class="info-row">
+                        <div class="info-label">Sets</div>
+                        <div class="info-value">{{ member_sets|length }}</div>
                     </div>
                 </div>
-                {% endfor %}
             </div>
-            {% else %}
-            <div class="empty-state">
-                <div class="empty-icon">🎯</div>
-                <div class="empty-text">No murders recorded for this alliance</div>
+
+            <div class="sidebar-box toc">
+                <div class="sidebar-title">Contents</div>
+                <ul class="toc-list">
+                    <li><a href="#alliance-info" class="toc-link">Alliance Info</a></li>
+                    {% if alliance.description %}
+                    <li><a href="#description" class="toc-link">Description</a></li>
+                    {% endif %}
+                    {% if member_sets %}
+                    <li><a href="#sets" class="toc-link">Sets</a></li>
+                    {% endif %}
+                    {% if human_members %}
+                    <li><a href="#members" class="toc-link">Members</a></li>
+                    {% endif %}
+                </ul>
             </div>
-            {% endif %}
+        </aside>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div id="deleteModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Confirm Deletion</h3>
+            <span class="close-modal">&times;</span>
+        </div>
+        <div class="modal-body">
+            <p>Are you sure you want to delete the alliance "{{ alliance.name }}"?</p>
+            <p class="warning">This action cannot be undone.</p>
+        </div>
+        <div class="modal-footer">
+            <button class="cancel-button">Cancel</button>
+            <a href="/alliances/{{ alliance.id }}/delete" class="confirm-button">Delete</a>
         </div>
     </div>
 </div>
 
 <style>
 :root {
-    --card-hover-transform: translateY(-4px);
-    --transition-speed: 0.3s;
+    --wiki-border-color: #333;
+    --wiki-bg-color: #121212;
+    --wiki-surface-color: #1e1e1e;
+    --wiki-text-color: #e0e0e0;
+    --wiki-secondary-text: #aaa;
+    --wiki-link-color: #3fa9f5;
+    --wiki-link-hover: #79c2f5;
+    --wiki-accent: #3fa9f5;
+    --wiki-success: #00c853;
+    --wiki-warning: #ffab00;
+    --wiki-danger: #ff3d00;
+    --wiki-shadow-color: rgba(0, 0, 0, 0.3);
+    --wiki-border-radius: 8px;
 }
 
-.alliance-container {
-    max-width: 1200px;
+.wiki-container {
+    max-width: 1400px;
     margin: 0 auto;
-    padding: 1rem 1rem;
+    padding: 1.5rem;
+    color: var(--wiki-text-color);
+    line-height: 1.6;
 }
 
-.page-header {
+.wiki-header {
     display: flex;
     justify-content: space-between;
-    align-items: flex-start;
-    margin-bottom: 1rem;
-    gap: 0.5rem;
+    align-items: center;
+    margin-bottom: 2rem;
+    border-bottom: 1px solid var(--wiki-border-color);
+    padding-bottom: 1.5rem;
+    flex-wrap: wrap;
+    gap: 1rem;
 }
 
-.header-content {
-    flex: 1;
-    min-width: 0;
+.wiki-title-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
 }
 
-.page-title {
-    color: var(--primary-color);
+.wiki-title {
     font-size: 2.5rem;
     font-weight: 700;
-    margin: 0 0 0.5rem;
+    margin: 0;
+    color: var(--wiki-accent);
+    text-shadow: 0 1px 2px rgba(0,0,0,0.2);
 }
 
 .alliance-status {
-    display: flex;
-    gap: 0.5rem;
-}
-
-.status-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.5rem 1rem;
-    border-radius: 12px;
-    font-size: 0.9rem;
-    font-weight: 500;
-}
-
-.status-badge.active {
-    background: rgba(76, 175, 80, 0.1);
-    color: #4CAF50;
-}
-
-.status-badge.inactive {
-    background: rgba(244, 67, 54, 0.1);
-    color: #F44336;
-}
-
-.header-actions {
-    display: flex;
-    gap: 0.5rem;
-}
-
-.action-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.75rem 1.25rem;
-    border-radius: 12px;
-    text-decoration: none;
-    transition: all var(--transition-speed) ease;
-    cursor: pointer;
-}
-
-.edit-btn {
-    background: transparent;
-    color: var(--primary-color);
-    border: 1px solid var(--primary-color);
-}
-
-.edit-btn:hover {
-    background: var(--primary-color);
-    color: white;
-    transform: var(--card-hover-transform);
-}
-
-.delete-btn {
-    background: transparent;
-    color: #F44336;
-    border: 1px solid #F44336;
-}
-
-.delete-btn:hover {
-    background: #F44336;
-    color: white;
-    transform: var(--card-hover-transform);
-}
-
-.add-btn {
-    background: var(--primary-color);
-    color: white;
-    border: none;
-}
-
-.add-btn:hover {
-    background: var(--primary-color-hover);
-    transform: var(--card-hover-transform);
-}
-
-.content-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 0.5rem;
-}
-
-.content-section {
-    background: var(--surface-color);
-    border: 1px solid var(--border-color);
-    border-radius: 12px;
-    padding: 1rem;
-}
-
-.section-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 0.75rem;
-}
-
-.section-title {
-    font-size: 1.5rem;
+    font-size: 0.875rem;
+    padding: 0.35rem 0.75rem;
+    border-radius: var(--wiki-border-radius);
     font-weight: 600;
-    margin: 0;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.alliance-status.active {
+    background-color: var(--wiki-success);
+    color: black;
+}
+
+.alliance-status.inactive {
+    background-color: var(--wiki-secondary-text);
+    color: black;
+}
+
+.wiki-actions {
     display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.wiki-action {
+    display: inline-flex;
     align-items: center;
-    gap: 0.5rem;
-}
-
-.count-badge {
-    background: var(--primary-color);
-    color: white;
-    padding: 0.25rem 0.75rem;
-    border-radius: 12px;
-    font-size: 0.9rem;
-    font-weight: 500;
-}
-
-.section-actions {
-    display: flex;
-    gap: 0.5rem;
-    align-items: center;
-}
-
-.sort-controls {
-    display: flex;
-    gap: 0.5rem;
-}
-
-.sort-select {
-    padding: 0.75rem 1rem;
-    border-radius: 12px;
-    border: 1px solid var(--border-color);
-    background: var(--bg-color);
-    color: var(--text-color);
-    font-size: 0.95rem;
-    transition: all var(--transition-speed) ease;
-}
-
-.sort-select:focus {
-    outline: none;
-    border-color: var(--primary-color);
-    box-shadow: 0 0 0 2px var(--primary-color-hover);
-}
-
-.sort-order-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 42px;
-    height: 42px;
-    border-radius: 12px;
-    border: 1px solid var(--border-color);
-    background: var(--bg-color);
-    color: var(--text-color);
-    cursor: pointer;
-    transition: all var(--transition-speed) ease;
-}
-
-.sort-order-btn:hover {
-    border-color: var(--primary-color);
-    color: var(--primary-color);
-}
-
-.sets-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-    gap: 0.5rem;
-}
-
-.set-card {
-    background: var(--bg-color);
-    border: 1px solid var(--border-color);
-    border-radius: 8px;
-    padding: 0.5rem 0.75rem;
+    padding: 0.5rem 1rem;
+    border-radius: var(--wiki-border-radius);
     text-decoration: none;
-    color: var(--text-color);
-    transition: all var(--transition-speed) ease;
+    transition: all 0.2s ease;
+    gap: 0.5rem;
+    font-weight: 600;
+    font-size: 0.925rem;
 }
 
-.set-card:hover {
-    transform: var(--card-hover-transform);
-    border-color: var(--primary-color);
-    box-shadow: 0 4px 12px var(--shadow-color);
+.wiki-action.edit {
+    background-color: var(--wiki-accent);
+    color: black;
 }
 
-.set-content {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 0.25rem;
+.wiki-action.delete {
+    background-color: var(--wiki-danger);
+    color: black;
 }
 
-.set-info {
-    flex: 1;
+.wiki-action:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px var(--wiki-shadow-color);
+    filter: brightness(1.1);
+}
+
+.wiki-layout {
+    display: grid;
+    grid-template-columns: 1fr 280px;
+    gap: 2.5rem;
+}
+
+.wiki-main {
     min-width: 0;
 }
 
-.set-name {
-    font-size: 1rem;
-    font-weight: 500;
-    margin: 0 0 0.25rem;
-}
+/* Removed floating infobox styles since it's now in the sidebar */
 
-.set-description {
-    color: var(--helper-text-color);
-    font-size: 0.8rem;
-    margin: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    display: -webkit-box;
-    -webkit-line-clamp: 1;
-    -webkit-box-orient: vertical;
-}
-
-.set-status {
-    margin-left: 0.5rem;
-}
-
-.status-icon {
-    font-size: 1.2rem;
-}
-
-.status-icon.active {
-    color: #4CAF50;
-}
-
-.status-icon.extinct {
-    color: var(--helper-text-color);
-}
-
-.set-arrow {
-    color: var(--primary-color);
-    opacity: 0;
-    transform: translateX(-10px);
-    transition: all var(--transition-speed) ease;
-}
-
-.set-card:hover .set-arrow {
-    opacity: 1;
-    transform: translateX(0);
-}
-
-.set-actions {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.remove-set-btn {
-    background: transparent;
-    border: none;
-    padding: 6px;
-    color: #F44336;
-    border-radius: 50%;
-    cursor: pointer;
-    opacity: 0;
-    transform: translateX(10px);
-    transition: all var(--transition-speed) ease;
-}
-
-.set-card:hover .remove-set-btn {
-    opacity: 0.7;
-    transform: translateX(0);
-}
-
-.remove-set-btn:hover {
-    opacity: 1 !important;
-    background: rgba(244, 67, 54, 0.1);
-}
-
-.murders-list {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-}
-
-.murder-item {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
+.infobox-content {
     padding: 0.75rem;
-    background: var(--surface-color);
-    border: 1px solid var(--border-color);
-    border-radius: 8px;
-    transition: all var(--transition-speed) ease;
 }
 
-.murder-item:hover {
-    border-color: var(--primary-color);
-    box-shadow: 0 4px 8px var(--shadow-color);
+.info-row {
+    display: grid;
+    grid-template-columns: 100px 1fr;
+    padding: 0.65rem;
+    border-bottom: 1px solid var(--wiki-border-color);
 }
 
-.murder-info {
-    display: flex;
-    flex-direction: column;
-    gap: 0.25rem;
+.info-row:last-child {
+    border-bottom: none;
 }
 
-.murder-details {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
+.info-label {
+    font-weight: 600;
+    color: var(--wiki-secondary-text);
 }
 
-.murder-arrow {
-    color: var(--helper-text-color);
-    font-size: 0.9rem;
-}
-
-.murder-date {
-    font-size: 0.9rem;
-    color: var(--helper-text-color);
-}
-
-.murder-set {
-    font-size: 0.9rem;
-}
-
-.member-link, .set-link {
-    color: var(--primary-color);
+.wiki-link {
+    color: var(--wiki-link-color);
     text-decoration: none;
-    transition: color var(--transition-speed) ease;
+    transition: color 0.2s ease;
 }
 
-.member-link:hover, .set-link:hover {
-    color: var(--primary-color-hover);
+.wiki-link:hover {
+    color: var(--wiki-link-hover);
     text-decoration: underline;
 }
 
-.members-grid {
+.wiki-section {
+    margin-bottom: 2.5rem;
+    clear: both;
+}
+
+.section-title {
+    font-size: 1.75rem;
+    font-weight: 700;
+    margin: 0 0 1.25rem 0;
+    padding-bottom: 0.75rem;
+    border-bottom: 2px solid var(--wiki-border-color);
+    color: var(--wiki-accent);
+}
+
+.wiki-text {
+    font-size: 1.05rem;
+    line-height: 1.7;
+}
+
+.members-grid,
+.sets-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 1.25rem;
+    margin-bottom: 1.25rem;
+}
+
+.wiki-card {
+    background-color: var(--wiki-surface-color);
+    border: 1px solid var(--wiki-border-color);
+    border-radius: var(--wiki-border-radius);
+    padding: 1.25rem;
+    text-decoration: none;
+    transition: all 0.2s ease;
+    color: var(--wiki-text-color);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+}
+
+.wiki-card:hover {
+    border-color: var(--wiki-accent);
+    box-shadow: 0 6px 12px var(--wiki-shadow-color);
+    transform: translateY(-4px);
+}
+
+.card-content {
+    display: flex;
+    flex-direction: column;
     gap: 0.75rem;
 }
 
-.member-card {
-    display: flex;
-    flex-direction: column;
-    background: var(--surface-color);
-    border: 1px solid var(--border-color);
-    border-radius: 8px;
-    padding: 0.75rem;
-    text-decoration: none;
-    color: var(--text-color);
-    transition: all var(--transition-speed) ease;
-    position: relative;
+.card-title {
+    font-weight: 600;
+    font-size: 1.1rem;
+    color: var(--wiki-accent);
 }
 
-.member-card:hover {
-    transform: var(--card-hover-transform);
-    border-color: var(--primary-color);
-    box-shadow: 0 4px 8px var(--shadow-color);
+.card-meta {
+    font-size: 0.85rem;
+    color: var(--wiki-secondary-text);
 }
 
-.member-content {
+.member-details {
     display: flex;
     justify-content: space-between;
-    align-items: flex-start;
-    gap: 1rem;
-    margin-bottom: 0.5rem;
-}
-
-.member-info {
-    flex: 1;
-    min-width: 0;
-}
-
-.member-name {
-    font-size: 1.1rem;
-    font-weight: 600;
-    margin: 0 0 0.25rem;
-    color: var(--text-color);
+    align-items: center;
 }
 
 .member-set {
-    font-size: 0.9rem;
-    color: var(--helper-text-color);
-    margin: 0;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    font-size: 0.85rem;
+    color: var(--wiki-secondary-text);
+    font-style: italic;
 }
 
-.member-status {
-    flex-shrink: 0;
-}
-
-.member-type {
-    margin-top: auto;
-    margin-bottom: 0.5rem;
-}
-
-.membership-badge {
-    display: inline-block;
+.card-status {
     font-size: 0.8rem;
-    padding: 0.2rem 0.5rem;
+    padding: 0.25rem 0.5rem;
     border-radius: 4px;
-    font-weight: 500;
+    font-weight: 600;
+    text-transform: uppercase;
 }
 
-.membership-badge.direct {
-    background-color: rgba(76, 175, 80, 0.1);
-    color: #4CAF50;
+.card-status.active, .card-status.alive {
+    background-color: var(--wiki-success);
+    color: black;
 }
 
-.membership-badge.through-set {
-    background-color: rgba(33, 150, 243, 0.1);
-    color: #2196F3;
+.card-status.inactive, .card-status.dead {
+    background-color: var(--wiki-danger);
+    color: black;
 }
 
-.member-arrow {
-    position: absolute;
-    bottom: 0.75rem;
-    right: 0.75rem;
-    color: var(--helper-text-color);
-    font-size: 1rem;
-    transition: transform var(--transition-speed) ease;
+.card-status.locked_up {
+    background-color: var(--wiki-warning);
+    color: black;
 }
 
-.member-card:hover .member-arrow {
-    transform: translateX(3px);
-    color: var(--primary-color);
+.card-status.unknown {
+    background-color: var(--wiki-secondary-text);
+    color: black;
 }
 
-.empty-state {
-    display: flex;
-    flex-direction: column;
+.wiki-sidebar {
+    position: sticky;
+    top: 2rem;
+    align-self: start;
+}
+
+.sidebar-box {
+    background-color: var(--wiki-surface-color);
+    border: 1px solid var(--wiki-border-color);
+    border-radius: var(--wiki-border-radius);
+    margin-bottom: 1.5rem;
+    overflow: hidden;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+}
+
+.sidebar-title {
+    background-color: var(--wiki-accent);
+    color: black;
+    padding: 0.85rem 1.25rem;
+    font-weight: 700;
+    font-size: 1.1rem;
+}
+
+.toc-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.toc-link {
+    display: block;
+    padding: 0.75rem 1.25rem;
+    color: var(--wiki-link-color);
+    text-decoration: none;
+    transition: background-color 0.2s ease;
+    border-bottom: 1px solid var(--wiki-border-color);
+}
+
+.toc-link:hover {
+    background-color: rgba(63, 169, 245, 0.1);
+}
+
+.toc-list li:last-child .toc-link {
+    border-bottom: none;
+}
+
+/* Modal Styles */
+.modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.7);
+    z-index: 1000;
+    justify-content: center;
     align-items: center;
-    gap: 0.25rem;
-    padding: 1rem;
-    color: var(--helper-text-color);
-    text-align: center;
 }
 
-.empty-icon {
-    font-size: 2rem;
+.modal-content {
+    background-color: var(--wiki-surface-color);
+    border-radius: var(--wiki-border-radius);
+    width: 100%;
+    max-width: 500px;
+    overflow: hidden;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
 }
 
-.empty-text {
-    font-size: 1rem;
+.modal-header {
+    padding: 1.25rem;
+    background-color: var(--wiki-accent);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.modal-header h3 {
+    margin: 0;
+    font-size: 1.35rem;
+    color: black;
+}
+
+.close-modal {
+    cursor: pointer;
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: black;
+}
+
+.modal-body {
+    padding: 1.75rem;
+}
+
+.modal-body p {
+    margin: 0 0 1rem 0;
+}
+
+.warning {
+    color: var(--wiki-danger);
+    font-weight: 600;
+}
+
+.modal-footer {
+    padding: 1.25rem;
+    background-color: rgba(0, 0, 0, 0.1);
+    display: flex;
+    justify-content: flex-end;
+    gap: 1rem;
+}
+
+.cancel-button,
+.confirm-button {
+    padding: 0.6rem 1.25rem;
+    border-radius: 6px;
+    border: none;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-decoration: none;
+    display: inline-block;
+}
+
+.cancel-button {
+    background-color: #444;
+    color: white;
+}
+
+.confirm-button {
+    background-color: var(--wiki-danger);
+    color: black;
+}
+
+.cancel-button:hover,
+.confirm-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px var(--wiki-shadow-color);
+    filter: brightness(1.1);
 }
 
 @media (max-width: 1024px) {
-    .content-grid {
-        grid-template-columns: 1fr;
+    .wiki-layout {
+        grid-template-columns: 1fr 250px;
+        gap: 2rem;
+    }
+    
+    .members-grid,
+    .sets-grid {
+        grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
     }
 }
 
 @media (max-width: 768px) {
-    .page-header {
-        flex-direction: column;
-        gap: 0.5rem;
-    }
-
-    .header-actions {
-        width: 100%;
-    }
-
-    .action-btn {
-        flex: 1;
-        justify-content: center;
-    }
-
-    .section-header {
-        flex-direction: column;
-        gap: 0.5rem;
-    }
-
-    .section-actions {
-        width: 100%;
-    }
-
-    .sort-controls {
-        flex: 1;
-    }
-
-    .sort-select {
-        flex: 1;
-    }
-
-    .murder-info {
+    .wiki-header {
         flex-direction: column;
         align-items: flex-start;
-        gap: 0.5rem;
+    }
+    
+    .wiki-title {
+        font-size: 2rem;
+    }
+    
+    .wiki-layout {
+        grid-template-columns: 1fr;
+    }
+    
+    .wiki-sidebar {
+        position: static;
+        margin-top: 2rem;
     }
 }
-
-.title-status {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    margin-bottom: 1rem;
-}
-
-.description-card {
-    background: var(--surface-color);
-    border: 1px solid var(--border-color);
-    border-radius: 12px;
-    padding: 1rem;
-    margin-bottom: 1rem;
-}
-
-.alliance-description {
-    color: var(--text-color);
-    font-size: 1rem;
-    margin: 0;
-    line-height: 1.4;
-}
-
 </style>
 
 <script>
-document.addEventListener("DOMContentLoaded", () => {
-    // Setup sorting for sets
-    const sortSetsBy = document.getElementById('sort-sets');
-    const sortSetsOrderBtn = document.getElementById('sort-sets-order');
+document.addEventListener('DOMContentLoaded', function() {
+    // Modal functionality
+    const modal = document.getElementById('deleteModal');
+    const deleteBtn = document.getElementById('deleteButton');
+    const closeBtn = document.querySelector('.close-modal');
+    const cancelBtn = document.querySelector('.cancel-button');
     
-    if (sortSetsBy && sortSetsOrderBtn) {
-        // Initial sort
-        sortSets();
-        
-        // Event listeners
-        sortSetsBy.addEventListener('change', sortSets);
-        sortSetsOrderBtn.addEventListener('click', () => {
-            const currentOrder = sortSetsOrderBtn.getAttribute('data-order');
-            const newOrder = currentOrder === 'asc' ? 'desc' : 'asc';
-            sortSetsOrderBtn.setAttribute('data-order', newOrder);
-            
-            // Update icon
-            if (newOrder === 'desc') {
-                sortSetsOrderBtn.innerHTML = `
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M12 4v16"></path>
-                        <polyline points="6 14 12 20 18 14"></polyline>
-                    </svg>
-                `;
-            } else {
-                sortSetsOrderBtn.innerHTML = `
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M12 20V4"></path>
-                        <polyline points="6 10 12 4 18 10"></polyline>
-                    </svg>
-                `;
-            }
-            
-            sortSets();
-        });
+    deleteBtn.addEventListener('click', function(e) {
+        e.preventDefault();
+        modal.style.display = 'flex';
+    });
+    
+    function closeModal() {
+        modal.style.display = 'none';
     }
     
-    function sortSets() {
-        const setsGrid = document.querySelector('.sets-grid');
-        if (!setsGrid) return;
-        
-        const sortBy = sortSetsBy.value;
-        const sortOrder = sortSetsOrderBtn.getAttribute('data-order');
-        const sets = Array.from(setsGrid.querySelectorAll('.set-card'));
-        
-        sets.sort((a, b) => {
-            let aValue, bValue;
-            
-            if (sortBy === 'name') {
-                aValue = a.querySelector('.set-name').textContent.trim().toLowerCase();
-                bValue = b.querySelector('.set-name').textContent.trim().toLowerCase();
-            } else if (sortBy === 'status') {
-                aValue = a.getAttribute('data-status');
-                bValue = b.getAttribute('data-status');
-            }
-            
-            // Compare values
-            if (aValue < bValue) return sortOrder === 'asc' ? -1 : 1;
-            if (aValue > bValue) return sortOrder === 'asc' ? 1 : -1;
-            return 0;
-        });
-        
-        // Reorder the grid
-        sets.forEach(set => setsGrid.appendChild(set));
-    }
+    closeBtn.addEventListener('click', closeModal);
+    cancelBtn.addEventListener('click', closeModal);
     
-    // Remove set button functionality
-    const removeSetBtns = document.querySelectorAll('.remove-set-btn');
-    removeSetBtns.forEach(btn => {
-        btn.addEventListener('click', async (e) => {
+    window.addEventListener('click', function(e) {
+        if (e.target === modal) {
+            closeModal();
+        }
+    });
+    
+    // Smooth scrolling for TOC links
+    document.querySelectorAll('.toc-link').forEach(link => {
+        link.addEventListener('click', function(e) {
             e.preventDefault();
-            e.stopPropagation();
             
-            const setId = btn.getAttribute('data-set-id');
-            const allianceId = btn.getAttribute('data-alliance-id');
-            const setName = btn.getAttribute('data-set-name');
+            const targetId = this.getAttribute('href').substring(1);
+            const targetElement = document.getElementById(targetId);
             
-            // Confirm removal
-            if (!confirm(`Are you sure you want to remove ${setName} from this alliance?`)) {
-                return;
-            }
-            
-            try {
-                const response = await fetch('/alliances/remove_set', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        alliance_id: allianceId,
-                        set_id: setId
-                    })
+            if (targetElement) {
+                window.scrollTo({
+                    top: targetElement.offsetTop - 20,
+                    behavior: 'smooth'
                 });
                 
-                if (response.ok) {
-                    // Remove the set card from the DOM
-                    const setCard = btn.closest('.set-card');
-                    setCard.remove();
-                    
-                    // If no more sets, show empty state
-                    const remainingSets = document.querySelectorAll('.set-card');
-                    if (remainingSets.length === 0) {
-                        const emptyState = document.createElement('div');
-                        emptyState.className = 'empty-state';
-                        emptyState.innerHTML = `
-                            <div class="empty-icon">🏢</div>
-                            <div class="empty-text">No sets in this alliance yet</div>
-                        `;
-                        document.querySelector('.sets-grid').replaceWith(emptyState);
-                    }
-                } else {
-                    const error = await response.json();
-                    alert(`Failed to remove set: ${error.detail || 'Unknown error'}`);
-                }
-            } catch (error) {
-                alert(`Error: ${error.message}`);
+                // Update URL without page reload
+                history.pushState(null, null, '#' + targetId);
             }
         });
     });
-
-    // Setup sorting for members
-    const sortMembersBy = document.getElementById('sort-members');
-    const sortMembersOrderBtn = document.getElementById('sort-members-order');
-    
-    if (sortMembersBy && sortMembersOrderBtn) {
-        // Initial sort
-        sortMembers();
-        
-        // Event listeners
-        sortMembersBy.addEventListener('change', sortMembers);
-        sortMembersOrderBtn.addEventListener('click', () => {
-            const currentOrder = sortMembersOrderBtn.getAttribute('data-order');
-            const newOrder = currentOrder === 'asc' ? 'desc' : 'asc';
-            sortMembersOrderBtn.setAttribute('data-order', newOrder);
-            
-            // Update icon
-            if (newOrder === 'desc') {
-                sortMembersOrderBtn.innerHTML = `
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M12 4v16"></path>
-                        <polyline points="6 14 12 20 18 14"></polyline>
-                    </svg>
-                `;
-            } else {
-                sortMembersOrderBtn.innerHTML = `
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M12 20V4"></path>
-                        <polyline points="6 10 12 4 18 10"></polyline>
-                    </svg>
-                `;
-            }
-            
-            sortMembers();
-        });
-    }
-    
-    function sortMembers() {
-        const membersGrid = document.querySelector('.members-grid');
-        if (!membersGrid) return;
-        
-        const sortBy = sortMembersBy.value;
-        const sortOrder = sortMembersOrderBtn.getAttribute('data-order');
-        const members = Array.from(membersGrid.querySelectorAll('.member-card'));
-        
-        members.sort((a, b) => {
-            let aValue, bValue;
-            
-            if (sortBy === 'name') {
-                aValue = a.querySelector('.member-name').textContent.trim().toLowerCase();
-                bValue = b.querySelector('.member-name').textContent.trim().toLowerCase();
-            } else if (sortBy === 'status') {
-                aValue = a.getAttribute('data-status');
-                bValue = b.getAttribute('data-status');
-            } else if (sortBy === 'membership') {
-                aValue = a.getAttribute('data-membership');
-                bValue = b.getAttribute('data-membership');
-            }
-            
-            // Compare values
-            if (aValue < bValue) return sortOrder === 'asc' ? -1 : 1;
-            if (aValue > bValue) return sortOrder === 'asc' ? 1 : -1;
-            return 0;
-        });
-        
-        // Reorder the grid
-        members.forEach(member => membersGrid.appendChild(member));
-    }
 });
 </script>
-{% endblock %}
+{% endblock %} 

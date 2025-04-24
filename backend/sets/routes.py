@@ -6,6 +6,7 @@ from backend.database.imports import get_db, Sets, Members, Config, SetAlliesMap
 from backend.database.enums import eSetType
 from sqlalchemy.orm import Session
 from backend.sets.service.sets_service import group_sets, process_relations, get_special_set_id
+from backend.database.utils import transaction_scope
 
 router = APIRouter()
 
@@ -95,17 +96,18 @@ def add_set(
 
 @router.get("/set_options", response_class=JSONResponse)
 def set_options(exclude: Optional[int] = Query(None), db: Session = Depends(get_db)):
-    # Retrieve default set IDs from the Config table.
-    default_configs = db.query(Config).filter(Config.key.in_(["unknown_set_id", "civilian_set_id"])).all()
-    default_ids = [c.value for c in default_configs]
-    query = db.query(Sets)
-    if exclude:
-        query = query.filter(Sets.id != exclude)
-    if default_ids:
-        query = query.filter(~Sets.id.in_(default_ids))
-    options = query.all()
-    options_list = [{"id": opt.id, "name": opt.name} for opt in options]
-    return JSONResponse(content=options_list)
+    with transaction_scope(db, error_message="Error fetching set options"):
+        # Retrieve default set IDs from the Config table.
+        default_configs = db.query(Config).filter(Config.key.in_(["unknown_set_id", "civilian_set_id"])).all()
+        default_ids = [c.value for c in default_configs]
+        query = db.query(Sets)
+        if exclude:
+            query = query.filter(Sets.id != exclude)
+        if default_ids:
+            query = query.filter(~Sets.id.in_(default_ids))
+        options = query.all()
+        options_list = [{"id": opt.id, "name": opt.name} for opt in options]
+        return JSONResponse(content=options_list)
 
 
 @router.get("/edit/{set_id}", response_class=HTMLResponse)
@@ -363,6 +365,47 @@ def read_set(request: Request, set_id: int, db: Session = Depends(get_db)):
         for e in enemies
     ]
     
+    # Get murders committed by members of this set
+    # First get all member IDs in this set
+    member_ids = [m.id for m in members]
+    
+    # Get all murders where the shooter is a member of this set
+    murders_data = []
+    if member_ids:
+        murders = db.query(Murders).filter(Murders.shooter_id.in_(member_ids)).order_by(Murders.date.desc()).all()
+        
+        # Format the murders data for the template
+        for murder in murders:
+            # Get shooter info
+            shooter = db.query(Members).filter(Members.id == murder.shooter_id).first()
+            shooter_name = shooter.name if shooter else "Unknown"
+            
+            # Get victim info
+            victim = db.query(Members).filter(Members.id == murder.victim_id).first()
+            victim_name = victim.name if victim else "Unknown"
+            
+            # Get victim's set info
+            victim_set_id = None
+            victim_set_name = "Unknown Set"
+            if victim and victim.set_id:
+                victim_set = db.query(Sets).filter(Sets.id == victim.set_id).first()
+                if victim_set:
+                    victim_set_id = victim_set.id
+                    victim_set_name = victim_set.name
+            
+            murder_data = {
+                "id": murder.id,
+                "shooter_id": murder.shooter_id,
+                "shooter_name": shooter_name,
+                "victim_id": murder.victim_id,
+                "victim_name": victim_name,
+                "victim_set_id": victim_set_id,
+                "victim_set_name": victim_set_name,
+                "date": murder.date,
+                "date_approx": murder.date_approx
+            }
+            murders_data.append(murder_data)
+    
     # Check if this is a system set
     special_configs = db.query(Config).filter(Config.key.in_(["unknown_set_id", "civilian_set_id"])).all()
     special_ids = [c.value for c in special_configs]
@@ -375,6 +418,7 @@ def read_set(request: Request, set_id: int, db: Session = Depends(get_db)):
         "alliances": alliances_list,
         "allies": allies_list,
         "enemies": enemies_list,
+        "murders": murders_data,
         "is_default_set": is_default_set
     })
 

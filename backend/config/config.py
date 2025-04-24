@@ -36,9 +36,10 @@ class Config:
         "host": os.environ.get("POSTGRES_HOST", "localhost"),
         "port": os.environ.get("POSTGRES_PORT", "5432"),
         "database": os.environ.get("POSTGRES_DB", "squiidvault"),
-        "min_connections": 1,
-        "max_connections": 10,
-        "connection_timeout": 30
+        "min_connections": 5,
+        "max_connections": 20,
+        "connection_timeout": 60,
+        "pool_recycle": 3600  # Recycle connections after 1 hour
     }
     
     # Default Admin User - Will be created if no admin exists
