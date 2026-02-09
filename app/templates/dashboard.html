@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - SquiidWiki{% endblock %}
+
+{% block content %}
+<div class="p-8">
+    <h1 class="text-3xl font-bold mb-8">Dashboard</h1>
+    
+    <!-- Summary Stats -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        <div class="bg-gray-900 border border-gray-800 rounded-lg p-6">
+            <div class="text-gray-400 text-sm mb-2">Total Members</div>
+            <div class="text-3xl font-bold text-blue-400">{{ total_members }}</div>
+        </div>
+        
+        <div class="bg-gray-900 border border-gray-800 rounded-lg p-6">
+            <div class="text-gray-400 text-sm mb-2">Total Sets</div>
+            <div class="text-3xl font-bold text-green-400">{{ total_sets }}</div>
+        </div>
+        
+        <div class="bg-gray-900 border border-gray-800 rounded-lg p-6">
+            <div class="text-gray-400 text-sm mb-2">Total Alliances</div>
+            <div class="text-3xl font-bold text-purple-400">{{ total_alliances }}</div>
+        </div>
+        
+        <div class="bg-gray-900 border border-gray-800 rounded-lg p-6">
+            <div class="text-gray-400 text-sm mb-2">Total Incidents</div>
+            <div class="text-3xl font-bold text-red-400">{{ total_incidents }}</div>
+        </div>
+    </div>
+    
+    <!-- Recent Incidents -->
+    <div class="bg-gray-900 border border-gray-800 rounded-lg">
+        <div class="p-6 border-b border-gray-800">
+            <h2 class="text-xl font-semibold">Recent Incidents</h2>
+        </div>
+        <div class="overflow-x-auto">
+            {% if recent_incidents %}
+            <table class="w-full">
+                <thead class="bg-gray-800">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase">Type</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase">Date</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase">Location</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase">Participants</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-800">
+                    {% for incident in recent_incidents %}
+                    <tr class="hover:bg-gray-800">
+                        <td class="px-6 py-4">
+                            <span class="px-2 py-1 text-xs rounded bg-red-900 text-red-100">
+                                {{ incident.type.value }}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 text-sm text-gray-300">
+                            {% if incident.date_year %}
+                                {{ incident.date_year }}
+                                {% if incident.date_month %}-{{ incident.date_month }}{% endif %}
+                                {% if incident.date_day %}-{{ incident.date_day }}{% endif %}
+                            {% else %}
+                                Unknown
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4 text-sm text-gray-300">
+                            {{ incident.location or 'Unknown' }}
+                        </td>
+                        <td class="px-6 py-4 text-sm text-gray-300">
+                            {{ incident.participants|length }} participant(s)
+                        </td>
+                        <td class="px-6 py-4">
+                            <a href="/incidents/{{ incident.id }}" class="text-blue-400 hover:text-blue-300 text-sm">
+                                View Details
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <div class="p-8 text-center text-gray-500">
+                No incidents recorded yet.
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,171 @@
+{% extends "base.html" %}
+
+{% block title %}{{ set.primary_name }} - SquiidWiki{% endblock %}
+
+{% block content %}
+<div class="p-8">
+    <div class="mb-6">
+        <a href="/sets" class="text-blue-400 hover:text-blue-300 text-sm">&larr; Back to Sets</a>
+    </div>
+    
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Main Info -->
+        <div class="lg:col-span-2 space-y-6">
+            <!-- Header -->
+            <div class="bg-gray-900 border border-gray-800 rounded-lg p-6">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <h1 class="text-3xl font-bold mb-2">{{ set.primary_name }}</h1>
+                        {% if set.names %}
+                        <div class="text-gray-400 mb-4">
+                            Also known as: {{ set.names|join(', ') }}
+                        </div>
+                        {% endif %}
+                        <div class="flex gap-2">
+                            <span class="px-3 py-1 text-sm rounded
+                                {% if set.status.value == 'ACTIVE' %}bg-green-900 text-green-100
+                                {% elif set.status.value == 'INACTIVE' %}bg-yellow-900 text-yellow-100
+                                {% else %}bg-gray-700 text-gray-300{% endif %}">
+                                {{ set.status.value }}
+                            </span>
+                            {% if set.colors %}
+                            <span class="px-3 py-1 text-sm rounded bg-gray-700 text-gray-300">
+                                Colors: {{ set.colors }}
+                            </span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Bio -->
+            {% if set.bio %}
+            <div class="bg-gray-900 border border-gray-800 rounded-lg p-6">
+                <h2 class="text-xl font-semibold mb-4">About</h2>
+                <p class="text-gray-300 whitespace-pre-wrap">{{ set.bio }}</p>
+            </div>
+            {% endif %}
+            
+            <!-- Members -->
+            <div class="bg-gray-900 border border-gray-800 rounded-lg p-6">
+                <h2 class="text-xl font-semibold mb-4">Members ({{ set.members|length }})</h2>
+                {% if set.members %}
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {% for member in set.members %}
+                    <a href="/members/{{ member.id }}" class="p-3 bg-gray-800 rounded hover:bg-gray-700 transition">
+                        <div class="font-medium text-white">
+                            {% if member.first_name %}
+                                {{ member.first_name }} {{ member.last_name or '' }}
+                            {% else %}
+                                {{ member.nicknames[0] if member.nicknames else 'Unknown' }}
+                            {% endif %}
+                        </div>
+                        <div class="text-sm text-gray-400">
+                            <span class="px-2 py-0.5 text-xs rounded
+                                {% if member.status.value == 'ALIVE_FREE' %}bg-green-900 text-green-100
+                                {% elif member.status.value == 'ALIVE_LOCKED_UP' %}bg-yellow-900 text-yellow-100
+                                {% elif member.status.value == 'DEAD' %}bg-red-900 text-red-100
+                                {% else %}bg-gray-700 text-gray-300{% endif %}">
+                                {{ member.status.value.replace('_', ' ') }}
+                            </span>
+                        </div>
+                    </a>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <p class="text-gray-500">No members recorded.</p>
+                {% endif %}
+            </div>
+            
+            <!-- Allies -->
+            {% if set.allies %}
+            <div class="bg-gray-900 border border-gray-800 rounded-lg p-6">
+                <h2 class="text-xl font-semibold mb-4">Allied Sets</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {% for ally in set.allies %}
+                    <a href="/sets/{{ ally.id }}" class="p-3 bg-green-900/20 border border-green-800 rounded hover:bg-green-900/30 transition">
+                        <div class="font-medium text-green-200">{{ ally.primary_name }}</div>
+                        <div class="text-sm text-green-300/70">{{ ally.members|length }} members</div>
+                    </a>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+            
+            <!-- Enemies -->
+            {% if set.enemies %}
+            <div class="bg-gray-900 border border-gray-800 rounded-lg p-6">
+                <h2 class="text-xl font-semibold mb-4">Enemy Sets</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {% for enemy in set.enemies %}
+                    <a href="/sets/{{ enemy.id }}" class="p-3 bg-red-900/20 border border-red-800 rounded hover:bg-red-900/30 transition">
+                        <div class="font-medium text-red-200">{{ enemy.primary_name }}</div>
+                        <div class="text-sm text-red-300/70">{{ enemy.members|length }} members</div>
+                    </a>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+        
+        <!-- Sidebar -->
+        <div class="space-y-6">
+            <!-- Details -->
+            <div class="bg-gray-900 border border-gray-800 rounded-lg p-6">
+                <h2 class="text-xl font-semibold mb-4">Details</h2>
+                <dl class="space-y-3">
+                    {% if set.territory %}
+                    <div>
+                        <dt class="text-sm text-gray-400">Territory</dt>
+                        <dd class="text-white">{{ set.territory }}</dd>
+                    </div>
+                    {% endif %}
+                    
+                    {% if set.founded_year %}
+                    <div>
+                        <dt class="text-sm text-gray-400">Founded</dt>
+                        <dd class="text-white">
+                            {{ set.founded_year }}
+                            {% if set.founded_month %}-{{ '%02d'|format(set.founded_month) }}{% endif %}
+                            {% if set.founded_day %}-{{ '%02d'|format(set.founded_day) }}{% endif %}
+                        </dd>
+                    </div>
+                    {% endif %}
+                    
+                    {% if set.alliance %}
+                    <div>
+                        <dt class="text-sm text-gray-400">Alliance</dt>
+                        <dd class="text-white">
+                            <a href="/alliances/{{ set.alliance.id }}" class="text-purple-400 hover:text-purple-300">
+                                {{ set.alliance.name }}
+                            </a>
+                        </dd>
+                    </div>
+                    {% endif %}
+                </dl>
+            </div>
+            
+            <!-- Sources -->
+            {% if set.sources %}
+            <div class="bg-gray-900 border border-gray-800 rounded-lg p-6">
+                <h2 class="text-xl font-semibold mb-4">Sources</h2>
+                <div class="space-y-2">
+                    {% for source in set.sources %}
+                    <div class="p-3 bg-gray-800 rounded">
+                        <div class="text-sm font-medium text-white mb-1">
+                            {{ source.title or source.type.value }}
+                        </div>
+                        {% if source.url %}
+                        <a href="{{ source.url }}" target="_blank" class="text-blue-400 hover:text-blue-300 text-xs">
+                            View source
+                        </a>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

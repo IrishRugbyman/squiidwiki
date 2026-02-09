@@ -1,0 +1,58 @@
+/* Custom CSS for SquiidWiki */
+
+/* Scrollbar styling for dark theme */
+::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+}
+
+::-webkit-scrollbar-track {
+    background: #111111;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #2a2a2a;
+    border-radius: 5px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #3a3a3a;
+}
+
+/* Status badges */
+.status-alive-free {
+    background-color: #166534;
+    color: #86efac;
+}
+
+.status-alive-locked {
+    background-color: #854d0e;
+    color: #fde047;
+}
+
+.status-dead {
+    background-color: #7f1d1d;
+    color: #fca5a5;
+}
+
+.status-unknown {
+    background-color: #374151;
+    color: #9ca3af;
+}
+
+/* Table hover effects */
+tbody tr {
+    transition: background-color 0.2s;
+}
+
+/* Link styles */
+a {
+    transition: color 0.2s;
+}
+
+/* Form inputs focus */
+input:focus, textarea:focus, select:focus {
+    outline: none;
+    ring: 2px;
+    ring-color: #dc2626;
+}

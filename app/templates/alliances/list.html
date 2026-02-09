@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+
+{% block title %}Alliances - SquiidWiki{% endblock %}
+
+{% block content %}
+<div class="p-8">
+    <div class="flex justify-between items-center mb-6">
+        <h1 class="text-3xl font-bold">Alliances</h1>
+        <a href="/api/alliances" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded text-white">
+            Add Alliance
+        </a>
+    </div>
+    
+    <!-- Search Bar -->
+    <div class="mb-6">
+        <input 
+            type="text" 
+            placeholder="Search alliances..." 
+            class="w-full px-4 py-2 bg-gray-900 border border-gray-800 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-white"
+            hx-get="/alliances"
+            hx-trigger="keyup changed delay:500ms"
+            hx-target="#alliances-table"
+            hx-include="[name='search']"
+            name="search"
+            value="{{ search }}"
+        >
+    </div>
+    
+    <!-- Alliances Table -->
+    <div class="bg-gray-900 border border-gray-800 rounded-lg overflow-hidden" id="alliances-table">
+        <table class="w-full">
+            <thead class="bg-gray-800">
+                <tr>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase">Name</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase">Status</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase">Sets</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase">Direct Members</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase">Actions</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-800">
+                {% for alliance in alliances %}
+                <tr class="hover:bg-gray-800 cursor-pointer" onclick="window.location='/alliances/{{ alliance.id }}'">
+                    <td class="px-6 py-4">
+                        <div class="text-sm font-medium text-white">{{ alliance.name }}</div>
+                    </td>
+                    <td class="px-6 py-4">
+                        <span class="px-2 py-1 text-xs rounded
+                            {% if alliance.status.value == 'ACTIVE' %}bg-green-900 text-green-100
+                            {% elif alliance.status.value == 'INACTIVE' %}bg-yellow-900 text-yellow-100
+                            {% else %}bg-gray-700 text-gray-300{% endif %}">
+                            {{ alliance.status.value }}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4 text-sm text-gray-300">
+                        {{ alliance.sets|length }}
+                    </td>
+                    <td class="px-6 py-4 text-sm text-gray-300">
+                        {{ alliance.direct_members|length }}
+                    </td>
+                    <td class="px-6 py-4">
+                        <a href="/alliances/{{ alliance.id }}" class="text-blue-400 hover:text-blue-300 text-sm">
+                            View
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+                {% if not alliances %}
+                <tr>
+                    <td colspan="5" class="px-6 py-8 text-center text-gray-500">
+                        No alliances found.
+                    </td>
+                </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

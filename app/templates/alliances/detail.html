@@ -1,0 +1,141 @@
+{% extends "base.html" %}
+
+{% block title %}{{ alliance.name }} - SquiidWiki{% endblock %}
+
+{% block content %}
+<div class="p-8">
+    <div class="mb-6">
+        <a href="/alliances" class="text-blue-400 hover:text-blue-300 text-sm">&larr; Back to Alliances</a>
+    </div>
+    
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Main Info -->
+        <div class="lg:col-span-2 space-y-6">
+            <!-- Header -->
+            <div class="bg-gray-900 border border-gray-800 rounded-lg p-6">
+                <h1 class="text-3xl font-bold mb-4">{{ alliance.name }}</h1>
+                <span class="px-3 py-1 text-sm rounded
+                    {% if alliance.status.value == 'ACTIVE' %}bg-green-900 text-green-100
+                    {% elif alliance.status.value == 'INACTIVE' %}bg-yellow-900 text-yellow-100
+                    {% else %}bg-gray-700 text-gray-300{% endif %}">
+                    {{ alliance.status.value }}
+                </span>
+            </div>
+            
+            <!-- Bio -->
+            {% if alliance.bio %}
+            <div class="bg-gray-900 border border-gray-800 rounded-lg p-6">
+                <h2 class="text-xl font-semibold mb-4">About</h2>
+                <p class="text-gray-300 whitespace-pre-wrap">{{ alliance.bio }}</p>
+            </div>
+            {% endif %}
+            
+            <!-- Member Sets -->
+            <div class="bg-gray-900 border border-gray-800 rounded-lg p-6">
+                <h2 class="text-xl font-semibold mb-4">Member Sets ({{ alliance.sets|length }})</h2>
+                {% if alliance.sets %}
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {% for set in alliance.sets %}
+                    <a href="/sets/{{ set.id }}" class="p-4 bg-gray-800 rounded hover:bg-gray-700 transition">
+                        <div class="font-medium text-white mb-1">{{ set.primary_name }}</div>
+                        <div class="text-sm text-gray-400">
+                            {{ set.members|length }} members
+                            {% if set.territory %} • {{ set.territory }}{% endif %}
+                        </div>
+                        <span class="inline-block mt-2 px-2 py-0.5 text-xs rounded
+                            {% if set.status.value == 'ACTIVE' %}bg-green-900 text-green-100
+                            {% elif set.status.value == 'INACTIVE' %}bg-yellow-900 text-yellow-100
+                            {% else %}bg-gray-700 text-gray-300{% endif %}">
+                            {{ set.status.value }}
+                        </span>
+                    </a>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <p class="text-gray-500">No sets in this alliance.</p>
+                {% endif %}
+            </div>
+            
+            <!-- Direct Members -->
+            {% if alliance.direct_members %}
+            <div class="bg-gray-900 border border-gray-800 rounded-lg p-6">
+                <h2 class="text-xl font-semibold mb-4">Direct Members ({{ alliance.direct_members|length }})</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {% for member in alliance.direct_members %}
+                    <a href="/members/{{ member.id }}" class="p-3 bg-gray-800 rounded hover:bg-gray-700 transition">
+                        <div class="font-medium text-white">
+                            {% if member.first_name %}
+                                {{ member.first_name }} {{ member.last_name or '' }}
+                            {% else %}
+                                {{ member.nicknames[0] if member.nicknames else 'Unknown' }}
+                            {% endif %}
+                        </div>
+                        <div class="text-sm text-gray-400">
+                            <span class="px-2 py-0.5 text-xs rounded
+                                {% if member.status.value == 'ALIVE_FREE' %}bg-green-900 text-green-100
+                                {% elif member.status.value == 'ALIVE_LOCKED_UP' %}bg-yellow-900 text-yellow-100
+                                {% elif member.status.value == 'DEAD' %}bg-red-900 text-red-100
+                                {% else %}bg-gray-700 text-gray-300{% endif %}">
+                                {{ member.status.value.replace('_', ' ') }}
+                            </span>
+                        </div>
+                    </a>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+        
+        <!-- Sidebar -->
+        <div class="space-y-6">
+            <!-- Details -->
+            <div class="bg-gray-900 border border-gray-800 rounded-lg p-6">
+                <h2 class="text-xl font-semibold mb-4">Details</h2>
+                <dl class="space-y-3">
+                    {% if alliance.founded_year %}
+                    <div>
+                        <dt class="text-sm text-gray-400">Founded</dt>
+                        <dd class="text-white">
+                            {{ alliance.founded_year }}
+                            {% if alliance.founded_month %}-{{ '%02d'|format(alliance.founded_month) }}{% endif %}
+                            {% if alliance.founded_day %}-{{ '%02d'|format(alliance.founded_day) }}{% endif %}
+                        </dd>
+                    </div>
+                    {% endif %}
+                    
+                    <div>
+                        <dt class="text-sm text-gray-400">Total Sets</dt>
+                        <dd class="text-white">{{ alliance.sets|length }}</dd>
+                    </div>
+                    
+                    <div>
+                        <dt class="text-sm text-gray-400">Direct Members</dt>
+                        <dd class="text-white">{{ alliance.direct_members|length }}</dd>
+                    </div>
+                </dl>
+            </div>
+            
+            <!-- Sources -->
+            {% if alliance.sources %}
+            <div class="bg-gray-900 border border-gray-800 rounded-lg p-6">
+                <h2 class="text-xl font-semibold mb-4">Sources</h2>
+                <div class="space-y-2">
+                    {% for source in alliance.sources %}
+                    <div class="p-3 bg-gray-800 rounded">
+                        <div class="text-sm font-medium text-white mb-1">
+                            {{ source.title or source.type.value }}
+                        </div>
+                        {% if source.url %}
+                        <a href="{{ source.url }}" target="_blank" class="text-blue-400 hover:text-blue-300 text-xs">
+                            View source
+                        </a>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

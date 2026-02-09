@@ -1,0 +1,193 @@
+{% extends "base.html" %}
+
+{% block title %}{{ member.first_name or (member.nicknames[0] if member.nicknames else 'Unknown') }} - SquiidWiki{% endblock %}
+
+{% block content %}
+<div class="p-8">
+    <div class="mb-6">
+        <a href="/members" class="text-blue-400 hover:text-blue-300 text-sm">&larr; Back to Members</a>
+    </div>
+    
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Main Info -->
+        <div class="lg:col-span-2 space-y-6">
+            <!-- Header -->
+            <div class="bg-gray-900 border border-gray-800 rounded-lg p-6">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <h1 class="text-3xl font-bold mb-2">
+                            {% if member.first_name %}
+                                {{ member.first_name }} {{ member.last_name or '' }}
+                            {% else %}
+                                {{ member.nicknames[0] if member.nicknames else 'Unknown' }}
+                            {% endif %}
+                        </h1>
+                        {% if member.nicknames %}
+                        <div class="text-gray-400 mb-4">
+                            AKA: {{ member.nicknames|join(', ') }}
+                        </div>
+                        {% endif %}
+                        <span class="px-3 py-1 text-sm rounded
+                            {% if member.status.value == 'ALIVE_FREE' %}bg-green-900 text-green-100
+                            {% elif member.status.value == 'ALIVE_LOCKED_UP' %}bg-yellow-900 text-yellow-100
+                            {% elif member.status.value == 'DEAD' %}bg-red-900 text-red-100
+                            {% else %}bg-gray-700 text-gray-300{% endif %}">
+                            {{ member.status.value.replace('_', ' ') }}
+                        </span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Stats -->
+            <div class="bg-gray-900 border border-gray-800 rounded-lg p-6">
+                <h2 class="text-xl font-semibold mb-4">Statistics</h2>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div class="text-center p-4 bg-gray-800 rounded">
+                        <div class="text-3xl font-bold text-red-400">{{ stats.kills }}</div>
+                        <div class="text-sm text-gray-400">Kills</div>
+                    </div>
+                    <div class="text-center p-4 bg-gray-800 rounded">
+                        <div class="text-3xl font-bold text-orange-400">{{ stats.assists }}</div>
+                        <div class="text-sm text-gray-400">Assists</div>
+                    </div>
+                    <div class="text-center p-4 bg-gray-800 rounded">
+                        <div class="text-3xl font-bold text-yellow-400">{{ stats.shootings_committed }}</div>
+                        <div class="text-sm text-gray-400">Shootings</div>
+                    </div>
+                    <div class="text-center p-4 bg-gray-800 rounded">
+                        <div class="text-3xl font-bold text-blue-400">{{ stats.times_shot }}</div>
+                        <div class="text-sm text-gray-400">Times Shot</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Bio -->
+            {% if member.bio %}
+            <div class="bg-gray-900 border border-gray-800 rounded-lg p-6">
+                <h2 class="text-xl font-semibold mb-4">Biography</h2>
+                <p class="text-gray-300 whitespace-pre-wrap">{{ member.bio }}</p>
+            </div>
+            {% endif %}
+            
+            <!-- Incidents -->
+            <div class="bg-gray-900 border border-gray-800 rounded-lg p-6">
+                <h2 class="text-xl font-semibold mb-4">Incident History</h2>
+                {% if member.incident_participations %}
+                <div class="space-y-3">
+                    {% for participation in member.incident_participations %}
+                    <div class="p-4 bg-gray-800 rounded">
+                        <div class="flex justify-between items-start mb-2">
+                            <span class="px-2 py-1 text-xs rounded bg-red-900 text-red-100">
+                                {{ participation.incident.type.value }}
+                            </span>
+                            <span class="text-sm text-gray-400">
+                                {% if participation.incident.date_year %}
+                                    {{ participation.incident.date_year }}
+                                {% else %}
+                                    Unknown date
+                                {% endif %}
+                            </span>
+                        </div>
+                        <div class="text-sm text-gray-300 mb-2">
+                            Role: <span class="font-semibold">{{ participation.role.value }}</span>
+                            {% if participation.outcome %}
+                            | Outcome: <span class="font-semibold">{{ participation.outcome.value }}</span>
+                            {% endif %}
+                        </div>
+                        {% if participation.incident.location %}
+                        <div class="text-sm text-gray-400">Location: {{ participation.incident.location }}</div>
+                        {% endif %}
+                        <a href="/incidents/{{ participation.incident.id }}" class="text-blue-400 hover:text-blue-300 text-sm">
+                            View incident details
+                        </a>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <p class="text-gray-500">No incidents recorded.</p>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Sidebar -->
+        <div class="space-y-6">
+            <!-- Details -->
+            <div class="bg-gray-900 border border-gray-800 rounded-lg p-6">
+                <h2 class="text-xl font-semibold mb-4">Details</h2>
+                <dl class="space-y-3">
+                    {% if member.dob_year %}
+                    <div>
+                        <dt class="text-sm text-gray-400">Date of Birth</dt>
+                        <dd class="text-white">
+                            {{ member.dob_year }}
+                            {% if member.dob_month %}-{{ '%02d'|format(member.dob_month) }}{% endif %}
+                            {% if member.dob_day %}-{{ '%02d'|format(member.dob_day) }}{% endif %}
+                        </dd>
+                    </div>
+                    {% endif %}
+                    
+                    {% if member.dod_year %}
+                    <div>
+                        <dt class="text-sm text-gray-400">Date of Death</dt>
+                        <dd class="text-red-300">
+                            {{ member.dod_year }}
+                            {% if member.dod_month %}-{{ '%02d'|format(member.dod_month) }}{% endif %}
+                            {% if member.dod_day %}-{{ '%02d'|format(member.dod_day) }}{% endif %}
+                        </dd>
+                    </div>
+                    {% endif %}
+                    
+                    {% if member.release_year %}
+                    <div>
+                        <dt class="text-sm text-gray-400">Release Date</dt>
+                        <dd class="text-white">
+                            {{ member.release_year }}
+                            {% if member.release_month %}-{{ '%02d'|format(member.release_month) }}{% endif %}
+                            {% if member.release_day %}-{{ '%02d'|format(member.release_day) }}{% endif %}
+                        </dd>
+                    </div>
+                    {% endif %}
+                    
+                    <div>
+                        <dt class="text-sm text-gray-400">Affiliation</dt>
+                        <dd class="text-white">
+                            {% if member.set %}
+                                <a href="/sets/{{ member.set.id }}" class="text-blue-400 hover:text-blue-300">
+                                    {{ member.set.primary_name }}
+                                </a>
+                            {% elif member.alliance_direct %}
+                                <a href="/alliances/{{ member.alliance_direct.id }}" class="text-purple-400 hover:text-purple-300">
+                                    {{ member.alliance_direct.name }}
+                                </a>
+                            {% else %}
+                                {{ member.affiliation_type.value }}
+                            {% endif %}
+                        </dd>
+                    </div>
+                </dl>
+            </div>
+            
+            <!-- Sources -->
+            {% if member.sources %}
+            <div class="bg-gray-900 border border-gray-800 rounded-lg p-6">
+                <h2 class="text-xl font-semibold mb-4">Sources</h2>
+                <div class="space-y-2">
+                    {% for source in member.sources %}
+                    <div class="p-3 bg-gray-800 rounded">
+                        <div class="text-sm font-medium text-white mb-1">
+                            {{ source.title or source.type.value }}
+                        </div>
+                        {% if source.url %}
+                        <a href="{{ source.url }}" target="_blank" class="text-blue-400 hover:text-blue-300 text-xs">
+                            View source
+                        </a>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}SquiidWiki{% endblock %}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        dark: {
+                            950: '#0a0a0a',
+                            900: '#111111',
+                            800: '#1a1a1a',
+                            700: '#2a2a2a',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <link rel="stylesheet" href="/static/css/custom.css">
+    {% block extra_head %}{% endblock %}
+</head>
+<body class="bg-gray-950 text-gray-100 min-h-screen">
+    <div class="flex h-screen overflow-hidden">
+        <!-- Sidebar -->
+        {% if request.url.path != '/login' %}
+        <aside class="w-64 bg-gray-900 border-r border-gray-800 flex-shrink-0">
+            <div class="p-6">
+                <h1 class="text-2xl font-bold text-red-500">SquiidWiki</h1>
+                <p class="text-sm text-gray-500">Detroit Research DB</p>
+            </div>
+            <nav class="px-4 space-y-1">
+                <a href="/dashboard" class="block px-4 py-2 rounded hover:bg-gray-800 {% if request.url.path == '/dashboard' %}bg-gray-800{% endif %}">
+                    Dashboard
+                </a>
+                <a href="/members" class="block px-4 py-2 rounded hover:bg-gray-800 {% if '/members' in request.url.path %}bg-gray-800{% endif %}">
+                    Members
+                </a>
+                <a href="/sets" class="block px-4 py-2 rounded hover:bg-gray-800 {% if '/sets' in request.url.path %}bg-gray-800{% endif %}">
+                    Sets
+                </a>
+                <a href="/alliances" class="block px-4 py-2 rounded hover:bg-gray-800 {% if '/alliances' in request.url.path %}bg-gray-800{% endif %}">
+                    Alliances
+                </a>
+                <a href="/incidents" class="block px-4 py-2 rounded hover:bg-gray-800 {% if '/incidents' in request.url.path %}bg-gray-800{% endif %}">
+                    Incidents
+                </a>
+                <a href="/sources" class="block px-4 py-2 rounded hover:bg-gray-800 {% if '/sources' in request.url.path %}bg-gray-800{% endif %}">
+                    Sources
+                </a>
+                <a href="/graph" class="block px-4 py-2 rounded hover:bg-gray-800 {% if request.url.path == '/graph' %}bg-gray-800{% endif %}">
+                    Network Graph
+                </a>
+            </nav>
+            <div class="absolute bottom-0 w-64 p-4 border-t border-gray-800">
+                <a href="/logout" class="block px-4 py-2 text-center rounded bg-red-900 hover:bg-red-800 text-white">
+                    Logout
+                </a>
+            </div>
+        </aside>
+        {% endif %}
+        
+        <!-- Main Content -->
+        <main class="flex-1 overflow-y-auto">
+            {% block content %}{% endblock %}
+        </main>
+    </div>
+    
+    {% block scripts %}{% endblock %}
+</body>
+</html>
