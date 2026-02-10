@@ -53,6 +53,11 @@ Use this to prioritise work and keep the build plan in sync with the codebase.
 - [x] **Login page** — Form, error message
 - [x] **seed.py** — Sample data for testing
 
+### Phase 5.5: UX refinements
+- [x] **Member list simplified** — Removed redundant "Nicknames" column; now shows only Name (display_name), Status, Affiliation, Actions
+- [x] **Status labels cleaned** — Removed redundant "ALIVE" prefix: `ALIVE_FREE` → `FREE`, `ALIVE_LOCKED_UP` → `LOCKED UP`; applied across all templates (member list/detail, set/alliance member cards)
+- [x] **Nickname display on detail page** — Shows "AKA: ..." list of all nicknames separately from the display name and real name
+
 ---
 
 ## Planned (from build plan, not yet implemented)
