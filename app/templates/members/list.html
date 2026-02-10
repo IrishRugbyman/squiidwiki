@@ -32,7 +32,6 @@
             <thead class="bg-gray-800">
                 <tr>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase">Name</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase">Nicknames</th>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase">Status</th>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase">Affiliation</th>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase">Actions</th>
@@ -43,20 +42,7 @@
                 <tr class="hover:bg-gray-800 cursor-pointer" onclick="window.location='/members/{{ member.id }}'">
                     <td class="px-6 py-4">
                         <div class="text-sm font-medium text-white">
-                            {% if member.first_name %}
-                                {{ member.first_name }} {{ member.last_name or '' }}
-                            {% else %}
-                                {{ member.nicknames[0] if member.nicknames else 'Unknown' }}
-                            {% endif %}
-                        </div>
-                    </td>
-                    <td class="px-6 py-4">
-                        <div class="text-sm text-gray-400">
-                            {% if member.nicknames %}
-                                {{ member.nicknames|join(', ') }}
-                            {% else %}
-                                -
-                            {% endif %}
+                            {{ member.display_name }}
                         </div>
                     </td>
                     <td class="px-6 py-4">
@@ -65,7 +51,7 @@
                             {% elif member.status.value == 'ALIVE_LOCKED_UP' %}bg-yellow-900 text-yellow-100
                             {% elif member.status.value == 'DEAD' %}bg-red-900 text-red-100
                             {% else %}bg-gray-700 text-gray-300{% endif %}">
-                            {{ member.status.value.replace('_', ' ') }}
+                            {{ member.status.value.replace('ALIVE_FREE', 'FREE').replace('ALIVE_LOCKED_UP', 'LOCKED UP').replace('_', ' ') }}
                         </span>
                     </td>
                     <td class="px-6 py-4 text-sm text-gray-300">

@@ -1,5 +1,5 @@
 """Member model."""
-from sqlalchemy import Column, String, Integer, Text, Enum as SQLEnum, ForeignKey, JSON
+from sqlalchemy import Column, String, Integer, Text, Enum as SQLEnum, ForeignKey, JSON, Boolean
 from sqlalchemy.orm import relationship
 from app.models.base import Base
 from app.models.associations import member_sources
@@ -31,6 +31,7 @@ class Member(Base):
     first_name = Column(String, nullable=True)
     last_name = Column(String, nullable=True)
     nicknames = Column(JSON, nullable=False, default=list)  # List of nicknames
+    nickname_unknown = Column(Boolean, nullable=False, default=False)  # When True, use real name for display
     status = Column(SQLEnum(MemberStatus), nullable=False, default=MemberStatus.UNKNOWN)
     bio = Column(Text, nullable=True)
     photo_url = Column(String, nullable=True)
@@ -63,6 +64,21 @@ class Member(Base):
     incident_participations = relationship("IncidentParticipant", back_populates="member", lazy="selectin")
     sources = relationship("Source", secondary=member_sources, lazy="selectin")
     
+    @property
+    def display_name(self) -> str:
+        """Primary name shown everywhere: nickname by default, real name only when nickname unknown."""
+        if not self.nickname_unknown and self.nicknames:
+            return self.nicknames[0]
+        if self.first_name:
+            return f"{self.first_name} {self.last_name or ''}".strip()
+        return "Unknown"
+
+    @property
+    def real_name(self) -> str | None:
+        """First + last name when known; used only on the individual's page."""
+        if self.first_name:
+            return f"{self.first_name} {self.last_name or ''}".strip()
+        return None
+
     def __repr__(self):
-        name = self.first_name or (self.nicknames[0] if self.nicknames else "Unknown")
-        return f"<Member {name}>"
+        return f"<Member {self.display_name}>"

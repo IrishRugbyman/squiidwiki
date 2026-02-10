@@ -9,6 +9,7 @@ class MemberBase(BaseModel):
     first_name: Optional[str] = None
     last_name: Optional[str] = None
     nicknames: List[str] = []
+    nickname_unknown: bool = False
     status: MemberStatus = MemberStatus.UNKNOWN
     bio: Optional[str] = None
     photo_url: Optional[str] = None
@@ -20,8 +21,12 @@ class MemberBase(BaseModel):
     @field_validator('first_name')
     @classmethod
     def validate_first_name(cls, v, info):
-        """Ensure first_name or nicknames is provided."""
-        if not v and not info.data.get('nicknames'):
+        """Ensure first_name or nicknames is provided; when nickname_unknown, first_name required."""
+        nickname_unknown = info.data.get('nickname_unknown', False)
+        nicknames = info.data.get('nicknames') or []
+        if nickname_unknown and not v:
+            raise ValueError("When nickname is unknown, first_name (real name) must be provided")
+        if not nickname_unknown and not v and not nicknames:
             raise ValueError("Either first_name or nicknames must be provided")
         return v
 
@@ -44,6 +49,7 @@ class MemberUpdate(BaseModel):
     first_name: Optional[str] = None
     last_name: Optional[str] = None
     nicknames: Optional[List[str]] = None
+    nickname_unknown: Optional[bool] = None
     status: Optional[MemberStatus] = None
     bio: Optional[str] = None
     photo_url: Optional[str] = None
@@ -65,6 +71,7 @@ class MemberUpdate(BaseModel):
 class MemberRead(MemberBase):
     """Schema for reading a member."""
     id: str
+    display_name: str = ""  # populated from model property when from_attributes=True
     dob_year: Optional[int] = None
     dob_month: Optional[int] = None
     dob_day: Optional[int] = None

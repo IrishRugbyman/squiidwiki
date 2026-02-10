@@ -73,7 +73,7 @@ def get_graph_data(db: Session = Depends(get_db)):
     # Add member nodes (limited to avoid clutter)
     members = db.query(Member).limit(100).all()
     for member in members:
-        display_name = member.first_name or (member.nicknames[0] if member.nicknames else "Unknown")
+        display_name = member.display_name
         nodes.append({
             "id": f"member-{member.id}",
             "label": display_name,

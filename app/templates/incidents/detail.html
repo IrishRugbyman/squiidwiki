@@ -52,11 +52,7 @@
                     <div class="p-4 bg-gray-800 rounded">
                         <div class="flex justify-between items-start mb-2">
                             <a href="/members/{{ participant.member.id }}" class="font-medium text-white hover:text-blue-400">
-                                {% if participant.member.first_name %}
-                                    {{ participant.member.first_name }} {{ participant.member.last_name or '' }}
-                                {% else %}
-                                    {{ participant.member.nicknames[0] if participant.member.nicknames else 'Unknown' }}
-                                {% endif %}
+                                {{ participant.member.display_name }}
                             </a>
                             <span class="px-2 py-1 text-xs rounded
                                 {% if participant.role.value == 'PERPETRATOR' %}bg-red-900 text-red-100

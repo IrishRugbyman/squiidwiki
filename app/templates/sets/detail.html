@@ -54,11 +54,7 @@
                     {% for member in set.members %}
                     <a href="/members/{{ member.id }}" class="p-3 bg-gray-800 rounded hover:bg-gray-700 transition">
                         <div class="font-medium text-white">
-                            {% if member.first_name %}
-                                {{ member.first_name }} {{ member.last_name or '' }}
-                            {% else %}
-                                {{ member.nicknames[0] if member.nicknames else 'Unknown' }}
-                            {% endif %}
+                            {{ member.display_name }}
                         </div>
                         <div class="text-sm text-gray-400">
                             <span class="px-2 py-0.5 text-xs rounded
@@ -66,7 +62,7 @@
                                 {% elif member.status.value == 'ALIVE_LOCKED_UP' %}bg-yellow-900 text-yellow-100
                                 {% elif member.status.value == 'DEAD' %}bg-red-900 text-red-100
                                 {% else %}bg-gray-700 text-gray-300{% endif %}">
-                                {{ member.status.value.replace('_', ' ') }}
+                                {{ member.status.value.replace('ALIVE_FREE', 'FREE').replace('ALIVE_LOCKED_UP', 'LOCKED UP').replace('_', ' ') }}
                             </span>
                         </div>
                     </a>
