@@ -24,7 +24,7 @@ Use this to prioritise work and keep the build plan in sync with the codebase.
 - [x] **Set model** — id, primary_name, names (JSON), status, alliance_id, FuzzyDate, territory, colors, bio, members, allies, enemies, sources, computed fields
 - [x] **Set allies/enemies bidirectional** — Normalized storage (set_a < set_b); `allies` and `enemies` properties query both directions; conflict prevention (can't be both ally and enemy)
 - [x] **Member model** — id, name fields, nicknames (JSON), status, DOB/DOD/release FuzzyDate, affiliation_type, set_id, alliance_id, bio, photo_url, social_media (JSON), relationships, computed fields
-- [x] **Incident + IncidentParticipant** — type, FuzzyDate, location, description; participant role, outcome, notes
+- [x] **Incident + IncidentParticipant** — type (SHOOTING, MURDER, STABBING, BEATING, OTHER), FuzzyDate, location, description; participant role, outcome, notes
 - [x] **Alembic** — Initialised, env configured, initial migration; tables created on app startup
 
 ### Phase 2.5: Street-life naming logic
@@ -41,7 +41,7 @@ Use this to prioritise work and keep the build plan in sync with the codebase.
 ### Phase 4: API & pages
 - [x] **JSON API** — GET list (with search), GET by id, POST create, PUT update, DELETE for members, sets, alliances, incidents, sources
 - [x] **Set allies/enemies** — POST/DELETE `/api/sets/{id}/allies/{other_id}`, `/api/sets/{id}/enemies/{other_id}`
-- [x] **GET /api/graph** — Nodes (alliances, sets, members) and edges (ally, enemy, membership, alliance)
+- [x] **GET /api/graph** — Nodes (sets, members) and edges (ally, enemy, member_of); alliances removed from graph
 - [x] **Page routes** — `/`, `/login`, `/logout`, `/dashboard`, list + detail for members, sets, alliances, incidents, sources, `/graph`
 - [x] Auth required on all pages except `/login` and static
 
@@ -50,7 +50,7 @@ Use this to prioritise work and keep the build plan in sync with the codebase.
 - [x] **Dashboard** — Stat cards (members, sets, alliances, incidents), recent incidents table (last 10)
 - [x] **List pages** — Table, search bar with HTMX (hx-get + delay, swaps target), link to “Add” (currently points to API)
 - [x] **Detail pages** — Member, Set, Alliance, Incident, Source detail templates with key fields and relationships
-- [x] **Graph page** — Full-page vis.js network; nodes (sets, alliances, members), edges (ally/enemy/member-of); toggles (Show Members, Show Alliances); click node → detail page; legend; data from `/api/graph`
+- [x] **Graph page** — Full-page vis.js network; nodes (sets, members), edges (ally/enemy/member-of); toggle Show Members; click node → detail page; legend; data from `/api/graph`
 - [x] **Login page** — Form, error message
 - [x] **seed.py** — Sample data for testing
 
@@ -58,6 +58,10 @@ Use this to prioritise work and keep the build plan in sync with the codebase.
 - [x] **Member list simplified** — Removed redundant "Nicknames" column; now shows only Name (display_name), Status, Affiliation, Actions
 - [x] **Status labels cleaned** — Removed redundant "ALIVE" prefix: `ALIVE_FREE` → `FREE`, `ALIVE_LOCKED_UP` → `LOCKED UP`; applied across all templates (member list/detail, set/alliance member cards)
 - [x] **Nickname display on detail page** — Shows "AKA: ..." list of all nicknames separately from the display name and real name
+- [x] **French date format** — All dates displayed as dd/mm/yyyy or mm/yyyy (members DOB/DOD/release, incidents, sets/alliances founded, sources, dashboard)
+- [x] **Network graph** — Alliances removed from graph; only Sets and Members; ally/enemy and member-of edges; "Show Alliances" toggle and legend removed
+- [x] **Incident type MURDER** — New `IncidentType.MURDER` (murders ≠ shootings); migration; seed updated (fatal incident = MURDER, non-fatal shooting = SHOOTING)
+- [x] **Incident History victim for murders** — On member detail, for MURDER incidents when viewing perpetrator role, shows "Victim: [name]" (link to victim profile); only for victim outcome KILLED
 
 ---
 

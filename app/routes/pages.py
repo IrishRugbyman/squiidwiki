@@ -86,10 +86,33 @@ async def members_list(request: Request, search: str = None, db: Session = Depen
     else:
         members = member_crud.get_members(db, limit=100)
     
+    # Return partial template for HTMX requests
+    if request.headers.get("HX-Request"):
+        return templates.TemplateResponse("members/_table.html", {
+            "request": request,
+            "members": members
+        })
+    
     return templates.TemplateResponse("members/list.html", {
         "request": request,
         "members": members,
         "search": search or ""
+    })
+
+
+@router.get("/members/add", response_class=HTMLResponse)
+async def member_add(request: Request, db: Session = Depends(get_db)):
+    """Add member page."""
+    if redirect := require_login(request):
+        return redirect
+    
+    sets = set_crud.get_sets(db, limit=1000)
+    alliances = alliance_crud.get_alliances(db, limit=1000)
+    
+    return templates.TemplateResponse("members/add.html", {
+        "request": request,
+        "sets": sets,
+        "alliances": alliances
     })
 
 
@@ -123,10 +146,31 @@ async def sets_list(request: Request, search: str = None, db: Session = Depends(
     else:
         sets = set_crud.get_sets(db, limit=100)
     
+    # Return partial template for HTMX requests
+    if request.headers.get("HX-Request"):
+        return templates.TemplateResponse("sets/_table.html", {
+            "request": request,
+            "sets": sets
+        })
+    
     return templates.TemplateResponse("sets/list.html", {
         "request": request,
         "sets": sets,
         "search": search or ""
+    })
+
+
+@router.get("/sets/add", response_class=HTMLResponse)
+async def set_add(request: Request, db: Session = Depends(get_db)):
+    """Add set page."""
+    if redirect := require_login(request):
+        return redirect
+    
+    alliances = alliance_crud.get_alliances(db, limit=1000)
+    
+    return templates.TemplateResponse("sets/add.html", {
+        "request": request,
+        "alliances": alliances
     })
 
 

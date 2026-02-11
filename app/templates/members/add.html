@@ -1,0 +1,258 @@
+{% extends "base.html" %}
+
+{% block title %}Add Member - SquiidWiki{% endblock %}
+
+{% block content %}
+<div class="p-8">
+    <div class="mb-6">
+        <a href="/members" class="text-blue-400 hover:text-blue-300 text-sm">&larr; Back to Members</a>
+    </div>
+    
+    <div class="max-w-2xl">
+        <h1 class="text-3xl font-bold mb-6">Add Member</h1>
+        
+        <form id="add-member-form" class="space-y-6">
+            <!-- Identity Section -->
+            <div class="bg-gray-900 border border-gray-800 rounded-lg p-6">
+                <h2 class="text-xl font-semibold mb-4">Identity</h2>
+                
+                <div class="space-y-4">
+                    <div class="flex items-center gap-2">
+                        <input type="checkbox" id="nickname_unknown" name="nickname_unknown" class="rounded bg-gray-800 border-gray-700">
+                        <label for="nickname_unknown" class="text-sm text-gray-300">Nickname unknown (use real name for display)</label>
+                    </div>
+                    
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label for="first_name" class="block text-sm text-gray-400 mb-1">First Name</label>
+                            <input type="text" id="first_name" name="first_name" 
+                                class="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-white">
+                        </div>
+                        <div>
+                            <label for="last_name" class="block text-sm text-gray-400 mb-1">Last Name</label>
+                            <input type="text" id="last_name" name="last_name" 
+                                class="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-white">
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <label for="nicknames" class="block text-sm text-gray-400 mb-1">Nicknames (comma-separated)</label>
+                        <input type="text" id="nicknames" name="nicknames" placeholder="e.g. Lil D, D-Money"
+                            class="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-white">
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Status Section -->
+            <div class="bg-gray-900 border border-gray-800 rounded-lg p-6">
+                <h2 class="text-xl font-semibold mb-4">Status</h2>
+                
+                <div class="space-y-4">
+                    <div>
+                        <label for="status" class="block text-sm text-gray-400 mb-1">Status</label>
+                        <select id="status" name="status" 
+                            class="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-white">
+                            <option value="UNKNOWN">Unknown</option>
+                            <option value="ALIVE_FREE">Alive - Free</option>
+                            <option value="ALIVE_LOCKED_UP">Alive - Locked Up</option>
+                            <option value="DEAD">Dead</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Affiliation Section -->
+            <div class="bg-gray-900 border border-gray-800 rounded-lg p-6">
+                <h2 class="text-xl font-semibold mb-4">Affiliation</h2>
+                
+                <div class="space-y-4">
+                    <div>
+                        <label for="affiliation_type" class="block text-sm text-gray-400 mb-1">Affiliation Type</label>
+                        <select id="affiliation_type" name="affiliation_type" 
+                            class="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-white">
+                            <option value="UNKNOWN">Unknown</option>
+                            <option value="SET">Set</option>
+                            <option value="ALLIANCE">Alliance</option>
+                            <option value="CIVILIAN">Civilian</option>
+                        </select>
+                    </div>
+                    
+                    <div id="set-select-container" style="display: none;">
+                        <label for="set_id" class="block text-sm text-gray-400 mb-1">Set</label>
+                        <select id="set_id" name="set_id" 
+                            class="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-white">
+                            <option value="">Select a set...</option>
+                            {% for set in sets %}
+                            <option value="{{ set.id }}">{{ set.primary_name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div id="alliance-select-container" style="display: none;">
+                        <label for="alliance_id" class="block text-sm text-gray-400 mb-1">Alliance</label>
+                        <select id="alliance_id" name="alliance_id" 
+                            class="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-white">
+                            <option value="">Select an alliance...</option>
+                            {% for alliance in alliances %}
+                            <option value="{{ alliance.id }}">{{ alliance.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Dates Section -->
+            <div class="bg-gray-900 border border-gray-800 rounded-lg p-6">
+                <h2 class="text-xl font-semibold mb-4">Dates</h2>
+                
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm text-gray-400 mb-1">Date of Birth</label>
+                        <div class="grid grid-cols-3 gap-2">
+                            <input type="number" id="dob_day" name="dob_day" placeholder="Day" min="1" max="31"
+                                class="px-4 py-2 bg-gray-800 border border-gray-700 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-white">
+                            <input type="number" id="dob_month" name="dob_month" placeholder="Month" min="1" max="12"
+                                class="px-4 py-2 bg-gray-800 border border-gray-700 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-white">
+                            <input type="number" id="dob_year" name="dob_year" placeholder="Year" min="1900" max="2100"
+                                class="px-4 py-2 bg-gray-800 border border-gray-700 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-white">
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm text-gray-400 mb-1">Date of Death</label>
+                        <div class="grid grid-cols-3 gap-2">
+                            <input type="number" id="dod_day" name="dod_day" placeholder="Day" min="1" max="31"
+                                class="px-4 py-2 bg-gray-800 border border-gray-700 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-white">
+                            <input type="number" id="dod_month" name="dod_month" placeholder="Month" min="1" max="12"
+                                class="px-4 py-2 bg-gray-800 border border-gray-700 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-white">
+                            <input type="number" id="dod_year" name="dod_year" placeholder="Year" min="1900" max="2100"
+                                class="px-4 py-2 bg-gray-800 border border-gray-700 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-white">
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm text-gray-400 mb-1">Release Date (from prison)</label>
+                        <div class="grid grid-cols-3 gap-2">
+                            <input type="number" id="release_day" name="release_day" placeholder="Day" min="1" max="31"
+                                class="px-4 py-2 bg-gray-800 border border-gray-700 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-white">
+                            <input type="number" id="release_month" name="release_month" placeholder="Month" min="1" max="12"
+                                class="px-4 py-2 bg-gray-800 border border-gray-700 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-white">
+                            <input type="number" id="release_year" name="release_year" placeholder="Year" min="1900" max="2100"
+                                class="px-4 py-2 bg-gray-800 border border-gray-700 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-white">
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Bio Section -->
+            <div class="bg-gray-900 border border-gray-800 rounded-lg p-6">
+                <h2 class="text-xl font-semibold mb-4">Additional Info</h2>
+                
+                <div class="space-y-4">
+                    <div>
+                        <label for="bio" class="block text-sm text-gray-400 mb-1">Biography</label>
+                        <textarea id="bio" name="bio" rows="4" 
+                            class="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-white"></textarea>
+                    </div>
+                    
+                    <div>
+                        <label for="photo_url" class="block text-sm text-gray-400 mb-1">Photo URL</label>
+                        <input type="url" id="photo_url" name="photo_url" 
+                            class="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-white">
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Error message -->
+            <div id="error-message" class="hidden p-4 bg-red-900 border border-red-700 rounded text-red-200"></div>
+            
+            <!-- Submit -->
+            <div class="flex gap-4">
+                <button type="submit" class="px-6 py-2 bg-blue-600 hover:bg-blue-700 rounded text-white font-medium">
+                    Add Member
+                </button>
+                <a href="/members" class="px-6 py-2 bg-gray-700 hover:bg-gray-600 rounded text-white font-medium">
+                    Cancel
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    // Toggle set/alliance selector based on affiliation type
+    document.getElementById('affiliation_type').addEventListener('change', function() {
+        const setContainer = document.getElementById('set-select-container');
+        const allianceContainer = document.getElementById('alliance-select-container');
+        
+        setContainer.style.display = this.value === 'SET' ? 'block' : 'none';
+        allianceContainer.style.display = this.value === 'ALLIANCE' ? 'block' : 'none';
+    });
+    
+    // Form submission
+    document.getElementById('add-member-form').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        const errorDiv = document.getElementById('error-message');
+        errorDiv.classList.add('hidden');
+        
+        // Build the request body
+        const formData = {
+            first_name: document.getElementById('first_name').value || null,
+            last_name: document.getElementById('last_name').value || null,
+            nickname_unknown: document.getElementById('nickname_unknown').checked,
+            nicknames: document.getElementById('nicknames').value 
+                ? document.getElementById('nicknames').value.split(',').map(s => s.trim()).filter(s => s)
+                : [],
+            status: document.getElementById('status').value,
+            affiliation_type: document.getElementById('affiliation_type').value,
+            set_id: document.getElementById('set_id').value || null,
+            alliance_id: document.getElementById('alliance_id').value || null,
+            bio: document.getElementById('bio').value || null,
+            photo_url: document.getElementById('photo_url').value || null,
+            dob_day: parseInt(document.getElementById('dob_day').value) || null,
+            dob_month: parseInt(document.getElementById('dob_month').value) || null,
+            dob_year: parseInt(document.getElementById('dob_year').value) || null,
+            dod_day: parseInt(document.getElementById('dod_day').value) || null,
+            dod_month: parseInt(document.getElementById('dod_month').value) || null,
+            dod_year: parseInt(document.getElementById('dod_year').value) || null,
+            release_day: parseInt(document.getElementById('release_day').value) || null,
+            release_month: parseInt(document.getElementById('release_month').value) || null,
+            release_year: parseInt(document.getElementById('release_year').value) || null
+        };
+        
+        try {
+            const response = await fetch('/api/members/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(formData)
+            });
+            
+            if (response.ok) {
+                const member = await response.json();
+                window.location.href = '/members/' + member.id;
+            } else {
+                const error = await response.json();
+                // Handle validation errors (array of {loc, msg, type})
+                let errorMessage = 'Failed to create member';
+                if (error.detail) {
+                    if (Array.isArray(error.detail)) {
+                        errorMessage = error.detail.map(e => e.msg || e.message || JSON.stringify(e)).join(', ');
+                    } else if (typeof error.detail === 'string') {
+                        errorMessage = error.detail;
+                    } else {
+                        errorMessage = JSON.stringify(error.detail);
+                    }
+                }
+                errorDiv.textContent = errorMessage;
+                errorDiv.classList.remove('hidden');
+            }
+        } catch (err) {
+            errorDiv.textContent = 'Network error: ' + err.message;
+            errorDiv.classList.remove('hidden');
+        }
+    });
+</script>
+{% endblock %}

@@ -1,5 +1,5 @@
 """Member schemas."""
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, model_validator
 from typing import Optional, List, Dict
 from app.models.member import MemberStatus, AffiliationType
 
@@ -18,17 +18,14 @@ class MemberBase(BaseModel):
     set_id: Optional[str] = None
     alliance_id: Optional[str] = None
     
-    @field_validator('first_name')
-    @classmethod
-    def validate_first_name(cls, v, info):
+    @model_validator(mode='after')
+    def validate_name_requirements(self):
         """Ensure first_name or nicknames is provided; when nickname_unknown, first_name required."""
-        nickname_unknown = info.data.get('nickname_unknown', False)
-        nicknames = info.data.get('nicknames') or []
-        if nickname_unknown and not v:
+        if self.nickname_unknown and not self.first_name:
             raise ValueError("When nickname is unknown, first_name (real name) must be provided")
-        if not nickname_unknown and not v and not nicknames:
+        if not self.nickname_unknown and not self.first_name and not self.nicknames:
             raise ValueError("Either first_name or nicknames must be provided")
-        return v
+        return self
 
 
 class MemberCreate(MemberBase):

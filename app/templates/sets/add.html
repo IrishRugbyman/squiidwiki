@@ -1,0 +1,166 @@
+{% extends "base.html" %}
+
+{% block title %}Add Set - SquiidWiki{% endblock %}
+
+{% block content %}
+<div class="p-8">
+    <div class="mb-6">
+        <a href="/sets" class="text-blue-400 hover:text-blue-300 text-sm">&larr; Back to Sets</a>
+    </div>
+    
+    <div class="max-w-2xl">
+        <h1 class="text-3xl font-bold mb-6">Add Set</h1>
+        
+        <form id="add-set-form" class="space-y-6">
+            <!-- Name Section -->
+            <div class="bg-gray-900 border border-gray-800 rounded-lg p-6">
+                <h2 class="text-xl font-semibold mb-4">Identity</h2>
+                
+                <div class="space-y-4">
+                    <div>
+                        <label for="primary_name" class="block text-sm text-gray-400 mb-1">Primary Name *</label>
+                        <input type="text" id="primary_name" name="primary_name" required
+                            class="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-white">
+                    </div>
+                    
+                    <div>
+                        <label for="names" class="block text-sm text-gray-400 mb-1">Alternate Names (comma-separated)</label>
+                        <input type="text" id="names" name="names" placeholder="e.g. 7 Mile, Seven Mile Bloods"
+                            class="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-white">
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Status & Details Section -->
+            <div class="bg-gray-900 border border-gray-800 rounded-lg p-6">
+                <h2 class="text-xl font-semibold mb-4">Details</h2>
+                
+                <div class="space-y-4">
+                    <div>
+                        <label for="status" class="block text-sm text-gray-400 mb-1">Status</label>
+                        <select id="status" name="status" 
+                            class="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-white">
+                            <option value="ACTIVE">Active</option>
+                            <option value="INACTIVE">Inactive</option>
+                            <option value="EXTINCT">Extinct</option>
+                        </select>
+                    </div>
+                    
+                    <div>
+                        <label for="territory" class="block text-sm text-gray-400 mb-1">Territory</label>
+                        <input type="text" id="territory" name="territory" placeholder="e.g. East Side Detroit"
+                            class="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-white">
+                    </div>
+                    
+                    <div>
+                        <label for="colors" class="block text-sm text-gray-400 mb-1">Colors</label>
+                        <input type="text" id="colors" name="colors" placeholder="e.g. Red and Black"
+                            class="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-white">
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Alliance Section -->
+            <div class="bg-gray-900 border border-gray-800 rounded-lg p-6">
+                <h2 class="text-xl font-semibold mb-4">Alliance</h2>
+                
+                <div>
+                    <label for="alliance_id" class="block text-sm text-gray-400 mb-1">Alliance</label>
+                    <select id="alliance_id" name="alliance_id" 
+                        class="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-white">
+                        <option value="">No alliance</option>
+                        {% for alliance in alliances %}
+                        <option value="{{ alliance.id }}">{{ alliance.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            
+            <!-- Founded Date Section -->
+            <div class="bg-gray-900 border border-gray-800 rounded-lg p-6">
+                <h2 class="text-xl font-semibold mb-4">Founded Date</h2>
+                
+                <div class="grid grid-cols-3 gap-2">
+                    <input type="number" id="founded_day" name="founded_day" placeholder="Day" min="1" max="31"
+                        class="px-4 py-2 bg-gray-800 border border-gray-700 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-white">
+                    <input type="number" id="founded_month" name="founded_month" placeholder="Month" min="1" max="12"
+                        class="px-4 py-2 bg-gray-800 border border-gray-700 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-white">
+                    <input type="number" id="founded_year" name="founded_year" placeholder="Year" min="1900" max="2100"
+                        class="px-4 py-2 bg-gray-800 border border-gray-700 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-white">
+                </div>
+            </div>
+            
+            <!-- Bio Section -->
+            <div class="bg-gray-900 border border-gray-800 rounded-lg p-6">
+                <h2 class="text-xl font-semibold mb-4">Biography</h2>
+                
+                <div>
+                    <textarea id="bio" name="bio" rows="4" placeholder="Background information about the set..."
+                        class="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-white"></textarea>
+                </div>
+            </div>
+            
+            <!-- Error message -->
+            <div id="error-message" class="hidden p-4 bg-red-900 border border-red-700 rounded text-red-200"></div>
+            
+            <!-- Submit -->
+            <div class="flex gap-4">
+                <button type="submit" class="px-6 py-2 bg-blue-600 hover:bg-blue-700 rounded text-white font-medium">
+                    Add Set
+                </button>
+                <a href="/sets" class="px-6 py-2 bg-gray-700 hover:bg-gray-600 rounded text-white font-medium">
+                    Cancel
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    // Form submission
+    document.getElementById('add-set-form').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        const errorDiv = document.getElementById('error-message');
+        errorDiv.classList.add('hidden');
+        
+        // Build the request body
+        const formData = {
+            primary_name: document.getElementById('primary_name').value,
+            names: document.getElementById('names').value 
+                ? document.getElementById('names').value.split(',').map(s => s.trim()).filter(s => s)
+                : [],
+            status: document.getElementById('status').value,
+            territory: document.getElementById('territory').value || null,
+            colors: document.getElementById('colors').value || null,
+            alliance_id: document.getElementById('alliance_id').value || null,
+            bio: document.getElementById('bio').value || null,
+            founded_day: parseInt(document.getElementById('founded_day').value) || null,
+            founded_month: parseInt(document.getElementById('founded_month').value) || null,
+            founded_year: parseInt(document.getElementById('founded_year').value) || null
+        };
+        
+        try {
+            const response = await fetch('/api/sets/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(formData)
+            });
+            
+            if (response.ok) {
+                const set = await response.json();
+                window.location.href = '/sets/' + set.id;
+            } else {
+                const error = await response.json();
+                errorDiv.textContent = error.detail || 'Failed to create set';
+                errorDiv.classList.remove('hidden');
+            }
+        } catch (err) {
+            errorDiv.textContent = 'Network error: ' + err.message;
+            errorDiv.classList.remove('hidden');
+        }
+    });
+</script>
+{% endblock %}

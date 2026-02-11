@@ -1,6 +1,6 @@
 """CRUD operations for members."""
 from sqlalchemy.orm import Session
-from sqlalchemy import or_, func
+from sqlalchemy import or_, func, String
 from typing import Optional, List, Dict
 from app.models.member import Member
 from app.models.incident import IncidentParticipant, ParticipantRole, VictimOutcome
@@ -53,12 +53,14 @@ def delete_member(db: Session, member_id: str) -> bool:
 
 def search_members(db: Session, query: str, skip: int = 0, limit: int = 100) -> List[Member]:
     """Search members by name, nickname, or bio."""
-    search_pattern = f"%{query}%"
+    search_pattern = f"%{query.lower()}%"
+    # nicknames is stored as JSON array, cast to text for searching
     return db.query(Member).filter(
         or_(
-            Member.first_name.like(search_pattern),
-            Member.last_name.like(search_pattern),
-            Member.bio.like(search_pattern)
+            func.lower(Member.first_name).like(search_pattern),
+            func.lower(Member.last_name).like(search_pattern),
+            func.lower(Member.bio).like(search_pattern),
+            func.lower(func.cast(Member.nicknames, String)).like(search_pattern)
         )
     ).offset(skip).limit(limit).all()
 
