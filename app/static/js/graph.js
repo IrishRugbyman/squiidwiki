@@ -24,11 +24,9 @@ function renderGraph() {
     
     // Filter nodes and edges based on toggles
     const showMembers = document.getElementById('toggle-members').checked;
-    const showAlliances = document.getElementById('toggle-alliances').checked;
     
     let filteredNodes = allNodes.filter(node => {
         if (node.type === 'member' && !showMembers) return false;
-        if (node.type === 'alliance' && !showAlliances) return false;
         return true;
     });
     
@@ -44,13 +42,10 @@ function renderGraph() {
         label: node.label,
         size: node.size,
         color: {
-            background: node.type === 'alliance' ? '#8b5cf6' : 
-                       node.type === 'set' ? '#22c55e' : '#3b82f6',
-            border: node.type === 'alliance' ? '#a78bfa' : 
-                   node.type === 'set' ? '#4ade80' : '#60a5fa',
+            background: node.type === 'set' ? '#22c55e' : '#3b82f6',
+            border: node.type === 'set' ? '#4ade80' : '#60a5fa',
             highlight: {
-                background: node.type === 'alliance' ? '#a78bfa' : 
-                           node.type === 'set' ? '#4ade80' : '#60a5fa',
+                background: node.type === 'set' ? '#4ade80' : '#60a5fa',
                 border: '#fff'
             }
         },
@@ -120,7 +115,6 @@ function renderGraph() {
             let url;
             if (type === 'member') url = `/members/${id}`;
             else if (type === 'set') url = `/sets/${id}`;
-            else if (type === 'alliance') url = `/alliances/${id}`;
             
             if (url) {
                 window.location.href = url;
@@ -133,7 +127,6 @@ function renderGraph() {
 document.addEventListener('DOMContentLoaded', () => {
     initGraph();
     
-    // Add event listeners for toggles
+    // Add event listener for toggle
     document.getElementById('toggle-members').addEventListener('change', renderGraph);
-    document.getElementById('toggle-alliances').addEventListener('change', renderGraph);
 });

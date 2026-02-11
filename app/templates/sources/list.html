@@ -51,9 +51,7 @@
                     </td>
                     <td class="px-6 py-4 text-sm text-gray-300">
                         {% if source.date_year %}
-                            {{ source.date_year }}
-                            {% if source.date_month %}-{{ '%02d'|format(source.date_month) }}{% endif %}
-                            {% if source.date_day %}-{{ '%02d'|format(source.date_day) }}{% endif %}
+                            {% if source.date_day %}{{ '%02d'|format(source.date_day) }}/{% endif %}{% if source.date_month %}{{ '%02d'|format(source.date_month) }}/{% endif %}{{ source.date_year }}
                         {% else %}
                             Unknown
                         {% endif %}

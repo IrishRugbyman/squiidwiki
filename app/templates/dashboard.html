@@ -56,9 +56,7 @@
                         </td>
                         <td class="px-6 py-4 text-sm text-gray-300">
                             {% if incident.date_year %}
-                                {{ incident.date_year }}
-                                {% if incident.date_month %}-{{ incident.date_month }}{% endif %}
-                                {% if incident.date_day %}-{{ incident.date_day }}{% endif %}
+                                {% if incident.date_day %}{{ '%02d'|format(incident.date_day) }}/{% endif %}{% if incident.date_month %}{{ '%02d'|format(incident.date_month) }}/{% endif %}{{ incident.date_year }}
                             {% else %}
                                 Unknown
                             {% endif %}

@@ -22,6 +22,7 @@ Use this to prioritise work and keep the build plan in sync with the codebase.
 - [x] **Source model** — id (UUID), type enum, title, url, FuzzyDate, notes
 - [x] **Alliance model** — id, name, status, founded FuzzyDate, bio, relationships, hybrid properties (all_members, total_kills)
 - [x] **Set model** — id, primary_name, names (JSON), status, alliance_id, FuzzyDate, territory, colors, bio, members, allies, enemies, sources, computed fields
+- [x] **Set allies/enemies bidirectional** — Normalized storage (set_a < set_b); `allies` and `enemies` properties query both directions; conflict prevention (can't be both ally and enemy)
 - [x] **Member model** — id, name fields, nicknames (JSON), status, DOB/DOD/release FuzzyDate, affiliation_type, set_id, alliance_id, bio, photo_url, social_media (JSON), relationships, computed fields
 - [x] **Incident + IncidentParticipant** — type, FuzzyDate, location, description; participant role, outcome, notes
 - [x] **Alembic** — Initialised, env configured, initial migration; tables created on app startup

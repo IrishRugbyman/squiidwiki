@@ -27,9 +27,7 @@
                 <div>
                     <dt class="text-sm text-gray-400 mb-1">Date</dt>
                     <dd class="text-white">
-                        {{ source.date_year }}
-                        {% if source.date_month %}-{{ '%02d'|format(source.date_month) }}{% endif %}
-                        {% if source.date_day %}-{{ '%02d'|format(source.date_day) }}{% endif %}
+                        {% if source.date_day %}{{ '%02d'|format(source.date_day) }}/{% endif %}{% if source.date_month %}{{ '%02d'|format(source.date_month) }}/{% endif %}{{ source.date_year }}
                     </dd>
                 </div>
                 {% endif %}

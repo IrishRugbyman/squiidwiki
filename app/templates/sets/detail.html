@@ -121,9 +121,7 @@
                     <div>
                         <dt class="text-sm text-gray-400">Founded</dt>
                         <dd class="text-white">
-                            {{ set.founded_year }}
-                            {% if set.founded_month %}-{{ '%02d'|format(set.founded_month) }}{% endif %}
-                            {% if set.founded_day %}-{{ '%02d'|format(set.founded_day) }}{% endif %}
+                            {% if set.founded_day %}{{ '%02d'|format(set.founded_day) }}/{% endif %}{% if set.founded_month %}{{ '%02d'|format(set.founded_month) }}/{% endif %}{{ set.founded_year }}
                         </dd>
                     </div>
                     {% endif %}

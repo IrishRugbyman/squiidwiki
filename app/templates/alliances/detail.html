@@ -92,9 +92,7 @@
                     <div>
                         <dt class="text-sm text-gray-400">Founded</dt>
                         <dd class="text-white">
-                            {{ alliance.founded_year }}
-                            {% if alliance.founded_month %}-{{ '%02d'|format(alliance.founded_month) }}{% endif %}
-                            {% if alliance.founded_day %}-{{ '%02d'|format(alliance.founded_day) }}{% endif %}
+                            {% if alliance.founded_day %}{{ '%02d'|format(alliance.founded_day) }}/{% endif %}{% if alliance.founded_month %}{{ '%02d'|format(alliance.founded_month) }}/{% endif %}{{ alliance.founded_year }}
                         </dd>
                     </div>
                     {% endif %}

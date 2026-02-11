@@ -10,6 +10,7 @@ import enum
 class IncidentType(str, enum.Enum):
     """Type of incident."""
     SHOOTING = "SHOOTING"
+    MURDER = "MURDER"
     STABBING = "STABBING"
     BEATING = "BEATING"
     OTHER = "OTHER"

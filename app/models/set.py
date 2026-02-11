@@ -1,5 +1,5 @@
 """Set (gang) model."""
-from sqlalchemy import Column, String, Integer, Text, Enum as SQLEnum, ForeignKey, JSON
+from sqlalchemy import Column, String, Integer, Text, Enum as SQLEnum, ForeignKey, JSON, or_, and_, select
 from sqlalchemy.orm import relationship
 from app.models.base import Base
 from app.models.associations import set_allies, set_enemies, set_sources
@@ -37,25 +37,47 @@ class Set(Base):
     # Relationships
     alliance = relationship("Alliance", back_populates="sets", lazy="selectin")
     members = relationship("Member", back_populates="set", foreign_keys="Member.set_id", lazy="selectin")
-    
-    # Self-referential M2M for allies and enemies
-    allies = relationship(
-        "Set",
-        secondary=set_allies,
-        primaryjoin=id == set_allies.c.set_a_id,
-        secondaryjoin=id == set_allies.c.set_b_id,
-        lazy="selectin"
-    )
-    
-    enemies = relationship(
-        "Set",
-        secondary=set_enemies,
-        primaryjoin=id == set_enemies.c.set_a_id,
-        secondaryjoin=id == set_enemies.c.set_b_id,
-        lazy="selectin"
-    )
-    
     sources = relationship("Source", secondary=set_sources, lazy="selectin")
+    
+    @property
+    def allies(self):
+        """Get all allied sets (bidirectional)."""
+        from sqlalchemy.orm import object_session
+        session = object_session(self)
+        if not session:
+            return []
+        
+        # Query both directions: where this set is set_a OR set_b
+        result = session.execute(
+            select(Set).join(
+                set_allies,
+                or_(
+                    and_(set_allies.c.set_a_id == self.id, Set.id == set_allies.c.set_b_id),
+                    and_(set_allies.c.set_b_id == self.id, Set.id == set_allies.c.set_a_id)
+                )
+            )
+        ).scalars().all()
+        return result
+    
+    @property
+    def enemies(self):
+        """Get all enemy sets (bidirectional)."""
+        from sqlalchemy.orm import object_session
+        session = object_session(self)
+        if not session:
+            return []
+        
+        # Query both directions: where this set is set_a OR set_b
+        result = session.execute(
+            select(Set).join(
+                set_enemies,
+                or_(
+                    and_(set_enemies.c.set_a_id == self.id, Set.id == set_enemies.c.set_b_id),
+                    and_(set_enemies.c.set_b_id == self.id, Set.id == set_enemies.c.set_a_id)
+                )
+            )
+        ).scalars().all()
+        return result
     
     def __repr__(self):
         return f"<Set {self.primary_name}>"

@@ -5,7 +5,6 @@ from typing import List, Dict
 from app.database import get_db
 from app.models.member import Member
 from app.models.set import Set
-from app.models.alliance import Alliance
 
 router = APIRouter(prefix="/api", tags=["graph"])
 
@@ -15,17 +14,6 @@ def get_graph_data(db: Session = Depends(get_db)):
     """Get graph data for visualization."""
     nodes = []
     edges = []
-    
-    # Add alliance nodes
-    alliances = db.query(Alliance).all()
-    for alliance in alliances:
-        nodes.append({
-            "id": f"alliance-{alliance.id}",
-            "label": alliance.name,
-            "type": "alliance",
-            "group": "alliance",
-            "size": 30
-        })
     
     # Add set nodes
     sets = db.query(Set).all()
@@ -37,15 +25,6 @@ def get_graph_data(db: Session = Depends(get_db)):
             "group": "set",
             "size": 20
         })
-        
-        # Add edge from set to alliance
-        if set_obj.alliance_id:
-            edges.append({
-                "from": f"set-{set_obj.id}",
-                "to": f"alliance-{set_obj.alliance_id}",
-                "type": "alliance_member",
-                "color": {"color": "#3b82f6"}
-            })
         
         # Add ally edges
         for ally in set_obj.allies:
@@ -89,15 +68,6 @@ def get_graph_data(db: Session = Depends(get_db)):
                 "to": f"set-{member.set_id}",
                 "type": "member_of",
                 "color": {"color": "#6b7280"}
-            })
-        
-        # Add edge from member to alliance (direct)
-        if member.alliance_id:
-            edges.append({
-                "from": f"member-{member.id}",
-                "to": f"alliance-{member.alliance_id}",
-                "type": "alliance_member",
-                "color": {"color": "#3b82f6"}
             })
     
     return {"nodes": nodes, "edges": edges}

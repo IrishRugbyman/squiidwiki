@@ -83,7 +83,7 @@
                             </span>
                             <span class="text-sm text-gray-400">
                                 {% if participation.incident.date_year %}
-                                    {{ participation.incident.date_year }}
+                                    {% if participation.incident.date_day %}{{ '%02d'|format(participation.incident.date_day) }}/{% endif %}{% if participation.incident.date_month %}{{ '%02d'|format(participation.incident.date_month) }}/{% endif %}{{ participation.incident.date_year }}
                                 {% else %}
                                     Unknown date
                                 {% endif %}
@@ -95,6 +95,15 @@
                             | Outcome: <span class="font-semibold">{{ participation.outcome.value }}</span>
                             {% endif %}
                         </div>
+                        {% if participation.incident.type.value == 'MURDER' and participation.role.value == 'PERPETRATOR' %}
+                        <div class="text-sm text-gray-300 mb-2">
+                            {% for p in participation.incident.participants %}
+                                {% if p.role.value == 'VICTIM' and p.outcome and p.outcome.value == 'KILLED' %}
+                                    Victim: <a href="/members/{{ p.member.id }}" class="font-semibold text-red-300 hover:text-red-200">{{ p.member.display_name }}</a>
+                                {% endif %}
+                            {% endfor %}
+                        </div>
+                        {% endif %}
                         {% if participation.incident.location %}
                         <div class="text-sm text-gray-400">Location: {{ participation.incident.location }}</div>
                         {% endif %}
@@ -126,9 +135,7 @@
                     <div>
                         <dt class="text-sm text-gray-400">Date of Birth</dt>
                         <dd class="text-white">
-                            {{ member.dob_year }}
-                            {% if member.dob_month %}-{{ '%02d'|format(member.dob_month) }}{% endif %}
-                            {% if member.dob_day %}-{{ '%02d'|format(member.dob_day) }}{% endif %}
+                            {% if member.dob_day %}{{ '%02d'|format(member.dob_day) }}/{% endif %}{% if member.dob_month %}{{ '%02d'|format(member.dob_month) }}/{% endif %}{{ member.dob_year }}
                         </dd>
                     </div>
                     {% endif %}
@@ -137,9 +144,7 @@
                     <div>
                         <dt class="text-sm text-gray-400">Date of Death</dt>
                         <dd class="text-red-300">
-                            {{ member.dod_year }}
-                            {% if member.dod_month %}-{{ '%02d'|format(member.dod_month) }}{% endif %}
-                            {% if member.dod_day %}-{{ '%02d'|format(member.dod_day) }}{% endif %}
+                            {% if member.dod_day %}{{ '%02d'|format(member.dod_day) }}/{% endif %}{% if member.dod_month %}{{ '%02d'|format(member.dod_month) }}/{% endif %}{{ member.dod_year }}
                         </dd>
                     </div>
                     {% endif %}
@@ -148,9 +153,7 @@
                     <div>
                         <dt class="text-sm text-gray-400">Release Date</dt>
                         <dd class="text-white">
-                            {{ member.release_year }}
-                            {% if member.release_month %}-{{ '%02d'|format(member.release_month) }}{% endif %}
-                            {% if member.release_day %}-{{ '%02d'|format(member.release_day) }}{% endif %}
+                            {% if member.release_day %}{{ '%02d'|format(member.release_day) }}/{% endif %}{% if member.release_month %}{{ '%02d'|format(member.release_month) }}/{% endif %}{{ member.release_year }}
                         </dd>
                     </div>
                     {% endif %}

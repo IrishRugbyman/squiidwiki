@@ -122,7 +122,7 @@ def seed_database():
         # Create incidents
         print("Creating incidents...")
         incident1 = incident_crud.create_incident(db, IncidentCreate(
-            type=IncidentType.SHOOTING,
+            type=IncidentType.MURDER,
             location="7 Mile & Van Dyke",
             description="Drive-by shooting resulting in one fatality",
             date_year=2020,

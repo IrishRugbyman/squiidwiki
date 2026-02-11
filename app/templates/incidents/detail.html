@@ -19,9 +19,7 @@
                     </span>
                     <div class="text-gray-400">
                         {% if incident.date_year %}
-                            {{ incident.date_year }}
-                            {% if incident.date_month %}-{{ '%02d'|format(incident.date_month) }}{% endif %}
-                            {% if incident.date_day %}-{{ '%02d'|format(incident.date_day) }}{% endif %}
+                            {% if incident.date_day %}{{ '%02d'|format(incident.date_day) }}/{% endif %}{% if incident.date_month %}{{ '%02d'|format(incident.date_month) }}/{% endif %}{{ incident.date_year }}
                         {% else %}
                             Date unknown
                         {% endif %}
@@ -101,9 +99,7 @@
                         <dt class="text-sm text-gray-400">Date</dt>
                         <dd class="text-white">
                             {% if incident.date_year %}
-                                {{ incident.date_year }}
-                                {% if incident.date_month %}-{{ '%02d'|format(incident.date_month) }}{% endif %}
-                                {% if incident.date_day %}-{{ '%02d'|format(incident.date_day) }}{% endif %}
+                                {% if incident.date_day %}{{ '%02d'|format(incident.date_day) }}/{% endif %}{% if incident.date_month %}{{ '%02d'|format(incident.date_month) }}/{% endif %}{{ incident.date_year }}
                             {% else %}
                                 Unknown
                             {% endif %}
