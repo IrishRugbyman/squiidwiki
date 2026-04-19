@@ -8,7 +8,7 @@ export interface AuthUser {
   global_role: GlobalRole
 }
 
-interface AuthState {
+export interface AuthState {
   user: AuthUser | null
   accessToken: string | null
   setAuth: (user: AuthUser, token: string) => void
