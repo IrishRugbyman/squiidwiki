@@ -16,6 +16,7 @@ from backend.members.routes import router as members_router
 from backend.alliances.alliances_router import router as alliances_router
 from backend.calendar.calendar_router import router as calendar_router
 from backend.events.events_router import router as events_router
+from backend.incidents.router import router as incidents_router
 from backend.home.home_router import router as home_router
 from backend.auth.auth_router import router as auth_router
 
@@ -65,6 +66,7 @@ app.include_router(members_router, prefix="/members", tags=["members"])
 app.include_router(alliances_router, prefix="/alliances", tags=["alliances"])
 app.include_router(calendar_router, prefix="/calendar", tags=["calendar"])
 app.include_router(events_router, prefix="/events", tags=["events"])
+app.include_router(incidents_router)
 
 app_api = FastAPI(title="SquiidWiki API")
 app.mount("/api", app_api)
@@ -76,6 +78,7 @@ app_api.include_router(members_router, prefix="/members", tags=["members"])
 app_api.include_router(alliances_router, prefix="/alliances", tags=["alliances"])
 app_api.include_router(calendar_router, prefix="/calendar", tags=["calendar"])
 app_api.include_router(events_router, prefix="/events", tags=["events"])
+app_api.include_router(incidents_router)
 
 
 @app.get("/health", tags=["health"])

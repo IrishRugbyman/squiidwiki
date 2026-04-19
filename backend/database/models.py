@@ -65,13 +65,6 @@ class MemberStatus(str, enum.Enum):
     UNKNOWN = "unknown"
 
 
-class EventType(str, enum.Enum):
-    MURDER = "murder"
-    SHOOTING = "shooting"
-    ASSIST = "assist"
-    PRISON_INCIDENT = "prison_incident"
-
-
 class LocationType(str, enum.Enum):
     STREET = "street"
     FACILITY = "facility"
@@ -83,10 +76,23 @@ class DatePrecision(str, enum.Enum):
     UNKNOWN = "unknown"
 
 
-class ParticipantRole(str, enum.Enum):
+class IncidentType(str, enum.Enum):
+    SHOOTING = "shooting"
+    MURDER = "murder"
+
+
+class IncidentRole(str, enum.Enum):
     SHOOTER = "shooter"
+    ASSISTED = "assisted"
+    BYSTANDER = "bystander"
     VICTIM = "victim"
-    ASSISTANT = "assistant"
+
+
+class IncidentOutcome(str, enum.Enum):
+    KILLED = "killed"
+    INJURED = "injured"
+    UNHARMED = "unharmed"
+    UNKNOWN = "unknown"
 
 
 class RelationshipType(str, enum.Enum):
@@ -265,62 +271,70 @@ class Member(AuditMixin, Base):
     # --- relationships -------------------------------------------------------
     set: Mapped[Optional[Set]] = relationship("Set", back_populates="members")
 
-    event_participations: Mapped[List[EventParticipant]] = relationship(
-        "EventParticipant", back_populates="member", lazy="select",
+    incident_participations: Mapped[List["IncidentParticipant"]] = relationship(
+        "IncidentParticipant", back_populates="member", lazy="select",
     )
 
 
 # ───────────────────────────────────────────────────────────────────────────
-# Events  (unified: murder, shooting, assist, prison_incident)
+# Incidents  (SHOOTING / MURDER with orthogonal role + outcome per participant)
 # ───────────────────────────────────────────────────────────────────────────
 
-class Event(AuditMixin, Base):
-    __tablename__ = "events"
+class Incident(AuditMixin, Base):
+    __tablename__ = "incidents"
     __table_args__ = (
-        Index("idx_events_type", "event_type"),
-        Index("idx_events_date", "date"),
+        Index("idx_incidents_type", "incident_type"),
+        Index("idx_incidents_date_sortable", "date_sortable"),
     )
 
     id = Column(Integer, primary_key=True)
-    event_type = Column(
-        Enum(EventType, name="event_type_enum", native_enum=False, values_callable=_enum_values),
+    universe_id = Column(ForeignKey("universes.id", ondelete="SET NULL"), nullable=True, index=True)
+    incident_type = Column(
+        Enum(IncidentType, name="incident_type_enum", native_enum=False, values_callable=_enum_values),
         nullable=False,
     )
     date = Column(FuzzyDateJSON, nullable=True)
     date_sortable = Column(Date, nullable=True)
-    description = Column(Text)
     location_type = Column(
         Enum(LocationType, name="location_type_enum", native_enum=False, values_callable=_enum_values),
         nullable=False,
         server_default=LocationType.STREET.value,
     )
+    narrative = Column(Text, nullable=True)
+    verified = Column(Boolean, nullable=False, server_default="false")
 
     # --- relationships -------------------------------------------------------
-    participants: Mapped[List[EventParticipant]] = relationship(
-        "EventParticipant", back_populates="event", lazy="joined",
-        cascade="all, delete-orphan",
+    participants: Mapped[List["IncidentParticipant"]] = relationship(
+        "IncidentParticipant", back_populates="incident",
+        cascade="all, delete-orphan", lazy="select",
     )
 
 
-class EventParticipant(Base):
-    """Association between an Event and a Member with a given role."""
-    __tablename__ = "event_participants"
+class IncidentParticipant(Base):
+    """Join table: Incident ↔ Member with orthogonal role and outcome."""
+    __tablename__ = "incident_participants"
     __table_args__ = (
-        UniqueConstraint("event_id", "member_id", "role", name="uq_event_member_role"),
-        Index("idx_ep_member", "member_id"),
+        UniqueConstraint("incident_id", "member_id", "role", name="uq_incident_member_role"),
+        Index("idx_ip_member", "member_id"),
+        Index("idx_ip_incident", "incident_id"),
     )
 
     id = Column(Integer, primary_key=True)
-    event_id = Column(ForeignKey("events.id", ondelete="CASCADE"), nullable=False)
+    incident_id = Column(ForeignKey("incidents.id", ondelete="CASCADE"), nullable=False)
     member_id = Column(ForeignKey("members.id", ondelete="CASCADE"), nullable=False)
     role = Column(
-        Enum(ParticipantRole, name="participant_role_enum", native_enum=False, values_callable=_enum_values),
+        Enum(IncidentRole, name="incident_role_enum", native_enum=False, values_callable=_enum_values),
         nullable=False,
+    )
+    outcome = Column(
+        Enum(IncidentOutcome, name="incident_outcome_enum", native_enum=False, values_callable=_enum_values),
+        nullable=False,
+        server_default=IncidentOutcome.UNKNOWN.value,
     )
 
     # --- relationships -------------------------------------------------------
-    event: Mapped[Event] = relationship("Event", back_populates="participants")
-    member: Mapped[Member] = relationship("Member", back_populates="event_participations")
+    incident: Mapped[Incident] = relationship("Incident", back_populates="participants")
+    member: Mapped[Member] = relationship("Member", back_populates="incident_participations")
 
 
 # ───────────────────────────────────────────────────────────────────────────

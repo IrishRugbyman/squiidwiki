@@ -21,12 +21,12 @@ from backend.database.models import (
     AllianceSetMap,
     # Members
     Member as Members,
-    # Events (consolidated — old names map to Event for import compat)
-    Event as Assists,
-    Event as Murders,
-    Event as Shootings,
-    Event,
-    EventParticipant,
+    # Incidents (replaced Events in Phase 7)
+    Incident as Assists,
+    Incident as Murders,
+    Incident as Shootings,
+    Incident,
+    IncidentParticipant,
 )
 
 __all__ = [
@@ -36,5 +36,5 @@ __all__ = [
     "Sets", "SetAlliesMap", "SetEnemiesMap",
     "Alliance", "AllianceSetsMap", "AllianceSetMap",
     "Members",
-    "Assists", "Murders", "Shootings", "Event", "EventParticipant",
+    "Assists", "Murders", "Shootings", "Incident", "IncidentParticipant",
 ]

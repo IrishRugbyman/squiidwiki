@@ -14,7 +14,6 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.database.models import (
-    EventType,
     LocationType,
     MemberStatus,
     RelationshipType,
@@ -28,7 +27,7 @@ from backend.exceptions import (
 )
 
 if TYPE_CHECKING:
-    from backend.database.models import Event, Member, Set
+    from backend.database.models import Incident, Member, Set
 
 
 class BusinessRuleValidator:
