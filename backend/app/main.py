@@ -2,6 +2,7 @@ import uuid
 from contextlib import asynccontextmanager
 
 import structlog
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -9,12 +10,26 @@ from app.core.config import settings
 
 logger = structlog.get_logger()
 
+scheduler = AsyncIOScheduler()
+
+
+async def refresh_stats() -> None:
+    from app.core.database import AsyncSessionLocal
+    from app.crud.stats import refresh_materialized_views
+
+    async with AsyncSessionLocal() as session:
+        await refresh_materialized_views(session)
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     from app.core.audit import attach_audit_listeners
+
     attach_audit_listeners()
+    scheduler.add_job(refresh_stats, "interval", minutes=5)
+    scheduler.start()
     yield
+    scheduler.shutdown()
 
 
 app = FastAPI(
@@ -51,5 +66,19 @@ async def health():
 
 # Routers
 from app.auth.router import router as auth_router  # noqa: E402
+from app.routers.alliance import router as alliance_router  # noqa: E402
+from app.routers.gang_set import router as gang_set_router  # noqa: E402
+from app.routers.incident import router as incident_router  # noqa: E402
+from app.routers.member import router as member_router  # noqa: E402
+from app.routers.municipality import router as municipality_router  # noqa: E402
+from app.routers.source import router as source_router  # noqa: E402
+from app.routers.universe import router as universe_router  # noqa: E402
 
 app.include_router(auth_router, prefix="/api/v1")
+app.include_router(universe_router, prefix="/api/v1")
+app.include_router(municipality_router, prefix="/api/v1")
+app.include_router(source_router, prefix="/api/v1")
+app.include_router(alliance_router, prefix="/api/v1")
+app.include_router(gang_set_router, prefix="/api/v1")
+app.include_router(member_router, prefix="/api/v1")
+app.include_router(incident_router, prefix="/api/v1")
