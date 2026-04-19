@@ -49,6 +49,11 @@ class BusinessSettings(BaseModel):
     max_description_length: int = 1000
 
 
+class RedisSettings(BaseModel):
+    url: str = "redis://localhost:6379/0"
+    stats_ttl: int = 300  # seconds
+
+
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         env_file=".env",
@@ -66,6 +71,7 @@ class Settings(BaseSettings):
     logging: LoggingSettings = Field(default_factory=LoggingSettings)
     api: APISettings = Field(default_factory=APISettings)
     business: BusinessSettings = Field(default_factory=BusinessSettings)
+    redis: RedisSettings = Field(default_factory=RedisSettings)
 
     @property
     def env(self) -> str:

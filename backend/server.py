@@ -18,7 +18,10 @@ from backend.calendar.calendar_router import router as calendar_router
 from backend.events.events_router import router as events_router
 from backend.incidents.router import router as incidents_router
 from backend.sources.router import router as sources_router
+from backend.stats.router import router as stats_router
 from backend.audit.listener import register_audit_listener, unregister_audit_listener
+from backend.cache import init_redis, close_redis
+from backend.scheduler import start_scheduler, stop_scheduler
 from backend.home.home_router import router as home_router
 from backend.auth.auth_router import router as auth_router
 
@@ -33,11 +36,15 @@ logging.basicConfig(
 async def lifespan(app: FastAPI):
     logger.info(f"Starting SquiidWiki in {settings.env} environment")
     register_audit_listener()
+    init_redis()
+    start_scheduler()
     if await init_db():
         logger.info("Database initialization completed successfully")
     else:
         logger.warning("Database initialization completed with warnings")
     yield
+    stop_scheduler()
+    await close_redis()
     unregister_audit_listener()
     logger.info("Shutting down SquiidWiki")
 
@@ -72,6 +79,7 @@ app.include_router(calendar_router, prefix="/calendar", tags=["calendar"])
 app.include_router(events_router, prefix="/events", tags=["events"])
 app.include_router(incidents_router)
 app.include_router(sources_router)
+app.include_router(stats_router)
 
 app_api = FastAPI(title="SquiidWiki API")
 app.mount("/api", app_api)
@@ -85,6 +93,7 @@ app_api.include_router(calendar_router, prefix="/calendar", tags=["calendar"])
 app_api.include_router(events_router, prefix="/events", tags=["events"])
 app_api.include_router(incidents_router)
 app_api.include_router(sources_router)
+app_api.include_router(stats_router)
 
 
 @app.get("/health", tags=["health"])
