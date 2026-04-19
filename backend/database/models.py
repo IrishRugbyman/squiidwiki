@@ -105,6 +105,19 @@ class AllianceStatus(str, enum.Enum):
     DISSOLVED = "dissolved"
 
 
+class SourceReliability(str, enum.Enum):
+    HIGH = "high"
+    MEDIUM = "medium"
+    LOW = "low"
+    UNVERIFIED = "unverified"
+
+
+class AuditAction(str, enum.Enum):
+    CREATE = "create"
+    UPDATE = "update"
+    DELETE = "delete"
+
+
 # ───────────────────────────────────────────────────────────────────────────
 # System / Config tables  (no soft-delete, lightweight)
 # ───────────────────────────────────────────────────────────────────────────
@@ -417,3 +430,96 @@ class AllianceSetMap(AuditMixin, Base):
     # --- relationships -------------------------------------------------------
     alliance: Mapped[Alliance] = relationship("Alliance", back_populates="set_memberships")
     set: Mapped[Set] = relationship("Set", back_populates="alliance_memberships")
+
+
+# ───────────────────────────────────────────────────────────────────────────
+# Sources  (citations / references for Members and Incidents)
+# ───────────────────────────────────────────────────────────────────────────
+
+class Source(AuditMixin, Base):
+    __tablename__ = "sources"
+
+    id = Column(Integer, primary_key=True)
+    universe_id = Column(ForeignKey("universes.id", ondelete="SET NULL"), nullable=True, index=True)
+    url = Column(Text, nullable=False)
+    title = Column(Text, nullable=True)
+    publication = Column(Text, nullable=True)
+    published_at = Column(FuzzyDateJSON, nullable=True)
+    published_at_sortable = Column(Date, nullable=True)
+    accessed_at = Column(Date, nullable=True)
+    reliability = Column(
+        Enum(SourceReliability, name="source_reliability_enum", native_enum=False, values_callable=_enum_values),
+        nullable=False,
+        server_default=SourceReliability.UNVERIFIED.value,
+    )
+    archive_url = Column(Text, nullable=True)
+
+    # --- relationships -------------------------------------------------------
+    member_links: Mapped[List["MemberSource"]] = relationship(
+        "MemberSource", back_populates="source", cascade="all, delete-orphan",
+    )
+    incident_links: Mapped[List["IncidentSource"]] = relationship(
+        "IncidentSource", back_populates="source", cascade="all, delete-orphan",
+    )
+
+
+class MemberSource(Base):
+    """M2M join: Member ↔ Source."""
+    __tablename__ = "member_sources"
+    __table_args__ = (
+        UniqueConstraint("member_id", "source_id", name="uq_member_source"),
+    )
+
+    id = Column(Integer, primary_key=True)
+    member_id = Column(ForeignKey("members.id", ondelete="CASCADE"), nullable=False, index=True)
+    source_id = Column(ForeignKey("sources.id", ondelete="CASCADE"), nullable=False, index=True)
+
+    member: Mapped[Member] = relationship("Member")
+    source: Mapped[Source] = relationship("Source", back_populates="member_links")
+
+
+class IncidentSource(Base):
+    """M2M join: Incident ↔ Source."""
+    __tablename__ = "incident_sources"
+    __table_args__ = (
+        UniqueConstraint("incident_id", "source_id", name="uq_incident_source"),
+    )
+
+    id = Column(Integer, primary_key=True)
+    incident_id = Column(ForeignKey("incidents.id", ondelete="CASCADE"), nullable=False, index=True)
+    source_id = Column(ForeignKey("sources.id", ondelete="CASCADE"), nullable=False, index=True)
+
+    incident: Mapped[Incident] = relationship("Incident")
+    source: Mapped[Source] = relationship("Source", back_populates="incident_links")
+
+
+# ───────────────────────────────────────────────────────────────────────────
+# AuditLog  (immutable append-only write log)
+# ───────────────────────────────────────────────────────────────────────────
+
+class AuditLog(Base):
+    """Immutable record of every create/update/delete on domain entities."""
+    __tablename__ = "audit_logs"
+    __table_args__ = (
+        Index("idx_audit_entity", "entity_type", "entity_id"),
+        Index("idx_audit_user", "user_id"),
+        Index("idx_audit_created_at", "created_at"),
+    )
+
+    id = Column(Integer, primary_key=True)
+    user_id = Column(ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    entity_type = Column(Text, nullable=False)
+    entity_id = Column(Integer, nullable=False)
+    action = Column(
+        Enum(AuditAction, name="audit_action_enum", native_enum=False, values_callable=_enum_values),
+        nullable=False,
+    )
+    diff_json = Column(Text, nullable=True)  # JSON stored as text for SQLite compat
+    created_at = Column(
+        DateTime,
+        nullable=False,
+        server_default=func.now(),
+        default=func.now(),
+    )
+
+    user: Mapped[Optional["User"]] = relationship("User")
