@@ -1,184 +1,332 @@
 # SquiidWiki
 
-A comprehensive Detroit gang research database built with FastAPI, SQLAlchemy, and modern web technologies. Designed for organized crime research with a focus on data integrity, relational tracking, and visual network analysis.
+**Python env:** `C:\Users\irish\miniconda3\envs\squiidwiki\python.exe`
 
-![SquiidWiki Dashboard](docs/dashboard-screenshot.png)
-
-## Features
-
-- **Comprehensive Data Model**: Track members, sets, alliances, incidents, and sources with full relationship mapping
-- **FuzzyDate System**: Handle dates with varying precision (year-only, year-month, or full date)
-- **Network Visualization**: Interactive graph showing relationships between sets, alliances, and members
-- **Dark-Themed UI**: Professional dark interface optimized for extended research sessions
-- **HTMX-Powered**: Dynamic search and filtering without JavaScript complexity
-- **RESTful API**: Full JSON API for programmatic access
-- **Source Citations**: Link all data to sources for research credibility
-
-## Tech Stack
-
-- **Backend**: FastAPI + SQLAlchemy 2.0 + Pydantic v2
-- **Frontend**: Jinja2 + HTMX + Tailwind CSS
-- **Database**: SQLite (easily switchable to PostgreSQL)
-- **Visualization**: vis.js for network graphs
-- **Auth**: Simple password-based authentication
-
-## Quick Start
-
-### Prerequisites
-
-- Python 3.11+
-- pip
-
-### Installation
-
-1. Clone the repository:
-```bash
-git clone <repository-url>
-cd squiidwiki
-```
-
-2. Install dependencies:
-```bash
-pip install -r requirements.txt
-```
-
-3. Configure environment:
-```bash
-cp .env.example .env
-# Edit .env and set your SECRET_KEY and ADMIN_PASSWORD
-```
-
-4. Initialize database:
-```bash
-alembic upgrade head
-```
-
-5. (Optional) Seed with sample data:
-```bash
-python seed.py
-```
-
-6. Run the application:
-```bash
-python run.py
-```
-
-7. Access the application:
-```
-http://127.0.0.1:8000
-```
-
-Default password: See `.env` file (default: `admin`)
-
-## Data Model
-
-### Entities
-
-- **Members**: Individuals with names, nicknames, status, affiliations, dates, and biographical information
-- **Sets**: Gang sets with names, territories, colors, members, allies, and enemies
-- **Alliances**: Larger organizations containing multiple sets
-- **Incidents**: Events (shootings, stabbings, beatings) with participants in different roles
-- **Sources**: Citations for all data (news articles, court documents, social media, etc.)
-
-### Key Features
-
-- **Bilateral Relationships**: Ally/enemy relationships are symmetric and mutually exclusive
-- **Computed Stats**: Kills, assists, shootings automatically calculated from incident data
-- **Flexible Dates**: FuzzyDate system handles incomplete date information
-- **Validation**: Cross-field validation ensures data integrity
-
-## Project Structure
-
-```
-squiidwiki/
-├── app/
-│   ├── models/          # SQLAlchemy ORM models
-│   ├── schemas/         # Pydantic request/response schemas
-│   ├── crud/            # Database operations
-│   ├── routes/          # API and page routes
-│   ├── templates/       # Jinja2 HTML templates
-│   ├── static/          # CSS and JavaScript
-│   ├── config.py        # Application settings
-│   ├── database.py      # Database setup
-│   ├── auth.py          # Authentication
-│   └── main.py          # FastAPI app
-├── alembic/             # Database migrations
-├── requirements.txt     # Python dependencies
-├── seed.py              # Sample data script
-└── run.py               # Application entry point
-```
-
-## API Documentation
-
-Once running, visit:
-- Swagger UI: `http://127.0.0.1:8000/docs`
-- ReDoc: `http://127.0.0.1:8000/redoc`
-
-### Key Endpoints
-
-- `GET /api/members` - List members
-- `GET /api/sets` - List sets
-- `GET /api/alliances` - List alliances
-- `GET /api/incidents` - List incidents
-- `GET /api/graph` - Network graph data
-- `POST /api/sets/{id}/allies/{other_id}` - Add ally relationship
-- `POST /api/sets/{id}/enemies/{other_id}` - Add enemy relationship
-
-## Development
-
-### Adding a New Entity
-
-1. Create model in `app/models/`
-2. Create schemas in `app/schemas/`
-3. Create CRUD operations in `app/crud/`
-4. Create API routes in `app/routes/`
-5. Create templates in `app/templates/`
-6. Generate migration: `alembic revision --autogenerate -m "description"`
-7. Apply migration: `alembic upgrade head`
-
-### Database Migrations
-
-```bash
-# Generate migration
-alembic revision --autogenerate -m "Description of changes"
-
-# Apply migrations
-alembic upgrade head
-
-# Rollback
-alembic downgrade -1
-```
-
-## Security Considerations
-
-- Change `SECRET_KEY` and `ADMIN_PASSWORD` in production
-- Use HTTPS in production
-- Consider implementing proper user management for multi-user access
-- Regularly backup the database
-- Review and sanitize all inputs
-
-## Research Ethics
-
-This tool is designed for legitimate research purposes including:
-- Academic research on organized crime
-- Journalism and investigative reporting
-- Law enforcement intelligence gathering
-- Sociological studies
-
-**Important**: Always verify information through multiple sources and respect privacy laws.
-
-## License
-
-[Add your license here]
-
-## Contributing
-
-[Add contribution guidelines]
-
-## Contact
-
-[Add contact information]
+A multi-tenant gang research wiki. Each isolated network of people lives inside a **Universe**. This document is the canonical schema reference.
 
 ---
 
-**Disclaimer**: This software is for research and educational purposes only. Users are responsible for ensuring their use complies with all applicable laws and regulations.
+## Architecture: The "Universe" Concept
+
+A **Universe** is a fully isolated research namespace (e.g. "Metro Detroit", "Corsica"). Every core entity carries a `universe_id`. A single database can serve multiple completely separate wikis with no crossover.
+
+---
+
+## Schema
+
+### Universe
+
+| Field | Type | Notes |
+|---|---|---|
+| id | UUID | PK |
+| name | str | e.g. "Metro Detroit" |
+| slug | str | URL-safe, unique |
+| description | str | optional |
+| created_at | datetime | auto |
+| created_by_id | UUID → User | FK |
+
+---
+
+### Municipality
+
+Geographical areas within a Universe (cities, districts, townships).
+
+| Field | Type | Notes |
+|---|---|---|
+| id | UUID | PK |
+| universe_id | UUID → Universe | FK |
+| name | str | e.g. "Ecorse" |
+| parent_id | UUID → Municipality | nullable — for sub-districts |
+
+---
+
+### Alliances
+
+Larger organizations that contain Sets (and optionally direct members).
+
+| Field | Type | Notes |
+|---|---|---|
+| id | UUID | PK |
+| universe_id | UUID → Universe | FK |
+| name | str | |
+| description | str | optional |
+| status | AllianceStatusEnum | ACTIVE / EXTINCT / DORMANT |
+| founded_at | FuzzyDate | optional |
+| territories | UUID[] → Municipality | M2M |
+| sets | UUID[] → Set | M2M |
+
+---
+
+### Sets
+
+Gang crews / organizations.
+
+| Field | Type | Notes |
+|---|---|---|
+| id | UUID | PK |
+| universe_id | UUID → Universe | FK |
+| name | str | |
+| alias | str | optional |
+| bio | str | optional |
+| status | SetStatusEnum | ACTIVE / EXTINCT |
+| territories | UUID[] → Municipality | M2M — a set can span multiple areas |
+| alliance_id | UUID → Alliance | optional FK |
+| founder_id | UUID → Member | optional FK |
+| friends | Set[] | M2M via `set_relationships` — cannot overlap with enemies |
+| enemies | Set[] | M2M via `set_relationships` — bilateral: if A↔B, then B↔A |
+
+#### Bilateral relationship storage
+
+Enemy/friend pairs stored once as `(set_a_id, set_b_id)` with a CHECK constraint `set_a_id < set_b_id` and a Postgres trigger enforcing insert ordering. A separate `relationship_type` column (`FRIEND` / `ENEMY`) on the join row. Application CRUD always normalizes pairs (min, max) before insert.
+
+#### Stats (computed dynamically via materialized views)
+
+- total shootings by all members
+- total assists
+- total kills
+- number of dead members
+
+---
+
+### Members
+
+Individual people tracked in the wiki.
+
+| Field | Type | Notes |
+|---|---|---|
+| id | UUID | PK |
+| universe_id | UUID → Universe | FK |
+| nickname | str | optional if `legal_name` set |
+| legal_name | str | optional if `nickname` set |
+| nickname_unknown | bool | if true, use `legal_name` as display name |
+| aliases | JSONB | list of alternative street names |
+| biography | str | default "" |
+| photo_url | str | optional, placeholder for V1 |
+| set_id | UUID → Set | optional if `alliance_id` set |
+| alliance_id | UUID → Alliance | optional if `set_id` set |
+| status | MemberStatusEnum | see below |
+| dob | FuzzyDate | optional |
+| date_of_death | FuzzyDate | optional — only when status = DEAD |
+| release_date | FuzzyDate \| "LIFE" | optional — only when status = LOCKED or ESCAPEE |
+| family | JSONB | `{father?: id, sons?: [id], brothers?: [id], cousins?: [id], uncles?: [id], nephews?: [id]}` |
+| social_media | JSONB | `{platform: handle}` dict |
+
+**`display_name` rule:** show `nickname` by default; if `nickname_unknown = true`, show `legal_name` instead.
+
+#### Stats (computed dynamically via materialized views)
+
+- number of shootings (as shooter)
+- number of assists
+- number of kills
+- times been shot (as victim, survived)
+- current age, or age at death
+
+---
+
+### Incidents
+
+Events — shootings, murders — with structured participants.
+
+| Field | Type | Notes |
+|---|---|---|
+| id | UUID | PK |
+| universe_id | UUID → Universe | FK |
+| type | IncidentTypeEnum | SHOOTING / MURDER |
+| date | FuzzyDate | |
+| municipality_id | UUID → Municipality | optional FK |
+| location_text | str | optional free-text location detail |
+| narrative | str | optional markdown — context / description |
+| verified | bool | default false |
+| verified_by_id | UUID → User | optional FK |
+| participants | IncidentParticipant[] | see below |
+| sources | Source[] | M2M |
+
+#### IncidentParticipant (join table)
+
+Replaces the old dict-of-lists approach. Role and outcome are orthogonal fields.
+
+| Field | Type | Notes |
+|---|---|---|
+| incident_id | UUID → Incident | PK part |
+| member_id | UUID → Member | PK part |
+| role | ParticipantRoleEnum | SHOOTER / ASSISTED / BYSTANDER / VICTIM |
+| outcome | ParticipantOutcomeEnum | KILLED / INJURED / UNHARMED / UNKNOWN |
+| notes | str | optional |
+
+---
+
+### Sources
+
+Research citations. Many-to-many with Members and Incidents.
+
+| Field | Type | Notes |
+|---|---|---|
+| id | UUID | PK |
+| universe_id | UUID → Universe | FK |
+| url | str | |
+| title | str | |
+| publication | str | optional — newspaper, channel, etc. |
+| published_at | FuzzyDate | optional |
+| accessed_at | date | when the URL was accessed |
+| reliability | SourceReliabilityEnum | HIGH / MEDIUM / LOW / UNVERIFIED |
+| notes | str | optional |
+| archive_url | str | optional — Wayback Machine link |
+
+---
+
+### Auth Tables
+
+#### User
+
+| Field | Type | Notes |
+|---|---|---|
+| id | UUID | PK |
+| email | str | unique |
+| hashed_password | str | argon2 |
+| global_role | GlobalRoleEnum | ADMIN / USER |
+| created_at | datetime | auto |
+| last_login_at | datetime | nullable |
+
+#### UserUniverseAccess
+
+Per-universe role assignment. A user can be Editor in one universe and Viewer in another.
+
+| Field | Type | Notes |
+|---|---|---|
+| user_id | UUID → User | PK part |
+| universe_id | UUID → Universe | PK part |
+| role | UniverseRoleEnum | ADMIN / EDITOR / VIEWER |
+
+#### AuditLog
+
+Immutable append-only record of all writes.
+
+| Field | Type | Notes |
+|---|---|---|
+| id | UUID | PK |
+| user_id | UUID → User | FK |
+| entity_type | str | "member", "set", etc. |
+| entity_id | UUID | |
+| action | AuditActionEnum | CREATE / UPDATE / DELETE |
+| diff_json | JSONB | before/after diff |
+| created_at | datetime | auto |
+
+---
+
+## Enums
+
+### IncidentTypeEnum
+- `SHOOTING`
+- `MURDER`
+
+### ParticipantRoleEnum
+- `SHOOTER`
+- `ASSISTED`
+- `BYSTANDER`
+- `VICTIM`
+
+### ParticipantOutcomeEnum
+- `KILLED`
+- `INJURED`
+- `UNHARMED`
+- `UNKNOWN`
+
+### MemberStatusEnum
+- `FREE` — alive and free
+- `LOCKED` — alive and incarcerated
+- `DEAD`
+- `UNKNOWN`
+- `ESCAPEE` — escaped from a correctional facility
+- `ABSCONDER` — paroled but evading supervision
+
+### SetStatusEnum
+- `ACTIVE`
+- `EXTINCT`
+
+### AllianceStatusEnum
+- `ACTIVE`
+- `EXTINCT`
+- `DORMANT`
+
+### SourceReliabilityEnum
+- `HIGH`
+- `MEDIUM`
+- `LOW`
+- `UNVERIFIED`
+
+### GlobalRoleEnum
+- `ADMIN`
+- `USER`
+
+### UniverseRoleEnum
+- `ADMIN`
+- `EDITOR`
+- `VIEWER`
+
+### AuditActionEnum
+- `CREATE`
+- `UPDATE`
+- `DELETE`
+
+---
+
+## FuzzyDate
+
+A custom type for dates with variable precision — used wherever a date may be partially known or unknown.
+
+```json
+{
+  "year": 2019,
+  "month": 3,       // optional
+  "day": 15,        // optional
+  "precision": "YMD",  // Y | YM | YMD | UNKNOWN
+  "approx": false,     // if true, display "circa" prefix
+  "circa_text": null   // optional override, e.g. "early 2019"
+}
+```
+
+Stored as **JSONB** in Postgres. A generated `sortable_date` column stores the earliest-possible date for ordering (e.g. precision=Y → Jan 1 of that year). Never use a plain `DATE` column for event or biography dates.
+
+---
+
+## Tech Stack
+
+**Backend (`backend/`):**
+- FastAPI (async) + SQLModel + Alembic + asyncpg
+- pydantic-settings for config
+- redis-py (async) for stat caching
+- argon2-cffi for password hashing
+- APScheduler for materialized view refresh
+- structlog for JSON logging
+
+**Frontend (`frontend/`):**
+- Vite + React 18 + TypeScript (strict)
+- TanStack Router v2 + TanStack Query v5
+- shadcn/ui + Tailwind CSS (dark-themed)
+- Zustand (auth state, active universe)
+- vis.js / react-flow for graph visualizations
+
+**Infrastructure:**
+- PostgreSQL 16 (primary DB)
+- Redis 7 (stat cache)
+- Docker Compose (local dev)
+
+**Python env:** `C:\Users\irish\miniconda3\envs\squiidwiki\python.exe`
+
+---
+
+## Recommended architecture notes
+
+**Database: PostgreSQL** — your data is fundamentally relational: bilateral enemy constraints, family trees, stats that JOIN across members → incidents, universe-scoped queries everywhere. JSONB handles the flexible dicts (family, social_media, FuzzyDate) natively.
+
+**Bilateral enemy constraint:** enforced at two levels — Postgres CHECK + trigger, plus application CRUD normalization. Neither alone is sufficient.
+
+**Computed stats:** materialized views `member_stats` and `set_stats` joining incidents → incident_participants. Refreshed every 5 minutes via APScheduler. Admin endpoint for manual refresh.
+
+**Family tree + enemy graph queries (V1):** Postgres recursive CTEs. Apache AGE (graph extension) deferred to V2 — can be added non-destructively alongside the relational schema when multi-hop graph queries become critical.
+
+**FuzzyDate display examples:**
+- `{precision: "Y", year: 2018, approx: true}` → "circa 2018"
+- `{precision: "YM", year: 2019, month: 3}` → "Mar 2019"
+- `{precision: "YMD", year: 2021, month: 6, day: 4}` → "Jun 4, 2021"
+- `{precision: "UNKNOWN"}` → "unknown"
