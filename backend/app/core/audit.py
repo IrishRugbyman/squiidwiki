@@ -49,30 +49,38 @@ def _write_audit(session: Session, action: str, target) -> None:
 
 
 def attach_audit_listeners() -> None:
-    from sqlmodel import SQLModel
+    # Import all models so their mappers are registered
+    import app.models.universe  # noqa: F401
+    import app.models.municipality  # noqa: F401
+    import app.models.alliance  # noqa: F401
+    import app.models.gang_set  # noqa: F401
+    import app.models.member  # noqa: F401
+    import app.models.incident  # noqa: F401
+    import app.models.source  # noqa: F401
 
-    @event.listens_for(Session, "after_bulk_insert")
-    def _noop_bulk(*_): pass  # bulk ops skipped intentionally
+    from sqlalchemy.orm import mapperlib
 
-    for mapper in SQLModel.__mapper_subclasses__():  # type: ignore[attr-defined]
-        table = getattr(mapper.class_, "__tablename__", None)
-        if table not in _AUDITED_TABLES:
-            continue
+    for reg in mapperlib._mapper_registries:  # type: ignore[attr-defined]
+        for mapped_class in reg.mappers:
+            cls = mapped_class.class_
+            table = getattr(cls, "__tablename__", None)
+            if table not in _AUDITED_TABLES:
+                continue
 
-        @event.listens_for(mapper.class_, "after_insert")
-        def after_insert(mapper, connection, target):
-            session = Session.object_session(target)
-            if session:
-                _write_audit(session, "CREATE", target)
+            @event.listens_for(cls, "after_insert")
+            def after_insert(mapper, connection, target):
+                session = Session.object_session(target)
+                if session:
+                    _write_audit(session, "CREATE", target)
 
-        @event.listens_for(mapper.class_, "after_update")
-        def after_update(mapper, connection, target):
-            session = Session.object_session(target)
-            if session:
-                _write_audit(session, "UPDATE", target)
+            @event.listens_for(cls, "after_update")
+            def after_update(mapper, connection, target):
+                session = Session.object_session(target)
+                if session:
+                    _write_audit(session, "UPDATE", target)
 
-        @event.listens_for(mapper.class_, "after_delete")
-        def after_delete(mapper, connection, target):
-            session = Session.object_session(target)
-            if session:
-                _write_audit(session, "DELETE", target)
+            @event.listens_for(cls, "after_delete")
+            def after_delete(mapper, connection, target):
+                session = Session.object_session(target)
+                if session:
+                    _write_audit(session, "DELETE", target)
