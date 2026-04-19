@@ -1,12 +1,17 @@
-import { createFileRoute, Link } from '@tanstack/react-router'
-import { ArrowLeft } from 'lucide-react'
+import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
+import { ArrowLeft, Pencil, Trash2 } from 'lucide-react'
+import { useState } from 'react'
 import { FuzzyDate } from '@/components/FuzzyDate'
 import { ErrorState } from '@/components/ErrorState'
+import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Badge } from '@/components/ui/badge'
-import { useIncident, useMembers } from '@/lib/queries'
+import { Button } from '@/components/ui/button'
+import { useIncident, useMembers, useDeleteIncident } from '@/lib/queries'
 import { useUniverseStore } from '@/stores/universe'
+import { useAuthStore } from '@/stores/auth'
+import { IncidentFormSheet } from './_app.incidents.index'
 
 export const Route = createFileRoute('/_app/incidents/$id')({
   component: IncidentDetailPage,
@@ -29,9 +34,27 @@ const OUTCOME_STYLE: Record<string, string> = {
 function IncidentDetailPage() {
   const { id } = Route.useParams()
   const universe = useUniverseStore((s) => s.activeUniverse)
+  const user = useAuthStore((s) => s.user)
+  const navigate = useNavigate()
   const { data: incident, isLoading, isError, refetch } = useIncident(id, universe?.id ?? null)
   const { data: allMembers } = useMembers(universe?.id ?? null)
+  const deleteIncident = useDeleteIncident(universe?.id ?? '')
+
+  const [editing, setEditing] = useState(false)
+  const [deleting, setDeleting] = useState(false)
+
   const memberName = (mid: string) => allMembers?.items.find((m) => m.id === mid)?.display_name ?? mid
+  const memberSlug = (mid: string) => allMembers?.items.find((m) => m.id === mid)?.slug ?? mid
+
+  async function handleDelete() {
+    if (!incident) return
+    try {
+      await deleteIncident.mutateAsync(incident.id)
+      navigate({ to: '/incidents' })
+    } catch {
+      setDeleting(false)
+    }
+  }
 
   if (isError) return <ErrorState title="Incident not found" onRetry={() => refetch()} />
 
@@ -48,15 +71,27 @@ function IncidentDetailPage() {
         </div>
       ) : incident ? (
         <>
-          <div className="mb-6">
-            <div className="flex items-center gap-3">
-              <h1 className="text-2xl font-bold text-white">{incident.type}</h1>
-              {incident.verified && <Badge className="bg-emerald-900 text-emerald-300 border-transparent">Verified</Badge>}
+          <div className="mb-6 flex items-start justify-between">
+            <div>
+              <div className="flex items-center gap-3">
+                <h1 className="text-2xl font-bold text-white">{incident.type}</h1>
+                {incident.verified && <Badge className="bg-emerald-900 text-emerald-300 border-transparent">Verified</Badge>}
+              </div>
+              <p className="mt-1 text-sm text-zinc-400">
+                <FuzzyDate value={incident.date} fallback="Date unknown" />
+                {incident.location_text && <> · {incident.location_text}</>}
+              </p>
             </div>
-            <p className="mt-1 text-sm text-zinc-400">
-              <FuzzyDate value={incident.date} fallback="Date unknown" />
-              {incident.location_text && <> · {incident.location_text}</>}
-            </p>
+            <div className="flex items-center gap-2">
+              <Button size="sm" variant="outline" onClick={() => setEditing(true)}>
+                <Pencil className="mr-1.5 h-3.5 w-3.5" />Edit
+              </Button>
+              {user?.global_role === 'ADMIN' && (
+                <Button size="sm" variant="destructive" onClick={() => setDeleting(true)}>
+                  <Trash2 className="mr-1.5 h-3.5 w-3.5" />Delete
+                </Button>
+              )}
+            </div>
           </div>
 
           <Tabs defaultValue="participants">
@@ -77,7 +112,7 @@ function IncidentDetailPage() {
                 <div className="space-y-2">
                   {incident.participants.map((p) => (
                     <div key={p.member_id} className="flex items-center justify-between rounded-lg border border-zinc-800 bg-zinc-900/30 px-4 py-3">
-                      <Link to="/members/$id" params={{ id: p.member_id }} className="text-sm font-medium text-white hover:text-violet-400 transition-colors">
+                      <Link to="/members/$id" params={{ id: memberSlug(p.member_id) }} className="text-sm font-medium text-white hover:text-violet-400 transition-colors">
                         {memberName(p.member_id)}
                       </Link>
                       <div className="flex items-center gap-2">
@@ -98,6 +133,26 @@ function IncidentDetailPage() {
               )}
             </TabsContent>
           </Tabs>
+
+          {universe && (
+            <IncidentFormSheet
+              universeId={universe.id}
+              open={editing}
+              onClose={() => setEditing(false)}
+              initial={incident}
+            />
+          )}
+
+          <ConfirmDialog
+            open={deleting}
+            title="Delete Incident"
+            description={`Permanently delete this ${incident.type.toLowerCase()} incident? This cannot be undone.`}
+            confirmLabel="Delete"
+            destructive
+            pending={deleteIncident.isPending}
+            onConfirm={handleDelete}
+            onCancel={() => setDeleting(false)}
+          />
         </>
       ) : null}
     </div>

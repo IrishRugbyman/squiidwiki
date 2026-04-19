@@ -2,6 +2,7 @@ import { createFileRoute, Link } from '@tanstack/react-router'
 import { Plus, ShieldAlert } from 'lucide-react'
 import { useState } from 'react'
 import { FuzzyDate } from '@/components/FuzzyDate'
+import { FuzzyDateInput } from '@/components/FuzzyDateInput'
 import { NoUniverse } from '@/components/NoUniverse'
 import { PageHeader } from '@/components/PageHeader'
 import { Sheet, SheetContent, SheetClose } from '@/components/Sheet'
@@ -12,8 +13,9 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Textarea } from '@/components/ui/textarea'
-import { useCreateIncident, useIncidents, useMemberSearch } from '@/lib/queries'
-import type { IncidentType, ParticipantOutcome, ParticipantRole, UUID } from '@/lib/types'
+import { useCreateIncident, useUpdateIncident, useIncidents, useMemberSearch, useMunicipalities } from '@/lib/queries'
+import type { FuzzyDateValue } from '@/components/FuzzyDate'
+import type { IncidentReadDetail, IncidentType, ParticipantOutcome, ParticipantRole, UUID } from '@/lib/types'
 import { useUniverseStore } from '@/stores/universe'
 
 export const Route = createFileRoute('/_app/incidents/')({
@@ -27,10 +29,17 @@ interface ParticipantDraft {
   outcome: ParticipantOutcome
 }
 
-function ParticipantBuilder({ universeId, participants, onChange }: {
+interface DeathDatePrompt {
+  memberId: UUID
+  memberName: string
+  date: FuzzyDateValue | null
+}
+
+function ParticipantBuilder({ universeId, participants, onChange, onDeathDateNeeded }: {
   universeId: string
   participants: ParticipantDraft[]
   onChange: (p: ParticipantDraft[]) => void
+  onDeathDateNeeded?: (prompt: DeathDatePrompt) => void
 }) {
   const [search, setSearch] = useState('')
   const [role, setRole] = useState<ParticipantRole>('VICTIM')
@@ -41,6 +50,9 @@ function ParticipantBuilder({ universeId, participants, onChange }: {
     if (participants.some((p) => p.member_id === memberId)) return
     onChange([...participants, { member_id: memberId, member_name: memberName, role, outcome }])
     setSearch('')
+    if (role === 'VICTIM' && outcome === 'KILLED' && onDeathDateNeeded) {
+      onDeathDateNeeded({ memberId, memberName, date: null })
+    }
   }
 
   return (
@@ -110,38 +122,71 @@ function ParticipantBuilder({ universeId, participants, onChange }: {
   )
 }
 
-function CreateIncidentSheet({ universeId, open, onClose }: { universeId: string; open: boolean; onClose: () => void }) {
+interface IncidentFormProps {
+  universeId: string
+  open: boolean
+  onClose: () => void
+  initial?: IncidentReadDetail
+  pendingDeathUpdates?: Map<UUID, FuzzyDateValue | null>
+}
+
+export function IncidentFormSheet({ universeId, open, onClose, initial }: IncidentFormProps) {
   const create = useCreateIncident()
-  const [type, setType] = useState<IncidentType>('SHOOTING')
-  const [year, setYear] = useState('')
-  const [locationText, setLocationText] = useState('')
-  const [narrative, setNarrative] = useState('')
-  const [participants, setParticipants] = useState<ParticipantDraft[]>([])
+  const update = useUpdateIncident(initial?.id ?? '', universeId)
+  const isEdit = !!initial
+  const { data: munis } = useMunicipalities(universeId)
+
+  const [type, setType] = useState<IncidentType>(initial?.type ?? 'SHOOTING')
+  const [date, setDate] = useState<FuzzyDateValue | null>(initial?.date ?? null)
+  const [locationText, setLocationText] = useState(initial?.location_text ?? '')
+  const [municipalityId, setMunicipalityId] = useState<string>(initial?.municipality_id ?? '')
+  const [narrative, setNarrative] = useState(initial?.narrative ?? '')
+  const [verified, setVerified] = useState(initial?.verified ?? false)
+  const [participants, setParticipants] = useState<ParticipantDraft[]>(
+    initial?.participants?.map((p) => ({ member_id: p.member_id, member_name: p.member_id, role: p.role, outcome: p.outcome })) ?? []
+  )
+  const [deathPrompts, setDeathPrompts] = useState<DeathDatePrompt[]>([])
   const [error, setError] = useState<string | null>(null)
+
+  function handleDeathDateNeeded(prompt: DeathDatePrompt) {
+    setDeathPrompts((prev) => [...prev, prompt])
+  }
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     setError(null)
     try {
-      const date = year ? { year: parseInt(year), precision: 'Y' as const, approx: false } : null
-      await create.mutateAsync({
+      const body: Record<string, unknown> = {
         universe_id: universeId,
         type,
         date,
         location_text: locationText || null,
+        municipality_id: municipalityId || null,
         narrative: narrative || null,
+        verified,
         participants: participants.map(({ member_id, role, outcome }) => ({ member_id, role, outcome })),
-      })
-      setType('SHOOTING'); setYear(''); setLocationText(''); setNarrative(''); setParticipants([])
+      }
+      if (isEdit) await update.mutateAsync(body)
+      else await create.mutateAsync(body)
+
+      if (!isEdit) {
+        setType('SHOOTING'); setDate(null); setLocationText(''); setMunicipalityId('')
+        setNarrative(''); setVerified(false); setParticipants([]); setDeathPrompts([])
+      }
       onClose()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to create incident')
+      setError(err instanceof Error ? err.message : `Failed to ${isEdit ? 'update' : 'create'} incident`)
     }
   }
 
+  const isPending = isEdit ? update.isPending : create.isPending
+
   return (
     <Sheet open={open} onOpenChange={(v) => !v && onClose()}>
-      <SheetContent title="Add Incident" description="Record a new incident">
+      <SheetContent
+        title={isEdit ? 'Edit Incident' : 'Add Incident'}
+        description={isEdit ? 'Update this incident' : 'Record a new incident'}
+      >
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-1.5">
             <Label>Type</Label>
@@ -153,26 +198,77 @@ function CreateIncidentSheet({ universeId, open, onClose }: { universeId: string
               </SelectContent>
             </Select>
           </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="inc-year">Year</Label>
-            <Input id="inc-year" type="number" min="1900" max="2099" value={year} onChange={(e) => setYear(e.target.value)} placeholder="e.g. 2023" />
+
+          <div className="rounded-lg border border-zinc-800 bg-zinc-900/50 p-3">
+            <FuzzyDateInput value={date} onChange={setDate} label="Date" idPrefix="inc-date" />
           </div>
+
+          <div className="space-y-1.5">
+            <Label>Municipality</Label>
+            <Select value={municipalityId || 'none'} onValueChange={(v) => setMunicipalityId(v === 'none' ? '' : v)}>
+              <SelectTrigger><SelectValue placeholder="None" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">— None —</SelectItem>
+                {(munis?.items ?? []).map((m) => (
+                  <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
           <div className="space-y-1.5">
             <Label htmlFor="inc-loc">Location</Label>
             <Input id="inc-loc" value={locationText} onChange={(e) => setLocationText(e.target.value)} placeholder="Street address or area" />
           </div>
-          <div className="space-y-1.5">
-            <Label>Participants</Label>
-            <ParticipantBuilder universeId={universeId} participants={participants} onChange={setParticipants} />
+
+          <div className="flex items-center gap-2">
+            <input
+              id="inc-verified" type="checkbox"
+              checked={verified}
+              onChange={(e) => setVerified(e.target.checked)}
+              className="rounded border-zinc-700 bg-zinc-900 accent-violet-600"
+            />
+            <label htmlFor="inc-verified" className="text-sm text-zinc-300">Verified</label>
           </div>
+
+          {!isEdit && (
+            <div className="space-y-1.5">
+              <Label>Participants</Label>
+              <ParticipantBuilder
+                universeId={universeId}
+                participants={participants}
+                onChange={setParticipants}
+                onDeathDateNeeded={handleDeathDateNeeded}
+              />
+            </div>
+          )}
+
+          {deathPrompts.length > 0 && (
+            <div className="space-y-3 rounded-lg border border-amber-800 bg-amber-950/30 p-3">
+              <p className="text-xs font-semibold text-amber-400">Killed participant(s) — set date of death?</p>
+              {deathPrompts.map((prompt) => (
+                <div key={prompt.memberId}>
+                  <p className="mb-1 text-xs text-zinc-300">{prompt.memberName}</p>
+                  <FuzzyDateInput
+                    value={prompt.date}
+                    onChange={(v) => setDeathPrompts((prev) =>
+                      prev.map((p) => p.memberId === prompt.memberId ? { ...p, date: v } : p)
+                    )}
+                    idPrefix={`dod-${prompt.memberId}`}
+                  />
+                </div>
+              ))}
+            </div>
+          )}
+
           <div className="space-y-1.5">
             <Label htmlFor="inc-narrative">Narrative</Label>
-            <Textarea id="inc-narrative" value={narrative} onChange={(e) => setNarrative(e.target.value)} placeholder="What happened…" />
+            <Textarea id="inc-narrative" rows={4} value={narrative} onChange={(e) => setNarrative(e.target.value)} placeholder="What happened…" />
           </div>
           {error && <p className="text-sm text-red-400">{error}</p>}
           <div className="flex gap-2 pt-2">
-            <Button type="submit" disabled={create.isPending} className="flex-1">
-              {create.isPending ? 'Saving…' : 'Create Incident'}
+            <Button type="submit" disabled={isPending} className="flex-1">
+              {isPending ? 'Saving…' : isEdit ? 'Save Changes' : 'Create Incident'}
             </Button>
             <SheetClose asChild>
               <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
@@ -256,7 +352,7 @@ function IncidentsPage() {
         </div>
       )}
 
-      <CreateIncidentSheet universeId={universe.id} open={creating} onClose={() => setCreating(false)} />
+      <IncidentFormSheet universeId={universe.id} open={creating} onClose={() => setCreating(false)} />
     </div>
   )
 }

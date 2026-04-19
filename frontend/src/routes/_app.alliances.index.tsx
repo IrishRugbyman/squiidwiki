@@ -144,12 +144,12 @@ function AlliancesPage() {
                   .map((alliance) => (
                     <tr key={alliance.id} className="hover:bg-zinc-900/50 transition-colors">
                       <td className="p-0">
-                        <Link to="/alliances/$id" params={{ id: alliance.id }} className="block px-4 py-3 font-medium text-white hover:text-violet-400 transition-colors">
+                        <Link to="/alliances/$id" params={{ id: alliance.slug ?? alliance.id }} className="block px-4 py-3 font-medium text-white hover:text-violet-400 transition-colors">
                           {alliance.name}
                         </Link>
                       </td>
                       <td className="p-0">
-                        <Link to="/alliances/$id" params={{ id: alliance.id }} className="block px-4 py-3" tabIndex={-1}>
+                        <Link to="/alliances/$id" params={{ id: alliance.slug ?? alliance.id }} className="block px-4 py-3" tabIndex={-1}>
                           <AllianceStatusBadge status={alliance.status} />
                         </Link>
                       </td>

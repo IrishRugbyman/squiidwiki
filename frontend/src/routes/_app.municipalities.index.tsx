@@ -7,10 +7,9 @@ import { Sheet, SheetContent, SheetClose } from '@/components/Sheet'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
-import { useMunicipalities } from '@/lib/queries'
-import { api } from '@/lib/api'
-import { useQueryClient, useMutation } from '@tanstack/react-query'
+import { useCreateMunicipality, useUpdateMunicipality, useMunicipalities } from '@/lib/queries'
 import { useUniverseStore } from '@/stores/universe'
 import type { MunicipalityRead } from '@/lib/types'
 
@@ -18,39 +17,71 @@ export const Route = createFileRoute('/_app/municipalities/')({
   component: MunicipalitiesPage,
 })
 
-function CreateMunicipalitySheet({ universeId, open, onClose }: { universeId: string; open: boolean; onClose: () => void }) {
-  const qc = useQueryClient()
-  const create = useMutation({
-    mutationFn: (body: Record<string, unknown>) => api.post<MunicipalityRead>('/municipalities/', body),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['municipalities', universeId] }) },
-  })
-  const [name, setName] = useState('')
+interface MunicipalityFormProps {
+  universeId: string
+  open: boolean
+  onClose: () => void
+  initial?: MunicipalityRead
+  allMunicipalities?: MunicipalityRead[]
+}
+
+export function MunicipalityFormSheet({ universeId, open, onClose, initial, allMunicipalities }: MunicipalityFormProps) {
+  const create = useCreateMunicipality()
+  const update = useUpdateMunicipality(initial?.id ?? '', universeId)
+  const isEdit = !!initial
+
+  const [name, setName] = useState(initial?.name ?? '')
+  const [parentId, setParentId] = useState<string>(initial?.parent_id ?? '')
   const [error, setError] = useState<string | null>(null)
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     setError(null)
+    const body = { universe_id: universeId, name, parent_id: parentId || null }
     try {
-      await create.mutateAsync({ universe_id: universeId, name })
-      setName('')
+      if (isEdit) await update.mutateAsync(body)
+      else {
+        await create.mutateAsync(body)
+        setName(''); setParentId('')
+      }
       onClose()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to create municipality')
+      setError(err instanceof Error ? err.message : `Failed to ${isEdit ? 'update' : 'create'} municipality`)
     }
   }
 
+  const isPending = isEdit ? update.isPending : create.isPending
+  const options = allMunicipalities?.filter((m) => m.id !== initial?.id) ?? []
+
   return (
     <Sheet open={open} onOpenChange={(v) => !v && onClose()}>
-      <SheetContent title="Add Municipality" description="Add a city or district">
+      <SheetContent
+        title={isEdit ? 'Edit Municipality' : 'Add Municipality'}
+        description={isEdit ? 'Update this municipality' : 'Add a city or district'}
+      >
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-1.5">
             <Label htmlFor="m-name">Name *</Label>
             <Input id="m-name" required value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Detroit" />
           </div>
+          {options.length > 0 && (
+            <div className="space-y-1.5">
+              <Label>Parent municipality</Label>
+              <Select value={parentId || 'none'} onValueChange={(v) => setParentId(v === 'none' ? '' : v)}>
+                <SelectTrigger><SelectValue placeholder="None (top-level)" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">— None —</SelectItem>
+                  {options.map((m) => (
+                    <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
           {error && <p className="text-sm text-red-400">{error}</p>}
           <div className="flex gap-2 pt-2">
-            <Button type="submit" disabled={create.isPending} className="flex-1">
-              {create.isPending ? 'Saving…' : 'Create'}
+            <Button type="submit" disabled={isPending} className="flex-1">
+              {isPending ? 'Saving…' : isEdit ? 'Save Changes' : 'Create'}
             </Button>
             <SheetClose asChild>
               <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
@@ -95,7 +126,12 @@ function MunicipalitiesPage() {
         )}
       </div>
 
-      <CreateMunicipalitySheet universeId={universe.id} open={creating} onClose={() => setCreating(false)} />
+      <MunicipalityFormSheet
+        universeId={universe.id}
+        open={creating}
+        onClose={() => setCreating(false)}
+        allMunicipalities={items}
+      />
     </div>
   )
 }

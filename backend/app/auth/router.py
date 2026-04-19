@@ -1,10 +1,12 @@
 import uuid
 from datetime import datetime, timezone
-from typing import Annotated
+from typing import Annotated, Optional
 
-from fastapi import APIRouter, Cookie, Depends, HTTPException, Response, status
+from fastapi import APIRouter, Body, Cookie, Depends, HTTPException, Query, Response, status
 from fastapi.security import OAuth2PasswordRequestForm
+from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlmodel import func, select
 
 from app.auth.crud import (
     authenticate_user,
@@ -15,10 +17,13 @@ from app.auth.crud import (
     revoke_refresh_token,
     set_last_login,
 )
-from app.auth.dependencies import CurrentUser
+from app.auth.dependencies import CurrentUser, require_global_role
 from app.auth.schemas import CreateUserRequest, LoginRequest, TokenResponse, UserRead
-from app.auth.security import create_access_token, create_refresh_token, decode_token
+from app.auth.security import create_access_token, create_refresh_token, decode_token, hash_password
 from app.core.database import get_session
+from app.core.enums import GlobalRole
+from app.models.auth import User
+from app.schemas.common import OffsetPage
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -135,3 +140,70 @@ async def register(
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Email already registered")
     user = await create_user(session, body.email, body.password, body.global_role)
     return UserRead.model_validate(user)
+
+
+# ─── User Management (admin) ──────────────────────────────────────────────────
+
+class UserListItem(BaseModel):
+    model_config = {"from_attributes": True}
+
+    id: uuid.UUID
+    email: str
+    global_role: GlobalRole
+    created_at: datetime
+    last_login_at: Optional[datetime]
+
+
+class UpdateRoleRequest(BaseModel):
+    global_role: GlobalRole
+
+
+class ChangePasswordRequest(BaseModel):
+    current_password: str
+    new_password: str
+
+
+@router.get("/users", response_model=OffsetPage[UserListItem])
+async def list_users(
+    _: Annotated[None, require_global_role(GlobalRole.ADMIN)],
+    session: Annotated[AsyncSession, Depends(get_session)],
+    offset: int = Query(0, ge=0),
+    limit: int = Query(50, ge=1, le=200),
+):
+    total = (await session.execute(select(func.count()).select_from(User))).scalar_one()
+    items = (await session.execute(
+        select(User).order_by(User.created_at).offset(offset).limit(limit)
+    )).scalars().all()
+    return OffsetPage(items=items, total=total)
+
+
+@router.patch("/users/{user_id}/role", response_model=UserListItem)
+async def update_user_role(
+    user_id: uuid.UUID,
+    body: UpdateRoleRequest,
+    current_user: CurrentUser,
+    session: Annotated[AsyncSession, Depends(get_session)],
+    _: Annotated[None, require_global_role(GlobalRole.ADMIN)],
+):
+    user = await get_user_by_id(session, user_id)
+    if user is None:
+        raise HTTPException(404)
+    user.global_role = body.global_role
+    session.add(user)
+    await session.commit()
+    await session.refresh(user)
+    return UserListItem.model_validate(user)
+
+
+@router.post("/profile/change-password", status_code=204)
+async def change_password(
+    body: ChangePasswordRequest,
+    current_user: CurrentUser,
+    session: Annotated[AsyncSession, Depends(get_session)],
+):
+    from app.auth.security import verify_password
+    if not verify_password(body.current_password, current_user.hashed_password):
+        raise HTTPException(status_code=400, detail="Current password is incorrect")
+    current_user.hashed_password = hash_password(body.new_password)
+    session.add(current_user)
+    await session.commit()

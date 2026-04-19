@@ -6,17 +6,17 @@ import { PageHeader } from '@/components/PageHeader'
 import { MemberStatusBadge } from '@/components/StatusBadge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
-import {
-  useCreateMember, useMembers, useMemberSearch, useUpdateMember,
-  useSets, useAlliances,
-} from '@/lib/queries'
-import { useUniverseStore } from '@/stores/universe'
 import { Sheet, SheetContent, SheetClose } from '@/components/Sheet'
 import { Label } from '@/components/ui/label'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import { FuzzyDateInput } from '@/components/FuzzyDateInput'
+import {
+  useCreateMember, useMembers, useMemberSearch, useUpdateMember,
+  useSets, useAlliances, useBulkMemberStatus,
+} from '@/lib/queries'
+import { useUniverseStore } from '@/stores/universe'
 import type { MemberRead, MemberStatus } from '@/lib/types'
 import type { FuzzyDateValue } from '@/components/FuzzyDate'
 
@@ -49,10 +49,8 @@ export function MemberFormSheet({ universeId, open, onClose, initial, defaultSet
   const [biography, setBiography] = useState(initial?.biography ?? '')
   const [photoUrl, setPhotoUrl] = useState(initial?.photo_url ?? '')
   const [aliases, setAliases] = useState(initial?.aliases?.join(', ') ?? '')
-
   const [dateOfDeath, setDateOfDeath] = useState<FuzzyDateValue | null>(initial?.date_of_death ?? null)
   const [releaseDate, setReleaseDate] = useState<FuzzyDateValue | null>(initial?.release_date ?? null)
-
   const [error, setError] = useState<string | null>(null)
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -123,23 +121,13 @@ export function MemberFormSheet({ universeId, open, onClose, initial, defaultSet
 
           {status === 'DEAD' && (
             <div className="rounded-lg border border-zinc-800 bg-zinc-900/50 p-3">
-              <FuzzyDateInput
-                value={dateOfDeath}
-                onChange={setDateOfDeath}
-                label="Date of death"
-                idPrefix="dod"
-              />
+              <FuzzyDateInput value={dateOfDeath} onChange={setDateOfDeath} label="Date of death" idPrefix="dod" />
             </div>
           )}
 
           {status === 'LOCKED' && (
             <div className="rounded-lg border border-zinc-800 bg-zinc-900/50 p-3">
-              <FuzzyDateInput
-                value={releaseDate}
-                onChange={setReleaseDate}
-                label="Expected release date"
-                idPrefix="rel"
-              />
+              <FuzzyDateInput value={releaseDate} onChange={setReleaseDate} label="Expected release date" idPrefix="rel" />
             </div>
           )}
 
@@ -204,6 +192,9 @@ function MembersPage() {
   const [q, setQ] = useState('')
   const [cursor, setCursor] = useState<string | undefined>(undefined)
   const [creating, setCreating] = useState(false)
+  const [selected, setSelected] = useState<Set<string>>(new Set())
+  const [bulkStatus, setBulkStatus] = useState<MemberStatus>('FREE')
+  const bulkUpdate = useBulkMemberStatus(universe?.id ?? '')
 
   const { data, isLoading } = useMembers(universe?.id ?? null, cursor)
   const { data: searchResults } = useMemberSearch(universe?.id ?? null, q)
@@ -212,6 +203,26 @@ function MembersPage() {
 
   const items = q.length >= 2 ? (searchResults ?? []) : (data?.items ?? [])
   const total = data?.total
+
+  function toggleSelect(id: string) {
+    setSelected((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  function toggleAll() {
+    if (selected.size === items.length) setSelected(new Set())
+    else setSelected(new Set(items.map((m) => m.id)))
+  }
+
+  async function applyBulkStatus() {
+    if (selected.size === 0) return
+    await bulkUpdate.mutateAsync({ member_ids: Array.from(selected), status: bulkStatus })
+    setSelected(new Set())
+  }
 
   return (
     <div>
@@ -226,12 +237,39 @@ function MembersPage() {
           <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
           <Input className="pl-8" placeholder="Search members…" value={q} onChange={(e) => setQ(e.target.value)} />
         </div>
+        {selected.size > 0 && (
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-zinc-400">{selected.size} selected</span>
+            <Select value={bulkStatus} onValueChange={(v) => setBulkStatus(v as MemberStatus)}>
+              <SelectTrigger className="w-32 h-8 text-xs"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {(['FREE', 'LOCKED', 'DEAD', 'UNKNOWN', 'ESCAPEE', 'ABSCONDER'] as MemberStatus[]).map((s) => (
+                  <SelectItem key={s} value={s} className="text-xs">{s}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Button size="sm" onClick={applyBulkStatus} disabled={bulkUpdate.isPending} className="h-8 text-xs">
+              {bulkUpdate.isPending ? 'Applying…' : 'Apply'}
+            </Button>
+            <Button size="sm" variant="ghost" onClick={() => setSelected(new Set())} className="h-8 text-xs text-zinc-500">
+              Clear
+            </Button>
+          </div>
+        )}
       </div>
 
       <div className="overflow-hidden rounded-lg border border-zinc-800">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-zinc-800 bg-zinc-900/50">
+              <th className="w-10 px-3 py-2.5">
+                <input
+                  type="checkbox"
+                  checked={items.length > 0 && selected.size === items.length}
+                  onChange={toggleAll}
+                  className="rounded border-zinc-700 bg-zinc-900 accent-violet-600"
+                />
+              </th>
               <th className="px-4 py-2.5 text-left font-medium text-zinc-400">Name</th>
               <th className="px-4 py-2.5 text-left font-medium text-zinc-400">Status</th>
             </tr>
@@ -240,18 +278,27 @@ function MembersPage() {
             {isLoading && !q
               ? Array.from({ length: 8 }).map((_, i) => (
                   <tr key={i}>
+                    <td className="px-3 py-3"><div className="h-4 w-4 rounded bg-zinc-800" /></td>
                     <td className="px-4 py-3" colSpan={2}><Skeleton className="h-4 w-48" /></td>
                   </tr>
                 ))
               : items.map((member) => (
                   <tr key={member.id} className="hover:bg-zinc-900/50 transition-colors">
+                    <td className="px-3 py-3">
+                      <input
+                        type="checkbox"
+                        checked={selected.has(member.id)}
+                        onChange={() => toggleSelect(member.id)}
+                        className="rounded border-zinc-700 bg-zinc-900 accent-violet-600"
+                      />
+                    </td>
                     <td className="p-0">
-                      <Link to="/members/$id" params={{ id: member.id }} className="block px-4 py-3 font-medium text-white hover:text-violet-400 transition-colors">
+                      <Link to="/members/$id" params={{ id: member.slug ?? member.id }} className="block px-4 py-3 font-medium text-white hover:text-violet-400 transition-colors">
                         {member.display_name}
                       </Link>
                     </td>
                     <td className="p-0">
-                      <Link to="/members/$id" params={{ id: member.id }} className="block px-4 py-3" tabIndex={-1}>
+                      <Link to="/members/$id" params={{ id: member.slug ?? member.id }} className="block px-4 py-3" tabIndex={-1}>
                         <MemberStatusBadge status={member.status} />
                       </Link>
                     </td>
@@ -259,7 +306,7 @@ function MembersPage() {
                 ))}
             {!isLoading && items.length === 0 && (
               <tr>
-                <td colSpan={2} className="px-4 py-12 text-center text-sm text-zinc-500">No members found</td>
+                <td colSpan={3} className="px-4 py-12 text-center text-sm text-zinc-500">No members found</td>
               </tr>
             )}
           </tbody>

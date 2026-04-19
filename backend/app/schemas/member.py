@@ -81,6 +81,7 @@ class MemberListItem(BaseModel):
     status: MemberStatus
     set_id: Optional[uuid.UUID]
     universe_id: uuid.UUID
+    slug: Optional[str] = None
 
 
 class MemberStats(BaseModel):

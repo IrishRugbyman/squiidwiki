@@ -69,6 +69,7 @@ export interface AllianceListItem {
   name: string
   status: AllianceStatus
   universe_id: UUID
+  slug: string | null
 }
 
 export interface AllianceRead extends AllianceListItem {
@@ -121,6 +122,7 @@ export interface MemberListItem {
   status: MemberStatus
   set_id: UUID | null
   universe_id: UUID
+  slug: string | null
 }
 
 export interface MemberRead extends MemberListItem {
@@ -178,4 +180,28 @@ export interface IncidentRead extends IncidentListItem {
 export interface IncidentReadDetail extends IncidentRead {
   participants: ParticipantRead[]
   source_ids: UUID[]
+}
+
+// Audit
+export type AuditAction = 'CREATE' | 'UPDATE' | 'DELETE'
+
+export interface AuditLogRead {
+  id: UUID
+  user_id: UUID | null
+  entity_type: string
+  entity_id: UUID
+  action: AuditAction
+  diff_json: Record<string, unknown> | null
+  created_at: string
+}
+
+// Users
+export type GlobalRole = 'ADMIN' | 'USER'
+
+export interface UserListItem {
+  id: UUID
+  email: string
+  global_role: GlobalRole
+  created_at: string
+  last_login_at: string | null
 }

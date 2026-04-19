@@ -11,45 +11,66 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Textarea } from '@/components/ui/textarea'
-import { useCreateSource, useSources } from '@/lib/queries'
-import type { SourceReliability } from '@/lib/types'
+import { useCreateSource, useUpdateSource, useSources } from '@/lib/queries'
+import type { SourceRead, SourceReliability } from '@/lib/types'
 import { useUniverseStore } from '@/stores/universe'
 
 export const Route = createFileRoute('/_app/sources/')({
   component: SourcesPage,
 })
 
-function CreateSourceSheet({ universeId, open, onClose }: { universeId: string; open: boolean; onClose: () => void }) {
+interface SourceFormProps {
+  universeId: string
+  open: boolean
+  onClose: () => void
+  initial?: SourceRead
+}
+
+export function SourceFormSheet({ universeId, open, onClose, initial }: SourceFormProps) {
   const create = useCreateSource()
-  const [url, setUrl] = useState('')
-  const [title, setTitle] = useState('')
-  const [publication, setPublication] = useState('')
-  const [reliability, setReliability] = useState<SourceReliability>('UNVERIFIED')
-  const [notes, setNotes] = useState('')
+  const update = useUpdateSource(initial?.id ?? '', universeId)
+  const isEdit = !!initial
+
+  const [url, setUrl] = useState(initial?.url ?? '')
+  const [title, setTitle] = useState(initial?.title ?? '')
+  const [publication, setPublication] = useState(initial?.publication ?? '')
+  const [reliability, setReliability] = useState<SourceReliability>(initial?.reliability ?? 'UNVERIFIED')
+  const [notes, setNotes] = useState(initial?.notes ?? '')
+  const [archiveUrl, setArchiveUrl] = useState(initial?.archive_url ?? '')
   const [error, setError] = useState<string | null>(null)
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     setError(null)
+    const body = {
+      universe_id: universeId,
+      url,
+      title,
+      publication: publication || null,
+      reliability,
+      notes: notes || null,
+      archive_url: archiveUrl || null,
+    }
     try {
-      await create.mutateAsync({
-        universe_id: universeId,
-        url,
-        title,
-        publication: publication || null,
-        reliability,
-        notes: notes || null,
-      })
-      setUrl(''); setTitle(''); setPublication(''); setReliability('UNVERIFIED'); setNotes('')
+      if (isEdit) await update.mutateAsync(body)
+      else {
+        await create.mutateAsync(body)
+        setUrl(''); setTitle(''); setPublication(''); setReliability('UNVERIFIED'); setNotes(''); setArchiveUrl('')
+      }
       onClose()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to create source')
+      setError(err instanceof Error ? err.message : `Failed to ${isEdit ? 'update' : 'create'} source`)
     }
   }
 
+  const isPending = isEdit ? update.isPending : create.isPending
+
   return (
     <Sheet open={open} onOpenChange={(v) => !v && onClose()}>
-      <SheetContent title="Add Source" description="Add a citation or reference">
+      <SheetContent
+        title={isEdit ? 'Edit Source' : 'Add Source'}
+        description={isEdit ? 'Update this source' : 'Add a citation or reference'}
+      >
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-1.5">
             <Label htmlFor="s-url">URL *</Label>
@@ -79,10 +100,14 @@ function CreateSourceSheet({ universeId, open, onClose }: { universeId: string; 
             <Label htmlFor="s-notes">Notes</Label>
             <Textarea id="s-notes" value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Caveats or context…" />
           </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="s-archive">Archive URL</Label>
+            <Input id="s-archive" type="url" value={archiveUrl} onChange={(e) => setArchiveUrl(e.target.value)} placeholder="https://web.archive.org/…" />
+          </div>
           {error && <p className="text-sm text-red-400">{error}</p>}
           <div className="flex gap-2 pt-2">
-            <Button type="submit" disabled={create.isPending} className="flex-1">
-              {create.isPending ? 'Saving…' : 'Add Source'}
+            <Button type="submit" disabled={isPending} className="flex-1">
+              {isPending ? 'Saving…' : isEdit ? 'Save Changes' : 'Add Source'}
             </Button>
             <SheetClose asChild>
               <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
@@ -177,8 +202,7 @@ function SourcesPage() {
         </div>
       )}
 
-      <CreateSourceSheet universeId={universe.id} open={creating} onClose={() => setCreating(false)} />
+      <SourceFormSheet universeId={universe.id} open={creating} onClose={() => setCreating(false)} />
     </div>
   )
 }
-

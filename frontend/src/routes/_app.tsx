@@ -1,13 +1,17 @@
 import { createFileRoute, Link, Outlet, redirect } from '@tanstack/react-router'
 import {
   AlertTriangle,
+  CalendarDays,
   FileText,
+  Globe,
   Home,
   MapPin,
   Network,
+  ScrollText,
   Shield,
   Skull,
   Users,
+  UserCog,
 } from 'lucide-react'
 import { useEffect } from 'react'
 import { UniverseSwitcher } from '@/components/UniverseSwitcher'
@@ -30,6 +34,13 @@ const NAV_ITEMS = [
   { to: '/incidents', icon: AlertTriangle, label: 'Incidents' },
   { to: '/sources', icon: FileText, label: 'Sources' },
   { to: '/municipalities', icon: MapPin, label: 'Municipalities' },
+  { to: '/calendar', icon: CalendarDays, label: 'Calendar' },
+] as const
+
+const ADMIN_NAV_ITEMS = [
+  { to: '/universes', icon: Globe, label: 'Universes' },
+  { to: '/audit', icon: ScrollText, label: 'Audit Log' },
+  { to: '/admin/users', icon: UserCog, label: 'Users' },
 ] as const
 
 function NavLink({ to, icon: Icon, label, exact }: { to: string; icon: typeof Home; label: string; exact?: boolean }) {
@@ -83,14 +94,24 @@ function AppLayout() {
           <UniverseSwitcher />
         </div>
 
-        <nav className="flex-1 space-y-0.5 p-2">
+        <nav className="flex-1 space-y-0.5 overflow-y-auto p-2">
           {NAV_ITEMS.map((item) => (
             <NavLink key={item.to} {...item} />
           ))}
+          {user?.global_role === 'ADMIN' && (
+            <>
+              <div className="my-1.5 border-t border-zinc-800" />
+              {ADMIN_NAV_ITEMS.map((item) => (
+                <NavLink key={item.to} {...item} />
+              ))}
+            </>
+          )}
         </nav>
 
         <div className="border-t border-zinc-800 p-3">
-          <p className="truncate text-xs text-zinc-500">{user?.email}</p>
+          <Link to="/profile" className="block truncate text-xs text-zinc-500 hover:text-white transition-colors">
+            {user?.email}
+          </Link>
           <button
             onClick={handleLogout}
             className="mt-1 text-xs text-zinc-500 transition-colors hover:text-white"

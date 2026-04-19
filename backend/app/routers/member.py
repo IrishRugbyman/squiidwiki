@@ -1,12 +1,12 @@
 import uuid
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Body, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.dependencies import CurrentUser, require_global_role
 from app.core.database import get_session
-from app.core.enums import GlobalRole
+from app.core.enums import GlobalRole, MemberStatus
 from app.crud import member as crud
 from app.schemas.common import CursorPage
 from app.schemas.member import (
@@ -29,9 +29,10 @@ async def list_members(
     limit: int = Query(50, ge=1, le=200),
     cursor: str | None = None,
     set_id: uuid.UUID | None = None,
+    alliance_id: uuid.UUID | None = None,
 ):
     items, next_cursor = await crud.list_members(
-        session, universe_id, limit=limit, cursor=cursor, set_id=set_id
+        session, universe_id, limit=limit, cursor=cursor, set_id=set_id, alliance_id=alliance_id
     )
     return CursorPage(items=items, next_cursor=next_cursor, total=None)
 
@@ -45,6 +46,18 @@ async def create_member(
     return await crud.create_member(session, data, current_user.id)
 
 
+@router.post("/bulk-status", response_model=dict)
+async def bulk_update_status(
+    universe_id: uuid.UUID,
+    current_user: CurrentUser,
+    session: Annotated[AsyncSession, Depends(get_session)],
+    member_ids: list[uuid.UUID] = Body(...),
+    status: MemberStatus = Body(...),
+):
+    count = await crud.bulk_update_member_status(session, universe_id, member_ids, status)
+    return {"updated": count}
+
+
 @router.get("/search", response_model=list[MemberListItem])
 async def search_members(
     universe_id: uuid.UUID,
@@ -55,17 +68,21 @@ async def search_members(
     return await crud.search_members(session, universe_id, q)
 
 
-@router.get("/{id}", response_model=MemberReadDetail)
+@router.get("/{id_or_slug}", response_model=MemberReadDetail)
 async def get_member(
-    id: uuid.UUID,
+    id_or_slug: str,
     universe_id: uuid.UUID,
     _: CurrentUser,
     session: Annotated[AsyncSession, Depends(get_session)],
 ):
-    obj = await crud.get_member(session, id, universe_id)
+    obj = None
+    try:
+        obj = await crud.get_member(session, uuid.UUID(id_or_slug), universe_id)
+    except ValueError:
+        obj = await crud.get_member_by_slug(session, id_or_slug, universe_id)
     if obj is None:
         raise HTTPException(404)
-    source_ids = await crud.list_member_source_ids(session, id)
+    source_ids = await crud.list_member_source_ids(session, obj.id)
     base = MemberRead.model_validate(obj)
     return MemberReadDetail(**base.model_dump(), source_ids=source_ids)
 

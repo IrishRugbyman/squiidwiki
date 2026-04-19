@@ -51,3 +51,4 @@ class AllianceListItem(BaseModel):
     name: str
     status: AllianceStatus
     universe_id: uuid.UUID
+    slug: Optional[str] = None

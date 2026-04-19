@@ -1,3 +1,4 @@
+import re
 import uuid
 from datetime import datetime
 
@@ -14,6 +15,27 @@ def _fuzzy_to_dict(fd) -> dict | None:
     if fd is None:
         return None
     return fd.model_dump()
+
+
+def _slugify(s: str) -> str:
+    s = s.lower().strip()
+    s = re.sub(r"[^\w\s-]", "", s)
+    s = re.sub(r"[\s_]+", "-", s)
+    s = re.sub(r"-+", "-", s)
+    return s.strip("-") or "member"
+
+
+async def _unique_slug(
+    session: AsyncSession, universe_id: uuid.UUID, base: str, exclude_id: uuid.UUID | None = None
+) -> str:
+    slug, n = base, 2
+    while True:
+        q = select(Member).where(Member.universe_id == universe_id, Member.slug == slug)
+        if exclude_id:
+            q = q.where(Member.id != exclude_id)
+        if (await session.execute(q)).scalar_one_or_none() is None:
+            return slug
+        slug, n = f"{base}-{n}", n + 1
 
 
 async def _sync_member_sources(
@@ -33,6 +55,10 @@ async def create_member(
     dump["dob"] = _fuzzy_to_dict(data.dob)
     dump["date_of_death"] = _fuzzy_to_dict(data.date_of_death)
     dump["release_date"] = _fuzzy_to_dict(data.release_date)
+    display = data.nickname if not data.nickname_unknown and data.nickname else data.legal_name
+    if display:
+        base = _slugify(display)
+        dump["slug"] = await _unique_slug(session, data.universe_id, base)
     obj = Member(**dump, created_by_id=actor_id)
     session.add(obj)
     await session.flush()
@@ -51,16 +77,28 @@ async def get_member(
     return result.scalar_one_or_none()
 
 
+async def get_member_by_slug(
+    session: AsyncSession, slug: str, universe_id: uuid.UUID
+) -> Member | None:
+    result = await session.execute(
+        select(Member).where(Member.slug == slug, Member.universe_id == universe_id)
+    )
+    return result.scalar_one_or_none()
+
+
 async def list_members(
     session: AsyncSession,
     universe_id: uuid.UUID,
     limit: int = 50,
     cursor: str | None = None,
     set_id: uuid.UUID | None = None,
+    alliance_id: uuid.UUID | None = None,
 ) -> tuple[list[Member], str | None]:
     stmt = select(Member).where(Member.universe_id == universe_id)
     if set_id is not None:
         stmt = stmt.where(Member.set_id == set_id)
+    if alliance_id is not None:
+        stmt = stmt.where(Member.alliance_id == alliance_id)
 
     if cursor:
         cursor_at, cursor_id = parse_cursor(cursor)
@@ -98,6 +136,18 @@ async def update_member(
     if "release_date" in data.model_fields_set:
         dump["release_date"] = _fuzzy_to_dict(data.release_date)
     dump["updated_at"] = datetime.utcnow()
+
+    nickname_changed = "nickname" in data.model_fields_set or "nickname_unknown" in data.model_fields_set
+    legal_changed = "legal_name" in data.model_fields_set
+    if nickname_changed or legal_changed:
+        new_nickname = dump.get("nickname", obj.nickname)
+        new_unknown = dump.get("nickname_unknown", obj.nickname_unknown)
+        new_legal = dump.get("legal_name", obj.legal_name)
+        display = new_nickname if not new_unknown and new_nickname else new_legal
+        if display:
+            base = _slugify(display)
+            dump["slug"] = await _unique_slug(session, universe_id, base, exclude_id=id)
+
     for k, v in dump.items():
         setattr(obj, k, v)
     session.add(obj)
@@ -106,6 +156,24 @@ async def update_member(
     await session.commit()
     await session.refresh(obj)
     return obj
+
+
+async def bulk_update_member_status(
+    session: AsyncSession,
+    universe_id: uuid.UUID,
+    member_ids: list[uuid.UUID],
+    status: str,
+) -> int:
+    count = 0
+    for mid in member_ids:
+        obj = await get_member(session, mid, universe_id)
+        if obj:
+            obj.status = status
+            obj.updated_at = datetime.utcnow()
+            session.add(obj)
+            count += 1
+    await session.commit()
+    return count
 
 
 async def delete_member(
@@ -125,6 +193,19 @@ async def list_member_source_ids(
     result = await session.execute(
         select(MemberSource.source_id).where(MemberSource.member_id == member_id)
     )
+    return result.scalars().all()
+
+
+async def list_members_by_source(
+    session: AsyncSession, source_id: uuid.UUID, universe_id: uuid.UUID, limit: int = 100
+) -> list[Member]:
+    stmt = (
+        select(Member)
+        .join(MemberSource, MemberSource.member_id == Member.id)
+        .where(MemberSource.source_id == source_id, Member.universe_id == universe_id)
+        .limit(limit)
+    )
+    result = await session.execute(stmt)
     return result.scalars().all()
 
 

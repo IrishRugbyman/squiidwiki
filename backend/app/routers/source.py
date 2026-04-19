@@ -8,7 +8,11 @@ from app.auth.dependencies import CurrentUser, require_global_role
 from app.core.database import get_session
 from app.core.enums import GlobalRole
 from app.crud import source as crud
-from app.schemas.common import OffsetPage
+from app.crud import member as member_crud
+from app.crud import incident as incident_crud
+from app.schemas.common import CursorPage, OffsetPage
+from app.schemas.incident import IncidentListItem
+from app.schemas.member import MemberListItem
 from app.schemas.source import SourceCreate, SourceListItem, SourceRead, SourceUpdate
 
 router = APIRouter(prefix="/sources", tags=["sources"])
@@ -82,3 +86,31 @@ async def delete_source(
     ok = await crud.delete_source(session, id, universe_id)
     if not ok:
         raise HTTPException(404)
+
+
+@router.get("/{id}/incidents", response_model=CursorPage[IncidentListItem])
+async def list_source_incidents(
+    id: uuid.UUID,
+    universe_id: uuid.UUID,
+    _: CurrentUser,
+    session: Annotated[AsyncSession, Depends(get_session)],
+):
+    obj = await crud.get_source(session, id, universe_id)
+    if obj is None:
+        raise HTTPException(404)
+    items = await incident_crud.list_incidents_by_source(session, id, universe_id)
+    return CursorPage(items=items, next_cursor=None, total=None)
+
+
+@router.get("/{id}/members", response_model=CursorPage[MemberListItem])
+async def list_source_members(
+    id: uuid.UUID,
+    universe_id: uuid.UUID,
+    _: CurrentUser,
+    session: Annotated[AsyncSession, Depends(get_session)],
+):
+    obj = await crud.get_source(session, id, universe_id)
+    if obj is None:
+        raise HTTPException(404)
+    items = await member_crud.list_members_by_source(session, id, universe_id)
+    return CursorPage(items=items, next_cursor=None, total=None)

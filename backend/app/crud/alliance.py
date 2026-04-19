@@ -1,3 +1,4 @@
+import re
 import uuid
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -11,6 +12,27 @@ def _fuzzy_to_dict(fd) -> dict | None:
     if fd is None:
         return None
     return fd.model_dump()
+
+
+def _slugify(s: str) -> str:
+    s = s.lower().strip()
+    s = re.sub(r"[^\w\s-]", "", s)
+    s = re.sub(r"[\s_]+", "-", s)
+    s = re.sub(r"-+", "-", s)
+    return s.strip("-") or "alliance"
+
+
+async def _unique_slug(
+    session: AsyncSession, universe_id: uuid.UUID, base: str, exclude_id: uuid.UUID | None = None
+) -> str:
+    slug, n = base, 2
+    while True:
+        q = select(Alliance).where(Alliance.universe_id == universe_id, Alliance.slug == slug)
+        if exclude_id:
+            q = q.where(Alliance.id != exclude_id)
+        if (await session.execute(q)).scalar_one_or_none() is None:
+            return slug
+        slug, n = f"{base}-{n}", n + 1
 
 
 async def _sync_alliance_municipalities(
@@ -40,6 +62,8 @@ async def create_alliance(
 ) -> Alliance:
     dump = data.model_dump(exclude={"territory_ids", "set_ids"})
     dump["founded_at"] = _fuzzy_to_dict(data.founded_at)
+    base = _slugify(data.name)
+    dump["slug"] = await _unique_slug(session, data.universe_id, base)
     obj = Alliance(**dump, created_by_id=actor_id)
     session.add(obj)
     await session.flush()
@@ -55,6 +79,15 @@ async def get_alliance(
 ) -> Alliance | None:
     result = await session.execute(
         select(Alliance).where(Alliance.id == id, Alliance.universe_id == universe_id)
+    )
+    return result.scalar_one_or_none()
+
+
+async def get_alliance_by_slug(
+    session: AsyncSession, slug: str, universe_id: uuid.UUID
+) -> Alliance | None:
+    result = await session.execute(
+        select(Alliance).where(Alliance.slug == slug, Alliance.universe_id == universe_id)
     )
     return result.scalar_one_or_none()
 
@@ -81,6 +114,9 @@ async def update_alliance(
     dump = data.model_dump(exclude_unset=True, exclude={"territory_ids", "set_ids"})
     if "founded_at" in dump:
         dump["founded_at"] = _fuzzy_to_dict(data.founded_at)
+    if "name" in dump:
+        base = _slugify(dump["name"])
+        dump["slug"] = await _unique_slug(session, universe_id, base, exclude_id=id)
     for k, v in dump.items():
         setattr(obj, k, v)
     session.add(obj)

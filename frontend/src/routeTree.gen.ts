@@ -12,6 +12,10 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as AppIndexRouteImport } from './routes/_app.index'
+import { Route as AppUniversesRouteImport } from './routes/_app.universes'
+import { Route as AppProfileRouteImport } from './routes/_app.profile'
+import { Route as AppCalendarRouteImport } from './routes/_app.calendar'
+import { Route as AppAuditRouteImport } from './routes/_app.audit'
 import { Route as AppSourcesIndexRouteImport } from './routes/_app.sources.index'
 import { Route as AppSetsIndexRouteImport } from './routes/_app.sets.index'
 import { Route as AppMunicipalitiesIndexRouteImport } from './routes/_app.municipalities.index'
@@ -24,6 +28,7 @@ import { Route as AppMunicipalitiesIdRouteImport } from './routes/_app.municipal
 import { Route as AppMembersIdRouteImport } from './routes/_app.members.$id'
 import { Route as AppIncidentsIdRouteImport } from './routes/_app.incidents.$id'
 import { Route as AppAlliancesIdRouteImport } from './routes/_app.alliances.$id'
+import { Route as AppAdminUsersRouteImport } from './routes/_app.admin.users'
 
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
@@ -37,6 +42,26 @@ const AppRoute = AppRouteImport.update({
 const AppIndexRoute = AppIndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppUniversesRoute = AppUniversesRouteImport.update({
+  id: '/universes',
+  path: '/universes',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppProfileRoute = AppProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppCalendarRoute = AppCalendarRouteImport.update({
+  id: '/calendar',
+  path: '/calendar',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppAuditRoute = AppAuditRouteImport.update({
+  id: '/audit',
+  path: '/audit',
   getParentRoute: () => AppRoute,
 } as any)
 const AppSourcesIndexRoute = AppSourcesIndexRouteImport.update({
@@ -99,10 +124,20 @@ const AppAlliancesIdRoute = AppAlliancesIdRouteImport.update({
   path: '/alliances/$id',
   getParentRoute: () => AppRoute,
 } as any)
+const AppAdminUsersRoute = AppAdminUsersRouteImport.update({
+  id: '/admin/users',
+  path: '/admin/users',
+  getParentRoute: () => AppRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AppIndexRoute
   '/login': typeof LoginRoute
+  '/audit': typeof AppAuditRoute
+  '/calendar': typeof AppCalendarRoute
+  '/profile': typeof AppProfileRoute
+  '/universes': typeof AppUniversesRoute
+  '/admin/users': typeof AppAdminUsersRoute
   '/alliances/$id': typeof AppAlliancesIdRoute
   '/incidents/$id': typeof AppIncidentsIdRoute
   '/members/$id': typeof AppMembersIdRoute
@@ -118,7 +153,12 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/login': typeof LoginRoute
+  '/audit': typeof AppAuditRoute
+  '/calendar': typeof AppCalendarRoute
+  '/profile': typeof AppProfileRoute
+  '/universes': typeof AppUniversesRoute
   '/': typeof AppIndexRoute
+  '/admin/users': typeof AppAdminUsersRoute
   '/alliances/$id': typeof AppAlliancesIdRoute
   '/incidents/$id': typeof AppIncidentsIdRoute
   '/members/$id': typeof AppMembersIdRoute
@@ -136,7 +176,12 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_app': typeof AppRouteWithChildren
   '/login': typeof LoginRoute
+  '/_app/audit': typeof AppAuditRoute
+  '/_app/calendar': typeof AppCalendarRoute
+  '/_app/profile': typeof AppProfileRoute
+  '/_app/universes': typeof AppUniversesRoute
   '/_app/': typeof AppIndexRoute
+  '/_app/admin/users': typeof AppAdminUsersRoute
   '/_app/alliances/$id': typeof AppAlliancesIdRoute
   '/_app/incidents/$id': typeof AppIncidentsIdRoute
   '/_app/members/$id': typeof AppMembersIdRoute
@@ -155,6 +200,11 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/login'
+    | '/audit'
+    | '/calendar'
+    | '/profile'
+    | '/universes'
+    | '/admin/users'
     | '/alliances/$id'
     | '/incidents/$id'
     | '/members/$id'
@@ -170,7 +220,12 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/login'
+    | '/audit'
+    | '/calendar'
+    | '/profile'
+    | '/universes'
     | '/'
+    | '/admin/users'
     | '/alliances/$id'
     | '/incidents/$id'
     | '/members/$id'
@@ -187,7 +242,12 @@ export interface FileRouteTypes {
     | '__root__'
     | '/_app'
     | '/login'
+    | '/_app/audit'
+    | '/_app/calendar'
+    | '/_app/profile'
+    | '/_app/universes'
     | '/_app/'
+    | '/_app/admin/users'
     | '/_app/alliances/$id'
     | '/_app/incidents/$id'
     | '/_app/members/$id'
@@ -228,6 +288,34 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof AppIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/universes': {
+      id: '/_app/universes'
+      path: '/universes'
+      fullPath: '/universes'
+      preLoaderRoute: typeof AppUniversesRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/profile': {
+      id: '/_app/profile'
+      path: '/profile'
+      fullPath: '/profile'
+      preLoaderRoute: typeof AppProfileRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/calendar': {
+      id: '/_app/calendar'
+      path: '/calendar'
+      fullPath: '/calendar'
+      preLoaderRoute: typeof AppCalendarRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/audit': {
+      id: '/_app/audit'
+      path: '/audit'
+      fullPath: '/audit'
+      preLoaderRoute: typeof AppAuditRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/sources/': {
@@ -314,11 +402,23 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAlliancesIdRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/admin/users': {
+      id: '/_app/admin/users'
+      path: '/admin/users'
+      fullPath: '/admin/users'
+      preLoaderRoute: typeof AppAdminUsersRouteImport
+      parentRoute: typeof AppRoute
+    }
   }
 }
 
 interface AppRouteChildren {
+  AppAuditRoute: typeof AppAuditRoute
+  AppCalendarRoute: typeof AppCalendarRoute
+  AppProfileRoute: typeof AppProfileRoute
+  AppUniversesRoute: typeof AppUniversesRoute
   AppIndexRoute: typeof AppIndexRoute
+  AppAdminUsersRoute: typeof AppAdminUsersRoute
   AppAlliancesIdRoute: typeof AppAlliancesIdRoute
   AppIncidentsIdRoute: typeof AppIncidentsIdRoute
   AppMembersIdRoute: typeof AppMembersIdRoute
@@ -334,7 +434,12 @@ interface AppRouteChildren {
 }
 
 const AppRouteChildren: AppRouteChildren = {
+  AppAuditRoute: AppAuditRoute,
+  AppCalendarRoute: AppCalendarRoute,
+  AppProfileRoute: AppProfileRoute,
+  AppUniversesRoute: AppUniversesRoute,
   AppIndexRoute: AppIndexRoute,
+  AppAdminUsersRoute: AppAdminUsersRoute,
   AppAlliancesIdRoute: AppAlliancesIdRoute,
   AppIncidentsIdRoute: AppIncidentsIdRoute,
   AppMembersIdRoute: AppMembersIdRoute,

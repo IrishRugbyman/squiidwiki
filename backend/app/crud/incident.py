@@ -5,7 +5,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select
 
 from app.models.incident import Incident, IncidentParticipant, IncidentSource
-from app.models.member import Member
+from app.models.member import Member, MemberSource
+from app.models.alliance import AllianceSet
+from app.models.gang_set import GangSet
 from app.schemas.common import make_cursor, parse_cursor
 from app.schemas.incident import IncidentCreate, IncidentUpdate, ParticipantCreate
 
@@ -187,6 +189,42 @@ async def list_incidents_by_set(
         .join(Member, Member.id == IncidentParticipant.member_id)
         .where(Member.set_id == set_id, Incident.universe_id == universe_id)
         .distinct()
+        .order_by(Incident.sortable_date.desc(), Incident.created_at.desc())
+        .limit(limit)
+    )
+    result = await session.execute(stmt)
+    return result.scalars().all()
+
+
+async def list_incidents_by_alliance(
+    session: AsyncSession,
+    alliance_id: uuid.UUID,
+    universe_id: uuid.UUID,
+    limit: int = 50,
+) -> list[Incident]:
+    stmt = (
+        select(Incident)
+        .join(IncidentParticipant, IncidentParticipant.incident_id == Incident.id)
+        .join(Member, Member.id == IncidentParticipant.member_id)
+        .where(Member.alliance_id == alliance_id, Incident.universe_id == universe_id)
+        .distinct()
+        .order_by(Incident.sortable_date.desc(), Incident.created_at.desc())
+        .limit(limit)
+    )
+    result = await session.execute(stmt)
+    return result.scalars().all()
+
+
+async def list_incidents_by_source(
+    session: AsyncSession,
+    source_id: uuid.UUID,
+    universe_id: uuid.UUID,
+    limit: int = 100,
+) -> list[Incident]:
+    stmt = (
+        select(Incident)
+        .join(IncidentSource, IncidentSource.incident_id == Incident.id)
+        .where(IncidentSource.source_id == source_id, Incident.universe_id == universe_id)
         .order_by(Incident.sortable_date.desc(), Incident.created_at.desc())
         .limit(limit)
     )

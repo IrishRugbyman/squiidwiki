@@ -2,13 +2,14 @@ import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
 import { ArrowLeft, Pencil, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import { FuzzyDate } from '@/components/FuzzyDate'
-import { AllianceStatusBadge } from '@/components/StatusBadge'
+import { AllianceStatusBadge, MemberStatusBadge } from '@/components/StatusBadge'
 import { ErrorState } from '@/components/ErrorState'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { useAlliance, useSets, useDeleteAlliance } from '@/lib/queries'
+import { useAlliance, useSets, useDeleteAlliance, useAllianceMembers, useAllianceIncidents } from '@/lib/queries'
 import { useUniverseStore } from '@/stores/universe'
 import { useAuthStore } from '@/stores/auth'
 import { AllianceFormSheet } from './_app.alliances.index'
@@ -25,6 +26,8 @@ function AllianceDetailPage() {
 
   const { data: alliance, isLoading, isError, refetch } = useAlliance(id, universe?.id ?? null)
   const { data: allSets } = useSets(universe?.id ?? null)
+  const { data: members } = useAllianceMembers(id, universe?.id ?? null)
+  const { data: incidents } = useAllianceIncidents(id, universe?.id ?? null)
   const deleteAlliance = useDeleteAlliance(universe?.id ?? '')
 
   const [editing, setEditing] = useState(false)
@@ -84,20 +87,108 @@ function AllianceDetailPage() {
             <p className="mb-6 text-sm text-zinc-300 leading-relaxed">{alliance.description}</p>
           )}
 
-          {alliance.set_ids.length > 0 ? (
-            <div>
-              <h2 className="mb-2 text-xs font-semibold uppercase tracking-wider text-zinc-500">Member Sets ({alliance.set_ids.length})</h2>
-              <div className="flex flex-wrap gap-2">
-                {alliance.set_ids.map((sid) => (
-                  <Link key={sid} to="/sets/$id" params={{ id: setSlug(sid) }}>
-                    <Badge variant="secondary" className="hover:bg-zinc-700 cursor-pointer">{setName(sid)}</Badge>
-                  </Link>
-                ))}
-              </div>
-            </div>
-          ) : (
-            <p className="text-sm text-zinc-600">No member sets.</p>
-          )}
+          <Tabs defaultValue="sets">
+            <TabsList>
+              <TabsTrigger value="sets">
+                Sets
+                {alliance.set_ids.length > 0 && (
+                  <Badge variant="secondary" className="ml-1.5 text-xs px-1.5 py-0">{alliance.set_ids.length}</Badge>
+                )}
+              </TabsTrigger>
+              <TabsTrigger value="members">
+                Members
+                {members && members.items.length > 0 && (
+                  <Badge variant="secondary" className="ml-1.5 text-xs px-1.5 py-0">{members.items.length}</Badge>
+                )}
+              </TabsTrigger>
+              <TabsTrigger value="incidents">
+                Incidents
+                {incidents && incidents.items.length > 0 && (
+                  <Badge variant="secondary" className="ml-1.5 text-xs px-1.5 py-0">{incidents.items.length}</Badge>
+                )}
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="sets" className="mt-4">
+              {alliance.set_ids.length === 0 ? (
+                <p className="text-sm text-zinc-600">No member sets.</p>
+              ) : (
+                <div className="flex flex-wrap gap-2">
+                  {alliance.set_ids.map((sid) => (
+                    <Link key={sid} to="/sets/$id" params={{ id: setSlug(sid) }}>
+                      <Badge variant="secondary" className="hover:bg-zinc-700 cursor-pointer">{setName(sid)}</Badge>
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </TabsContent>
+
+            <TabsContent value="members" className="mt-4">
+              {!members || members.items.length === 0 ? (
+                <p className="text-sm text-zinc-600">No members in this alliance.</p>
+              ) : (
+                <div className="overflow-hidden rounded-lg border border-zinc-800">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-zinc-800 bg-zinc-900/50">
+                        <th className="px-4 py-2.5 text-left font-medium text-zinc-400">Name</th>
+                        <th className="px-4 py-2.5 text-left font-medium text-zinc-400">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-zinc-800">
+                      {members.items.map((m) => (
+                        <tr key={m.id} className="hover:bg-zinc-900/50">
+                          <td className="p-0">
+                            <Link to="/members/$id" params={{ id: m.slug ?? m.id }} className="block px-4 py-3 text-white hover:text-violet-400">
+                              {m.display_name}
+                            </Link>
+                          </td>
+                          <td className="p-0">
+                            <Link to="/members/$id" params={{ id: m.slug ?? m.id }} className="block px-4 py-3" tabIndex={-1}>
+                              <MemberStatusBadge status={m.status} />
+                            </Link>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </TabsContent>
+
+            <TabsContent value="incidents" className="mt-4">
+              {!incidents || incidents.items.length === 0 ? (
+                <p className="text-sm text-zinc-600">No incidents involving this alliance.</p>
+              ) : (
+                <div className="overflow-hidden rounded-lg border border-zinc-800">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-zinc-800 bg-zinc-900/50">
+                        <th className="px-4 py-2.5 text-left font-medium text-zinc-400">Type</th>
+                        <th className="px-4 py-2.5 text-left font-medium text-zinc-400">Date</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-zinc-800">
+                      {incidents.items.map((inc) => (
+                        <tr key={inc.id} className="hover:bg-zinc-900/50">
+                          <td className="p-0">
+                            <Link to="/incidents/$id" params={{ id: inc.id }} className="block px-4 py-3 text-white hover:text-violet-400">
+                              {inc.type}
+                            </Link>
+                          </td>
+                          <td className="p-0">
+                            <Link to="/incidents/$id" params={{ id: inc.id }} className="block px-4 py-3 text-zinc-400" tabIndex={-1}>
+                              <FuzzyDate value={inc.date} fallback="Unknown date" />
+                            </Link>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </TabsContent>
+          </Tabs>
 
           {universe && (
             <AllianceFormSheet

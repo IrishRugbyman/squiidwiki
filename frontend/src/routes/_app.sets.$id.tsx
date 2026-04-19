@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
-import { ArrowLeft, Pencil, Plus, Swords, Trash2, Users, AlertTriangle } from 'lucide-react'
+import { ArrowLeft, Pencil, Plus, Swords, Trash2, Users } from 'lucide-react'
 import { useState } from 'react'
 import {
   useSet, useSetStats, useSets, useDeleteSet,

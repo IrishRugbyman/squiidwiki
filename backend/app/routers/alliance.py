@@ -8,6 +8,8 @@ from app.auth.dependencies import CurrentUser, require_global_role
 from app.core.database import get_session
 from app.core.enums import GlobalRole
 from app.crud import alliance as crud
+from app.crud import member as member_crud
+from app.crud import incident as incident_crud
 from app.schemas.alliance import (
     AllianceCreate,
     AllianceListItem,
@@ -15,7 +17,9 @@ from app.schemas.alliance import (
     AllianceReadDetail,
     AllianceUpdate,
 )
-from app.schemas.common import OffsetPage
+from app.schemas.common import CursorPage, OffsetPage
+from app.schemas.member import MemberListItem
+from app.schemas.incident import IncidentListItem
 
 router = APIRouter(prefix="/alliances", tags=["alliances"])
 
@@ -51,18 +55,22 @@ async def search_alliances(
     return await crud.search_alliances(session, universe_id, q)
 
 
-@router.get("/{id}", response_model=AllianceReadDetail)
+@router.get("/{id_or_slug}", response_model=AllianceReadDetail)
 async def get_alliance(
-    id: uuid.UUID,
+    id_or_slug: str,
     universe_id: uuid.UUID,
     _: CurrentUser,
     session: Annotated[AsyncSession, Depends(get_session)],
 ):
-    obj = await crud.get_alliance(session, id, universe_id)
+    obj = None
+    try:
+        obj = await crud.get_alliance(session, uuid.UUID(id_or_slug), universe_id)
+    except ValueError:
+        obj = await crud.get_alliance_by_slug(session, id_or_slug, universe_id)
     if obj is None:
         raise HTTPException(404)
-    territory_ids = await crud.list_alliance_territory_ids(session, id)
-    set_ids = await crud.list_alliance_set_ids(session, id)
+    territory_ids = await crud.list_alliance_territory_ids(session, obj.id)
+    set_ids = await crud.list_alliance_set_ids(session, obj.id)
     base = AllianceRead.model_validate(obj)
     return AllianceReadDetail(**base.model_dump(), territory_ids=territory_ids, set_ids=set_ids)
 
@@ -91,3 +99,36 @@ async def delete_alliance(
     ok = await crud.delete_alliance(session, id, universe_id)
     if not ok:
         raise HTTPException(404)
+
+
+@router.get("/{id}/members", response_model=CursorPage[MemberListItem])
+async def list_alliance_members(
+    id: uuid.UUID,
+    universe_id: uuid.UUID,
+    _: CurrentUser,
+    session: Annotated[AsyncSession, Depends(get_session)],
+    limit: int = Query(50, ge=1, le=200),
+    cursor: str | None = None,
+):
+    obj = await crud.get_alliance(session, id, universe_id)
+    if obj is None:
+        raise HTTPException(404)
+    items, next_cursor = await member_crud.list_members(
+        session, universe_id, limit=limit, cursor=cursor, alliance_id=id
+    )
+    return CursorPage(items=items, next_cursor=next_cursor, total=None)
+
+
+@router.get("/{id}/incidents", response_model=CursorPage[IncidentListItem])
+async def list_alliance_incidents(
+    id: uuid.UUID,
+    universe_id: uuid.UUID,
+    _: CurrentUser,
+    session: Annotated[AsyncSession, Depends(get_session)],
+    limit: int = Query(50, ge=1, le=200),
+):
+    obj = await crud.get_alliance(session, id, universe_id)
+    if obj is None:
+        raise HTTPException(404)
+    items = await incident_crud.list_incidents_by_alliance(session, id, universe_id, limit=limit)
+    return CursorPage(items=items, next_cursor=None, total=None)
