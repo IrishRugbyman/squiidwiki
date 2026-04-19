@@ -10,6 +10,7 @@ from backend.database.db_init import init_db
 from backend.auth.auth_middleware import AuthMiddleware
 from backend.settings import settings
 
+from backend.universes.router import router as universes_router
 from backend.sets.routes import router as sets_router
 from backend.members.routes import router as members_router
 from backend.alliances.alliances_router import router as alliances_router
@@ -57,6 +58,7 @@ app.middleware("http")(AuthMiddleware())
 app.mount("/static", StaticFiles(directory="frontend/static"), name="static")
 
 app.include_router(auth_router, prefix="/auth", tags=["auth"])
+app.include_router(universes_router)
 app.include_router(home_router, tags=["home"])
 app.include_router(sets_router, prefix="/sets", tags=["sets"])
 app.include_router(members_router, prefix="/members", tags=["members"])

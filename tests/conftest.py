@@ -22,6 +22,7 @@ from backend.database.models import (
     Set,
     SetRelationship,
     SetType,
+    Universe,
 )
 
 
@@ -39,6 +40,14 @@ async def db(engine) -> AsyncSession:
     factory = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
     async with factory() as session:
         yield session
+
+
+@pytest_asyncio.fixture()
+async def universe(db: AsyncSession) -> Universe:
+    u = Universe(name="Test Universe", slug="test-universe")
+    db.add(u)
+    await db.flush()
+    return u
 
 
 @pytest_asyncio.fixture()

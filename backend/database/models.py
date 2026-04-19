@@ -45,6 +45,12 @@ class GlobalRole(str, enum.Enum):
     USER = "user"
 
 
+class UniverseRole(str, enum.Enum):
+    ADMIN = "admin"
+    EDITOR = "editor"
+    VIEWER = "viewer"
+
+
 class SetType(str, enum.Enum):
     ACTIVE = "active"
     EXTINCT = "extinct"
@@ -140,6 +146,40 @@ class User(AuditMixin, Base):
 
 
 # ───────────────────────────────────────────────────────────────────────────
+# Universes
+# ───────────────────────────────────────────────────────────────────────────
+
+class Universe(AuditMixin, Base):
+    __tablename__ = "universes"
+
+    id = Column(Integer, primary_key=True)
+    name = Column(Text, nullable=False)
+    slug = Column(Text, nullable=False, unique=True)
+    created_by_id = Column(ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+
+    created_by: Mapped[Optional["User"]] = relationship("User", foreign_keys=[created_by_id])
+
+
+class UserUniverseAccess(Base):
+    __tablename__ = "user_universe_access"
+    __table_args__ = (
+        UniqueConstraint("user_id", "universe_id", name="uq_user_universe"),
+    )
+
+    id = Column(Integer, primary_key=True)
+    user_id = Column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    universe_id = Column(ForeignKey("universes.id", ondelete="CASCADE"), nullable=False)
+    role = Column(
+        Enum(UniverseRole, name="universe_role_enum", native_enum=False, values_callable=_enum_values),
+        nullable=False,
+        server_default=UniverseRole.VIEWER.value,
+    )
+
+    user: Mapped["User"] = relationship("User", foreign_keys=[user_id])
+    universe: Mapped[Universe] = relationship("Universe", foreign_keys=[universe_id])
+
+
+# ───────────────────────────────────────────────────────────────────────────
 # Sets (gangs / groups)
 # ───────────────────────────────────────────────────────────────────────────
 
@@ -147,6 +187,7 @@ class Set(AuditMixin, Base):
     __tablename__ = "sets"
 
     id = Column(Integer, primary_key=True)
+    universe_id = Column(ForeignKey("universes.id", ondelete="SET NULL"), nullable=True, index=True)
     name = Column(Text, nullable=False, unique=True)
     type = Column(
         Enum(SetType, name="set_type_enum", native_enum=False, values_callable=_enum_values),
@@ -200,6 +241,7 @@ class Member(AuditMixin, Base):
     )
 
     id = Column(Integer, primary_key=True)
+    universe_id = Column(ForeignKey("universes.id", ondelete="SET NULL"), nullable=True, index=True)
     name = Column(Text, nullable=False)
     status = Column(
         Enum(MemberStatus, name="member_status_enum", native_enum=False, values_callable=_enum_values),
@@ -334,6 +376,7 @@ class Alliance(AuditMixin, Base):
     __tablename__ = "alliances"
 
     id = Column(Integer, primary_key=True)
+    universe_id = Column(ForeignKey("universes.id", ondelete="SET NULL"), nullable=True, index=True)
     name = Column(String(100), nullable=False)
     description = Column(Text, nullable=True)
     status = Column(
