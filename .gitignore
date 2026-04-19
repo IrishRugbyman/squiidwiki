@@ -44,6 +44,9 @@ frontend/storybook-static/
 # Claude Code local settings
 .claude/
 
+# Legacy Flask templates (migration reference only)
+_legacy/
+
 # OS
 .DS_Store
 Thumbs.db
