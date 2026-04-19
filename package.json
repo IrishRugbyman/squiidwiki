@@ -1,21 +1,12 @@
 {
   "name": "squiidwiki",
-  "version": "1.0.0",
-  "description": "SquiidWiki project with TypeScript frontend",
-  "main": "frontend/static/js/app.js",
+  "version": "2.0.0",
+  "description": "Legacy Tailwind CSS build only. New frontend lives in frontend-next/.",
   "scripts": {
-    "build": "webpack --mode production",
-    "dev": "webpack --mode development --watch",
-    "tsc": "tsc",
-    "tsc:watch": "tsc --watch"
+    "css:build": "tailwindcss -i frontend/src/css/input.css -o frontend/static/css/output.css",
+    "css:watch": "tailwindcss -i frontend/src/css/input.css -o frontend/static/css/output.css --watch"
   },
-  "author": "",
-  "license": "ISC",
   "devDependencies": {
-    "@types/node": "^20.11.0",
-    "ts-loader": "^9.5.1",
-    "typescript": "^5.3.3",
-    "webpack": "^5.89.0",
-    "webpack-cli": "^5.1.4"
+    "tailwindcss": "^3.4.0"
   }
 } 

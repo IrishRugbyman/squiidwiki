@@ -4,53 +4,34 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Status
 
-This is a **target-architecture document**. The repo is mid-migration from the current stack to the target described below. When code in the repo conflicts with the target, **the code is correct for now** — but all new work must follow the target patterns. See [Current state](#current-state-what-exists-today) for an honest inventory of what's actually here.
+The 12-phase backend migration is **complete**. The backend now runs on the target stack. The React frontend (`frontend-next/`) is scaffolded with all domain screens. The legacy Jinja2 routes in `backend/` are kept but no longer extended — all new work goes in `frontend-next/`.
 
 ---
 
 ## Commands
 
-### Current (works today)
-
-```bash
-# Install deps
-pip install -r requirements.txt
-npm install
-
-# Run (auto-selects port starting at 8002)
-python main.py
-
-# Build Tailwind CSS
-npm run css:build
-npm run css:watch       # watch mode
-
-# Migrations
-alembic upgrade head
-
-# Tests (in-memory SQLite — no Postgres needed)
-python -m pytest tests/ -v
-python -m pytest tests/test_business_rules.py::TestVitalStateValidation -v
-```
-
-### Target (post-migration)
-
 ```bash
 # Infrastructure (Postgres 16 + Redis 7)
 docker compose up -d
 
-# Backend (from backend/)
+# Backend
+pip install -r requirements.txt
 alembic upgrade head
-python -m app.seed                              # seed sample universe
-uvicorn app.main:app --reload                   # → http://localhost:8000/docs
+python -m backend.seed          # seed Default universe + admin user
+uvicorn backend.server:app --reload   # → http://localhost:8002/docs
 
-# Frontend (from frontend/)
-npm run dev                                     # → http://localhost:5173
+# Frontend (React)
+cd frontend-next && npm install && npm run dev   # → http://localhost:5173
 
-# Tests
-cd backend && python -m pytest --cov
+# Tests (in-memory SQLite — no Postgres needed)
+python -m pytest tests/ -v
+python -m pytest tests/test_business_rules.py::TestVitalStateConstraint -v
 
 # Type-check frontend
-cd frontend && npx tsc --noEmit
+cd frontend-next && npx tsc --noEmit
+
+# Legacy Tailwind CSS (Jinja2 pages only)
+npm run css:build
 ```
 
 ---

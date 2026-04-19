@@ -69,31 +69,24 @@ app.middleware("http")(AuthMiddleware())
 
 app.mount("/static", StaticFiles(directory="frontend/static"), name="static")
 
+# Auth
 app.include_router(auth_router, prefix="/auth", tags=["auth"])
+
+# Universe multi-tenancy
 app.include_router(universes_router)
+
+# Domain API endpoints (JSON)
+app.include_router(incidents_router)
+app.include_router(sources_router)
+app.include_router(stats_router)
+
+# Legacy Jinja2 HTML routes (kept until React frontend fully replaces them)
 app.include_router(home_router, tags=["home"])
 app.include_router(sets_router, prefix="/sets", tags=["sets"])
 app.include_router(members_router, prefix="/members", tags=["members"])
 app.include_router(alliances_router, prefix="/alliances", tags=["alliances"])
 app.include_router(calendar_router, prefix="/calendar", tags=["calendar"])
 app.include_router(events_router, prefix="/events", tags=["events"])
-app.include_router(incidents_router)
-app.include_router(sources_router)
-app.include_router(stats_router)
-
-app_api = FastAPI(title="SquiidWiki API")
-app.mount("/api", app_api)
-
-app_api.include_router(auth_router, prefix="/auth", tags=["auth"])
-app_api.include_router(home_router, tags=["home"])
-app_api.include_router(sets_router, prefix="/sets", tags=["sets"])
-app_api.include_router(members_router, prefix="/members", tags=["members"])
-app_api.include_router(alliances_router, prefix="/alliances", tags=["alliances"])
-app_api.include_router(calendar_router, prefix="/calendar", tags=["calendar"])
-app_api.include_router(events_router, prefix="/events", tags=["events"])
-app_api.include_router(incidents_router)
-app_api.include_router(sources_router)
-app_api.include_router(stats_router)
 
 
 @app.get("/health", tags=["health"])
