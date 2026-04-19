@@ -1,2 +1,52 @@
-.aider*
+# Secrets / local config
 .env
+.env.*
+!.env.sample
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.egg-info/
+.eggs/
+dist/
+build/
+*.egg
+.venv/
+venv/
+env/
+.Python
+
+# pytest / coverage
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+
+# IDE / editor
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Claude Code session files
+.claude/
+
+# Node / frontend build
+node_modules/
+frontend/static/css/
+frontend/static/js/
+*.min.css
+*.min.js
+
+# Alembic
+*.pyc
+
+# Misc
+*.log
+*.sqlite
+*.db
+!squiidvault.db
