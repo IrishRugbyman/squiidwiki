@@ -72,10 +72,16 @@ class Settings(BaseSettings):
         return self.app_env
 
     def get_database_url(self) -> str:
+        """Sync URL (psycopg2) — used by Alembic."""
         if self.database_url:
             return self.database_url
         db = self.database
         return f"postgresql://{db.user}:{db.password}@{db.host}:{db.port}/{db.database}"
+
+    def get_async_database_url(self) -> str:
+        """Async URL (asyncpg) — used by the application."""
+        sync = self.get_database_url()
+        return sync.replace("postgresql://", "postgresql+asyncpg://", 1)
 
     def is_development(self) -> bool:
         return self.app_env == "development"

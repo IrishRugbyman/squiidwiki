@@ -28,7 +28,7 @@ logging.basicConfig(
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     logger.info(f"Starting SquiidWiki in {settings.env} environment")
-    if init_db():
+    if await init_db():
         logger.info("Database initialization completed successfully")
     else:
         logger.warning("Database initialization completed with warnings")

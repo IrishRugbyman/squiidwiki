@@ -1,8 +1,9 @@
-from contextlib import contextmanager
+from contextlib import asynccontextmanager, contextmanager
 from datetime import datetime, timezone
-from typing import Generator
+from typing import AsyncGenerator, Generator
 
 from sqlalchemy import Boolean, Column, DateTime, create_engine, func
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import Session, declarative_base, sessionmaker
 
@@ -51,56 +52,106 @@ class AuditMixin(TimestampMixin, SoftDeleteMixin):
 
 
 # ---------------------------------------------------------------------------
-# Engine & session factory — lazy so that importing Base / mixins for tests
-# never requires a live database connection.
+# Async engine + session — used by the application at runtime.
+# Lazy so that importing Base/mixins for tests doesn't require a live DB.
 # ---------------------------------------------------------------------------
-_engine = None
-_SessionLocal = None
+_async_engine = None
+_AsyncSessionLocal = None
 
 
-def _get_engine():
-    global _engine
-    if _engine is None:
-        _engine = create_engine(
-            settings.get_database_url(),
+def _get_async_engine():
+    global _async_engine
+    if _async_engine is None:
+        _async_engine = create_async_engine(
+            settings.get_async_database_url(),
             pool_pre_ping=True,
             pool_size=settings.database.max_connections,
             max_overflow=settings.database.max_connections * 2,
             pool_timeout=settings.database.connection_timeout,
             pool_recycle=settings.database.pool_recycle,
         )
-    return _engine
+    return _async_engine
 
 
-def _get_session_factory():
-    global _SessionLocal
-    if _SessionLocal is None:
-        _SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=_get_engine())
-    return _SessionLocal
+def _get_async_session_factory():
+    global _AsyncSessionLocal
+    if _AsyncSessionLocal is None:
+        _AsyncSessionLocal = async_sessionmaker(
+            _get_async_engine(),
+            class_=AsyncSession,
+            expire_on_commit=False,
+        )
+    return _AsyncSessionLocal
+
+
+async def get_db() -> AsyncGenerator[AsyncSession, None]:
+    async with _get_async_session_factory()() as session:
+        try:
+            yield session
+        except Exception:
+            await session.rollback()
+            raise
+
+
+@asynccontextmanager
+async def get_db_context() -> AsyncGenerator[AsyncSession, None]:
+    async with _get_async_session_factory()() as session:
+        try:
+            yield session
+            await session.commit()
+        except Exception:
+            await session.rollback()
+            raise
+
+
+# ---------------------------------------------------------------------------
+# Sync engine — kept for Alembic migrations and as a legacy proxy.
+# ---------------------------------------------------------------------------
+_sync_engine = None
+_SyncSessionLocal = None
+
+
+def _get_sync_engine():
+    global _sync_engine
+    if _sync_engine is None:
+        _sync_engine = create_engine(
+            settings.get_database_url(),
+            pool_pre_ping=True,
+        )
+    return _sync_engine
+
+
+def _get_sync_session_factory():
+    global _SyncSessionLocal
+    if _SyncSessionLocal is None:
+        _SyncSessionLocal = sessionmaker(
+            autocommit=False, autoflush=False, bind=_get_sync_engine()
+        )
+    return _SyncSessionLocal
 
 
 class _EngineProxy:
     def __getattr__(self, name):
-        return getattr(_get_engine(), name)
+        return getattr(_get_sync_engine(), name)
 
     def __repr__(self):
-        return repr(_get_engine())
+        return repr(_get_sync_engine())
 
 
 class _SessionLocalProxy:
     def __call__(self, *args, **kwargs):
-        return _get_session_factory()(*args, **kwargs)
+        return _get_sync_session_factory()(*args, **kwargs)
 
     def __getattr__(self, name):
-        return getattr(_get_session_factory(), name)
+        return getattr(_get_sync_session_factory(), name)
 
 
 engine = _EngineProxy()
 SessionLocal = _SessionLocalProxy()
 
 
-def get_db() -> Generator:
-    db = _get_session_factory()()
+def get_sync_db() -> Generator[Session, None, None]:
+    db = _get_sync_session_factory()()
     try:
         yield db
     finally:
@@ -108,8 +159,8 @@ def get_db() -> Generator:
 
 
 @contextmanager
-def get_db_context():
-    db = _get_session_factory()()
+def get_sync_db_context() -> Generator[Session, None, None]:
+    db = _get_sync_session_factory()()
     try:
         yield db
         db.commit()

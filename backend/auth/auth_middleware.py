@@ -1,9 +1,11 @@
 from fastapi import Request, status
 from fastapi.responses import RedirectResponse
 from jose import JWTError, jwt
+from sqlalchemy import select
 
 from backend.auth.auth_utils import ALGORITHM
-from backend.database.imports import get_db, Users
+from backend.database.base_class import get_db_context
+from backend.database.models import User
 from backend.settings import settings
 
 
@@ -35,9 +37,10 @@ class AuthMiddleware:
                 raise ValueError("no sub claim")
 
             request.state.user = username
-            db = next(get_db())
-            user = db.query(Users).filter(Users.username == username).first()
-            request.state.is_admin = user.is_admin if user else False
+            async with get_db_context() as db:
+                result = await db.execute(select(User).where(User.username == username))
+                user = result.scalars().first()
+                request.state.is_admin = user.is_admin if user else False
             return await call_next(request)
 
         except (JWTError, ValueError):

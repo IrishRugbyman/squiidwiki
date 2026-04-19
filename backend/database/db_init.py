@@ -4,7 +4,7 @@ Tables are managed by Alembic migrations — run `alembic upgrade head` before s
 """
 import logging
 
-from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy import select
 
 import backend.database.models  # noqa: F401
 from backend.database.base_class import get_db_context
@@ -15,14 +15,22 @@ from backend.settings import settings
 logger = logging.getLogger(__name__)
 
 
-def ensure_admin_exists() -> bool:
+async def ensure_admin_exists() -> bool:
     try:
-        with get_db_context() as db:
-            if db.query(User).filter(User.is_admin == True).first():
+        async with get_db_context() as db:
+            result = await db.execute(
+                select(User).where(User.is_admin == True)  # noqa: E712
+            )
+            if result.scalars().first():
                 return False
+
             username = settings.auth.default_admin_username
             password = settings.auth.default_admin_password
-            existing = db.query(User).filter(User.username == username).first()
+
+            existing_result = await db.execute(
+                select(User).where(User.username == username)
+            )
+            existing = existing_result.scalars().first()
             if existing:
                 if not existing.is_admin:
                     existing.is_admin = True
@@ -40,18 +48,14 @@ def ensure_admin_exists() -> bool:
         return False
 
 
-def init_db() -> bool:
+async def init_db() -> bool:
     """Seed admin user. Tables must already exist (run alembic upgrade head first)."""
     logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
     logger.info(f"Seeding database: {settings.database.database}")
     try:
-        ensure_admin_exists()
+        await ensure_admin_exists()
         logger.info("Database seed completed")
         return True
     except Exception as e:
         logger.error(f"Unexpected error during seed: {e}")
         return False
-
-
-if __name__ == "__main__":
-    init_db()
