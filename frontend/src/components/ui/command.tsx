@@ -2,7 +2,7 @@ import { Command as CommandPrimitive } from 'cmdk'
 import { Search } from 'lucide-react'
 import * as React from 'react'
 import { cn } from '@/lib/utils'
-import { Dialog, DialogContent } from './dialog'
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from './dialog'
 
 const Command = React.forwardRef<
   React.ElementRef<typeof CommandPrimitive>,
@@ -19,6 +19,8 @@ Command.displayName = CommandPrimitive.displayName
 const CommandDialog = ({ children, ...props }: React.ComponentPropsWithoutRef<typeof Dialog>) => (
   <Dialog {...props}>
     <DialogContent className="overflow-hidden p-0">
+      <DialogTitle className="sr-only">Command Menu</DialogTitle>
+      <DialogDescription className="sr-only">Search and select an option</DialogDescription>
       <Command>{children}</Command>
     </DialogContent>
   </Dialog>

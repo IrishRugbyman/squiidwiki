@@ -1,12 +1,24 @@
-import { createFileRoute, Link } from '@tanstack/react-router'
-import { ArrowLeft, Swords, Users } from 'lucide-react'
-import { useSet, useSetStats } from '@/lib/queries'
+import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
+import { ArrowLeft, Pencil, Plus, Swords, Trash2, Users, AlertTriangle } from 'lucide-react'
+import { useState } from 'react'
+import {
+  useSet, useSetStats, useSets, useDeleteSet,
+  useAddSetRelationship, useRemoveSetRelationship,
+  useSetMembers, useSetIncidents,
+} from '@/lib/queries'
 import { useUniverseStore } from '@/stores/universe'
-import { SetStatusBadge } from '@/components/StatusBadge'
+import { useAuthStore } from '@/stores/auth'
+import { SetStatusBadge, MemberStatusBadge } from '@/components/StatusBadge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { ErrorState } from '@/components/ErrorState'
+import { FuzzyDate } from '@/components/FuzzyDate'
+import { SetFormSheet } from './_app.sets.index'
 
 export const Route = createFileRoute('/_app/sets/$id')({
   component: SetDetailPage,
@@ -21,11 +33,106 @@ function StatPill({ label, value }: { label: string; value: number }) {
   )
 }
 
+function AddRelationshipDialog({
+  setId, universeId, open, onClose, existingIds,
+}: { setId: string; universeId: string; open: boolean; onClose: () => void; existingIds: string[] }) {
+  const { data: allSets } = useSets(universeId)
+  const add = useAddSetRelationship(setId, universeId)
+  const [targetId, setTargetId] = useState('')
+  const [type, setType] = useState<'FRIEND' | 'ENEMY'>('FRIEND')
+  const [error, setError] = useState<string | null>(null)
+
+  const available = (allSets?.items ?? []).filter(
+    (s) => s.id !== setId && !existingIds.includes(s.id)
+  )
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    if (!targetId) return
+    setError(null)
+    try {
+      await add.mutateAsync({ target_id: targetId, type })
+      setTargetId(''); setType('FRIEND')
+      onClose()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to add relationship')
+    }
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Add Relationship</DialogTitle>
+        </DialogHeader>
+        <form onSubmit={handleSubmit} className="space-y-4 pt-2">
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium text-zinc-300">Set</label>
+            <Select value={targetId} onValueChange={setTargetId}>
+              <SelectTrigger><SelectValue placeholder="Select a set…" /></SelectTrigger>
+              <SelectContent>
+                {available.map((s) => (
+                  <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium text-zinc-300">Type</label>
+            <Select value={type} onValueChange={(v) => setType(v as 'FRIEND' | 'ENEMY')}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="FRIEND">Ally</SelectItem>
+                <SelectItem value="ENEMY">Enemy</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          {error && <p className="text-sm text-red-400">{error}</p>}
+          <div className="flex gap-2 justify-end">
+            <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
+            <Button type="submit" disabled={!targetId || add.isPending}>
+              {add.isPending ? 'Adding…' : 'Add'}
+            </Button>
+          </div>
+        </form>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
 function SetDetailPage() {
   const { id } = Route.useParams()
   const universe = useUniverseStore((s) => s.activeUniverse)
+  const user = useAuthStore((s) => s.user)
+  const navigate = useNavigate()
+
   const { data: set, isLoading, isError, refetch } = useSet(id, universe?.id ?? null)
-  const { data: stats } = useSetStats(id, universe?.id ?? null)
+  const realId = set?.id ?? ''
+  const { data: stats } = useSetStats(realId, universe?.id ?? null)
+  const { data: allSets } = useSets(universe?.id ?? null)
+  const { data: membersData } = useSetMembers(realId, universe?.id ?? null)
+  const { data: incidentsData } = useSetIncidents(realId, universe?.id ?? null)
+
+  const deleteSet = useDeleteSet(universe?.id ?? '')
+  const removeRel = useRemoveSetRelationship(realId, universe?.id ?? '')
+
+  const [editing, setEditing] = useState(false)
+  const [deleting, setDeleting] = useState(false)
+  const [addingRel, setAddingRel] = useState(false)
+
+  const setName = (sid: string) => allSets?.items.find((s) => s.id === sid)?.name ?? sid
+
+  const allRelIds = set ? [...set.friend_ids, ...set.enemy_ids] : []
+
+  async function handleDelete() {
+    if (!set) return
+    try {
+      await deleteSet.mutateAsync(set.id)
+      navigate({ to: '/sets' })
+    } catch {
+      setDeleting(false)
+    }
+  }
 
   if (isError) return <ErrorState title="Set not found" onRetry={() => refetch()} />
 
@@ -48,6 +155,16 @@ function SetDetailPage() {
               {set.alias && <p className="text-sm text-zinc-400">a/k/a {set.alias}</p>}
               <div className="mt-2"><SetStatusBadge status={set.status} /></div>
             </div>
+            <div className="flex items-center gap-2">
+              <Button size="sm" variant="outline" onClick={() => setEditing(true)}>
+                <Pencil className="mr-1.5 h-3.5 w-3.5" />Edit
+              </Button>
+              {user?.global_role === 'ADMIN' && (
+                <Button size="sm" variant="destructive" onClick={() => setDeleting(true)}>
+                  <Trash2 className="mr-1.5 h-3.5 w-3.5" />Delete
+                </Button>
+              )}
+            </div>
           </div>
 
           {stats && (
@@ -63,6 +180,18 @@ function SetDetailPage() {
           <Tabs defaultValue="overview">
             <TabsList>
               <TabsTrigger value="overview">Overview</TabsTrigger>
+              <TabsTrigger value="members">
+                Members
+                {membersData && membersData.items.length > 0 && (
+                  <Badge variant="secondary" className="ml-1.5 text-xs px-1.5 py-0">{membersData.items.length}</Badge>
+                )}
+              </TabsTrigger>
+              <TabsTrigger value="incidents">
+                Incidents
+                {incidentsData && incidentsData.items.length > 0 && (
+                  <Badge variant="secondary" className="ml-1.5 text-xs px-1.5 py-0">{incidentsData.items.length}</Badge>
+                )}
+              </TabsTrigger>
               <TabsTrigger value="relationships">
                 Relationships
                 {set.friend_ids.length + set.enemy_ids.length > 0 && (
@@ -73,7 +202,7 @@ function SetDetailPage() {
               </TabsTrigger>
             </TabsList>
 
-            <TabsContent value="overview">
+            <TabsContent value="overview" className="mt-4">
               {set.bio ? (
                 <p className="text-sm text-zinc-300 leading-relaxed">{set.bio}</p>
               ) : (
@@ -81,7 +210,84 @@ function SetDetailPage() {
               )}
             </TabsContent>
 
-            <TabsContent value="relationships">
+            <TabsContent value="members" className="mt-4">
+              {!membersData || membersData.items.length === 0 ? (
+                <p className="text-sm text-zinc-600">No members in this set.</p>
+              ) : (
+                <div className="overflow-hidden rounded-lg border border-zinc-800">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-zinc-800 bg-zinc-900/50">
+                        <th className="px-4 py-2.5 text-left font-medium text-zinc-400">Name</th>
+                        <th className="px-4 py-2.5 text-left font-medium text-zinc-400">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-zinc-800">
+                      {membersData.items.map((m) => (
+                        <tr key={m.id} className="hover:bg-zinc-900/50">
+                          <td className="p-0">
+                            <Link to="/members/$id" params={{ id: m.id }} className="block px-4 py-3 font-medium text-white hover:text-violet-400 transition-colors">
+                              {m.display_name}
+                            </Link>
+                          </td>
+                          <td className="p-0">
+                            <Link to="/members/$id" params={{ id: m.id }} className="block px-4 py-3" tabIndex={-1}>
+                              <MemberStatusBadge status={m.status} />
+                            </Link>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </TabsContent>
+
+            <TabsContent value="incidents" className="mt-4">
+              {!incidentsData || incidentsData.items.length === 0 ? (
+                <p className="text-sm text-zinc-600">No incidents recorded.</p>
+              ) : (
+                <div className="overflow-hidden rounded-lg border border-zinc-800">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-zinc-800 bg-zinc-900/50">
+                        <th className="px-4 py-2.5 text-left font-medium text-zinc-400">Date</th>
+                        <th className="px-4 py-2.5 text-left font-medium text-zinc-400">Type</th>
+                        <th className="px-4 py-2.5 text-left font-medium text-zinc-400">Location</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-zinc-800">
+                      {incidentsData.items.map((inc) => (
+                        <tr key={inc.id} className="hover:bg-zinc-900/50">
+                          <td className="p-0">
+                            <Link to="/incidents/$id" params={{ id: inc.id }} className="block px-4 py-3 text-zinc-300 hover:text-violet-400">
+                              {inc.date ? <FuzzyDate value={inc.date} /> : '—'}
+                            </Link>
+                          </td>
+                          <td className="p-0">
+                            <Link to="/incidents/$id" params={{ id: inc.id }} className="block px-4 py-3" tabIndex={-1}>
+                              <Badge variant="outline" className="text-xs">{inc.type}</Badge>
+                            </Link>
+                          </td>
+                          <td className="p-0">
+                            <Link to="/incidents/$id" params={{ id: inc.id }} className="block px-4 py-3 text-zinc-400" tabIndex={-1}>
+                              {inc.municipality_id ?? '—'}
+                            </Link>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </TabsContent>
+
+            <TabsContent value="relationships" className="mt-4">
+              <div className="mb-3 flex justify-end">
+                <Button size="sm" variant="outline" onClick={() => setAddingRel(true)}>
+                  <Plus className="mr-1.5 h-3.5 w-3.5" />Add Relationship
+                </Button>
+              </div>
               {set.friend_ids.length === 0 && set.enemy_ids.length === 0 ? (
                 <p className="text-sm text-zinc-600">No relationships recorded.</p>
               ) : (
@@ -93,9 +299,18 @@ function SetDetailPage() {
                       </div>
                       <div className="space-y-1">
                         {set.friend_ids.map((sid) => (
-                          <Link key={sid} to="/sets/$id" params={{ id: sid }} className="block text-sm text-zinc-300 hover:text-violet-400">
-                            {sid}
-                          </Link>
+                          <div key={sid} className="flex items-center justify-between rounded px-2 py-1 hover:bg-zinc-800/50">
+                            <Link to="/sets/$id" params={{ id: allSets?.items.find((s) => s.id === sid)?.slug ?? sid }} className="text-sm text-zinc-300 hover:text-violet-400">
+                              {setName(sid)}
+                            </Link>
+                            <Button
+                              size="sm" variant="ghost"
+                              className="h-6 w-6 p-0 text-zinc-500 hover:text-red-400"
+                              onClick={() => removeRel.mutate(sid)}
+                            >
+                              ×
+                            </Button>
+                          </div>
                         ))}
                       </div>
                     </div>
@@ -107,9 +322,18 @@ function SetDetailPage() {
                       </div>
                       <div className="space-y-1">
                         {set.enemy_ids.map((sid) => (
-                          <Link key={sid} to="/sets/$id" params={{ id: sid }} className="block text-sm text-zinc-300 hover:text-violet-400">
-                            {sid}
-                          </Link>
+                          <div key={sid} className="flex items-center justify-between rounded px-2 py-1 hover:bg-zinc-800/50">
+                            <Link to="/sets/$id" params={{ id: allSets?.items.find((s) => s.id === sid)?.slug ?? sid }} className="text-sm text-zinc-300 hover:text-violet-400">
+                              {setName(sid)}
+                            </Link>
+                            <Button
+                              size="sm" variant="ghost"
+                              className="h-6 w-6 p-0 text-zinc-500 hover:text-red-400"
+                              onClick={() => removeRel.mutate(sid)}
+                            >
+                              ×
+                            </Button>
+                          </div>
                         ))}
                       </div>
                     </div>
@@ -118,6 +342,36 @@ function SetDetailPage() {
               )}
             </TabsContent>
           </Tabs>
+
+          {universe && (
+            <SetFormSheet
+              universeId={universe.id}
+              open={editing}
+              onClose={() => setEditing(false)}
+              initial={set}
+            />
+          )}
+
+          <ConfirmDialog
+            open={deleting}
+            title="Delete Set"
+            description={`Permanently delete "${set.name}"? This cannot be undone.`}
+            confirmLabel="Delete"
+            destructive
+            pending={deleteSet.isPending}
+            onConfirm={handleDelete}
+            onCancel={() => setDeleting(false)}
+          />
+
+          {universe && (
+            <AddRelationshipDialog
+              setId={set.id}
+              universeId={universe.id}
+              open={addingRel}
+              onClose={() => setAddingRel(false)}
+              existingIds={allRelIds}
+            />
+          )}
         </>
       ) : null}
     </div>

@@ -38,6 +38,7 @@ class SetRead(BaseModel):
     id: uuid.UUID
     universe_id: uuid.UUID
     name: str
+    slug: Optional[str]
     alias: Optional[str]
     bio: Optional[str]
     status: SetStatus
@@ -57,6 +58,7 @@ class SetListItem(BaseModel):
 
     id: uuid.UUID
     name: str
+    slug: Optional[str]
     status: SetStatus
     universe_id: uuid.UUID
     alliance_id: Optional[uuid.UUID]

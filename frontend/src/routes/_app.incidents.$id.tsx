@@ -5,7 +5,7 @@ import { ErrorState } from '@/components/ErrorState'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Badge } from '@/components/ui/badge'
-import { useIncident } from '@/lib/queries'
+import { useIncident, useMembers } from '@/lib/queries'
 import { useUniverseStore } from '@/stores/universe'
 
 export const Route = createFileRoute('/_app/incidents/$id')({
@@ -30,6 +30,8 @@ function IncidentDetailPage() {
   const { id } = Route.useParams()
   const universe = useUniverseStore((s) => s.activeUniverse)
   const { data: incident, isLoading, isError, refetch } = useIncident(id, universe?.id ?? null)
+  const { data: allMembers } = useMembers(universe?.id ?? null)
+  const memberName = (mid: string) => allMembers?.items.find((m) => m.id === mid)?.display_name ?? mid
 
   if (isError) return <ErrorState title="Incident not found" onRetry={() => refetch()} />
 
@@ -76,7 +78,7 @@ function IncidentDetailPage() {
                   {incident.participants.map((p) => (
                     <div key={p.member_id} className="flex items-center justify-between rounded-lg border border-zinc-800 bg-zinc-900/30 px-4 py-3">
                       <Link to="/members/$id" params={{ id: p.member_id }} className="text-sm font-medium text-white hover:text-violet-400 transition-colors">
-                        {p.member_id}
+                        {memberName(p.member_id)}
                       </Link>
                       <div className="flex items-center gap-2">
                         <Badge className={ROLE_STYLE[p.role] ?? ''}>{p.role}</Badge>

@@ -16,7 +16,7 @@ import { useCreateIncident, useIncidents, useMemberSearch } from '@/lib/queries'
 import type { IncidentType, ParticipantOutcome, ParticipantRole, UUID } from '@/lib/types'
 import { useUniverseStore } from '@/stores/universe'
 
-export const Route = createFileRoute('/_app/incidents')({
+export const Route = createFileRoute('/_app/incidents/')({
   component: IncidentsPage,
 })
 
@@ -221,19 +221,23 @@ function IncidentsPage() {
                 ))
               : items.map((incident) => (
                   <tr key={incident.id} className="hover:bg-zinc-900/50 transition-colors">
-                    <td className="px-4 py-3">
-                      <Link to="/incidents/$id" params={{ id: incident.id }} className="flex items-center gap-2 text-white hover:text-violet-400 transition-colors">
+                    <td className="p-0">
+                      <Link to="/incidents/$id" params={{ id: incident.id }} className="flex items-center gap-2 px-4 py-3 text-white hover:text-violet-400 transition-colors">
                         <ShieldAlert className="h-3.5 w-3.5 text-zinc-500" />
                         {incident.type}
                       </Link>
                     </td>
-                    <td className="px-4 py-3 text-zinc-400">
-                      <FuzzyDate value={incident.date} fallback="Unknown date" />
+                    <td className="p-0">
+                      <Link to="/incidents/$id" params={{ id: incident.id }} className="block px-4 py-3 text-zinc-400" tabIndex={-1}>
+                        <FuzzyDate value={incident.date} fallback="Unknown date" />
+                      </Link>
                     </td>
-                    <td className="px-4 py-3">
-                      {incident.verified
-                        ? <Badge className="bg-emerald-900 text-emerald-300 border-transparent">Verified</Badge>
-                        : <Badge variant="outline" className="text-zinc-500">Unverified</Badge>}
+                    <td className="p-0">
+                      <Link to="/incidents/$id" params={{ id: incident.id }} className="block px-4 py-3" tabIndex={-1}>
+                        {incident.verified
+                          ? <Badge className="bg-emerald-900 text-emerald-300 border-transparent">Verified</Badge>
+                          : <Badge variant="outline" className="text-zinc-500">Unverified</Badge>}
+                      </Link>
                     </td>
                   </tr>
                 ))}

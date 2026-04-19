@@ -1,4 +1,4 @@
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute, Link } from '@tanstack/react-router'
 import { MapPin, Plus } from 'lucide-react'
 import { useState } from 'react'
 import { NoUniverse } from '@/components/NoUniverse'
@@ -14,7 +14,7 @@ import { useQueryClient, useMutation } from '@tanstack/react-query'
 import { useUniverseStore } from '@/stores/universe'
 import type { MunicipalityRead } from '@/lib/types'
 
-export const Route = createFileRoute('/_app/municipalities')({
+export const Route = createFileRoute('/_app/municipalities/')({
   component: MunicipalitiesPage,
 })
 
@@ -84,11 +84,11 @@ function MunicipalitiesPage() {
         {isLoading
           ? Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-10 w-full rounded-lg" />)
           : items.map((m) => (
-              <div key={m.id} className="flex items-center gap-3 rounded-lg border border-zinc-800 bg-zinc-900/30 px-4 py-2.5">
+              <Link key={m.id} to="/municipalities/$id" params={{ id: m.id }} className="flex items-center gap-3 rounded-lg border border-zinc-800 bg-zinc-900/30 px-4 py-2.5 hover:border-zinc-700 hover:bg-zinc-900/50 transition-colors">
                 <MapPin className="h-4 w-4 shrink-0 text-zinc-600" />
                 <span className="text-sm text-zinc-200">{m.name}</span>
                 {m.parent_id && <span className="text-xs text-zinc-600">sub-district</span>}
-              </div>
+              </Link>
             ))}
         {!isLoading && items.length === 0 && (
           <p className="py-12 text-center text-sm text-zinc-500">No municipalities yet</p>

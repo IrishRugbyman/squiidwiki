@@ -28,7 +28,15 @@ async def list_incidents(
     session: Annotated[AsyncSession, Depends(get_session)],
     limit: int = Query(50, ge=1, le=200),
     cursor: str | None = None,
+    set_id: uuid.UUID | None = None,
+    member_id: uuid.UUID | None = None,
 ):
+    if set_id is not None:
+        items = await crud.list_incidents_by_set(session, set_id, universe_id, limit=limit)
+        return CursorPage(items=items, next_cursor=None, total=None)
+    if member_id is not None:
+        items = await crud.list_incidents_by_member(session, member_id, universe_id, limit=limit)
+        return CursorPage(items=items, next_cursor=None, total=None)
     items, next_cursor = await crud.list_incidents(session, universe_id, limit=limit, cursor=cursor)
     return CursorPage(items=items, next_cursor=next_cursor, total=None)
 
@@ -65,9 +73,8 @@ async def get_incident(
     participants = await crud.list_incident_participants(session, id)
     source_ids = await crud.list_incident_source_ids(session, id)
     participant_reads = [ParticipantRead.model_validate(p) for p in participants]
-    return IncidentReadDetail.model_validate(obj).model_copy(
-        update={"participants": participant_reads, "source_ids": source_ids}
-    )
+    base = IncidentRead.model_validate(obj)
+    return IncidentReadDetail(**base.model_dump(), participants=participant_reads, source_ids=source_ids)
 
 
 @router.patch("/{id}", response_model=IncidentRead)

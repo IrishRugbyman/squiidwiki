@@ -3,6 +3,8 @@ SQLAlchemy event listeners that write to AuditLog on insert/update/delete.
 Attach via attach_audit_listeners() called from app startup.
 The current user_id is passed via a contextvars.ContextVar set in auth middleware.
 """
+import datetime
+import enum
 import uuid
 from contextvars import ContextVar
 from typing import Optional
@@ -18,12 +20,22 @@ _AUDITED_TABLES = {
 }
 
 
+def _json_safe(v):
+    if isinstance(v, uuid.UUID):
+        return str(v)
+    if isinstance(v, enum.Enum):
+        return v.value
+    if isinstance(v, (datetime.datetime, datetime.date)):
+        return v.isoformat()
+    return v
+
+
 def _get_diff(target, state: str) -> dict:
     if state == "deleted":
         return {"deleted": True}
     mapper = target.__class__.__mapper__  # type: ignore[attr-defined]
     return {
-        col.key: getattr(target, col.key, None)
+        col.key: _json_safe(getattr(target, col.key, None))
         for col in mapper.columns
         if col.key not in ("created_at", "updated_at")
     }

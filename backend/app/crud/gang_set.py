@@ -1,3 +1,4 @@
+import re
 import uuid
 
 from fastapi import HTTPException, status
@@ -7,6 +8,31 @@ from sqlmodel import func, select
 from app.core.enums import SetRelationshipType
 from app.models.gang_set import GangSet, SetMunicipality, SetRelationship
 from app.schemas.gang_set import SetCreate, SetUpdate
+
+
+def _slugify(name: str) -> str:
+    s = name.lower().strip()
+    s = re.sub(r"[^\w\s-]", "", s)
+    s = re.sub(r"[\s_]+", "-", s)
+    s = re.sub(r"-+", "-", s)
+    return s.strip("-") or "set"
+
+
+async def _unique_slug(
+    session: AsyncSession,
+    universe_id: uuid.UUID,
+    name: str,
+    exclude_id: uuid.UUID | None = None,
+) -> str:
+    base = _slugify(name)
+    slug, n = base, 2
+    while True:
+        q = select(GangSet).where(GangSet.universe_id == universe_id, GangSet.slug == slug)
+        if exclude_id is not None:
+            q = q.where(GangSet.id != exclude_id)
+        if (await session.execute(q)).scalar_one_or_none() is None:
+            return slug
+        slug, n = f"{base}-{n}", n + 1
 
 
 async def _sync_set_municipalities(
@@ -46,7 +72,8 @@ async def create_gang_set(
     session: AsyncSession, data: SetCreate, actor_id: uuid.UUID
 ) -> GangSet:
     dump = data.model_dump(exclude={"territory_ids", "friend_ids", "enemy_ids"})
-    obj = GangSet(**dump, created_by_id=actor_id)
+    slug = await _unique_slug(session, data.universe_id, data.name)
+    obj = GangSet(**dump, slug=slug, created_by_id=actor_id)
     session.add(obj)
     await session.flush()
     await _sync_set_municipalities(session, obj.id, data.territory_ids)
@@ -61,6 +88,15 @@ async def get_gang_set(
 ) -> GangSet | None:
     result = await session.execute(
         select(GangSet).where(GangSet.id == id, GangSet.universe_id == universe_id)
+    )
+    return result.scalar_one_or_none()
+
+
+async def get_gang_set_by_slug(
+    session: AsyncSession, slug: str, universe_id: uuid.UUID
+) -> GangSet | None:
+    result = await session.execute(
+        select(GangSet).where(GangSet.slug == slug, GangSet.universe_id == universe_id)
     )
     return result.scalar_one_or_none()
 
@@ -87,6 +123,8 @@ async def update_gang_set(
     dump = data.model_dump(exclude_unset=True, exclude={"territory_ids", "friend_ids", "enemy_ids"})
     for k, v in dump.items():
         setattr(obj, k, v)
+    if "name" in dump:
+        obj.slug = await _unique_slug(session, obj.universe_id, obj.name, exclude_id=obj.id)
     session.add(obj)
     if data.territory_ids is not None:
         await _sync_set_municipalities(session, obj.id, data.territory_ids)

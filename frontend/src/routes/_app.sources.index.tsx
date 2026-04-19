@@ -1,4 +1,4 @@
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute, Link } from '@tanstack/react-router'
 import { ExternalLink, Plus, Search } from 'lucide-react'
 import { useState } from 'react'
 import { NoUniverse } from '@/components/NoUniverse'
@@ -15,7 +15,7 @@ import { useCreateSource, useSources } from '@/lib/queries'
 import type { SourceReliability } from '@/lib/types'
 import { useUniverseStore } from '@/stores/universe'
 
-export const Route = createFileRoute('/_app/sources')({
+export const Route = createFileRoute('/_app/sources/')({
   component: SourcesPage,
 })
 
@@ -141,8 +141,16 @@ function SourcesPage() {
                 ))
               : items.map((source) => (
                   <tr key={source.id} className="hover:bg-zinc-900/50 transition-colors">
-                    <td className="px-4 py-3 font-medium text-white">{source.title}</td>
-                    <td className="px-4 py-3"><ReliabilityBadge reliability={source.reliability} /></td>
+                    <td className="p-0">
+                      <Link to="/sources/$id" params={{ id: source.id }} className="block px-4 py-3 font-medium text-white hover:text-violet-400 transition-colors">
+                        {source.title}
+                      </Link>
+                    </td>
+                    <td className="p-0">
+                      <Link to="/sources/$id" params={{ id: source.id }} className="block px-4 py-3" tabIndex={-1}>
+                        <ReliabilityBadge reliability={source.reliability} />
+                      </Link>
+                    </td>
                     <td className="px-4 py-3">
                       <a href={source.url} target="_blank" rel="noopener noreferrer" className="text-zinc-500 hover:text-violet-400 transition-colors">
                         <ExternalLink className="h-3.5 w-3.5" />

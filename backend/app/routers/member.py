@@ -28,8 +28,11 @@ async def list_members(
     session: Annotated[AsyncSession, Depends(get_session)],
     limit: int = Query(50, ge=1, le=200),
     cursor: str | None = None,
+    set_id: uuid.UUID | None = None,
 ):
-    items, next_cursor = await crud.list_members(session, universe_id, limit=limit, cursor=cursor)
+    items, next_cursor = await crud.list_members(
+        session, universe_id, limit=limit, cursor=cursor, set_id=set_id
+    )
     return CursorPage(items=items, next_cursor=next_cursor, total=None)
 
 
@@ -63,7 +66,8 @@ async def get_member(
     if obj is None:
         raise HTTPException(404)
     source_ids = await crud.list_member_source_ids(session, id)
-    return MemberReadDetail.model_validate(obj).model_copy(update={"source_ids": source_ids})
+    base = MemberRead.model_validate(obj)
+    return MemberReadDetail(**base.model_dump(), source_ids=source_ids)
 
 
 @router.patch("/{id}", response_model=MemberRead)

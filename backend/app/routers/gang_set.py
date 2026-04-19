@@ -8,6 +8,7 @@ from app.auth.dependencies import CurrentUser, require_global_role
 from app.core.database import get_session
 from app.core.enums import GlobalRole
 from app.crud import gang_set as crud
+from app.crud.gang_set import get_gang_set_by_slug
 from app.crud.incident import get_set_stats
 from app.schemas.common import OffsetPage
 from app.schemas.gang_set import (
@@ -54,21 +55,24 @@ async def search_sets(
     return await crud.search_gang_sets(session, universe_id, q)
 
 
-@router.get("/{id}", response_model=SetReadDetail)
+@router.get("/{id_or_slug}", response_model=SetReadDetail)
 async def get_set(
-    id: uuid.UUID,
+    id_or_slug: str,
     universe_id: uuid.UUID,
     _: CurrentUser,
     session: Annotated[AsyncSession, Depends(get_session)],
 ):
-    obj = await crud.get_gang_set(session, id, universe_id)
+    obj = None
+    try:
+        obj = await crud.get_gang_set(session, uuid.UUID(id_or_slug), universe_id)
+    except ValueError:
+        obj = await get_gang_set_by_slug(session, id_or_slug, universe_id)
     if obj is None:
         raise HTTPException(404)
-    territory_ids = await crud.list_set_territory_ids(session, id)
-    friend_ids, enemy_ids = await crud.list_set_relationships(session, id, universe_id)
-    return SetReadDetail.model_validate(obj).model_copy(
-        update={"territory_ids": territory_ids, "friend_ids": friend_ids, "enemy_ids": enemy_ids}
-    )
+    territory_ids = await crud.list_set_territory_ids(session, obj.id)
+    friend_ids, enemy_ids = await crud.list_set_relationships(session, obj.id, universe_id)
+    base = SetRead.model_validate(obj)
+    return SetReadDetail(**base.model_dump(), territory_ids=territory_ids, friend_ids=friend_ids, enemy_ids=enemy_ids)
 
 
 @router.patch("/{id}", response_model=SetRead)
@@ -111,9 +115,8 @@ async def add_relationship(
     await crud.add_set_relationship(session, id, data.target_id, data.type, universe_id)
     territory_ids = await crud.list_set_territory_ids(session, id)
     friend_ids, enemy_ids = await crud.list_set_relationships(session, id, universe_id)
-    return SetReadDetail.model_validate(obj).model_copy(
-        update={"territory_ids": territory_ids, "friend_ids": friend_ids, "enemy_ids": enemy_ids}
-    )
+    base = SetRead.model_validate(obj)
+    return SetReadDetail(**base.model_dump(), territory_ids=territory_ids, friend_ids=friend_ids, enemy_ids=enemy_ids)
 
 
 @router.delete("/{id}/relationships/{target_id}", status_code=204)

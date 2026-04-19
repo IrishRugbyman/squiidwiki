@@ -11,36 +11,55 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Textarea } from '@/components/ui/textarea'
-import { useAlliances, useCreateAlliance } from '@/lib/queries'
-import type { AllianceStatus } from '@/lib/types'
+import { useAlliances, useCreateAlliance, useUpdateAlliance } from '@/lib/queries'
+import type { AllianceRead, AllianceStatus } from '@/lib/types'
 import { useUniverseStore } from '@/stores/universe'
 
-export const Route = createFileRoute('/_app/alliances')({
+export const Route = createFileRoute('/_app/alliances/')({
   component: AlliancesPage,
 })
 
-function CreateAllianceSheet({ universeId, open, onClose }: { universeId: string; open: boolean; onClose: () => void }) {
+interface AllianceFormProps {
+  universeId: string
+  open: boolean
+  onClose: () => void
+  initial?: AllianceRead
+}
+
+export function AllianceFormSheet({ universeId, open, onClose, initial }: AllianceFormProps) {
   const create = useCreateAlliance()
-  const [name, setName] = useState('')
-  const [description, setDescription] = useState('')
-  const [status, setStatus] = useState<AllianceStatus>('ACTIVE')
+  const update = useUpdateAlliance(initial?.id ?? '', universeId)
+  const isEdit = !!initial
+
+  const [name, setName] = useState(initial?.name ?? '')
+  const [description, setDescription] = useState(initial?.description ?? '')
+  const [status, setStatus] = useState<AllianceStatus>(initial?.status ?? 'ACTIVE')
   const [error, setError] = useState<string | null>(null)
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     setError(null)
+    const body = { universe_id: universeId, name, description: description || null, status }
     try {
-      await create.mutateAsync({ universe_id: universeId, name, description: description || null, status })
-      setName(''); setDescription(''); setStatus('ACTIVE')
+      if (isEdit) await update.mutateAsync(body)
+      else {
+        await create.mutateAsync(body)
+        setName(''); setDescription(''); setStatus('ACTIVE')
+      }
       onClose()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to create alliance')
+      setError(err instanceof Error ? err.message : `Failed to ${isEdit ? 'update' : 'create'} alliance`)
     }
   }
 
+  const isPending = isEdit ? update.isPending : create.isPending
+
   return (
     <Sheet open={open} onOpenChange={(v) => !v && onClose()}>
-      <SheetContent title="Add Alliance" description="Create a new gang alliance">
+      <SheetContent
+        title={isEdit ? 'Edit Alliance' : 'Add Alliance'}
+        description={isEdit ? 'Update this alliance' : 'Create a new gang alliance'}
+      >
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-1.5">
             <Label htmlFor="a-name">Name *</Label>
@@ -63,8 +82,8 @@ function CreateAllianceSheet({ universeId, open, onClose }: { universeId: string
           </div>
           {error && <p className="text-sm text-red-400">{error}</p>}
           <div className="flex gap-2 pt-2">
-            <Button type="submit" disabled={create.isPending} className="flex-1">
-              {create.isPending ? 'Saving…' : 'Create Alliance'}
+            <Button type="submit" disabled={isPending} className="flex-1">
+              {isPending ? 'Saving…' : isEdit ? 'Save Changes' : 'Create Alliance'}
             </Button>
             <SheetClose asChild>
               <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
@@ -124,12 +143,16 @@ function AlliancesPage() {
                   .filter((a) => !q || a.name.toLowerCase().includes(q.toLowerCase()))
                   .map((alliance) => (
                     <tr key={alliance.id} className="hover:bg-zinc-900/50 transition-colors">
-                      <td className="px-4 py-3">
-                        <Link to="/alliances/$id" params={{ id: alliance.id }} className="font-medium text-white hover:text-violet-400 transition-colors">
+                      <td className="p-0">
+                        <Link to="/alliances/$id" params={{ id: alliance.id }} className="block px-4 py-3 font-medium text-white hover:text-violet-400 transition-colors">
                           {alliance.name}
                         </Link>
                       </td>
-                      <td className="px-4 py-3"><AllianceStatusBadge status={alliance.status} /></td>
+                      <td className="p-0">
+                        <Link to="/alliances/$id" params={{ id: alliance.id }} className="block px-4 py-3" tabIndex={-1}>
+                          <AllianceStatusBadge status={alliance.status} />
+                        </Link>
+                      </td>
                     </tr>
                   ))}
             {!isLoading && items.length === 0 && (
@@ -151,7 +174,7 @@ function AlliancesPage() {
         </div>
       )}
 
-      <CreateAllianceSheet universeId={universe.id} open={creating} onClose={() => setCreating(false)} />
+      <AllianceFormSheet universeId={universe.id} open={creating} onClose={() => setCreating(false)} />
     </div>
   )
 }

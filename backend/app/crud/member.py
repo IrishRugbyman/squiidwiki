@@ -56,8 +56,11 @@ async def list_members(
     universe_id: uuid.UUID,
     limit: int = 50,
     cursor: str | None = None,
+    set_id: uuid.UUID | None = None,
 ) -> tuple[list[Member], str | None]:
     stmt = select(Member).where(Member.universe_id == universe_id)
+    if set_id is not None:
+        stmt = stmt.where(Member.set_id == set_id)
 
     if cursor:
         cursor_at, cursor_id = parse_cursor(cursor)
@@ -147,7 +150,7 @@ async def get_member_stats(session: AsyncSession, member_id: uuid.UUID) -> dict 
         if row:
             return dict(row)
     except Exception:
-        pass
+        await session.rollback()
     return {
         "member_id": member_id,
         "shootings": 0,

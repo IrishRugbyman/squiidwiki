@@ -5,6 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select
 
 from app.models.incident import Incident, IncidentParticipant, IncidentSource
+from app.models.member import Member
 from app.schemas.common import make_cursor, parse_cursor
 from app.schemas.incident import IncidentCreate, IncidentUpdate, ParticipantCreate
 
@@ -157,6 +158,42 @@ async def list_incident_participants(
     return result.scalars().all()
 
 
+async def list_incidents_by_member(
+    session: AsyncSession,
+    member_id: uuid.UUID,
+    universe_id: uuid.UUID,
+    limit: int = 50,
+) -> list[Incident]:
+    stmt = (
+        select(Incident)
+        .join(IncidentParticipant, IncidentParticipant.incident_id == Incident.id)
+        .where(IncidentParticipant.member_id == member_id, Incident.universe_id == universe_id)
+        .order_by(Incident.sortable_date.desc(), Incident.created_at.desc())
+        .limit(limit)
+    )
+    result = await session.execute(stmt)
+    return result.scalars().all()
+
+
+async def list_incidents_by_set(
+    session: AsyncSession,
+    set_id: uuid.UUID,
+    universe_id: uuid.UUID,
+    limit: int = 50,
+) -> list[Incident]:
+    stmt = (
+        select(Incident)
+        .join(IncidentParticipant, IncidentParticipant.incident_id == Incident.id)
+        .join(Member, Member.id == IncidentParticipant.member_id)
+        .where(Member.set_id == set_id, Incident.universe_id == universe_id)
+        .distinct()
+        .order_by(Incident.sortable_date.desc(), Incident.created_at.desc())
+        .limit(limit)
+    )
+    result = await session.execute(stmt)
+    return result.scalars().all()
+
+
 async def list_incident_source_ids(
     session: AsyncSession, incident_id: uuid.UUID
 ) -> list[uuid.UUID]:
@@ -188,7 +225,7 @@ async def get_set_stats(session: AsyncSession, set_id: uuid.UUID) -> dict | None
         if row:
             return dict(row)
     except Exception:
-        pass
+        await session.rollback()
     return {
         "set_id": set_id,
         "member_count": 0,

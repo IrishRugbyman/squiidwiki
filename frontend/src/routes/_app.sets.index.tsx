@@ -7,41 +7,60 @@ import { SetStatusBadge } from '@/components/StatusBadge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
-import { useCreateSet, useSets, useSetSearch } from '@/lib/queries'
+import { useCreateSet, useSets, useSetSearch, useUpdateSet } from '@/lib/queries'
 import { useUniverseStore } from '@/stores/universe'
 import { Sheet, SheetContent, SheetClose } from '@/components/Sheet'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
-import type { SetStatus } from '@/lib/types'
+import type { SetRead, SetStatus } from '@/lib/types'
 
-export const Route = createFileRoute('/_app/sets')({
+export const Route = createFileRoute('/_app/sets/')({
   component: SetsPage,
 })
 
-function CreateSetSheet({ universeId, open, onClose }: { universeId: string; open: boolean; onClose: () => void }) {
+interface SetFormProps {
+  universeId: string
+  open: boolean
+  onClose: () => void
+  initial?: SetRead
+}
+
+export function SetFormSheet({ universeId, open, onClose, initial }: SetFormProps) {
   const create = useCreateSet()
-  const [name, setName] = useState('')
-  const [alias, setAlias] = useState('')
-  const [bio, setBio] = useState('')
-  const [status, setStatus] = useState<SetStatus>('ACTIVE')
+  const update = useUpdateSet(initial?.id ?? '')
+  const isEdit = !!initial
+
+  const [name, setName] = useState(initial?.name ?? '')
+  const [alias, setAlias] = useState(initial?.alias ?? '')
+  const [bio, setBio] = useState(initial?.bio ?? '')
+  const [status, setStatus] = useState<SetStatus>(initial?.status ?? 'ACTIVE')
   const [error, setError] = useState<string | null>(null)
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     setError(null)
     try {
-      await create.mutateAsync({ universe_id: universeId, name, alias: alias || null, bio: bio || null, status })
-      setName(''); setAlias(''); setBio(''); setStatus('ACTIVE')
+      if (isEdit) {
+        await update.mutateAsync({ universe_id: universeId, name, alias: alias || null, bio: bio || null, status })
+      } else {
+        await create.mutateAsync({ universe_id: universeId, name, alias: alias || null, bio: bio || null, status })
+        setName(''); setAlias(''); setBio(''); setStatus('ACTIVE')
+      }
       onClose()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to create set')
+      setError(err instanceof Error ? err.message : `Failed to ${isEdit ? 'update' : 'create'} set`)
     }
   }
 
+  const isPending = isEdit ? update.isPending : create.isPending
+
   return (
     <Sheet open={open} onOpenChange={(v) => !v && onClose()}>
-      <SheetContent title="Add Set" description="Create a new gang set in this universe">
+      <SheetContent
+        title={isEdit ? 'Edit Set' : 'Add Set'}
+        description={isEdit ? 'Update this gang set' : 'Create a new gang set in this universe'}
+      >
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-1.5">
             <Label htmlFor="set-name">Name *</Label>
@@ -67,8 +86,8 @@ function CreateSetSheet({ universeId, open, onClose }: { universeId: string; ope
           </div>
           {error && <p className="text-sm text-red-400">{error}</p>}
           <div className="flex gap-2 pt-2">
-            <Button type="submit" disabled={create.isPending} className="flex-1">
-              {create.isPending ? 'Saving…' : 'Create Set'}
+            <Button type="submit" disabled={isPending} className="flex-1">
+              {isPending ? 'Saving…' : isEdit ? 'Save Changes' : 'Create Set'}
             </Button>
             <SheetClose asChild>
               <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
@@ -131,17 +150,28 @@ function SetsPage() {
                     <td className="px-4 py-3" colSpan={3}><Skeleton className="h-4 w-48" /></td>
                   </tr>
                 ))
-              : items.map((set) => (
-                  <tr key={set.id} className="hover:bg-zinc-900/50 transition-colors">
-                    <td className="px-4 py-3">
-                      <Link to="/sets/$id" params={{ id: set.id }} className="font-medium text-white hover:text-violet-400 transition-colors">
-                        {set.name}
-                      </Link>
-                    </td>
-                    <td className="px-4 py-3 text-zinc-400">—</td>
-                    <td className="px-4 py-3"><SetStatusBadge status={set.status} /></td>
-                  </tr>
-                ))}
+              : items.map((set) => {
+                  const linkId = set.slug ?? set.id
+                  return (
+                    <tr key={set.id} className="hover:bg-zinc-900/50 transition-colors">
+                      <td className="p-0">
+                        <Link to="/sets/$id" params={{ id: linkId }} className="block px-4 py-3 font-medium text-white hover:text-violet-400 transition-colors">
+                          {set.name}
+                        </Link>
+                      </td>
+                      <td className="p-0">
+                        <Link to="/sets/$id" params={{ id: linkId }} className="block px-4 py-3 text-zinc-400" tabIndex={-1}>
+                          {(set as { alias?: string | null }).alias ?? '—'}
+                        </Link>
+                      </td>
+                      <td className="p-0">
+                        <Link to="/sets/$id" params={{ id: linkId }} className="block px-4 py-3" tabIndex={-1}>
+                          <SetStatusBadge status={set.status} />
+                        </Link>
+                      </td>
+                    </tr>
+                  )
+                })}
             {!isLoading && items.length === 0 && (
               <tr>
                 <td colSpan={3} className="px-4 py-12 text-center text-sm text-zinc-500">No sets found</td>
@@ -161,7 +191,7 @@ function SetsPage() {
         </div>
       )}
 
-      <CreateSetSheet universeId={universe.id} open={creating} onClose={() => setCreating(false)} />
+      <SetFormSheet universeId={universe.id} open={creating} onClose={() => setCreating(false)} />
     </div>
   )
 }

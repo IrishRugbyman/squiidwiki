@@ -9,8 +9,10 @@ import {
   Skull,
   Users,
 } from 'lucide-react'
+import { useEffect } from 'react'
 import { UniverseSwitcher } from '@/components/UniverseSwitcher'
-import { useAuthStore, type AuthState } from '@/stores/auth'
+import { useAuthStore, type AuthState, type AuthUser } from '@/stores/auth'
+import { api, ApiError } from '@/lib/api'
 
 export const Route = createFileRoute('/_app')({
   beforeLoad: () => {
@@ -46,7 +48,22 @@ function NavLink({ to, icon: Icon, label, exact }: { to: string; icon: typeof Ho
 
 function AppLayout() {
   const user = useAuthStore((s: AuthState) => s.user)
+  const setAuth = useAuthStore((s: AuthState) => s.setAuth)
   const clearAuth = useAuthStore((s: AuthState) => s.clearAuth)
+
+  useEffect(() => {
+    if (user) return
+    const token = localStorage.getItem('access_token')
+    if (!token) return
+    api.get<AuthUser>('/auth/me')
+      .then((u) => setAuth(u, token))
+      .catch((err) => {
+        if (err instanceof ApiError && err.status === 401) {
+          clearAuth()
+          window.location.href = '/login'
+        }
+      })
+  }, [user, setAuth, clearAuth])
 
   async function handleLogout() {
     await fetch('/api/v1/auth/logout', { method: 'POST', credentials: 'include' })
