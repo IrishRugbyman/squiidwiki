@@ -1,8 +1,52 @@
 # SquiidWiki
 
+A multi-tenant gang research wiki. Each isolated network of people lives inside a **Universe**. This document is the canonical schema and architecture reference.
+
+---
+
+## Build Status
+
+| Phase | Status | Notes |
+|---|---|---|
+| 0 — Schema Design | ✅ Done | This README |
+| 1 — Foundation & Tooling | ✅ Done | FastAPI + Vite + Docker + pre-commit |
+| 2 — Database & Migrations | ✅ Done | SQLModel models, Alembic, FuzzyDate, bilateral trigger, seed |
+| 3 — Auth & Authorization | ✅ Done | argon2, JWT access/refresh, per-universe roles |
+| 4 — Backend API (vertical slices) | ✅ Done | All 7 entities, pg_trgm search, materialized view stats |
+| 5 — Frontend Foundation | ✅ Done | shadcn-style design system, sidebar layout, Universe switcher |
+| 6 — Frontend Screens | ✅ Done | List + detail + create for all 7 entities |
+| 7 — Production Hardening | ⬜ Pending | |
+| 8 — Documentation | ⬜ Pending | |
+
+---
+
+## Dev Quick-Start
+
 **Python env:** `C:\Users\irish\miniconda3\envs\squiidwiki\python.exe`
 
-A multi-tenant gang research wiki. Each isolated network of people lives inside a **Universe**. This document is the canonical schema reference.
+```bash
+# Infrastructure (Postgres + Redis)
+docker compose up -d
+
+# Backend (from backend/)
+PY="C:\Users\irish\miniconda3\envs\squiidwiki\python.exe"
+$PY -m alembic upgrade head   # apply migrations
+$PY -m app.seed               # seed sample data (Metro Detroit universe)
+$PY -m uvicorn app.main:app --reload   # → http://localhost:8000/docs
+
+# Frontend (from frontend/)
+npm run dev    # → http://localhost:5173
+
+# Tests
+cd backend && $PY -m pytest --cov
+
+# Type-check frontend
+cd frontend && npx tsc --noEmit
+```
+
+**Default admin credentials (after seed):** check `backend/app/seed.py`
+
+---
 
 ---
 
@@ -300,11 +344,12 @@ Stored as **JSONB** in Postgres. A generated `sortable_date` column stores the e
 - structlog for JSON logging
 
 **Frontend (`frontend/`):**
-- Vite + React 18 + TypeScript (strict)
-- TanStack Router v2 + TanStack Query v5
-- shadcn/ui + Tailwind CSS (dark-themed)
-- Zustand (auth state, active universe)
-- vis.js / react-flow for graph visualizations
+- Vite + React 19 + TypeScript 6 (strict, `erasableSyntaxOnly`)
+- TanStack Router v2 (file-based) + TanStack Query v5
+- Radix UI primitives + shadcn-style components + Tailwind CSS v4 (dark zinc/violet theme)
+- Zustand (auth store, active universe store with persistence)
+- Inter font (UI) + JetBrains Mono (IDs/code)
+- vis.js / react-flow for graph visualizations (Phase 7)
 
 **Infrastructure:**
 - PostgreSQL 16 (primary DB)

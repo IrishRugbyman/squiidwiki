@@ -12,6 +12,16 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as AppIndexRouteImport } from './routes/_app.index'
+import { Route as AppSourcesRouteImport } from './routes/_app.sources'
+import { Route as AppSetsRouteImport } from './routes/_app.sets'
+import { Route as AppMunicipalitiesRouteImport } from './routes/_app.municipalities'
+import { Route as AppMembersRouteImport } from './routes/_app.members'
+import { Route as AppIncidentsRouteImport } from './routes/_app.incidents'
+import { Route as AppAlliancesRouteImport } from './routes/_app.alliances'
+import { Route as AppSetsIdRouteImport } from './routes/_app.sets.$id'
+import { Route as AppMembersIdRouteImport } from './routes/_app.members.$id'
+import { Route as AppIncidentsIdRouteImport } from './routes/_app.incidents.$id'
+import { Route as AppAlliancesIdRouteImport } from './routes/_app.alliances.$id'
 
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
@@ -27,27 +37,145 @@ const AppIndexRoute = AppIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AppRoute,
 } as any)
+const AppSourcesRoute = AppSourcesRouteImport.update({
+  id: '/sources',
+  path: '/sources',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppSetsRoute = AppSetsRouteImport.update({
+  id: '/sets',
+  path: '/sets',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppMunicipalitiesRoute = AppMunicipalitiesRouteImport.update({
+  id: '/municipalities',
+  path: '/municipalities',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppMembersRoute = AppMembersRouteImport.update({
+  id: '/members',
+  path: '/members',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppIncidentsRoute = AppIncidentsRouteImport.update({
+  id: '/incidents',
+  path: '/incidents',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppAlliancesRoute = AppAlliancesRouteImport.update({
+  id: '/alliances',
+  path: '/alliances',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppSetsIdRoute = AppSetsIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => AppSetsRoute,
+} as any)
+const AppMembersIdRoute = AppMembersIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => AppMembersRoute,
+} as any)
+const AppIncidentsIdRoute = AppIncidentsIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => AppIncidentsRoute,
+} as any)
+const AppAlliancesIdRoute = AppAlliancesIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => AppAlliancesRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AppIndexRoute
   '/login': typeof LoginRoute
+  '/alliances': typeof AppAlliancesRouteWithChildren
+  '/incidents': typeof AppIncidentsRouteWithChildren
+  '/members': typeof AppMembersRouteWithChildren
+  '/municipalities': typeof AppMunicipalitiesRoute
+  '/sets': typeof AppSetsRouteWithChildren
+  '/sources': typeof AppSourcesRoute
+  '/alliances/$id': typeof AppAlliancesIdRoute
+  '/incidents/$id': typeof AppIncidentsIdRoute
+  '/members/$id': typeof AppMembersIdRoute
+  '/sets/$id': typeof AppSetsIdRoute
 }
 export interface FileRoutesByTo {
   '/login': typeof LoginRoute
+  '/alliances': typeof AppAlliancesRouteWithChildren
+  '/incidents': typeof AppIncidentsRouteWithChildren
+  '/members': typeof AppMembersRouteWithChildren
+  '/municipalities': typeof AppMunicipalitiesRoute
+  '/sets': typeof AppSetsRouteWithChildren
+  '/sources': typeof AppSourcesRoute
   '/': typeof AppIndexRoute
+  '/alliances/$id': typeof AppAlliancesIdRoute
+  '/incidents/$id': typeof AppIncidentsIdRoute
+  '/members/$id': typeof AppMembersIdRoute
+  '/sets/$id': typeof AppSetsIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_app': typeof AppRouteWithChildren
   '/login': typeof LoginRoute
+  '/_app/alliances': typeof AppAlliancesRouteWithChildren
+  '/_app/incidents': typeof AppIncidentsRouteWithChildren
+  '/_app/members': typeof AppMembersRouteWithChildren
+  '/_app/municipalities': typeof AppMunicipalitiesRoute
+  '/_app/sets': typeof AppSetsRouteWithChildren
+  '/_app/sources': typeof AppSourcesRoute
   '/_app/': typeof AppIndexRoute
+  '/_app/alliances/$id': typeof AppAlliancesIdRoute
+  '/_app/incidents/$id': typeof AppIncidentsIdRoute
+  '/_app/members/$id': typeof AppMembersIdRoute
+  '/_app/sets/$id': typeof AppSetsIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/login'
+  fullPaths:
+    | '/'
+    | '/login'
+    | '/alliances'
+    | '/incidents'
+    | '/members'
+    | '/municipalities'
+    | '/sets'
+    | '/sources'
+    | '/alliances/$id'
+    | '/incidents/$id'
+    | '/members/$id'
+    | '/sets/$id'
   fileRoutesByTo: FileRoutesByTo
-  to: '/login' | '/'
-  id: '__root__' | '/_app' | '/login' | '/_app/'
+  to:
+    | '/login'
+    | '/alliances'
+    | '/incidents'
+    | '/members'
+    | '/municipalities'
+    | '/sets'
+    | '/sources'
+    | '/'
+    | '/alliances/$id'
+    | '/incidents/$id'
+    | '/members/$id'
+    | '/sets/$id'
+  id:
+    | '__root__'
+    | '/_app'
+    | '/login'
+    | '/_app/alliances'
+    | '/_app/incidents'
+    | '/_app/members'
+    | '/_app/municipalities'
+    | '/_app/sets'
+    | '/_app/sources'
+    | '/_app/'
+    | '/_app/alliances/$id'
+    | '/_app/incidents/$id'
+    | '/_app/members/$id'
+    | '/_app/sets/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -78,14 +206,143 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppIndexRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/sources': {
+      id: '/_app/sources'
+      path: '/sources'
+      fullPath: '/sources'
+      preLoaderRoute: typeof AppSourcesRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/sets': {
+      id: '/_app/sets'
+      path: '/sets'
+      fullPath: '/sets'
+      preLoaderRoute: typeof AppSetsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/municipalities': {
+      id: '/_app/municipalities'
+      path: '/municipalities'
+      fullPath: '/municipalities'
+      preLoaderRoute: typeof AppMunicipalitiesRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/members': {
+      id: '/_app/members'
+      path: '/members'
+      fullPath: '/members'
+      preLoaderRoute: typeof AppMembersRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/incidents': {
+      id: '/_app/incidents'
+      path: '/incidents'
+      fullPath: '/incidents'
+      preLoaderRoute: typeof AppIncidentsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/alliances': {
+      id: '/_app/alliances'
+      path: '/alliances'
+      fullPath: '/alliances'
+      preLoaderRoute: typeof AppAlliancesRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/sets/$id': {
+      id: '/_app/sets/$id'
+      path: '/$id'
+      fullPath: '/sets/$id'
+      preLoaderRoute: typeof AppSetsIdRouteImport
+      parentRoute: typeof AppSetsRoute
+    }
+    '/_app/members/$id': {
+      id: '/_app/members/$id'
+      path: '/$id'
+      fullPath: '/members/$id'
+      preLoaderRoute: typeof AppMembersIdRouteImport
+      parentRoute: typeof AppMembersRoute
+    }
+    '/_app/incidents/$id': {
+      id: '/_app/incidents/$id'
+      path: '/$id'
+      fullPath: '/incidents/$id'
+      preLoaderRoute: typeof AppIncidentsIdRouteImport
+      parentRoute: typeof AppIncidentsRoute
+    }
+    '/_app/alliances/$id': {
+      id: '/_app/alliances/$id'
+      path: '/$id'
+      fullPath: '/alliances/$id'
+      preLoaderRoute: typeof AppAlliancesIdRouteImport
+      parentRoute: typeof AppAlliancesRoute
+    }
   }
 }
 
+interface AppAlliancesRouteChildren {
+  AppAlliancesIdRoute: typeof AppAlliancesIdRoute
+}
+
+const AppAlliancesRouteChildren: AppAlliancesRouteChildren = {
+  AppAlliancesIdRoute: AppAlliancesIdRoute,
+}
+
+const AppAlliancesRouteWithChildren = AppAlliancesRoute._addFileChildren(
+  AppAlliancesRouteChildren,
+)
+
+interface AppIncidentsRouteChildren {
+  AppIncidentsIdRoute: typeof AppIncidentsIdRoute
+}
+
+const AppIncidentsRouteChildren: AppIncidentsRouteChildren = {
+  AppIncidentsIdRoute: AppIncidentsIdRoute,
+}
+
+const AppIncidentsRouteWithChildren = AppIncidentsRoute._addFileChildren(
+  AppIncidentsRouteChildren,
+)
+
+interface AppMembersRouteChildren {
+  AppMembersIdRoute: typeof AppMembersIdRoute
+}
+
+const AppMembersRouteChildren: AppMembersRouteChildren = {
+  AppMembersIdRoute: AppMembersIdRoute,
+}
+
+const AppMembersRouteWithChildren = AppMembersRoute._addFileChildren(
+  AppMembersRouteChildren,
+)
+
+interface AppSetsRouteChildren {
+  AppSetsIdRoute: typeof AppSetsIdRoute
+}
+
+const AppSetsRouteChildren: AppSetsRouteChildren = {
+  AppSetsIdRoute: AppSetsIdRoute,
+}
+
+const AppSetsRouteWithChildren =
+  AppSetsRoute._addFileChildren(AppSetsRouteChildren)
+
 interface AppRouteChildren {
+  AppAlliancesRoute: typeof AppAlliancesRouteWithChildren
+  AppIncidentsRoute: typeof AppIncidentsRouteWithChildren
+  AppMembersRoute: typeof AppMembersRouteWithChildren
+  AppMunicipalitiesRoute: typeof AppMunicipalitiesRoute
+  AppSetsRoute: typeof AppSetsRouteWithChildren
+  AppSourcesRoute: typeof AppSourcesRoute
   AppIndexRoute: typeof AppIndexRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
+  AppAlliancesRoute: AppAlliancesRouteWithChildren,
+  AppIncidentsRoute: AppIncidentsRouteWithChildren,
+  AppMembersRoute: AppMembersRouteWithChildren,
+  AppMunicipalitiesRoute: AppMunicipalitiesRoute,
+  AppSetsRoute: AppSetsRouteWithChildren,
+  AppSourcesRoute: AppSourcesRoute,
   AppIndexRoute: AppIndexRoute,
 }
 
