@@ -33,25 +33,29 @@ SquiidWiki is a gang research database wiki that tracks social networks, inciden
 
 ## Development Commands
 
+**Python env:** `C:\Users\irish\miniconda3\envs\squiidwiki\python.exe` — always invoke via this path (no venv activation needed).
+
 ```bash
-# Backend
-cd backend
-uv run alembic upgrade head          # apply migrations
-uv run python -m app.seed            # seed sample data
-uv run uvicorn app.main:app --reload # start dev server → http://localhost:8000/docs
+# Backend (from backend/)
+PY="C:\Users\irish\miniconda3\envs\squiidwiki\python.exe"
+$PY -m uvicorn app.main:app --reload   # → http://localhost:8000/docs
+$PY -m alembic upgrade head            # apply migrations
+$PY -m alembic revision --autogenerate -m "Description"
+$PY -m app.seed                        # seed sample data
+$PY -m pytest --cov                    # run tests
 
-# Generate migration after model change
-uv run alembic revision --autogenerate -m "Description"
+# Install / update deps
+$PY -m pip install -r requirements-dev.txt
 
-# Tests
-uv run pytest --cov
+# Frontend (from frontend/)
+npm run dev    # → http://localhost:5173
+npm run build
+npm run lint
+npx tsc --noEmit   # type check
 
-# Frontend
-cd frontend
-pnpm dev    # → http://localhost:5173
-pnpm build
-pnpm test
-pnpm tsc --noEmit   # type check
+# Infrastructure
+docker compose up -d     # start Postgres + Redis
+docker compose down
 ```
 
 ## Architecture

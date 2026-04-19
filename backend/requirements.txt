@@ -1,0 +1,16 @@
+fastapi==0.135.3
+sqlmodel==0.0.38
+SQLAlchemy==2.0.49
+alembic==1.18.4
+asyncpg==0.31.0
+pydantic==2.12.5
+pydantic-settings==2.13.1
+pydantic_core==2.41.5
+uvicorn==0.43.0
+python-multipart==0.0.22
+python-jose==3.5.0
+argon2-cffi==25.1.0
+redis==7.4.0
+APScheduler==3.11.2
+structlog==25.5.0
+slowapi==0.1.9
