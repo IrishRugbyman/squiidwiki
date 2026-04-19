@@ -1,41 +1,36 @@
-"""
-Authentication schema models.
-"""
-
-from typing import Optional
 from datetime import datetime
-from pydantic import BaseModel, Field
+from typing import Optional
+
+from pydantic import BaseModel, ConfigDict
+
+from backend.database.models import GlobalRole
 
 
 class Token(BaseModel):
-    """Token response schema."""
     access_token: str
-    token_type: str
+    refresh_token: str
+    token_type: str = "bearer"
 
 
 class TokenData(BaseModel):
-    """Token data schema for JWT payload."""
     username: Optional[str] = None
 
 
 class User(BaseModel):
-    """User schema for responses."""
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     username: str
-    is_admin: bool
+    global_role: GlobalRole = GlobalRole.USER
+    is_admin: bool = False
     created_at: Optional[datetime] = None
-    
-    class Config:
-        orm_mode = True
 
 
 class UserInDB(User):
-    """User schema with database fields."""
     pass
 
 
 class UserCreate(BaseModel):
-    """User schema for creation."""
     username: str
     password: str
-    is_admin: Optional[bool] = False 
+    is_admin: bool = False

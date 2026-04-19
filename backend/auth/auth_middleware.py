@@ -32,6 +32,8 @@ class AuthMiddleware:
         token = token.replace("Bearer ", "")
         try:
             payload = jwt.decode(token, settings.auth.jwt_secret_key, algorithms=[ALGORITHM])
+            if payload.get("typ") != "access":
+                raise ValueError("not an access token")
             username = payload.get("sub")
             if username is None:
                 raise ValueError("no sub claim")

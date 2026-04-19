@@ -8,7 +8,7 @@ from sqlalchemy import select
 
 import backend.database.models  # noqa: F401
 from backend.database.base_class import get_db_context
-from backend.database.models import User
+from backend.database.models import GlobalRole, User
 from backend.auth.auth_utils import get_password_hash
 from backend.settings import settings
 
@@ -19,7 +19,7 @@ async def ensure_admin_exists() -> bool:
     try:
         async with get_db_context() as db:
             result = await db.execute(
-                select(User).where(User.is_admin == True)  # noqa: E712
+                select(User).where(User.global_role == GlobalRole.ADMIN)
             )
             if result.scalars().first():
                 return False
@@ -32,14 +32,14 @@ async def ensure_admin_exists() -> bool:
             )
             existing = existing_result.scalars().first()
             if existing:
-                if not existing.is_admin:
-                    existing.is_admin = True
+                if existing.global_role != GlobalRole.ADMIN:
+                    existing.global_role = GlobalRole.ADMIN
                     logger.info(f"Promoted '{username}' to admin")
             else:
                 db.add(User(
                     username=username,
-                    password_hash=get_password_hash(password),
-                    is_admin=True,
+                    hashed_password=get_password_hash(password),
+                    global_role=GlobalRole.ADMIN,
                 ))
                 logger.info(f"Created admin user '{username}'")
             return True

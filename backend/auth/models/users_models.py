@@ -1,16 +1,4 @@
-from sqlalchemy import Column, Integer, Text, Boolean, DateTime, text
-from sqlalchemy.orm import Mapped
-from datetime import datetime
+"""Backward-compat alias — real model lives in backend.database.models."""
+from backend.database.models import User as Users
 
-from backend.database.base_class import Base
-
-
-class Users(Base):
-    """User model for authentication and authorization"""
-    __tablename__ = 'users'
-
-    id = Column(Integer, primary_key=True)
-    username = Column(Text, nullable=False, unique=True)
-    password_hash = Column(Text, nullable=False)
-    is_admin = Column(Boolean, nullable=False, server_default=text("0"))
-    created_at = Column(DateTime, server_default=text("CURRENT_TIMESTAMP")) 
+__all__ = ["Users"]
