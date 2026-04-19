@@ -7,6 +7,7 @@ import pytest_asyncio
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 from backend.database.base_class import Base
+from backend.database.fuzzy_date import FuzzyDate
 from backend.database.models import (
     Alliance,
     AllianceSetMap,
@@ -52,7 +53,13 @@ async def universe(db: AsyncSession) -> Universe:
 
 @pytest_asyncio.fixture()
 async def active_set(db: AsyncSession) -> Set:
-    s = Set(name="TestSet", type=SetType.ACTIVE, founded_date=date(2010, 1, 1))
+    fd = FuzzyDate(year=2010, month=1, day=1, precision="YMD")
+    s = Set(
+        name="TestSet",
+        type=SetType.ACTIVE,
+        founded_date=fd,
+        founded_date_sortable=fd.to_sortable_date(),
+    )
     db.add(s)
     await db.flush()
     return s
@@ -60,11 +67,13 @@ async def active_set(db: AsyncSession) -> Set:
 
 @pytest_asyncio.fixture()
 async def alive_member(db: AsyncSession, active_set: Set) -> Member:
+    bd = FuzzyDate(year=1995, month=6, day=15, precision="YMD")
     m = Member(
         name="AliveMember",
         status=MemberStatus.ALIVE,
         set_id=active_set.id,
-        birth_date=date(1995, 6, 15),
+        birth_date=bd,
+        birth_date_sortable=bd.to_sortable_date(),
     )
     db.add(m)
     await db.flush()
@@ -73,12 +82,16 @@ async def alive_member(db: AsyncSession, active_set: Set) -> Member:
 
 @pytest_asyncio.fixture()
 async def deceased_member(db: AsyncSession, active_set: Set) -> Member:
+    bd = FuzzyDate(year=1990, month=1, day=1, precision="YMD")
+    dd = FuzzyDate(year=2020, month=5, day=10, precision="YMD")
     m = Member(
         name="DeceasedMember",
         status=MemberStatus.DECEASED,
         set_id=active_set.id,
-        birth_date=date(1990, 1, 1),
-        death_date=date(2020, 5, 10),
+        birth_date=bd,
+        birth_date_sortable=bd.to_sortable_date(),
+        death_date=dd,
+        death_date_sortable=dd.to_sortable_date(),
     )
     db.add(m)
     await db.flush()
@@ -87,11 +100,13 @@ async def deceased_member(db: AsyncSession, active_set: Set) -> Member:
 
 @pytest_asyncio.fixture()
 async def incarcerated_member(db: AsyncSession, active_set: Set) -> Member:
+    bd = FuzzyDate(year=1992, month=3, day=20, precision="YMD")
     m = Member(
         name="JailedMember",
         status=MemberStatus.INCARCERATED,
         set_id=active_set.id,
-        birth_date=date(1992, 3, 20),
+        birth_date=bd,
+        birth_date_sortable=bd.to_sortable_date(),
     )
     db.add(m)
     await db.flush()

@@ -42,12 +42,12 @@ class BusinessRuleValidator:
         """A deceased member cannot participate in events after death."""
         if (
             member.status == MemberStatus.DECEASED
-            and member.death_date is not None
+            and member.death_date_sortable is not None
             and event_date is not None
-            and event_date > member.death_date
+            and event_date > member.death_date_sortable
         ):
             raise VitalStateError(
-                f"Member '{member.name}' died on {member.death_date}; "
+                f"Member '{member.name}' died on {member.death_date_sortable}; "
                 f"cannot participate in an event dated {event_date}",
             )
 
@@ -82,13 +82,13 @@ class BusinessRuleValidator:
     ) -> None:
         """An event involving a gang cannot predate its founding."""
         if (
-            set_.founded_date is not None
+            set_.founded_date_sortable is not None
             and event_date is not None
-            and event_date < set_.founded_date
+            and event_date < set_.founded_date_sortable
         ):
             raise TemporalIntegrityError(
                 f"Event date {event_date} predates the founding of "
-                f"'{set_.name}' ({set_.founded_date})",
+                f"'{set_.name}' ({set_.founded_date_sortable})",
             )
 
     @staticmethod

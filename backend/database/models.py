@@ -29,6 +29,7 @@ from sqlalchemy import (
 from sqlalchemy.orm import Mapped, relationship
 
 from backend.database.base_class import AuditMixin, Base, TimestampMixin
+from backend.database.fuzzy_date import FuzzyDateJSON
 
 
 def _enum_values(enum_cls):
@@ -196,7 +197,8 @@ class Set(AuditMixin, Base):
     )
     description = Column(Text)
     emoji = Column(Text)
-    founded_date = Column(Date, nullable=True)
+    founded_date = Column(FuzzyDateJSON, nullable=True)
+    founded_date_sortable = Column(Date, nullable=True)
 
     # --- relationships -------------------------------------------------------
     members: Mapped[List[Member]] = relationship(
@@ -229,11 +231,11 @@ class Member(AuditMixin, Base):
     __tablename__ = "members"
     __table_args__ = (
         CheckConstraint(
-            "death_date IS NULL OR birth_date IS NULL OR death_date >= birth_date",
+            "death_date_sortable IS NULL OR birth_date_sortable IS NULL OR death_date_sortable >= birth_date_sortable",
             name="ck_member_death_after_birth",
         ),
         CheckConstraint(
-            "joined_date IS NULL OR birth_date IS NULL OR joined_date >= birth_date",
+            "joined_date IS NULL OR birth_date_sortable IS NULL OR joined_date >= birth_date_sortable",
             name="ck_member_joined_after_birth",
         ),
         Index("idx_members_set_id", "set_id"),
@@ -250,17 +252,12 @@ class Member(AuditMixin, Base):
     )
     description = Column(Text)
 
-    birth_date = Column(Date, nullable=True)
-    death_date = Column(Date, nullable=True)
-    death_date_precision = Column(
-        Enum(DatePrecision, name="date_precision_enum", native_enum=False, values_callable=_enum_values),
-        server_default=DatePrecision.UNKNOWN.value,
-    )
-    release_date = Column(Date, nullable=True)
-    release_date_precision = Column(
-        Enum(DatePrecision, name="date_precision_enum", native_enum=False, create_constraint=False, values_callable=_enum_values),
-        server_default=DatePrecision.UNKNOWN.value,
-    )
+    birth_date = Column(FuzzyDateJSON, nullable=True)
+    birth_date_sortable = Column(Date, nullable=True)
+    death_date = Column(FuzzyDateJSON, nullable=True)
+    death_date_sortable = Column(Date, nullable=True)
+    release_date = Column(FuzzyDateJSON, nullable=True)
+    release_date_sortable = Column(Date, nullable=True)
 
     set_id = Column(ForeignKey("sets.id", ondelete="SET NULL"), nullable=True)
     joined_date = Column(Date, nullable=True)
@@ -289,11 +286,8 @@ class Event(AuditMixin, Base):
         Enum(EventType, name="event_type_enum", native_enum=False, values_callable=_enum_values),
         nullable=False,
     )
-    date = Column(Date, nullable=True)
-    date_precision = Column(
-        Enum(DatePrecision, name="date_precision_enum", native_enum=False, create_constraint=False, values_callable=_enum_values),
-        server_default=DatePrecision.UNKNOWN.value,
-    )
+    date = Column(FuzzyDateJSON, nullable=True)
+    date_sortable = Column(Date, nullable=True)
     description = Column(Text)
     location_type = Column(
         Enum(LocationType, name="location_type_enum", native_enum=False, values_callable=_enum_values),

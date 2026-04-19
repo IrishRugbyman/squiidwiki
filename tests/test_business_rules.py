@@ -6,6 +6,8 @@ from datetime import date
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from backend.database.fuzzy_date import FuzzyDate
+
 from backend.database.models import (
     LocationType,
     Member,
@@ -38,7 +40,7 @@ class TestVitalStateConstraint:
 
     async def test_deceased_member_event_on_death_date_passes(self, deceased_member: Member):
         BusinessRuleValidator.validate_vital_state(
-            deceased_member, deceased_member.death_date,
+            deceased_member, deceased_member.death_date_sortable,
         )
 
     async def test_deceased_member_event_before_death_passes(self, deceased_member: Member):
@@ -118,7 +120,7 @@ class TestTemporalIntegrity:
 
     async def test_event_on_founding_date_passes(self, active_set: Set):
         BusinessRuleValidator.validate_event_after_founding(
-            active_set, active_set.founded_date,
+            active_set, active_set.founded_date_sortable,
         )
 
     async def test_event_after_founding_passes(self, active_set: Set):
