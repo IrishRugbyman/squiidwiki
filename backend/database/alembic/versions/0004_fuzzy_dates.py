@@ -28,9 +28,9 @@ def upgrade() -> None:
     op.drop_column("members", "death_date_precision")
     op.drop_column("members", "release_date_precision")
 
-    # Update check constraints to use sortable columns
-    op.drop_constraint("ck_member_death_after_birth", "members")
-    op.drop_constraint("ck_member_joined_after_birth", "members")
+    # Update check constraints to use sortable columns (IF EXISTS — baseline may not have created them)
+    op.execute("ALTER TABLE members DROP CONSTRAINT IF EXISTS ck_member_death_after_birth")
+    op.execute("ALTER TABLE members DROP CONSTRAINT IF EXISTS ck_member_joined_after_birth")
     op.create_check_constraint(
         "ck_member_death_after_birth",
         "members",
@@ -63,8 +63,8 @@ def downgrade() -> None:
     op.add_column("members", sa.Column("death_date_precision", sa.Text(), nullable=True, server_default="unknown"))
     op.add_column("members", sa.Column("release_date_precision", sa.Text(), nullable=True, server_default="unknown"))
 
-    op.drop_constraint("ck_member_death_after_birth", "members")
-    op.drop_constraint("ck_member_joined_after_birth", "members")
+    op.execute("ALTER TABLE members DROP CONSTRAINT IF EXISTS ck_member_death_after_birth")
+    op.execute("ALTER TABLE members DROP CONSTRAINT IF EXISTS ck_member_joined_after_birth")
     op.create_check_constraint(
         "ck_member_death_after_birth",
         "members",
