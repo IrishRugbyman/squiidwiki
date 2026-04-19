@@ -1,0 +1,169 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ───────── Base layer: dark-mode-first defaults ───────── */
+@layer base {
+  html {
+    @apply bg-bgbase text-gray-200 antialiased;
+  }
+  html.light {
+    @apply bg-bgbase-light text-gray-900;
+  }
+  body {
+    @apply font-sans min-h-screen flex flex-col;
+  }
+}
+
+/* ───────── Component layer: reusable UI patterns ───────── */
+@layer components {
+  /* Cards */
+  .card {
+    @apply bg-surface border border-gray-800 rounded-lg shadow-md
+           transition-colors duration-200;
+  }
+  .light .card {
+    @apply bg-surface-light border-gray-200 shadow-sm;
+  }
+
+  /* Buttons */
+  .btn {
+    @apply inline-flex items-center justify-center gap-2
+           px-4 py-2 rounded-md font-medium text-sm
+           transition-all duration-150 cursor-pointer
+           focus:outline-none focus:ring-2 focus:ring-offset-2
+           disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+  .btn-primary {
+    @apply btn bg-brand-600 text-white hover:bg-brand-500
+           focus:ring-brand-500;
+  }
+  .light .btn-primary {
+    @apply focus:ring-offset-white;
+  }
+  .btn-secondary {
+    @apply btn bg-gray-700 text-gray-200 hover:bg-gray-600
+           focus:ring-gray-500;
+  }
+  .light .btn-secondary {
+    @apply bg-gray-200 text-gray-800 hover:bg-gray-300;
+  }
+  .btn-danger {
+    @apply btn bg-red-700 text-white hover:bg-red-600
+           focus:ring-red-500;
+  }
+  .btn-ghost {
+    @apply btn bg-transparent text-gray-300 hover:bg-white/10
+           focus:ring-brand-500;
+  }
+  .light .btn-ghost {
+    @apply text-gray-600 hover:bg-gray-100;
+  }
+  .btn-sm {
+    @apply px-3 py-1.5 text-xs;
+  }
+
+  /* Form elements */
+  .form-input {
+    @apply w-full px-3 py-2 rounded-md border border-gray-700
+           bg-gray-900 text-gray-200 placeholder-gray-500
+           focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500
+           transition-colors duration-150;
+  }
+  .light .form-input {
+    @apply border-gray-300 bg-white text-gray-900 placeholder-gray-400;
+  }
+  .form-select {
+    @apply form-input appearance-none
+           bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2020%2020%22%20fill%3D%22%239ca3af%22%3E%3Cpath%20fill-rule%3D%22evenodd%22%20d%3D%22M5.293%207.293a1%201%200%20011.414%200L10%2010.586l3.293-3.293a1%201%200%20111.414%201.414l-4%204a1%201%200%2001-1.414%200l-4-4a1%201%200%20010-1.414z%22%20clip-rule%3D%22evenodd%22%2F%3E%3C%2Fsvg%3E')]
+           bg-[length:1.25rem] bg-[right_0.5rem_center] bg-no-repeat pr-10;
+  }
+  .form-label {
+    @apply block text-sm font-medium text-gray-300 mb-1;
+  }
+  .light .form-label {
+    @apply text-gray-700;
+  }
+
+  /* Tables */
+  .data-table {
+    @apply w-full text-sm text-left;
+  }
+  .data-table thead {
+    @apply bg-gray-800/50 text-gray-400 uppercase text-xs tracking-wider;
+  }
+  .light .data-table thead {
+    @apply bg-gray-100 text-gray-500;
+  }
+  .data-table th {
+    @apply px-4 py-3 font-semibold;
+  }
+  .data-table td {
+    @apply px-4 py-3 border-t border-gray-800;
+  }
+  .light .data-table td {
+    @apply border-gray-200;
+  }
+  .data-table tbody tr {
+    @apply hover:bg-white/5 transition-colors duration-100;
+  }
+  .light .data-table tbody tr {
+    @apply hover:bg-gray-50;
+  }
+
+  /* Badges / Tags */
+  .badge {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full
+           text-xs font-medium;
+  }
+  .badge-active   { @apply bg-emerald-500/20 text-emerald-400; }
+  .badge-deceased  { @apply bg-red-500/20 text-red-400; }
+  .badge-inactive  { @apply bg-gray-500/20 text-gray-400; }
+  .badge-jailed    { @apply bg-amber-500/20 text-amber-400; }
+  .badge-info      { @apply bg-sky-500/20 text-sky-400; }
+
+  .light .badge-active   { @apply bg-emerald-100 text-emerald-700; }
+  .light .badge-deceased  { @apply bg-red-100 text-red-700; }
+  .light .badge-inactive  { @apply bg-gray-100 text-gray-600; }
+  .light .badge-jailed    { @apply bg-amber-100 text-amber-700; }
+  .light .badge-info      { @apply bg-sky-100 text-sky-700; }
+
+  /* Nav links */
+  .nav-link {
+    @apply text-gray-300 no-underline px-3 py-2 rounded-md text-sm font-medium
+           flex items-center gap-2
+           hover:bg-white/10 hover:text-brand-300
+           transition-colors duration-150;
+  }
+  .light .nav-link {
+    @apply text-gray-600 hover:bg-gray-100 hover:text-brand-600;
+  }
+
+  /* Page header block */
+  .page-header {
+    @apply flex flex-col sm:flex-row sm:items-center sm:justify-between
+           gap-4 mb-8;
+  }
+  .page-title {
+    @apply text-2xl font-bold tracking-tight;
+  }
+
+  /* Toast / Flash messages */
+  .toast {
+    @apply fixed top-4 right-4 z-50 max-w-sm px-4 py-3 rounded-lg
+           shadow-lg text-sm font-medium
+           transition-all duration-300;
+  }
+  .toast-success { @apply bg-emerald-600 text-white; }
+  .toast-error   { @apply bg-red-600 text-white; }
+  .toast-warning { @apply bg-amber-500 text-gray-900; }
+
+  /* Modal backdrop */
+  .modal-backdrop {
+    @apply fixed inset-0 z-40 bg-black/60 backdrop-blur-sm
+           flex items-center justify-center;
+  }
+  .modal-content {
+    @apply card p-6 w-full max-w-lg mx-4;
+  }
+}

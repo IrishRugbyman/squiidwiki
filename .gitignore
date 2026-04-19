@@ -49,4 +49,5 @@ frontend/static/js/
 *.log
 *.sqlite
 *.db
-!squiidvault.db
+squiidvault.db
+my_vision.txt
