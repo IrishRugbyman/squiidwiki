@@ -1,75 +1,46 @@
-from fastapi import Request, Response, status, HTTPException
+from fastapi import Request, status
 from fastapi.responses import RedirectResponse
-from starlette.middleware.base import BaseHTTPMiddleware
-from sqlalchemy.orm import Session
-from sqlalchemy.exc import SQLAlchemyError
 from jose import JWTError, jwt
 
 from backend.auth.auth_utils import ALGORITHM
-from backend.config.config import settings
 from backend.database.imports import get_db, Users
+from backend.settings import settings
+
 
 class AuthMiddleware:
     async def __call__(self, request: Request, call_next):
-        # AUTH BYPASS FOR DEVELOPMENT - only available in development mode
-        if settings.AUTH_BYPASS_ENABLED:
-            bypass_auth = request.cookies.get("auth_bypass") == settings.AUTH_BYPASS_CODE
-            if bypass_auth:
-                # Set admin privileges for bypass mode
-                request.state.user = "dev_admin"
-                request.state.is_admin = True
-                return await call_next(request)
-            
-        # Exclude login page and static files from authentication
+        if not settings.auth.enabled:
+            request.state.user = "dev_user"
+            request.state.is_admin = True
+            return await call_next(request)
+
         if (
-            request.url.path.startswith("/static") or
-            request.url.path.startswith("/auth/login") or
-            request.url.path == "/docs" or
-            request.url.path == "/openapi.json" or
-            request.url.path == "/redoc"
+            request.url.path.startswith("/static")
+            or request.url.path.startswith("/auth/login")
+            or request.url.path in ("/docs", "/openapi.json", "/redoc", "/health")
         ):
             return await call_next(request)
 
-        # Get the token from the cookie
         token = request.cookies.get("access_token")
         if not token or not token.startswith("Bearer "):
-            # If no token, redirect to login page
             if request.url.path != "/auth/login":
-                return RedirectResponse(
-                    url="/auth/login",
-                    status_code=status.HTTP_303_SEE_OTHER
-                )
+                return RedirectResponse(url="/auth/login", status_code=status.HTTP_303_SEE_OTHER)
             return await call_next(request)
 
-        # Extract the actual token
         token = token.replace("Bearer ", "")
-        
         try:
-            # Decode the token
-            payload = jwt.decode(token, settings.JWT_SECRET_KEY, algorithms=[ALGORITHM])
+            payload = jwt.decode(token, settings.auth.jwt_secret_key, algorithms=[ALGORITHM])
             username = payload.get("sub")
             if username is None:
-                raise HTTPException(status_code=401, detail="Invalid authentication credentials")
-                
-            # Set the current user in request state
+                raise ValueError("no sub claim")
+
             request.state.user = username
-            
-            # Get the user from database to check admin status
             db = next(get_db())
             user = db.query(Users).filter(Users.username == username).first()
-            if user:
-                request.state.is_admin = user.is_admin
-            else:
-                request.state.is_admin = False
-            
-            # Continue with the request
+            request.state.is_admin = user.is_admin if user else False
             return await call_next(request)
-            
-        except JWTError:
-            # If token is invalid, redirect to login
-            response = RedirectResponse(
-                url="/auth/login",
-                status_code=status.HTTP_303_SEE_OTHER
-            )
+
+        except (JWTError, ValueError):
+            response = RedirectResponse(url="/auth/login", status_code=status.HTTP_303_SEE_OTHER)
             response.delete_cookie("access_token")
-            return response 
+            return response

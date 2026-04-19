@@ -8,8 +8,7 @@ from backend.auth.auth_utils import (
     authenticate_user, create_access_token, get_password_hash,
     ACCESS_TOKEN_EXPIRE_MINUTES, get_current_active_user, get_current_admin_user
 )
-from backend.config.config import settings
-from backend.config.templates import templates
+from backend.templates import templates
 from backend.database.imports import Users, get_db
 from backend.auth.schemas import User, UserCreate
 

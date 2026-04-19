@@ -5,7 +5,7 @@ from fastapi import APIRouter, Request, Form, HTTPException, Depends
 from fastapi.responses import HTMLResponse, RedirectResponse
 from sqlalchemy.orm import Session
 from sqlalchemy import or_
-from backend.config.templates import templates
+from backend.templates import templates
 from backend.database.models import Member
 
 # Import your ORM models

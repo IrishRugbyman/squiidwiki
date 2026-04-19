@@ -7,15 +7,11 @@ from pydantic import ValidationError
 import logging
 from typing import Dict, Any, Optional, Union
 
-from backend.config.templates import templates
-from backend.config.config import settings
+from backend.templates import templates
+from backend.settings import settings
 
-# Set up logging
 logger = logging.getLogger(__name__)
-if settings.DEBUG:
-    logging.basicConfig(level=logging.DEBUG)
-else:
-    logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.DEBUG if settings.is_development() else logging.INFO)
 
 
 class AppError(Exception):
@@ -96,7 +92,7 @@ def register_exception_handlers(app: FastAPI) -> None:
     async def app_error_handler(request: Request, exc: AppError) -> Union[JSONResponse, HTMLResponse]:
         """Handle all application errors."""
         # Log the error
-        logger.error(f"AppError: {exc.message}", exc_info=exc if settings.DEBUG else False)
+        logger.error(f"AppError: {exc.message}", exc_info=exc if settings.is_development() else False)
         
         # Create the error response
         content = {
@@ -169,11 +165,11 @@ def register_exception_handlers(app: FastAPI) -> None:
     async def server_error_handler(request: Request, exc: Any) -> HTMLResponse:
         """Handle 500 errors."""
         # Log the error
-        logger.error(f"Internal server error: {str(exc)}", exc_info=exc if settings.DEBUG else False)
+        logger.error(f"Internal server error: {str(exc)}", exc_info=exc if settings.is_development() else False)
         
         return templates.TemplateResponse(
             "errors/500.html",
-            {"request": request, "debug": settings.DEBUG},
+            {"request": request, "debug": settings.is_development()},
             status_code=500
         )
 

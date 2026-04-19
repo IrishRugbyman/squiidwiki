@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Request, Depends
 from sqlalchemy.orm import Session
 from backend.database.imports import get_db, Sets, Members, Alliance
-from backend.config.templates import templates
+from backend.templates import templates
 
 
 router = APIRouter()

@@ -6,7 +6,7 @@ from starlette.responses import HTMLResponse, RedirectResponse
 
 from sqlalchemy.orm import Session, aliased
 
-from backend.config.templates import templates
+from backend.templates import templates
 from backend.database.base_class import get_db
 from backend.members.models import Members
 from backend.events.models import Murders, Shootings

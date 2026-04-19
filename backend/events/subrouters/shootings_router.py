@@ -4,7 +4,7 @@ from typing import Optional
 from fastapi import APIRouter, Request, Form, HTTPException, Depends
 from fastapi.responses import HTMLResponse, RedirectResponse
 from sqlalchemy.orm import Session
-from backend.config.templates import templates
+from backend.templates import templates
 from backend.database import get_db
 from backend.events.models import Shootings
 from backend.members.models import Members

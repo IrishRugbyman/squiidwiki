@@ -6,7 +6,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
 
-from backend.config.templates import templates
+from backend.templates import templates
 from backend.alliances.schemas import AllianceOption, AllianceCreate, AllianceUpdate, AllianceResponse, SetInAlliance
 from backend.database.imports import Alliance, AllianceSetsMap, Sets, Members, get_db
 from backend.alliances.service.alliance_service import alliance_service

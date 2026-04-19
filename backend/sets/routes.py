@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Request, Form, HTTPException, Depends, Query
 from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
-from backend.config.templates import templates
+from backend.templates import templates
 from typing import Optional
 from backend.database.imports import get_db, Sets, Members, Config, SetAlliesMap, SetEnemiesMap, Murders, Shootings, Assists, Alliance, AllianceSetsMap
 from backend.database.enums import eSetType

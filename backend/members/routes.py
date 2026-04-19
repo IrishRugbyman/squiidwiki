@@ -4,7 +4,7 @@ from typing import Optional, List
 from fastapi import APIRouter, Request, Form, HTTPException, Depends, Body, Query
 from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from sqlalchemy.orm import Session, joinedload
-from backend.config.templates import templates
+from backend.templates import templates
 
 # Import your SQLAlchemy ORM models.
 from backend.database.imports import Members, Sets, Alliance as Alliances, Shootings, Murders, Assists, get_db

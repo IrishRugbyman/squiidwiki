@@ -1,39 +1,40 @@
-"""
-Central import file for database models.
-Import this file to access all models across the application.
-"""
+"""Central re-export hub for database models and session utilities.
 
-# Base database components
+All names here use the *new* consolidated models from backend.database.models.
+Legacy aliases (Users, Sets, Members, etc.) keep existing router code importable
+while the per-domain rewrite is in progress.
+"""
 from backend.database.base_class import Base, SessionLocal, engine, get_db, get_db_context
+from backend.database.models import (
+    # Config / system
+    Config,
+    DbEnum as Enums,
+    # Auth
+    User as Users,
+    # Sets
+    Set as Sets,
+    SetRelationship as SetAlliesMap,
+    SetRelationship as SetEnemiesMap,
+    # Alliances
+    Alliance,
+    AllianceSetMap as AllianceSetsMap,
+    AllianceSetMap,
+    # Members
+    Member as Members,
+    # Events (consolidated — old names map to Event for import compat)
+    Event as Assists,
+    Event as Murders,
+    Event as Shootings,
+    Event,
+    EventParticipant,
+)
 
-# Config models
-from backend.config.models import Config, Enums
-
-# User models
-from backend.auth.models import Users
-
-# Set models
-from backend.sets.models import Sets, SetAlliesMap, SetEnemiesMap
-
-# Alliance models
-from backend.alliances.models import Alliance, AllianceSetsMap
-
-# Member models
-from backend.members.models import Members
-
-# Incident models
-from backend.events.models import Assists, Murders, Shootings
-
-# Export all models
 __all__ = [
-    # Base components
     "Base", "SessionLocal", "engine", "get_db", "get_db_context",
-    
-    # Models
     "Config", "Enums",
     "Users",
     "Sets", "SetAlliesMap", "SetEnemiesMap",
-    "Alliance", "AllianceSetsMap",
+    "Alliance", "AllianceSetsMap", "AllianceSetMap",
     "Members",
-    "Assists", "Murders", "Shootings"
-] 
+    "Assists", "Murders", "Shootings", "Event", "EventParticipant",
+]

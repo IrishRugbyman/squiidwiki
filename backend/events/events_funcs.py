@@ -1,6 +1,6 @@
 from typing import Optional, List, Any, Dict, Tuple, Union
 from fastapi import Request, HTTPException
-from backend.config.templates import templates
+from backend.templates import templates
 from sqlalchemy import or_
 from sqlalchemy.orm import Session
 from datetime import datetime
