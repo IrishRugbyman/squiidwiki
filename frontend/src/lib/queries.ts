@@ -8,6 +8,7 @@ import type {
   CursorPage,
   GlobalRole,
   IncidentListItem,
+  UniverseAnalytics,
   IncidentRead,
   IncidentReadDetail,
   MemberListItem,
@@ -112,7 +113,16 @@ export const useDeleteSet = (universeId: UUID) => {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: (id: UUID) => api.delete(`/sets/${id}?universe_id=${universeId}`),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['sets', universeId] }) },
+    onMutate: async (id) => {
+      await qc.cancelQueries({ queryKey: ['sets', universeId] })
+      const prev = qc.getQueriesData({ queryKey: ['sets', universeId] })
+      qc.setQueriesData({ queryKey: ['sets', universeId] }, (old: any) =>
+        old?.items ? { ...old, items: old.items.filter((s: any) => s.id !== id), total: Math.max(0, (old.total ?? 1) - 1) } : old
+      )
+      return { prev }
+    },
+    onError: (_e, _id, ctx: any) => { if (ctx?.prev) qc.setQueriesData({ queryKey: ['sets', universeId] }, ctx.prev) },
+    onSettled: () => { qc.invalidateQueries({ queryKey: ['sets'] }) },
   })
 }
 
@@ -469,3 +479,13 @@ export const useUpdateUserRole = () => {
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['users'] }) },
   })
 }
+
+// ─── Analytics ────────────────────────────────────────────────────────────────
+
+export const useUniverseAnalytics = (universeId: UUID | null) =>
+  useQuery({
+    queryKey: ['analytics', universeId],
+    queryFn: () => api.get<UniverseAnalytics>(`/universes/${universeId}/analytics`),
+    enabled: !!universeId,
+    staleTime: 60_000,
+  })

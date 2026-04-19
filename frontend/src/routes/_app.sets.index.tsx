@@ -1,18 +1,19 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
-import { Plus, Search } from 'lucide-react'
-import { useState } from 'react'
+import { Download, Plus, Search, Shield } from 'lucide-react'
+import { useMemo, useState } from 'react'
 import { NoUniverse } from '@/components/NoUniverse'
 import { PageHeader } from '@/components/PageHeader'
 import { SetStatusBadge } from '@/components/StatusBadge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
-import { useCreateSet, useSets, useSetSearch, useUpdateSet } from '@/lib/queries'
-import { useUniverseStore } from '@/stores/universe'
-import { Sheet, SheetContent, SheetClose } from '@/components/Sheet'
-import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
+import { Label } from '@/components/ui/label'
+import { Sheet, SheetContent, SheetClose } from '@/components/Sheet'
+import { useCreateSet, useSets, useSetSearch, useUpdateSet } from '@/lib/queries'
+import { useUniverseStore } from '@/stores/universe'
+import { downloadCsv } from '@/lib/download'
 import type { SetRead, SetStatus } from '@/lib/types'
 
 export const Route = createFileRoute('/_app/sets/')({
@@ -99,11 +100,33 @@ export function SetFormSheet({ universeId, open, onClose, initial }: SetFormProp
   )
 }
 
+type SortKey = 'name' | 'status'
+
+function SortHeader({ label, col, sortKey, sortDir, onSort }: {
+  label: string; col: SortKey; sortKey: SortKey | null; sortDir: 'asc' | 'desc'; onSort: (k: SortKey) => void
+}) {
+  return (
+    <th className="px-4 py-2.5 text-left">
+      <button
+        onClick={() => onSort(col)}
+        className="flex items-center gap-1 text-xs font-medium text-zinc-400 hover:text-white transition-colors"
+      >
+        {label}
+        <span className="text-zinc-600">
+          {sortKey === col ? (sortDir === 'asc' ? '↑' : '↓') : '↕'}
+        </span>
+      </button>
+    </th>
+  )
+}
+
 function SetsPage() {
   const universe = useUniverseStore((s) => s.activeUniverse)
   const [q, setQ] = useState('')
   const [offset, setOffset] = useState(0)
   const [creating, setCreating] = useState(false)
+  const [sortKey, setSortKey] = useState<SortKey | null>(null)
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc')
   const PAGE = 20
 
   const { data, isLoading } = useSets(universe?.id ?? null, offset)
@@ -111,8 +134,22 @@ function SetsPage() {
 
   if (!universe) return <NoUniverse />
 
-  const items = q.length >= 2 ? (searchResults ?? []) : (data?.items ?? [])
+  const rawItems = q.length >= 2 ? (searchResults ?? []) : (data?.items ?? [])
   const total = data?.total ?? 0
+
+  function toggleSort(key: SortKey) {
+    if (sortKey === key) setSortDir((d) => d === 'asc' ? 'desc' : 'asc')
+    else { setSortKey(key); setSortDir('asc') }
+  }
+
+  const items = useMemo(() => {
+    if (!sortKey) return rawItems
+    return [...rawItems].sort((a, b) => {
+      const av = String((a as any)[sortKey] ?? '')
+      const bv = String((b as any)[sortKey] ?? '')
+      return sortDir === 'asc' ? av.localeCompare(bv) : bv.localeCompare(av)
+    })
+  }, [rawItems, sortKey, sortDir])
 
   return (
     <div>
@@ -125,22 +162,23 @@ function SetsPage() {
       <div className="mb-4 flex items-center gap-2">
         <div className="relative flex-1 max-w-sm">
           <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
-          <Input
-            className="pl-8"
-            placeholder="Search sets…"
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-          />
+          <Input className="pl-8" placeholder="Search sets…" value={q} onChange={(e) => setQ(e.target.value)} />
         </div>
+        <Button
+          variant="outline" size="sm"
+          onClick={() => downloadCsv(`/sets/?universe_id=${universe.id}&format=csv`, 'sets.csv')}
+        >
+          <Download className="mr-1.5 h-3.5 w-3.5" />Export
+        </Button>
       </div>
 
       <div className="overflow-hidden rounded-lg border border-zinc-800">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-zinc-800 bg-zinc-900/50">
-              <th className="px-4 py-2.5 text-left font-medium text-zinc-400">Name</th>
-              <th className="px-4 py-2.5 text-left font-medium text-zinc-400">Alias</th>
-              <th className="px-4 py-2.5 text-left font-medium text-zinc-400">Status</th>
+              <SortHeader label="Name" col="name" sortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
+              <th className="px-4 py-2.5 text-left text-xs font-medium text-zinc-400">Alias</th>
+              <SortHeader label="Status" col="status" sortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
             </tr>
           </thead>
           <tbody className="divide-y divide-zinc-800">
@@ -174,7 +212,18 @@ function SetsPage() {
                 })}
             {!isLoading && items.length === 0 && (
               <tr>
-                <td colSpan={3} className="px-4 py-12 text-center text-sm text-zinc-500">No sets found</td>
+                <td colSpan={3}>
+                  <div className="flex flex-col items-center py-12 text-center">
+                    <Shield className="mb-3 h-8 w-8 text-zinc-700" />
+                    <p className="text-sm text-zinc-500">No sets yet</p>
+                    <button
+                      onClick={() => setCreating(true)}
+                      className="mt-2 text-xs text-violet-400 hover:text-violet-300 transition-colors"
+                    >
+                      Create the first set →
+                    </button>
+                  </div>
+                </td>
               </tr>
             )}
           </tbody>

@@ -2,6 +2,8 @@ import uuid
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Query
+from pydantic import BaseModel
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.dependencies import CurrentUser, require_global_role
@@ -10,6 +12,17 @@ from app.core.enums import GlobalRole
 from app.crud import universe as crud
 from app.schemas.common import OffsetPage
 from app.schemas.universe import UniverseCreate, UniverseListItem, UniverseRead, UniverseUpdate
+
+
+class UniverseAnalytics(BaseModel):
+    total_members: int
+    total_sets: int
+    total_incidents: int
+    total_sources: int
+    member_by_status: dict[str, int]
+    incident_by_type: dict[str, int]
+    top_sets_by_incidents: list[dict]
+    top_sources_by_references: list[dict]
 
 router = APIRouter(prefix="/universes", tags=["universes"])
 
@@ -70,3 +83,67 @@ async def delete_universe(
     ok = await crud.delete_universe(session, id)
     if not ok:
         raise HTTPException(404)
+
+
+@router.get("/{id}/analytics", response_model=UniverseAnalytics)
+async def get_universe_analytics(
+    id: uuid.UUID,
+    _: CurrentUser,
+    session: Annotated[AsyncSession, Depends(get_session)],
+) -> UniverseAnalytics:
+    uid = str(id)
+
+    totals = (await session.execute(text("""
+        SELECT
+            (SELECT count(*) FROM member WHERE universe_id = :uid) AS members,
+            (SELECT count(*) FROM sets WHERE universe_id = :uid) AS sets,
+            (SELECT count(*) FROM incident WHERE universe_id = :uid) AS incidents,
+            (SELECT count(*) FROM source WHERE universe_id = :uid) AS sources
+    """), {"uid": uid})).one()
+
+    status_rows = (await session.execute(text(
+        "SELECT status, count(*) AS cnt FROM member WHERE universe_id = :uid GROUP BY status"
+    ), {"uid": uid})).fetchall()
+
+    type_rows = (await session.execute(text(
+        "SELECT type, count(*) AS cnt FROM incident WHERE universe_id = :uid GROUP BY type"
+    ), {"uid": uid})).fetchall()
+
+    top_sets_rows = (await session.execute(text("""
+        SELECT s.id, s.name, count(DISTINCT ip.incident_id) AS incident_count
+        FROM sets s
+        JOIN member m ON m.set_id = s.id
+        JOIN incident_participant ip ON ip.member_id = m.id
+        JOIN incident i ON i.id = ip.incident_id AND i.universe_id = :uid
+        WHERE s.universe_id = :uid
+        GROUP BY s.id, s.name
+        ORDER BY incident_count DESC
+        LIMIT 5
+    """), {"uid": uid})).fetchall()
+
+    top_sources_rows = (await session.execute(text("""
+        SELECT src.id, src.title,
+            (SELECT count(*) FROM incident_source WHERE source_id = src.id) +
+            (SELECT count(*) FROM member_source WHERE source_id = src.id) AS ref_count
+        FROM source src
+        WHERE src.universe_id = :uid
+        ORDER BY ref_count DESC
+        LIMIT 5
+    """), {"uid": uid})).fetchall()
+
+    return UniverseAnalytics(
+        total_members=totals.members,
+        total_sets=totals.sets,
+        total_incidents=totals.incidents,
+        total_sources=totals.sources,
+        member_by_status={r.status: r.cnt for r in status_rows},
+        incident_by_type={r.type: r.cnt for r in type_rows},
+        top_sets_by_incidents=[
+            {"id": str(r.id), "name": r.name, "incident_count": r.incident_count}
+            for r in top_sets_rows
+        ],
+        top_sources_by_references=[
+            {"id": str(r.id), "title": r.title, "ref_count": r.ref_count}
+            for r in top_sources_rows
+        ],
+    )

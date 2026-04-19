@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
-import { Plus, Search } from 'lucide-react'
+import { Download, Plus, Search, Users } from 'lucide-react'
 import { useState } from 'react'
 import { NoUniverse } from '@/components/NoUniverse'
 import { PageHeader } from '@/components/PageHeader'
@@ -17,8 +17,10 @@ import {
   useSets, useAlliances, useBulkMemberStatus,
 } from '@/lib/queries'
 import { useUniverseStore } from '@/stores/universe'
+import { downloadCsv } from '@/lib/download'
 import type { MemberRead, MemberStatus } from '@/lib/types'
 import type { FuzzyDateValue } from '@/components/FuzzyDate'
+import { useMemo } from 'react'
 
 export const Route = createFileRoute('/_app/members/')({
   component: MembersPage,
@@ -194,6 +196,8 @@ function MembersPage() {
   const [creating, setCreating] = useState(false)
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [bulkStatus, setBulkStatus] = useState<MemberStatus>('FREE')
+  const [sortKey, setSortKey] = useState<'display_name' | 'status' | null>(null)
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc')
   const bulkUpdate = useBulkMemberStatus(universe?.id ?? '')
 
   const { data, isLoading } = useMembers(universe?.id ?? null, cursor)
@@ -201,8 +205,23 @@ function MembersPage() {
 
   if (!universe) return <NoUniverse />
 
-  const items = q.length >= 2 ? (searchResults ?? []) : (data?.items ?? [])
+  const rawItems = q.length >= 2 ? (searchResults ?? []) : (data?.items ?? [])
   const total = data?.total
+
+  function toggleSort(key: 'display_name' | 'status') {
+    if (sortKey === key) setSortDir((d) => d === 'asc' ? 'desc' : 'asc')
+    else { setSortKey(key); setSortDir('asc') }
+  }
+
+  // eslint-disable-next-line react-hooks/rules-of-hooks
+  const items = useMemo(() => {
+    if (!sortKey) return rawItems
+    return [...rawItems].sort((a, b) => {
+      const av = String((a as any)[sortKey] ?? '')
+      const bv = String((b as any)[sortKey] ?? '')
+      return sortDir === 'asc' ? av.localeCompare(bv) : bv.localeCompare(av)
+    })
+  }, [rawItems, sortKey, sortDir])
 
   function toggleSelect(id: string) {
     setSelected((prev) => {
@@ -237,6 +256,9 @@ function MembersPage() {
           <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
           <Input className="pl-8" placeholder="Search members…" value={q} onChange={(e) => setQ(e.target.value)} />
         </div>
+        <Button variant="outline" size="sm" onClick={() => downloadCsv(`/members/?universe_id=${universe.id}&format=csv`, 'members.csv')}>
+          <Download className="mr-1.5 h-3.5 w-3.5" />Export
+        </Button>
         {selected.size > 0 && (
           <div className="flex items-center gap-2">
             <span className="text-xs text-zinc-400">{selected.size} selected</span>
@@ -270,8 +292,16 @@ function MembersPage() {
                   className="rounded border-zinc-700 bg-zinc-900 accent-violet-600"
                 />
               </th>
-              <th className="px-4 py-2.5 text-left font-medium text-zinc-400">Name</th>
-              <th className="px-4 py-2.5 text-left font-medium text-zinc-400">Status</th>
+              <th className="px-4 py-2.5 text-left">
+                <button onClick={() => toggleSort('display_name')} className="flex items-center gap-1 text-xs font-medium text-zinc-400 hover:text-white transition-colors">
+                  Name <span className="text-zinc-600">{sortKey === 'display_name' ? (sortDir === 'asc' ? '↑' : '↓') : '↕'}</span>
+                </button>
+              </th>
+              <th className="px-4 py-2.5 text-left">
+                <button onClick={() => toggleSort('status')} className="flex items-center gap-1 text-xs font-medium text-zinc-400 hover:text-white transition-colors">
+                  Status <span className="text-zinc-600">{sortKey === 'status' ? (sortDir === 'asc' ? '↑' : '↓') : '↕'}</span>
+                </button>
+              </th>
             </tr>
           </thead>
           <tbody className="divide-y divide-zinc-800">
@@ -306,7 +336,17 @@ function MembersPage() {
                 ))}
             {!isLoading && items.length === 0 && (
               <tr>
-                <td colSpan={3} className="px-4 py-12 text-center text-sm text-zinc-500">No members found</td>
+                <td colSpan={3}>
+                  <div className="flex flex-col items-center py-12 text-center">
+                    <Users className="mb-3 h-8 w-8 text-zinc-700" />
+                    <p className="text-sm text-zinc-500">{q ? 'No members match your search' : 'No members yet'}</p>
+                    {!q && (
+                      <button onClick={() => setCreating(true)} className="mt-2 text-xs text-violet-400 hover:text-violet-300 transition-colors">
+                        Add the first member →
+                      </button>
+                    )}
+                  </div>
+                </td>
               </tr>
             )}
           </tbody>

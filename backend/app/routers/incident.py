@@ -2,11 +2,13 @@ import uuid
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.dependencies import CurrentUser, require_global_role
 from app.core.database import get_session
 from app.core.enums import GlobalRole
+from app.core.csv_export import to_csv_response
 from app.crud import incident as crud
 from app.schemas.common import CursorPage
 from app.schemas.incident import (
@@ -30,7 +32,11 @@ async def list_incidents(
     cursor: str | None = None,
     set_id: uuid.UUID | None = None,
     member_id: uuid.UUID | None = None,
+    format: str = Query("json"),
 ):
+    if format == "csv":
+        items, _ = await crud.list_incidents(session, universe_id, limit=1000)
+        return to_csv_response(items, "incidents.csv")
     if set_id is not None:
         items = await crud.list_incidents_by_set(session, set_id, universe_id, limit=limit)
         return CursorPage(items=items, next_cursor=None, total=None)

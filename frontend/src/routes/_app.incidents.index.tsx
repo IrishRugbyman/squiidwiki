@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
-import { Plus, ShieldAlert } from 'lucide-react'
+import { Download, Plus, ShieldAlert } from 'lucide-react'
 import { useState } from 'react'
 import { FuzzyDate } from '@/components/FuzzyDate'
 import { FuzzyDateInput } from '@/components/FuzzyDateInput'
@@ -14,6 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Skeleton } from '@/components/ui/skeleton'
 import { Textarea } from '@/components/ui/textarea'
 import { useCreateIncident, useUpdateIncident, useIncidents, useMemberSearch, useMunicipalities } from '@/lib/queries'
+import { downloadCsv } from '@/lib/download'
 import type { FuzzyDateValue } from '@/components/FuzzyDate'
 import type { IncidentReadDetail, IncidentType, ParticipantOutcome, ParticipantRole, UUID } from '@/lib/types'
 import { useUniverseStore } from '@/stores/universe'
@@ -296,7 +297,14 @@ function IncidentsPage() {
       <PageHeader
         title="Incidents"
         description={data?.total != null ? `${data.total} total` : undefined}
-        action={<Button size="sm" onClick={() => setCreating(true)}><Plus className="mr-1.5 h-4 w-4" />Add Incident</Button>}
+        action={
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={() => downloadCsv(`/incidents/?universe_id=${universe.id}&format=csv`, 'incidents.csv')}>
+              <Download className="mr-1.5 h-3.5 w-3.5" />Export
+            </Button>
+            <Button size="sm" onClick={() => setCreating(true)}><Plus className="mr-1.5 h-4 w-4" />Add Incident</Button>
+          </div>
+        }
       />
 
       <div className="overflow-hidden rounded-lg border border-zinc-800">
@@ -339,7 +347,15 @@ function IncidentsPage() {
                 ))}
             {!isLoading && items.length === 0 && (
               <tr>
-                <td colSpan={3} className="px-4 py-12 text-center text-sm text-zinc-500">No incidents found</td>
+                <td colSpan={3}>
+                  <div className="flex flex-col items-center py-12 text-center">
+                    <ShieldAlert className="mb-3 h-8 w-8 text-zinc-700" />
+                    <p className="text-sm text-zinc-500">No incidents recorded yet</p>
+                    <button onClick={() => setCreating(true)} className="mt-2 text-xs text-violet-400 hover:text-violet-300 transition-colors">
+                      Record the first incident →
+                    </button>
+                  </div>
+                </td>
               </tr>
             )}
           </tbody>

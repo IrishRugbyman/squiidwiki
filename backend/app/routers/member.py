@@ -2,11 +2,13 @@ import uuid
 from typing import Annotated
 
 from fastapi import APIRouter, Body, Depends, HTTPException, Query
+from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.dependencies import CurrentUser, require_global_role
 from app.core.database import get_session
 from app.core.enums import GlobalRole, MemberStatus
+from app.core.csv_export import to_csv_response
 from app.crud import member as crud
 from app.schemas.common import CursorPage
 from app.schemas.member import (
@@ -30,7 +32,11 @@ async def list_members(
     cursor: str | None = None,
     set_id: uuid.UUID | None = None,
     alliance_id: uuid.UUID | None = None,
+    format: str = Query("json"),
 ):
+    if format == "csv":
+        items, _ = await crud.list_members(session, universe_id, limit=1000)
+        return to_csv_response(items, "members.csv")
     items, next_cursor = await crud.list_members(
         session, universe_id, limit=limit, cursor=cursor, set_id=set_id, alliance_id=alliance_id
     )

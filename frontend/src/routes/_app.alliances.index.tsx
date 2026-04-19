@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
-import { Plus, Search } from 'lucide-react'
+import { Download, Network, Plus, Search } from 'lucide-react'
 import { useState } from 'react'
 import { NoUniverse } from '@/components/NoUniverse'
 import { PageHeader } from '@/components/PageHeader'
@@ -14,6 +14,8 @@ import { Textarea } from '@/components/ui/textarea'
 import { useAlliances, useCreateAlliance, useUpdateAlliance } from '@/lib/queries'
 import type { AllianceRead, AllianceStatus } from '@/lib/types'
 import { useUniverseStore } from '@/stores/universe'
+import { downloadCsv } from '@/lib/download'
+import { useMemo } from 'react'
 
 export const Route = createFileRoute('/_app/alliances/')({
   component: AlliancesPage,
@@ -100,14 +102,31 @@ function AlliancesPage() {
   const [q, setQ] = useState('')
   const [offset, setOffset] = useState(0)
   const [creating, setCreating] = useState(false)
+  const [sortKey, setSortKey] = useState<'name' | 'status' | null>(null)
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc')
   const PAGE = 20
 
   const { data, isLoading } = useAlliances(universe?.id ?? null, offset)
 
   if (!universe) return <NoUniverse />
 
-  const items = data?.items ?? []
+  const rawItems = (data?.items ?? []).filter((a) => !q || a.name.toLowerCase().includes(q.toLowerCase()))
   const total = data?.total ?? 0
+
+  function toggleSort(key: 'name' | 'status') {
+    if (sortKey === key) setSortDir((d) => d === 'asc' ? 'desc' : 'asc')
+    else { setSortKey(key); setSortDir('asc') }
+  }
+
+  // eslint-disable-next-line react-hooks/rules-of-hooks
+  const items = useMemo(() => {
+    if (!sortKey) return rawItems
+    return [...rawItems].sort((a, b) => {
+      const av = String((a as any)[sortKey] ?? '')
+      const bv = String((b as any)[sortKey] ?? '')
+      return sortDir === 'asc' ? av.localeCompare(bv) : bv.localeCompare(av)
+    })
+  }, [rawItems, sortKey, sortDir])
 
   return (
     <div>
@@ -122,14 +141,25 @@ function AlliancesPage() {
           <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
           <Input className="pl-8" placeholder="Search alliances…" value={q} onChange={(e) => setQ(e.target.value)} />
         </div>
+        <Button variant="outline" size="sm" onClick={() => downloadCsv(`/alliances/?universe_id=${universe.id}&format=csv`, 'alliances.csv')}>
+          <Download className="mr-1.5 h-3.5 w-3.5" />Export
+        </Button>
       </div>
 
       <div className="overflow-hidden rounded-lg border border-zinc-800">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-zinc-800 bg-zinc-900/50">
-              <th className="px-4 py-2.5 text-left font-medium text-zinc-400">Name</th>
-              <th className="px-4 py-2.5 text-left font-medium text-zinc-400">Status</th>
+              <th className="px-4 py-2.5 text-left">
+                <button onClick={() => toggleSort('name')} className="flex items-center gap-1 text-xs font-medium text-zinc-400 hover:text-white transition-colors">
+                  Name <span className="text-zinc-600">{sortKey === 'name' ? (sortDir === 'asc' ? '↑' : '↓') : '↕'}</span>
+                </button>
+              </th>
+              <th className="px-4 py-2.5 text-left">
+                <button onClick={() => toggleSort('status')} className="flex items-center gap-1 text-xs font-medium text-zinc-400 hover:text-white transition-colors">
+                  Status <span className="text-zinc-600">{sortKey === 'status' ? (sortDir === 'asc' ? '↑' : '↓') : '↕'}</span>
+                </button>
+              </th>
             </tr>
           </thead>
           <tbody className="divide-y divide-zinc-800">
@@ -139,9 +169,7 @@ function AlliancesPage() {
                     <td className="px-4 py-3" colSpan={2}><Skeleton className="h-4 w-48" /></td>
                   </tr>
                 ))
-              : items
-                  .filter((a) => !q || a.name.toLowerCase().includes(q.toLowerCase()))
-                  .map((alliance) => (
+              : items.map((alliance) => (
                     <tr key={alliance.id} className="hover:bg-zinc-900/50 transition-colors">
                       <td className="p-0">
                         <Link to="/alliances/$id" params={{ id: alliance.slug ?? alliance.id }} className="block px-4 py-3 font-medium text-white hover:text-violet-400 transition-colors">
@@ -157,7 +185,17 @@ function AlliancesPage() {
                   ))}
             {!isLoading && items.length === 0 && (
               <tr>
-                <td colSpan={2} className="px-4 py-12 text-center text-sm text-zinc-500">No alliances found</td>
+                <td colSpan={2}>
+                  <div className="flex flex-col items-center py-12 text-center">
+                    <Network className="mb-3 h-8 w-8 text-zinc-700" />
+                    <p className="text-sm text-zinc-500">{q ? 'No alliances match your search' : 'No alliances yet'}</p>
+                    {!q && (
+                      <button onClick={() => setCreating(true)} className="mt-2 text-xs text-violet-400 hover:text-violet-300 transition-colors">
+                        Create the first alliance →
+                      </button>
+                    )}
+                  </div>
+                </td>
               </tr>
             )}
           </tbody>

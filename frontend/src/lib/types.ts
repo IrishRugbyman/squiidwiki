@@ -195,6 +195,18 @@ export interface AuditLogRead {
   created_at: string
 }
 
+// Analytics
+export interface UniverseAnalytics {
+  total_members: number
+  total_sets: number
+  total_incidents: number
+  total_sources: number
+  member_by_status: Record<string, number>
+  incident_by_type: Record<string, number>
+  top_sets_by_incidents: Array<{ id: string; name: string; incident_count: number }>
+  top_sources_by_references: Array<{ id: string; title: string; ref_count: number }>
+}
+
 // Users
 export type GlobalRole = 'ADMIN' | 'USER'
 

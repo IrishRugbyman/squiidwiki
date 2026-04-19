@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
-import { ExternalLink, Plus, Search } from 'lucide-react'
+import { Download, ExternalLink, FileText, Plus, Search } from 'lucide-react'
 import { useState } from 'react'
 import { NoUniverse } from '@/components/NoUniverse'
 import { PageHeader } from '@/components/PageHeader'
@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Skeleton } from '@/components/ui/skeleton'
 import { Textarea } from '@/components/ui/textarea'
 import { useCreateSource, useUpdateSource, useSources } from '@/lib/queries'
+import { downloadCsv } from '@/lib/download'
 import type { SourceRead, SourceReliability } from '@/lib/types'
 import { useUniverseStore } from '@/stores/universe'
 
@@ -138,7 +139,14 @@ function SourcesPage() {
       <PageHeader
         title="Sources"
         description={`${total} total`}
-        action={<Button size="sm" onClick={() => setCreating(true)}><Plus className="mr-1.5 h-4 w-4" />Add Source</Button>}
+        action={
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={() => downloadCsv(`/sources/?universe_id=${universe.id}&format=csv`, 'sources.csv')}>
+              <Download className="mr-1.5 h-3.5 w-3.5" />Export
+            </Button>
+            <Button size="sm" onClick={() => setCreating(true)}><Plus className="mr-1.5 h-4 w-4" />Add Source</Button>
+          </div>
+        }
       />
 
       <div className="mb-4 flex items-center gap-2">
@@ -185,7 +193,17 @@ function SourcesPage() {
                 ))}
             {!isLoading && items.length === 0 && (
               <tr>
-                <td colSpan={3} className="px-4 py-12 text-center text-sm text-zinc-500">No sources found</td>
+                <td colSpan={3}>
+                  <div className="flex flex-col items-center py-12 text-center">
+                    <FileText className="mb-3 h-8 w-8 text-zinc-700" />
+                    <p className="text-sm text-zinc-500">{items.length === 0 && q ? 'No sources match your search' : 'No sources yet'}</p>
+                    {!q && (
+                      <button onClick={() => setCreating(true)} className="mt-2 text-xs text-violet-400 hover:text-violet-300 transition-colors">
+                        Add the first source →
+                      </button>
+                    )}
+                  </div>
+                </td>
               </tr>
             )}
           </tbody>
