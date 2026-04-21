@@ -33,6 +33,7 @@ class AllianceRead(BaseModel):
     id: uuid.UUID
     universe_id: uuid.UUID
     name: str
+    slug: Optional[str] = None
     description: Optional[str]
     status: AllianceStatus
     founded_at: FuzzyDateField

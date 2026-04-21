@@ -26,9 +26,10 @@ interface AllianceFormProps {
   open: boolean
   onClose: () => void
   initial?: AllianceRead
+  onSaved?: (data: AllianceRead) => void
 }
 
-export function AllianceFormSheet({ universeId, open, onClose, initial }: AllianceFormProps) {
+export function AllianceFormSheet({ universeId, open, onClose, initial, onSaved }: AllianceFormProps) {
   const create = useCreateAlliance()
   const update = useUpdateAlliance(initial?.id ?? '', universeId)
   const isEdit = !!initial
@@ -43,8 +44,10 @@ export function AllianceFormSheet({ universeId, open, onClose, initial }: Allian
     setError(null)
     const body = { universe_id: universeId, name, description: description || null, status }
     try {
-      if (isEdit) await update.mutateAsync(body)
-      else {
+      if (isEdit) {
+        const updated = await update.mutateAsync(body)
+        onSaved?.(updated)
+      } else {
         await create.mutateAsync(body)
         setName(''); setDescription(''); setStatus('ACTIVE')
       }

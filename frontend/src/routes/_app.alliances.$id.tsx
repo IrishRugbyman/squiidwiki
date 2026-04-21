@@ -196,6 +196,11 @@ function AllianceDetailPage() {
               open={editing}
               onClose={() => setEditing(false)}
               initial={alliance}
+              onSaved={(updated) => {
+                setEditing(false)
+                const newId = updated.slug ?? updated.id
+                if (newId !== id) navigate({ to: '/alliances/$id', params: { id: newId } })
+              }}
             />
           )}
 
