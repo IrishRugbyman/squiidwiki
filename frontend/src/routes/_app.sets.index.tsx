@@ -1,17 +1,17 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
-import { Download, Plus, Search, Shield } from 'lucide-react'
+import { Download, Pencil, Plus, Search, Shield } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { NoUniverse } from '@/components/NoUniverse'
 import { PageHeader } from '@/components/PageHeader'
 import { SetStatusBadge } from '@/components/StatusBadge'
+import { Sheet, SheetContent, SheetClose } from '@/components/Sheet'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Skeleton } from '@/components/ui/skeleton'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
-import { Sheet, SheetContent, SheetClose } from '@/components/Sheet'
-import { useCreateSet, useSets, useSetSearch, useUpdateSet } from '@/lib/queries'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Skeleton } from '@/components/ui/skeleton'
+import { Textarea } from '@/components/ui/textarea'
+import { useAlliances, useCreateSet, useSet, useSets, useSetSearch, useUpdateSet } from '@/lib/queries'
 import { useUniverseStore } from '@/stores/universe'
 import { downloadCsv } from '@/lib/download'
 import type { SetRead, SetStatus } from '@/lib/types'
@@ -20,14 +20,45 @@ export const Route = createFileRoute('/_app/sets/')({
   component: SetsPage,
 })
 
+// ─── Set avatar ───────────────────────────────────────────────────────────────
+
+const SET_COLORS = [
+  'bg-violet-900/60 text-violet-300',
+  'bg-blue-900/60 text-blue-300',
+  'bg-emerald-900/60 text-emerald-300',
+  'bg-amber-900/60 text-amber-300',
+  'bg-rose-900/60 text-rose-300',
+  'bg-cyan-900/60 text-cyan-300',
+  'bg-orange-900/60 text-orange-300',
+  'bg-pink-900/60 text-pink-300',
+]
+
+function setColor(name: string) {
+  let h = 0
+  for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) & 0xffff
+  return SET_COLORS[h % SET_COLORS.length]
+}
+
+function SetAvatar({ name, size = 'md' }: { name: string; size?: 'sm' | 'md' }) {
+  const sz = size === 'sm' ? 'h-7 w-7 text-xs' : 'h-8 w-8 text-sm'
+  return (
+    <div className={`${sz} ${setColor(name)} shrink-0 rounded-md flex items-center justify-center font-bold`}>
+      {name.slice(0, 2).toUpperCase()}
+    </div>
+  )
+}
+
+// ─── Form sheet ───────────────────────────────────────────────────────────────
+
 interface SetFormProps {
   universeId: string
   open: boolean
   onClose: () => void
   initial?: SetRead
+  onSaved?: (data: SetRead) => void
 }
 
-export function SetFormSheet({ universeId, open, onClose, initial }: SetFormProps) {
+export function SetFormSheet({ universeId, open, onClose, initial, onSaved }: SetFormProps) {
   const create = useCreateSet()
   const update = useUpdateSet(initial?.id ?? '')
   const isEdit = !!initial
@@ -43,7 +74,8 @@ export function SetFormSheet({ universeId, open, onClose, initial }: SetFormProp
     setError(null)
     try {
       if (isEdit) {
-        await update.mutateAsync({ universe_id: universeId, name, alias: alias || null, bio: bio || null, status })
+        const updated = await update.mutateAsync({ universe_id: universeId, name, alias: alias || null, bio: bio || null, status })
+        onSaved?.(updated)
       } else {
         await create.mutateAsync({ universe_id: universeId, name, alias: alias || null, bio: bio || null, status })
         setName(''); setAlias(''); setBio(''); setStatus('ACTIVE')
@@ -100,6 +132,64 @@ export function SetFormSheet({ universeId, open, onClose, initial }: SetFormProp
   )
 }
 
+// ─── Lazy edit sheet (fetches full set on open) ───────────────────────────────
+
+function EditSetSheet({ setId, universeId, open, onClose }: {
+  setId: string; universeId: string; open: boolean; onClose: () => void
+}) {
+  const { data: set } = useSet(setId, universeId)
+  if (!set) {
+    return (
+      <Sheet open={open} onOpenChange={(v) => !v && onClose()}>
+        <SheetContent title="Edit Set" description="Loading…">
+          <div className="space-y-3 pt-2">
+            {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-9 w-full" />)}
+          </div>
+        </SheetContent>
+      </Sheet>
+    )
+  }
+  return <SetFormSheet universeId={universeId} open={open} onClose={onClose} initial={set} />
+}
+
+// ─── Status filter ────────────────────────────────────────────────────────────
+
+type StatusFilter = 'ALL' | 'ACTIVE' | 'EXTINCT'
+
+function StatusTabs({ value, onChange, counts }: {
+  value: StatusFilter
+  onChange: (v: StatusFilter) => void
+  counts: Record<StatusFilter, number>
+}) {
+  const tabs: { key: StatusFilter; label: string }[] = [
+    { key: 'ALL', label: 'All' },
+    { key: 'ACTIVE', label: 'Active' },
+    { key: 'EXTINCT', label: 'Extinct' },
+  ]
+  return (
+    <div className="flex items-center gap-1 rounded-lg border border-zinc-800 bg-zinc-900/50 p-1">
+      {tabs.map(({ key, label }) => (
+        <button
+          key={key}
+          onClick={() => onChange(key)}
+          className={`flex items-center gap-1.5 rounded-md px-3 py-1 text-xs font-medium transition-colors ${
+            value === key
+              ? 'bg-zinc-700 text-white'
+              : 'text-zinc-500 hover:text-zinc-300'
+          }`}
+        >
+          {label}
+          <span className={`tabular-nums ${value === key ? 'text-zinc-300' : 'text-zinc-600'}`}>
+            {counts[key]}
+          </span>
+        </button>
+      ))}
+    </div>
+  )
+}
+
+// ─── Sort header ──────────────────────────────────────────────────────────────
+
 type SortKey = 'name' | 'status'
 
 function SortHeader({ label, col, sortKey, sortDir, onSort }: {
@@ -120,22 +210,44 @@ function SortHeader({ label, col, sortKey, sortDir, onSort }: {
   )
 }
 
+// ─── Page ─────────────────────────────────────────────────────────────────────
+
 function SetsPage() {
   const universe = useUniverseStore((s) => s.activeUniverse)
   const [q, setQ] = useState('')
   const [offset, setOffset] = useState(0)
   const [creating, setCreating] = useState(false)
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('ALL')
+  const [allianceFilter, setAllianceFilter] = useState<string>('ALL')
   const [sortKey, setSortKey] = useState<SortKey | null>(null)
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc')
   const PAGE = 20
 
   const { data, isLoading } = useSets(universe?.id ?? null, offset)
   const { data: searchResults } = useSetSearch(universe?.id ?? null, q)
+  const { data: alliancesData } = useAlliances(universe?.id ?? null)
 
   if (!universe) return <NoUniverse />
 
+  const allianceMap: Record<string, { name: string; slug: string | null }> = {}
+  for (const a of alliancesData?.items ?? []) allianceMap[a.id] = { name: a.name, slug: a.slug }
+
   const rawItems = q.length >= 2 ? (searchResults ?? []) : (data?.items ?? [])
   const total = data?.total ?? 0
+
+  // Status counts over all loaded items (not filtered)
+  const allItems = data?.items ?? []
+  const statusCounts: Record<StatusFilter, number> = {
+    ALL: allItems.length,
+    ACTIVE: allItems.filter((s) => s.status === 'ACTIVE').length,
+    EXTINCT: allItems.filter((s) => s.status === 'EXTINCT').length,
+  }
+
+  // Unique alliances present in the list
+  const alliancesInList = Array.from(
+    new Set(allItems.map((s) => s.alliance_id).filter(Boolean) as string[])
+  )
 
   function toggleSort(key: SortKey) {
     if (sortKey === key) setSortDir((d) => d === 'asc' ? 'desc' : 'asc')
@@ -143,85 +255,177 @@ function SetsPage() {
   }
 
   const items = useMemo(() => {
-    if (!sortKey) return rawItems
-    return [...rawItems].sort((a, b) => {
+    let filtered = rawItems
+    if (statusFilter !== 'ALL') filtered = filtered.filter((s) => s.status === statusFilter)
+    if (allianceFilter !== 'ALL') filtered = filtered.filter((s) =>
+      allianceFilter === 'NONE' ? !s.alliance_id : s.alliance_id === allianceFilter
+    )
+    if (!sortKey) return filtered
+    return [...filtered].sort((a, b) => {
       const av = String((a as any)[sortKey] ?? '')
       const bv = String((b as any)[sortKey] ?? '')
       return sortDir === 'asc' ? av.localeCompare(bv) : bv.localeCompare(av)
     })
-  }, [rawItems, sortKey, sortDir])
+  }, [rawItems, statusFilter, allianceFilter, sortKey, sortDir])
+
+  const activeCount = allItems.filter((s) => s.status === 'ACTIVE').length
+  const extinctCount = allItems.filter((s) => s.status === 'EXTINCT').length
 
   return (
     <div>
       <PageHeader
         title="Sets"
-        description={`${total} total`}
-        action={<Button size="sm" onClick={() => setCreating(true)}><Plus className="mr-1.5 h-4 w-4" />Add Set</Button>}
+        description={
+          isLoading ? undefined :
+          total === 0 ? 'No sets yet' :
+          [activeCount > 0 && `${activeCount} active`, extinctCount > 0 && `${extinctCount} extinct`]
+            .filter(Boolean).join(' · ') || `${total} total`
+        }
+        action={
+          <Button size="sm" onClick={() => setCreating(true)}>
+            <Plus className="mr-1.5 h-4 w-4" />Add Set
+          </Button>
+        }
       />
 
-      <div className="mb-4 flex items-center gap-2">
-        <div className="relative flex-1 max-w-sm">
+      {/* Toolbar */}
+      <div className="mb-4 flex flex-wrap items-center gap-2">
+        <div className="relative flex-1 min-w-48 max-w-sm">
           <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
-          <Input className="pl-8" placeholder="Search sets…" value={q} onChange={(e) => setQ(e.target.value)} />
+          <Input
+            className="pl-8"
+            placeholder="Search sets…"
+            value={q}
+            onChange={(e) => { setQ(e.target.value); setOffset(0) }}
+          />
         </div>
+
+        {!q && <StatusTabs value={statusFilter} onChange={setStatusFilter} counts={statusCounts} />}
+
+        {!q && alliancesInList.length > 0 && (
+          <Select value={allianceFilter} onValueChange={setAllianceFilter}>
+            <SelectTrigger className="h-8 w-auto min-w-32 text-xs">
+              <SelectValue placeholder="Alliance" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ALL">All alliances</SelectItem>
+              <SelectItem value="NONE">No alliance</SelectItem>
+              {alliancesInList.map((id) => (
+                <SelectItem key={id} value={id}>{allianceMap[id]?.name ?? id}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
+
         <Button
-          variant="outline" size="sm"
+          variant="outline" size="sm" className="ml-auto"
           onClick={() => downloadCsv(`/sets/?universe_id=${universe.id}&format=csv`, 'sets.csv')}
         >
           <Download className="mr-1.5 h-3.5 w-3.5" />Export
         </Button>
       </div>
 
+      {/* Table */}
       <div className="overflow-hidden rounded-lg border border-zinc-800">
         <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-zinc-800 bg-zinc-900/50">
-              <SortHeader label="Name" col="name" sortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
-              <th className="px-4 py-2.5 text-left text-xs font-medium text-zinc-400">Alias</th>
+          <thead className="sticky top-0 z-10 bg-zinc-900/90 backdrop-blur">
+            <tr className="border-b border-zinc-800">
+              <SortHeader label="Set" col="name" sortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
+              <th className="px-4 py-2.5 text-left text-xs font-medium text-zinc-400">Alliance</th>
               <SortHeader label="Status" col="status" sortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
+              <th className="w-8" />
             </tr>
           </thead>
           <tbody className="divide-y divide-zinc-800">
             {isLoading && !q
               ? Array.from({ length: 5 }).map((_, i) => (
                   <tr key={i}>
-                    <td className="px-4 py-3" colSpan={3}><Skeleton className="h-4 w-48" /></td>
+                    <td className="px-4 py-3" colSpan={4}>
+                      <div className="flex items-center gap-3">
+                        <Skeleton className="h-8 w-8 rounded-md" />
+                        <Skeleton className="h-4 w-40" />
+                      </div>
+                    </td>
                   </tr>
                 ))
               : items.map((set) => {
                   const linkId = set.slug ?? set.id
+                  const alliance = set.alliance_id ? allianceMap[set.alliance_id] : null
                   return (
-                    <tr key={set.id} className="hover:bg-zinc-900/50 transition-colors">
+                    <tr key={set.id} className="group hover:bg-zinc-900/50 transition-colors">
+                      {/* Name + alias */}
                       <td className="p-0">
-                        <Link to="/sets/$id" params={{ id: linkId }} className="block px-4 py-3 font-medium text-white hover:text-violet-400 transition-colors">
-                          {set.name}
+                        <Link
+                          to="/sets/$id"
+                          params={{ id: linkId }}
+                          className="flex items-center gap-3 px-4 py-3"
+                        >
+                          <SetAvatar name={set.name} />
+                          <div>
+                            <p className="font-medium text-white group-hover:text-violet-400 transition-colors">
+                              {set.name}
+                            </p>
+                            {(set as any).alias && (
+                              <p className="text-xs text-zinc-500">{(set as any).alias}</p>
+                            )}
+                          </div>
                         </Link>
                       </td>
-                      <td className="p-0">
-                        <Link to="/sets/$id" params={{ id: linkId }} className="block px-4 py-3 text-zinc-400" tabIndex={-1}>
-                          {(set as { alias?: string | null }).alias ?? '—'}
-                        </Link>
+
+                      {/* Alliance */}
+                      <td className="px-4 py-3">
+                        {alliance ? (
+                          <Link
+                            to="/alliances/$id"
+                            params={{ id: alliance.slug ?? set.alliance_id! }}
+                            className="inline-flex items-center rounded-full bg-blue-950/60 px-2.5 py-0.5 text-xs font-medium text-blue-300 ring-1 ring-blue-800/50 hover:ring-blue-600 transition-colors"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            {alliance.name}
+                          </Link>
+                        ) : (
+                          <span className="text-xs text-zinc-700">—</span>
+                        )}
                       </td>
-                      <td className="p-0">
-                        <Link to="/sets/$id" params={{ id: linkId }} className="block px-4 py-3" tabIndex={-1}>
-                          <SetStatusBadge status={set.status} />
-                        </Link>
+
+                      {/* Status */}
+                      <td className="px-4 py-3">
+                        <SetStatusBadge status={set.status} />
+                      </td>
+
+                      {/* Quick edit */}
+                      <td className="pr-3 py-3">
+                        <button
+                          onClick={() => setEditingId(set.id)}
+                          className="invisible group-hover:visible rounded p-1 text-zinc-600 hover:bg-zinc-800 hover:text-zinc-300 transition-colors"
+                          title="Edit"
+                        >
+                          <Pencil className="h-3.5 w-3.5" />
+                        </button>
                       </td>
                     </tr>
                   )
                 })}
             {!isLoading && items.length === 0 && (
               <tr>
-                <td colSpan={3}>
+                <td colSpan={4}>
                   <div className="flex flex-col items-center py-12 text-center">
                     <Shield className="mb-3 h-8 w-8 text-zinc-700" />
-                    <p className="text-sm text-zinc-500">No sets yet</p>
-                    <button
-                      onClick={() => setCreating(true)}
-                      className="mt-2 text-xs text-violet-400 hover:text-violet-300 transition-colors"
-                    >
-                      Create the first set →
-                    </button>
+                    <p className="text-sm text-zinc-500">
+                      {q
+                        ? `No sets match "${q}"`
+                        : statusFilter !== 'ALL'
+                        ? `No ${statusFilter.toLowerCase()} sets`
+                        : 'No sets yet'}
+                    </p>
+                    {!q && statusFilter === 'ALL' && (
+                      <button
+                        onClick={() => setCreating(true)}
+                        className="mt-2 text-xs text-violet-400 hover:text-violet-300 transition-colors"
+                      >
+                        Create the first set →
+                      </button>
+                    )}
                   </div>
                 </td>
               </tr>
@@ -230,6 +434,7 @@ function SetsPage() {
         </table>
       </div>
 
+      {/* Pagination */}
       {!q && total > PAGE && (
         <div className="mt-4 flex items-center justify-between text-sm text-zinc-400">
           <span>Showing {offset + 1}–{Math.min(offset + PAGE, total)} of {total}</span>
@@ -241,6 +446,14 @@ function SetsPage() {
       )}
 
       <SetFormSheet universeId={universe.id} open={creating} onClose={() => setCreating(false)} />
+      {editingId && (
+        <EditSetSheet
+          setId={editingId}
+          universeId={universe.id}
+          open={!!editingId}
+          onClose={() => setEditingId(null)}
+        />
+      )}
     </div>
   )
 }

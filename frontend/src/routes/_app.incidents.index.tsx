@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
-import { Download, Plus, ShieldAlert } from 'lucide-react'
-import { useState } from 'react'
+import { CheckCircle2, Download, Pencil, Plus, ShieldAlert, Skull, Swords } from 'lucide-react'
+import { useMemo, useState } from 'react'
 import { FuzzyDate } from '@/components/FuzzyDate'
 import { FuzzyDateInput } from '@/components/FuzzyDateInput'
 import { NoUniverse } from '@/components/NoUniverse'
@@ -13,15 +13,38 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Textarea } from '@/components/ui/textarea'
-import { useCreateIncident, useUpdateIncident, useIncidents, useMemberSearch, useMunicipalities } from '@/lib/queries'
+import {
+  useCreateIncident, useUpdateIncident, useIncident,
+  useIncidents, useMemberSearch, useMunicipalities,
+} from '@/lib/queries'
 import { downloadCsv } from '@/lib/download'
 import type { FuzzyDateValue } from '@/components/FuzzyDate'
-import type { IncidentReadDetail, IncidentType, ParticipantOutcome, ParticipantRole, UUID } from '@/lib/types'
+import type { IncidentListItem, IncidentReadDetail, IncidentType, ParticipantOutcome, ParticipantRole, UUID } from '@/lib/types'
 import { useUniverseStore } from '@/stores/universe'
 
 export const Route = createFileRoute('/_app/incidents/')({
   component: IncidentsPage,
 })
+
+// ─── Type config ──────────────────────────────────────────────────────────────
+
+const TYPE_CONFIG: Record<IncidentType, { icon: typeof ShieldAlert; color: string; dot: string; label: string }> = {
+  SHOOTING: { icon: Swords,     color: 'text-amber-400',  dot: 'bg-amber-500',  label: 'Shooting' },
+  MURDER:   { icon: Skull,      color: 'text-rose-400',   dot: 'bg-rose-500',   label: 'Murder'   },
+}
+
+function TypeChip({ type }: { type: IncidentType }) {
+  const cfg = TYPE_CONFIG[type] ?? { icon: ShieldAlert, color: 'text-zinc-400', dot: 'bg-zinc-500', label: type }
+  const Icon = cfg.icon
+  return (
+    <span className={`inline-flex items-center gap-1.5 text-sm font-medium ${cfg.color}`}>
+      <Icon className="h-3.5 w-3.5 shrink-0" />
+      {cfg.label}
+    </span>
+  )
+}
+
+// ─── Participant builder ──────────────────────────────────────────────────────
 
 interface ParticipantDraft {
   member_id: UUID
@@ -51,9 +74,8 @@ function ParticipantBuilder({ universeId, participants, onChange, onDeathDateNee
     if (participants.some((p) => p.member_id === memberId)) return
     onChange([...participants, { member_id: memberId, member_name: memberName, role, outcome }])
     setSearch('')
-    if (role === 'VICTIM' && outcome === 'KILLED' && onDeathDateNeeded) {
+    if (role === 'VICTIM' && outcome === 'KILLED' && onDeathDateNeeded)
       onDeathDateNeeded({ memberId, memberName, date: null })
-    }
   }
 
   return (
@@ -82,20 +104,12 @@ function ParticipantBuilder({ universeId, participants, onChange, onDeathDateNee
           </Select>
         </div>
       </div>
-      <Input
-        placeholder="Search member to add…"
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
-      />
+      <Input placeholder="Search member to add…" value={search} onChange={(e) => setSearch(e.target.value)} />
       {results && results.length > 0 && search.length >= 2 && (
         <div className="max-h-32 overflow-y-auto rounded border border-zinc-800 bg-zinc-950">
           {results.map((m) => (
-            <button
-              key={m.id}
-              type="button"
-              onClick={() => addParticipant(m.id, m.display_name)}
-              className="w-full px-3 py-2 text-left text-sm text-zinc-300 hover:bg-zinc-800 transition-colors"
-            >
+            <button key={m.id} type="button" onClick={() => addParticipant(m.id, m.display_name)}
+              className="w-full px-3 py-2 text-left text-sm text-zinc-300 hover:bg-zinc-800 transition-colors">
               {m.display_name}
             </button>
           ))}
@@ -109,11 +123,8 @@ function ParticipantBuilder({ universeId, participants, onChange, onDeathDateNee
               <div className="flex items-center gap-2">
                 <Badge variant="secondary" className="text-xs">{p.role}</Badge>
                 <Badge variant="outline" className="text-xs">{p.outcome}</Badge>
-                <button
-                  type="button"
-                  onClick={() => onChange(participants.filter((x) => x.member_id !== p.member_id))}
-                  className="text-zinc-600 hover:text-red-400 transition-colors text-xs"
-                >✕</button>
+                <button type="button" onClick={() => onChange(participants.filter((x) => x.member_id !== p.member_id))}
+                  className="text-zinc-600 hover:text-red-400 transition-colors text-xs">✕</button>
               </div>
             </div>
           ))}
@@ -123,12 +134,13 @@ function ParticipantBuilder({ universeId, participants, onChange, onDeathDateNee
   )
 }
 
+// ─── Incident form sheet ──────────────────────────────────────────────────────
+
 interface IncidentFormProps {
   universeId: string
   open: boolean
   onClose: () => void
   initial?: IncidentReadDetail
-  pendingDeathUpdates?: Map<UUID, FuzzyDateValue | null>
 }
 
 export function IncidentFormSheet({ universeId, open, onClose, initial }: IncidentFormProps) {
@@ -149,18 +161,13 @@ export function IncidentFormSheet({ universeId, open, onClose, initial }: Incide
   const [deathPrompts, setDeathPrompts] = useState<DeathDatePrompt[]>([])
   const [error, setError] = useState<string | null>(null)
 
-  function handleDeathDateNeeded(prompt: DeathDatePrompt) {
-    setDeathPrompts((prev) => [...prev, prompt])
-  }
-
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     setError(null)
     try {
       const body: Record<string, unknown> = {
         universe_id: universeId,
-        type,
-        date,
+        type, date,
         location_text: locationText || null,
         municipality_id: municipalityId || null,
         narrative: narrative || null,
@@ -169,7 +176,6 @@ export function IncidentFormSheet({ universeId, open, onClose, initial }: Incide
       }
       if (isEdit) await update.mutateAsync(body)
       else await create.mutateAsync(body)
-
       if (!isEdit) {
         setType('SHOOTING'); setDate(null); setLocationText(''); setMunicipalityId('')
         setNarrative(''); setVerified(false); setParticipants([]); setDeathPrompts([])
@@ -184,10 +190,7 @@ export function IncidentFormSheet({ universeId, open, onClose, initial }: Incide
 
   return (
     <Sheet open={open} onOpenChange={(v) => !v && onClose()}>
-      <SheetContent
-        title={isEdit ? 'Edit Incident' : 'Add Incident'}
-        description={isEdit ? 'Update this incident' : 'Record a new incident'}
-      >
+      <SheetContent title={isEdit ? 'Edit Incident' : 'Add Incident'} description={isEdit ? 'Update this incident' : 'Record a new incident'}>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-1.5">
             <Label>Type</Label>
@@ -199,11 +202,9 @@ export function IncidentFormSheet({ universeId, open, onClose, initial }: Incide
               </SelectContent>
             </Select>
           </div>
-
           <div className="rounded-lg border border-zinc-800 bg-zinc-900/50 p-3">
             <FuzzyDateInput value={date} onChange={setDate} label="Date" idPrefix="inc-date" />
           </div>
-
           <div className="space-y-1.5">
             <Label>Municipality</Label>
             <Select value={municipalityId || 'none'} onValueChange={(v) => setMunicipalityId(v === 'none' ? '' : v)}>
@@ -216,52 +217,35 @@ export function IncidentFormSheet({ universeId, open, onClose, initial }: Incide
               </SelectContent>
             </Select>
           </div>
-
           <div className="space-y-1.5">
             <Label htmlFor="inc-loc">Location</Label>
             <Input id="inc-loc" value={locationText} onChange={(e) => setLocationText(e.target.value)} placeholder="Street address or area" />
           </div>
-
           <div className="flex items-center gap-2">
-            <input
-              id="inc-verified" type="checkbox"
-              checked={verified}
-              onChange={(e) => setVerified(e.target.checked)}
-              className="rounded border-zinc-700 bg-zinc-900 accent-violet-600"
-            />
+            <input id="inc-verified" type="checkbox" checked={verified} onChange={(e) => setVerified(e.target.checked)}
+              className="rounded border-zinc-700 bg-zinc-900 accent-violet-600" />
             <label htmlFor="inc-verified" className="text-sm text-zinc-300">Verified</label>
           </div>
-
           {!isEdit && (
             <div className="space-y-1.5">
               <Label>Participants</Label>
-              <ParticipantBuilder
-                universeId={universeId}
-                participants={participants}
-                onChange={setParticipants}
-                onDeathDateNeeded={handleDeathDateNeeded}
-              />
+              <ParticipantBuilder universeId={universeId} participants={participants} onChange={setParticipants}
+                onDeathDateNeeded={(p) => setDeathPrompts((prev) => [...prev, p])} />
             </div>
           )}
-
           {deathPrompts.length > 0 && (
             <div className="space-y-3 rounded-lg border border-amber-800 bg-amber-950/30 p-3">
               <p className="text-xs font-semibold text-amber-400">Killed participant(s) — set date of death?</p>
               {deathPrompts.map((prompt) => (
                 <div key={prompt.memberId}>
                   <p className="mb-1 text-xs text-zinc-300">{prompt.memberName}</p>
-                  <FuzzyDateInput
-                    value={prompt.date}
-                    onChange={(v) => setDeathPrompts((prev) =>
-                      prev.map((p) => p.memberId === prompt.memberId ? { ...p, date: v } : p)
-                    )}
-                    idPrefix={`dod-${prompt.memberId}`}
-                  />
+                  <FuzzyDateInput value={prompt.date}
+                    onChange={(v) => setDeathPrompts((prev) => prev.map((p) => p.memberId === prompt.memberId ? { ...p, date: v } : p))}
+                    idPrefix={`dod-${prompt.memberId}`} />
                 </div>
               ))}
             </div>
           )}
-
           <div className="space-y-1.5">
             <Label htmlFor="inc-narrative">Narrative</Label>
             <Textarea id="inc-narrative" rows={4} value={narrative} onChange={(e) => setNarrative(e.target.value)} placeholder="What happened…" />
@@ -281,79 +265,238 @@ export function IncidentFormSheet({ universeId, open, onClose, initial }: Incide
   )
 }
 
+// ─── Lazy edit sheet ──────────────────────────────────────────────────────────
+
+function EditIncidentSheet({ incidentId, universeId, open, onClose }: {
+  incidentId: string; universeId: string; open: boolean; onClose: () => void
+}) {
+  const { data: incident } = useIncident(incidentId, universeId)
+  if (!incident) {
+    return (
+      <Sheet open={open} onOpenChange={(v) => !v && onClose()}>
+        <SheetContent title="Edit Incident" description="Loading…">
+          <div className="space-y-3 pt-2">
+            {Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-9 w-full" />)}
+          </div>
+        </SheetContent>
+      </Sheet>
+    )
+  }
+  return <IncidentFormSheet universeId={universeId} open={open} onClose={onClose} initial={incident} />
+}
+
+// ─── Filter bar ───────────────────────────────────────────────────────────────
+
+type TypeFilter = 'ALL' | IncidentType
+type VerifiedFilter = 'ALL' | 'VERIFIED' | 'UNVERIFIED'
+
+function FilterTabs<T extends string>({ options, value, onChange }: {
+  options: { key: T; label: string; count?: number }[]
+  value: T
+  onChange: (v: T) => void
+}) {
+  return (
+    <div className="flex items-center gap-1 rounded-lg border border-zinc-800 bg-zinc-900/50 p-1">
+      {options.map(({ key, label, count }) => (
+        <button key={key} onClick={() => onChange(key)}
+          className={`flex items-center gap-1.5 rounded-md px-3 py-1 text-xs font-medium transition-colors ${
+            value === key ? 'bg-zinc-700 text-white' : 'text-zinc-500 hover:text-zinc-300'
+          }`}>
+          {label}
+          {count !== undefined && (
+            <span className={`tabular-nums ${value === key ? 'text-zinc-300' : 'text-zinc-600'}`}>{count}</span>
+          )}
+        </button>
+      ))}
+    </div>
+  )
+}
+
+// ─── Page ─────────────────────────────────────────────────────────────────────
+
 function IncidentsPage() {
   const universe = useUniverseStore((s) => s.activeUniverse)
   const [cursor, setCursor] = useState<string | undefined>(undefined)
   const [creating, setCreating] = useState(false)
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [typeFilter, setTypeFilter] = useState<TypeFilter>('ALL')
+  const [verifiedFilter, setVerifiedFilter] = useState<VerifiedFilter>('ALL')
 
   const { data, isLoading } = useIncidents(universe?.id ?? null, cursor)
+  const { data: munis } = useMunicipalities(universe?.id ?? null)
 
   if (!universe) return <NoUniverse />
 
-  const items = data?.items ?? []
+  const muniMap: Record<string, string> = {}
+  for (const m of munis?.items ?? []) muniMap[m.id] = m.name
+
+  const allItems: IncidentListItem[] = data?.items ?? []
+
+  const shootingCount = allItems.filter((i) => i.type === 'SHOOTING').length
+  const murderCount = allItems.filter((i) => i.type === 'MURDER').length
+  const verifiedCount = allItems.filter((i) => i.verified).length
+
+  const items = useMemo(() => {
+    let filtered = allItems
+    if (typeFilter !== 'ALL') filtered = filtered.filter((i) => i.type === typeFilter)
+    if (verifiedFilter === 'VERIFIED') filtered = filtered.filter((i) => i.verified)
+    if (verifiedFilter === 'UNVERIFIED') filtered = filtered.filter((i) => !i.verified)
+    return filtered
+  }, [allItems, typeFilter, verifiedFilter])
+
+  const headerDesc = isLoading ? undefined
+    : allItems.length === 0 ? 'No incidents yet'
+    : [
+        shootingCount > 0 && `${shootingCount} shooting${shootingCount !== 1 ? 's' : ''}`,
+        murderCount > 0 && `${murderCount} murder${murderCount !== 1 ? 's' : ''}`,
+        verifiedCount > 0 && `${verifiedCount} verified`,
+      ].filter(Boolean).join(' · ')
 
   return (
     <div>
       <PageHeader
         title="Incidents"
-        description={data?.total != null ? `${data.total} total` : undefined}
+        description={headerDesc || undefined}
         action={
           <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={() => downloadCsv(`/incidents/?universe_id=${universe.id}&format=csv`, 'incidents.csv')}>
+            <Button variant="outline" size="sm"
+              onClick={() => downloadCsv(`/incidents/?universe_id=${universe.id}&format=csv`, 'incidents.csv')}>
               <Download className="mr-1.5 h-3.5 w-3.5" />Export
             </Button>
-            <Button size="sm" onClick={() => setCreating(true)}><Plus className="mr-1.5 h-4 w-4" />Add Incident</Button>
+            <Button size="sm" onClick={() => setCreating(true)}>
+              <Plus className="mr-1.5 h-4 w-4" />Add Incident
+            </Button>
           </div>
         }
       />
 
+      {/* Toolbar */}
+      <div className="mb-4 flex flex-wrap items-center gap-2">
+        <FilterTabs<TypeFilter>
+          value={typeFilter}
+          onChange={setTypeFilter}
+          options={[
+            { key: 'ALL', label: 'All', count: allItems.length },
+            { key: 'SHOOTING', label: 'Shootings', count: shootingCount },
+            { key: 'MURDER', label: 'Murders', count: murderCount },
+          ]}
+        />
+        <FilterTabs<VerifiedFilter>
+          value={verifiedFilter}
+          onChange={setVerifiedFilter}
+          options={[
+            { key: 'ALL', label: 'All' },
+            { key: 'VERIFIED', label: 'Verified' },
+            { key: 'UNVERIFIED', label: 'Unverified' },
+          ]}
+        />
+      </div>
+
+      {/* Table */}
       <div className="overflow-hidden rounded-lg border border-zinc-800">
         <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-zinc-800 bg-zinc-900/50">
-              <th className="px-4 py-2.5 text-left font-medium text-zinc-400">Type</th>
-              <th className="px-4 py-2.5 text-left font-medium text-zinc-400">Date</th>
-              <th className="px-4 py-2.5 text-left font-medium text-zinc-400">Verified</th>
+          <thead className="sticky top-0 z-10 bg-zinc-900/90 backdrop-blur">
+            <tr className="border-b border-zinc-800">
+              <th className="px-4 py-2.5 text-left text-xs font-medium text-zinc-400">Type</th>
+              <th className="px-4 py-2.5 text-left text-xs font-medium text-zinc-400">Date</th>
+              <th className="px-4 py-2.5 text-left text-xs font-medium text-zinc-400">Location</th>
+              <th className="px-4 py-2.5 text-left text-xs font-medium text-zinc-400">Status</th>
+              <th className="w-8" />
             </tr>
           </thead>
           <tbody className="divide-y divide-zinc-800">
             {isLoading
               ? Array.from({ length: 5 }).map((_, i) => (
                   <tr key={i}>
-                    <td className="px-4 py-3" colSpan={3}><Skeleton className="h-4 w-48" /></td>
+                    <td className="px-4 py-3" colSpan={5}>
+                      <div className="flex items-center gap-3">
+                        <Skeleton className="h-5 w-5 rounded" />
+                        <Skeleton className="h-4 w-24" />
+                        <Skeleton className="h-4 w-20 ml-8" />
+                      </div>
+                    </td>
                   </tr>
                 ))
-              : items.map((incident) => (
-                  <tr key={incident.id} className="hover:bg-zinc-900/50 transition-colors">
-                    <td className="p-0">
-                      <Link to="/incidents/$id" params={{ id: incident.id }} className="flex items-center gap-2 px-4 py-3 text-white hover:text-violet-400 transition-colors">
-                        <ShieldAlert className="h-3.5 w-3.5 text-zinc-500" />
-                        {incident.type}
-                      </Link>
-                    </td>
-                    <td className="p-0">
-                      <Link to="/incidents/$id" params={{ id: incident.id }} className="block px-4 py-3 text-zinc-400" tabIndex={-1}>
-                        <FuzzyDate value={incident.date} fallback="Unknown date" />
-                      </Link>
-                    </td>
-                    <td className="p-0">
-                      <Link to="/incidents/$id" params={{ id: incident.id }} className="block px-4 py-3" tabIndex={-1}>
-                        {incident.verified
-                          ? <Badge className="bg-emerald-900 text-emerald-300 border-transparent">Verified</Badge>
-                          : <Badge variant="outline" className="text-zinc-500">Unverified</Badge>}
-                      </Link>
-                    </td>
-                  </tr>
-                ))}
+              : items.map((incident) => {
+                  const cfg = TYPE_CONFIG[incident.type]
+                  const Icon = cfg?.icon ?? ShieldAlert
+                  const muniName = incident.municipality_id ? muniMap[incident.municipality_id] : null
+                  return (
+                    <tr key={incident.id} className="group hover:bg-zinc-900/50 transition-colors">
+                      {/* Type */}
+                      <td className="p-0">
+                        <Link to="/incidents/$id" params={{ id: incident.id }}
+                          className="flex items-center gap-3 px-4 py-3">
+                          <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-md ${
+                            incident.type === 'MURDER'
+                              ? 'bg-rose-950/60 text-rose-400'
+                              : 'bg-amber-950/60 text-amber-400'
+                          }`}>
+                            <Icon className="h-4 w-4" />
+                          </div>
+                          <TypeChip type={incident.type} />
+                        </Link>
+                      </td>
+
+                      {/* Date */}
+                      <td className="p-0">
+                        <Link to="/incidents/$id" params={{ id: incident.id }}
+                          className="block px-4 py-3 font-mono text-xs text-zinc-400 tabular-nums" tabIndex={-1}>
+                          {incident.date
+                            ? <FuzzyDate value={incident.date} />
+                            : <span className="text-zinc-700">Unknown date</span>}
+                        </Link>
+                      </td>
+
+                      {/* Location */}
+                      <td className="p-0">
+                        <Link to="/incidents/$id" params={{ id: incident.id }}
+                          className="block px-4 py-3 text-xs text-zinc-500" tabIndex={-1}>
+                          {muniName ?? <span className="text-zinc-700">—</span>}
+                        </Link>
+                      </td>
+
+                      {/* Verified */}
+                      <td className="px-4 py-3">
+                        {incident.verified ? (
+                          <span className="inline-flex items-center gap-1 text-xs font-medium text-emerald-400">
+                            <CheckCircle2 className="h-3.5 w-3.5" />
+                            Verified
+                          </span>
+                        ) : (
+                          <span className="text-xs text-zinc-600">Unverified</span>
+                        )}
+                      </td>
+
+                      {/* Quick edit */}
+                      <td className="pr-3 py-3">
+                        <button
+                          onClick={() => setEditingId(incident.id)}
+                          className="invisible group-hover:visible rounded p-1 text-zinc-600 hover:bg-zinc-800 hover:text-zinc-300 transition-colors"
+                          title="Edit"
+                        >
+                          <Pencil className="h-3.5 w-3.5" />
+                        </button>
+                      </td>
+                    </tr>
+                  )
+                })}
             {!isLoading && items.length === 0 && (
               <tr>
-                <td colSpan={3}>
+                <td colSpan={5}>
                   <div className="flex flex-col items-center py-12 text-center">
                     <ShieldAlert className="mb-3 h-8 w-8 text-zinc-700" />
-                    <p className="text-sm text-zinc-500">No incidents recorded yet</p>
-                    <button onClick={() => setCreating(true)} className="mt-2 text-xs text-violet-400 hover:text-violet-300 transition-colors">
-                      Record the first incident →
-                    </button>
+                    <p className="text-sm text-zinc-500">
+                      {typeFilter !== 'ALL' || verifiedFilter !== 'ALL'
+                        ? 'No incidents match the current filters'
+                        : 'No incidents recorded yet'}
+                    </p>
+                    {typeFilter === 'ALL' && verifiedFilter === 'ALL' && (
+                      <button onClick={() => setCreating(true)}
+                        className="mt-2 text-xs text-violet-400 hover:text-violet-300 transition-colors">
+                        Record the first incident →
+                      </button>
+                    )}
                   </div>
                 </td>
               </tr>
@@ -362,13 +505,24 @@ function IncidentsPage() {
         </table>
       </div>
 
+      {/* Load more */}
       {data?.next_cursor && (
-        <div className="mt-4 flex justify-end">
-          <Button variant="outline" size="sm" onClick={() => setCursor(data.next_cursor ?? undefined)}>Load more</Button>
+        <div className="mt-4 flex justify-center">
+          <Button variant="outline" size="sm" onClick={() => setCursor(data.next_cursor ?? undefined)}>
+            Load more incidents
+          </Button>
         </div>
       )}
 
       <IncidentFormSheet universeId={universe.id} open={creating} onClose={() => setCreating(false)} />
+      {editingId && (
+        <EditIncidentSheet
+          incidentId={editingId}
+          universeId={universe.id}
+          open={!!editingId}
+          onClose={() => setEditingId(null)}
+        />
+      )}
     </div>
   )
 }
