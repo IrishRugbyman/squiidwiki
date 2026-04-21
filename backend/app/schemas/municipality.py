@@ -31,3 +31,5 @@ class MunicipalityListItem(BaseModel):
     name: str
     parent_id: Optional[uuid.UUID]
     universe_id: uuid.UUID
+    incident_count: int = 0
+    child_count: int = 0

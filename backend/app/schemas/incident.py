@@ -75,3 +75,4 @@ class IncidentListItem(BaseModel):
     municipality_id: Optional[uuid.UUID]
     verified: bool
     universe_id: uuid.UUID
+    victim_names: list[str] = []

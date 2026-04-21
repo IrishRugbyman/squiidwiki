@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
-import { Download, Pencil, Plus, Search, Users, X } from 'lucide-react'
+import { Download, Pencil, Plus, Search, Trash2, UserPlus, Users, X } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { NoUniverse } from '@/components/NoUniverse'
 import { PageHeader } from '@/components/PageHeader'
@@ -13,7 +13,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { FuzzyDateInput } from '@/components/FuzzyDateInput'
 import {
   useCreateMember, useMembers, useMemberSearch, useUpdateMember,
-  useSets, useAlliances, useBulkMemberStatus, useMember,
+  useSets, useAlliances, useBulkMemberStatus, useMember, useAllMembers,
 } from '@/lib/queries'
 import { useUniverseStore } from '@/stores/universe'
 import { downloadCsv } from '@/lib/download'
@@ -64,6 +64,47 @@ const STATUS_BADGE: Record<MemberStatus, string> = {
 
 const ALL_STATUSES: MemberStatus[] = ['FREE', 'LOCKED', 'ESCAPEE', 'ABSCONDER', 'DEAD', 'UNKNOWN']
 
+// ─── Family types ─────────────────────────────────────────────────────────────
+
+export type FamilyRole = 'father' | 'son' | 'brother' | 'cousin' | 'uncle' | 'nephew'
+
+export const FAMILY_ROLES: FamilyRole[] = ['father', 'son', 'brother', 'cousin', 'uncle', 'nephew']
+
+export const ROLE_LABEL: Record<FamilyRole, string> = {
+  father: 'Father',
+  son: 'Son',
+  brother: 'Brother',
+  cousin: 'Cousin',
+  uncle: 'Uncle',
+  nephew: 'Nephew',
+}
+
+export interface FamilyEntry { role: FamilyRole; memberId: string }
+
+export function familyDictToEntries(family: Record<string, unknown> | null | undefined): FamilyEntry[] {
+  if (!family) return []
+  const entries: FamilyEntry[] = []
+  for (const [role, val] of Object.entries(family)) {
+    const ids = Array.isArray(val) ? (val as string[]) : [val as string]
+    for (const id of ids) if (id) entries.push({ role: role as FamilyRole, memberId: id })
+  }
+  return entries
+}
+
+export function familyEntriesToDict(entries: FamilyEntry[]): Record<string, unknown> | null {
+  if (!entries.length) return null
+  const result: Record<string, string | string[]> = {}
+  for (const { role, memberId } of entries) {
+    if (role === 'father') {
+      result.father = memberId
+    } else {
+      if (!Array.isArray(result[role])) result[role] = []
+      ;(result[role] as string[]).push(memberId)
+    }
+  }
+  return result
+}
+
 function initials(name: string) {
   const parts = name.trim().split(/\s+/)
   if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase()
@@ -87,6 +128,145 @@ function MemberAvatar({ member }: { member: MemberListItem }) {
   return (
     <div className={`flex h-7 w-7 items-center justify-center rounded-full text-[10px] font-bold ${STATUS_AVATAR[member.status]}`}>
       {initials(member.display_name)}
+    </div>
+  )
+}
+
+// ─── Family editor ────────────────────────────────────────────────────────────
+
+function FamilyEditor({
+  entries,
+  onChange,
+  universeId,
+  excludeMemberId,
+}: {
+  entries: FamilyEntry[]
+  onChange: (entries: FamilyEntry[]) => void
+  universeId: string
+  excludeMemberId?: string
+}) {
+  const { data: allMembersData } = useAllMembers(universeId)
+  const allMembers = (allMembersData?.items ?? []).filter((m) => m.id !== excludeMemberId)
+
+  const [newRole, setNewRole] = useState<FamilyRole>('brother')
+  const [newMemberId, setNewMemberId] = useState('')
+  const [memberSearch, setMemberSearch] = useState('')
+  const [showDropdown, setShowDropdown] = useState(false)
+
+  const filteredMembers = useMemo(() => {
+    if (!memberSearch.trim()) return allMembers.slice(0, 8)
+    const q = memberSearch.toLowerCase()
+    return allMembers.filter((m) => m.display_name.toLowerCase().includes(q)).slice(0, 8)
+  }, [allMembers, memberSearch])
+
+  const selectedMember = allMembers.find((m) => m.id === newMemberId)
+
+  function addEntry() {
+    if (!newMemberId) return
+    // father is unique — replace
+    if (newRole === 'father') {
+      onChange([...entries.filter((e) => e.role !== 'father'), { role: newRole, memberId: newMemberId }])
+    } else {
+      if (entries.some((e) => e.role === newRole && e.memberId === newMemberId)) return
+      onChange([...entries, { role: newRole, memberId: newMemberId }])
+    }
+    setNewMemberId('')
+    setMemberSearch('')
+  }
+
+  function removeEntry(idx: number) {
+    onChange(entries.filter((_, i) => i !== idx))
+  }
+
+  const memberName = (id: string) => allMembers.find((m) => m.id === id)?.display_name ?? id.slice(0, 8) + '…'
+
+  const groupedEntries = FAMILY_ROLES.map((role) => ({
+    role,
+    entries: entries.filter((e) => e.role === role),
+  })).filter((g) => g.entries.length > 0)
+
+  return (
+    <div className="space-y-3">
+      {/* Current entries */}
+      {groupedEntries.length > 0 && (
+        <div className="rounded-lg border border-zinc-800 bg-zinc-900/30 p-3 space-y-2">
+          {groupedEntries.map(({ role, entries: grp }) => (
+            <div key={role} className="flex flex-wrap items-center gap-1.5">
+              <span className="text-[11px] font-medium uppercase tracking-wider text-zinc-500 w-14 shrink-0">
+                {ROLE_LABEL[role]}
+              </span>
+              {grp.map((entry, gi) => {
+                const idx = entries.findIndex((e) => e === entry)
+                return (
+                  <span key={gi} className="inline-flex items-center gap-1 rounded-full bg-zinc-800 pl-2 pr-1 py-0.5 text-xs text-zinc-300">
+                    {memberName(entry.memberId)}
+                    <button
+                      type="button"
+                      onClick={() => removeEntry(idx)}
+                      className="rounded-full p-0.5 text-zinc-500 hover:bg-zinc-700 hover:text-white"
+                    >
+                      <X className="h-2.5 w-2.5" />
+                    </button>
+                  </span>
+                )
+              })}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Add new entry */}
+      <div className="flex gap-1.5">
+        <Select value={newRole} onValueChange={(v) => setNewRole(v as FamilyRole)}>
+          <SelectTrigger className="h-8 w-24 text-xs">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {FAMILY_ROLES.map((r) => (
+              <SelectItem key={r} value={r} className="text-xs">{ROLE_LABEL[r]}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        <div className="relative flex-1">
+          <Input
+            className="h-8 text-xs"
+            placeholder={selectedMember ? selectedMember.display_name : 'Search member…'}
+            value={memberSearch}
+            onChange={(e) => {
+              setMemberSearch(e.target.value)
+              setNewMemberId('')
+              setShowDropdown(true)
+            }}
+            onFocus={() => setShowDropdown(true)}
+            onBlur={() => setTimeout(() => setShowDropdown(false), 150)}
+          />
+          {showDropdown && filteredMembers.length > 0 && (
+            <div className="absolute left-0 right-0 top-full z-50 mt-1 rounded-md border border-zinc-700 bg-zinc-900 shadow-xl">
+              {filteredMembers.map((m) => (
+                <button
+                  key={m.id}
+                  type="button"
+                  className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs hover:bg-zinc-800"
+                  onMouseDown={() => {
+                    setNewMemberId(m.id)
+                    setMemberSearch(m.display_name)
+                    setShowDropdown(false)
+                  }}
+                >
+                  <span className={`h-1.5 w-1.5 rounded-full ${STATUS_DOT[m.status]}`} />
+                  <span className="text-zinc-200">{m.display_name}</span>
+                  <span className="ml-auto text-zinc-600 text-[10px]">{m.status}</span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <Button type="button" size="sm" className="h-8 px-2.5" onClick={addEntry} disabled={!newMemberId}>
+          <UserPlus className="h-3.5 w-3.5" />
+        </Button>
+      </div>
     </div>
   )
 }
@@ -118,8 +298,12 @@ export function MemberFormSheet({ universeId, open, onClose, initial, defaultSet
   const [biography, setBiography] = useState(initial?.biography ?? '')
   const [photoUrl, setPhotoUrl] = useState(initial?.photo_url ?? '')
   const [aliases, setAliases] = useState(initial?.aliases?.join(', ') ?? '')
+  const [dob, setDob] = useState<FuzzyDateValue | null>(initial?.dob ?? null)
   const [dateOfDeath, setDateOfDeath] = useState<FuzzyDateValue | null>(initial?.date_of_death ?? null)
   const [releaseDate, setReleaseDate] = useState<FuzzyDateValue | null>(initial?.release_date ?? null)
+  const [familyEntries, setFamilyEntries] = useState<FamilyEntry[]>(
+    () => familyDictToEntries(initial?.family as Record<string, unknown> | null)
+  )
   const [error, setError] = useState<string | null>(null)
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -137,8 +321,10 @@ export function MemberFormSheet({ universeId, open, onClose, initial, defaultSet
       biography,
       photo_url: photoUrl || null,
       aliases: aliasList.length > 0 ? aliasList : null,
+      dob: dob ?? null,
       date_of_death: status === 'DEAD' ? dateOfDeath : null,
       release_date: status === 'LOCKED' ? releaseDate : null,
+      family: familyEntriesToDict(familyEntries),
     }
     try {
       if (isEdit) await update.mutateAsync(body)
@@ -158,18 +344,29 @@ export function MemberFormSheet({ universeId, open, onClose, initial, defaultSet
         description={isEdit ? 'Update this member' : 'Create a new member profile'}
       >
         <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Identity */}
           <div className="space-y-1.5">
             <Label htmlFor="m-nickname">Nickname</Label>
             <Input id="m-nickname" value={nickname} onChange={(e) => setNickname(e.target.value)} placeholder="Street name" disabled={nicknameUnknown} />
           </div>
           <div className="flex items-center gap-2">
             <input id="m-nku" type="checkbox" checked={nicknameUnknown} onChange={(e) => setNicknameUnknown(e.target.checked)} className="rounded border-zinc-700 bg-zinc-900 accent-violet-600" />
-            <label htmlFor="m-nku" className="text-sm text-zinc-300">Nickname unknown (use legal name as display)</label>
+            <label htmlFor="m-nku" className="text-sm text-zinc-300">Nickname unknown — use legal name as display</label>
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="m-legal">Legal Name</Label>
             <Input id="m-legal" value={legalName} onChange={(e) => setLegalName(e.target.value)} placeholder="Full legal name" />
           </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="m-aliases">Aliases <span className="text-zinc-600">(comma-separated)</span></Label>
+            <Input id="m-aliases" value={aliases} onChange={(e) => setAliases(e.target.value)} placeholder="e.g. Big L, Lucky" />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="m-photo">Photo URL</Label>
+            <Input id="m-photo" type="url" value={photoUrl} onChange={(e) => setPhotoUrl(e.target.value)} placeholder="https://…" />
+          </div>
+
+          {/* Status */}
           <div className="space-y-1.5">
             <Label>Status</Label>
             <Select value={status} onValueChange={(v) => setStatus(v as MemberStatus)}>
@@ -189,6 +386,8 @@ export function MemberFormSheet({ universeId, open, onClose, initial, defaultSet
               <FuzzyDateInput value={releaseDate} onChange={setReleaseDate} label="Expected release date" idPrefix="rel" />
             </div>
           )}
+
+          {/* Affiliation */}
           <div className="space-y-1.5">
             <Label>Set</Label>
             <Select value={setId || 'none'} onValueChange={(v) => setSetId(v === 'none' ? '' : v)}>
@@ -209,18 +408,29 @@ export function MemberFormSheet({ universeId, open, onClose, initial, defaultSet
               </SelectContent>
             </Select>
           </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="m-aliases">Aliases (comma-separated)</Label>
-            <Input id="m-aliases" value={aliases} onChange={(e) => setAliases(e.target.value)} placeholder="e.g. Big L, Lucky" />
+
+          {/* Dates */}
+          <div className="rounded-lg border border-zinc-800 bg-zinc-900/50 p-3">
+            <FuzzyDateInput value={dob} onChange={setDob} label="Date of birth" idPrefix="dob" />
           </div>
+
+          {/* Family */}
           <div className="space-y-1.5">
-            <Label htmlFor="m-photo">Photo URL</Label>
-            <Input id="m-photo" type="url" value={photoUrl} onChange={(e) => setPhotoUrl(e.target.value)} placeholder="https://…" />
+            <Label>Family <span className="text-zinc-600 font-normal text-xs">(bilateral — inverse links auto-saved)</span></Label>
+            <FamilyEditor
+              entries={familyEntries}
+              onChange={setFamilyEntries}
+              universeId={universeId}
+              excludeMemberId={initial?.id}
+            />
           </div>
+
+          {/* Biography */}
           <div className="space-y-1.5">
             <Label htmlFor="m-bio">Biography</Label>
-            <Textarea id="m-bio" rows={5} value={biography} onChange={(e) => setBiography(e.target.value)} placeholder="Background notes…" />
+            <Textarea id="m-bio" rows={4} value={biography} onChange={(e) => setBiography(e.target.value)} placeholder="Background notes…" />
           </div>
+
           {error && <p className="text-sm text-red-400">{error}</p>}
           <div className="flex gap-2 pt-2">
             <Button type="submit" disabled={isPending} className="flex-1">
@@ -236,7 +446,7 @@ export function MemberFormSheet({ universeId, open, onClose, initial, defaultSet
   )
 }
 
-// ─── Quick-edit sheet (fetches full member, then opens form) ──────────────────
+// ─── Quick-edit sheet ─────────────────────────────────────────────────────────
 
 function EditMemberSheet({ memberId, universeId, onClose }: { memberId: string; universeId: string; onClose: () => void }) {
   const { data: member, isLoading } = useMember(memberId, universeId)
@@ -256,7 +466,6 @@ function EditMemberSheet({ memberId, universeId, onClose }: { memberId: string; 
   }
 
   if (!member) return null
-
   return <MemberFormSheet universeId={universeId} open onClose={onClose} initial={member} />
 }
 
@@ -308,8 +517,8 @@ function MembersPage() {
     if (setFilter) list = list.filter((m) => m.set_id === setFilter)
     if (!sortKey) return list
     return [...list].sort((a, b) => {
-      const av = String((a as any)[sortKey] ?? '')
-      const bv = String((b as any)[sortKey] ?? '')
+      const av = String((a as Record<string, unknown>)[sortKey] ?? '')
+      const bv = String((b as Record<string, unknown>)[sortKey] ?? '')
       return sortDir === 'asc' ? av.localeCompare(bv) : bv.localeCompare(av)
     })
   }, [baseItems, statusFilter, setFilter, sortKey, sortDir])
@@ -342,18 +551,10 @@ function MembersPage() {
           <h1 className="text-xl font-bold text-white">Members</h1>
           <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-zinc-500">
             {total != null && <span>{total} total</span>}
-            {(statusCounts.FREE ?? 0) > 0 && (
-              <span className="text-emerald-500">{statusCounts.FREE} free</span>
-            )}
-            {(statusCounts.LOCKED ?? 0) > 0 && (
-              <span className="text-orange-400">{statusCounts.LOCKED} locked</span>
-            )}
-            {(statusCounts.DEAD ?? 0) > 0 && (
-              <span>{statusCounts.DEAD} dead</span>
-            )}
-            {(statusCounts.ESCAPEE ?? 0) > 0 && (
-              <span className="text-amber-400">{statusCounts.ESCAPEE} escaped</span>
-            )}
+            {(statusCounts.FREE ?? 0) > 0 && <span className="text-emerald-500">{statusCounts.FREE} free</span>}
+            {(statusCounts.LOCKED ?? 0) > 0 && <span className="text-orange-400">{statusCounts.LOCKED} locked</span>}
+            {(statusCounts.DEAD ?? 0) > 0 && <span>{statusCounts.DEAD} dead</span>}
+            {(statusCounts.ESCAPEE ?? 0) > 0 && <span className="text-amber-400">{statusCounts.ESCAPEE} escaped</span>}
           </div>
         </div>
         <Button size="sm" onClick={() => setCreating(true)}>
@@ -371,9 +572,7 @@ function MembersPage() {
                 key={s}
                 onClick={() => setStatusFilter(active ? null : s)}
                 className={`flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium transition-all ${
-                  active
-                    ? STATUS_CHIP_ACTIVE[s]
-                    : 'border-zinc-800 bg-zinc-900/40 text-zinc-500 hover:border-zinc-700 hover:text-zinc-300'
+                  active ? STATUS_CHIP_ACTIVE[s] : 'border-zinc-800 bg-zinc-900/40 text-zinc-500 hover:border-zinc-700 hover:text-zinc-300'
                 }`}
               >
                 <span className={`h-1.5 w-1.5 rounded-full ${STATUS_DOT[s]}`} />
@@ -399,7 +598,6 @@ function MembersPage() {
           <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
           <Input className="pl-8 h-8 text-sm" placeholder="Search members…" value={q} onChange={(e) => { setQ(e.target.value); setCursor(undefined) }} />
         </div>
-
         <Select value={setFilter || 'all'} onValueChange={(v) => setSetFilter(v === 'all' ? '' : v)}>
           <SelectTrigger className="h-8 w-36 text-xs"><SelectValue placeholder="All sets" /></SelectTrigger>
           <SelectContent>
@@ -409,7 +607,6 @@ function MembersPage() {
             ))}
           </SelectContent>
         </Select>
-
         <Button variant="outline" size="sm" className="h-8" onClick={() => downloadCsv(`/members/?universe_id=${universe.id}&format=csv`, 'members.csv')}>
           <Download className="mr-1.5 h-3.5 w-3.5" />Export
         </Button>
@@ -421,12 +618,7 @@ function MembersPage() {
           <thead className="sticky top-0 z-10">
             <tr className="border-b border-zinc-800 bg-zinc-900/90 backdrop-blur">
               <th className="w-10 px-3 py-2.5">
-                <input
-                  type="checkbox"
-                  checked={items.length > 0 && selected.size === items.length}
-                  onChange={toggleAll}
-                  className="rounded border-zinc-700 bg-zinc-900 accent-violet-600"
-                />
+                <input type="checkbox" checked={items.length > 0 && selected.size === items.length} onChange={toggleAll} className="rounded border-zinc-700 bg-zinc-900 accent-violet-600" />
               </th>
               <th className="px-3 py-2.5 w-8" />
               <th className="px-3 py-2.5 text-left">
@@ -465,32 +657,14 @@ function MembersPage() {
                   const setInfo = member.set_id ? setMap[member.set_id] : null
                   const isDead = member.status === 'DEAD'
                   return (
-                    <tr
-                      key={member.id}
-                      className={`group transition-colors hover:bg-zinc-900/40 ${selected.has(member.id) ? 'bg-violet-950/20' : ''} ${isDead ? 'opacity-60' : ''}`}
-                    >
+                    <tr key={member.id} className={`group transition-colors hover:bg-zinc-900/40 ${selected.has(member.id) ? 'bg-violet-950/20' : ''} ${isDead ? 'opacity-60' : ''}`}>
                       <td className="px-3 py-3">
-                        <input
-                          type="checkbox"
-                          checked={selected.has(member.id)}
-                          onChange={() => toggleSelect(member.id)}
-                          className="rounded border-zinc-700 bg-zinc-900 accent-violet-600"
-                        />
+                        <input type="checkbox" checked={selected.has(member.id)} onChange={() => toggleSelect(member.id)} className="rounded border-zinc-700 bg-zinc-900 accent-violet-600" />
                       </td>
-                      {/* Avatar */}
-                      <td className="px-3 py-3">
-                        <MemberAvatar member={member} />
-                      </td>
-                      {/* Name + aliases */}
+                      <td className="px-3 py-3"><MemberAvatar member={member} /></td>
                       <td className="p-0">
-                        <Link
-                          to="/members/$id"
-                          params={{ id: linkId }}
-                          className="block px-3 py-3 transition-colors group-hover:text-violet-400"
-                        >
-                          <span className={`font-medium ${isDead ? 'text-zinc-400 line-through decoration-zinc-600' : 'text-white'}`}>
-                            {member.display_name}
-                          </span>
+                        <Link to="/members/$id" params={{ id: linkId }} className="block px-3 py-3 transition-colors group-hover:text-violet-400">
+                          <span className={`font-medium ${isDead ? 'text-zinc-400 line-through decoration-zinc-600' : 'text-white'}`}>{member.display_name}</span>
                           {member.aliases && member.aliases.length > 0 && (
                             <span className="mt-0.5 block text-[11px] text-zinc-600 group-hover:text-zinc-500 transition-colors">
                               {member.aliases.slice(0, 3).join(' · ')}
@@ -498,35 +672,21 @@ function MembersPage() {
                           )}
                         </Link>
                       </td>
-                      {/* Set */}
                       <td className="hidden px-3 py-3 sm:table-cell">
                         {setInfo ? (
-                          <Link
-                            to="/sets/$id"
-                            params={{ id: setInfo.slug ?? member.set_id! }}
-                            className="inline-flex items-center rounded-full bg-zinc-800/60 px-2 py-0.5 text-xs text-zinc-400 hover:bg-zinc-800 hover:text-violet-400 transition-colors"
-                          >
+                          <Link to="/sets/$id" params={{ id: setInfo.slug ?? member.set_id! }} className="inline-flex items-center rounded-full bg-zinc-800/60 px-2 py-0.5 text-xs text-zinc-400 hover:bg-zinc-800 hover:text-violet-400 transition-colors">
                             {setInfo.name}
                           </Link>
-                        ) : (
-                          <span className="text-xs text-zinc-700">—</span>
-                        )}
+                        ) : <span className="text-xs text-zinc-700">—</span>}
                       </td>
-                      {/* Status */}
                       <td className="px-3 py-3">
                         <span className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_BADGE[member.status]}`}>
                           <span className={`h-1.5 w-1.5 rounded-full ${STATUS_DOT[member.status]}`} />
                           {member.status}
                         </span>
                       </td>
-                      {/* Quick-edit */}
                       <td className="px-3 py-3">
-                        <button
-                          type="button"
-                          onClick={(e) => { e.preventDefault(); e.stopPropagation(); setEditingMemberId(member.id) }}
-                          title="Quick edit"
-                          className="invisible rounded p-1 text-zinc-600 transition-colors hover:bg-zinc-800 hover:text-violet-400 group-hover:visible"
-                        >
+                        <button type="button" onClick={(e) => { e.preventDefault(); e.stopPropagation(); setEditingMemberId(member.id) }} className="invisible rounded p-1 text-zinc-600 transition-colors hover:bg-zinc-800 hover:text-violet-400 group-hover:visible">
                           <Pencil className="h-3.5 w-3.5" />
                         </button>
                       </td>
@@ -542,14 +702,10 @@ function MembersPage() {
                       {q ? 'No members match your search' : hasFilters ? 'No members match these filters' : 'No members yet'}
                     </p>
                     {!q && !hasFilters && (
-                      <button onClick={() => setCreating(true)} className="mt-2 text-xs text-violet-400 hover:text-violet-300 transition-colors">
-                        Add the first member →
-                      </button>
+                      <button onClick={() => setCreating(true)} className="mt-2 text-xs text-violet-400 hover:text-violet-300 transition-colors">Add the first member →</button>
                     )}
                     {hasFilters && (
-                      <button onClick={() => { setStatusFilter(null); setSetFilter('') }} className="mt-2 text-xs text-violet-400 hover:text-violet-300 transition-colors">
-                        Clear filters
-                      </button>
+                      <button onClick={() => { setStatusFilter(null); setSetFilter('') }} className="mt-2 text-xs text-violet-400 hover:text-violet-300 transition-colors">Clear filters</button>
                     )}
                   </div>
                 </td>
@@ -562,16 +718,12 @@ function MembersPage() {
       {/* Load more */}
       {!q && data?.next_cursor && (
         <div className="mt-4 flex items-center justify-between text-xs text-zinc-500">
-          {total != null && items.length > 0 && (
-            <span>Showing {items.length} of {total}</span>
-          )}
-          <Button variant="outline" size="sm" onClick={() => setCursor(data.next_cursor ?? undefined)}>
-            Load more
-          </Button>
+          {total != null && items.length > 0 && <span>Showing {items.length} of {total}</span>}
+          <Button variant="outline" size="sm" onClick={() => setCursor(data.next_cursor ?? undefined)}>Load more</Button>
         </div>
       )}
 
-      {/* Sticky bulk action bar */}
+      {/* Bulk action bar */}
       {selected.size > 0 && (
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 flex items-center gap-3 rounded-xl border border-zinc-700 bg-zinc-900 px-4 py-2.5 shadow-2xl shadow-black/50">
           <span className="text-sm font-medium text-white">{selected.size} selected</span>
@@ -593,13 +745,8 @@ function MembersPage() {
       )}
 
       <MemberFormSheet universeId={universe.id} open={creating} onClose={() => setCreating(false)} />
-
       {editingMemberId && (
-        <EditMemberSheet
-          memberId={editingMemberId}
-          universeId={universe.id}
-          onClose={() => setEditingMemberId(null)}
-        />
+        <EditMemberSheet memberId={editingMemberId} universeId={universe.id} onClose={() => setEditingMemberId(null)} />
       )}
     </div>
   )

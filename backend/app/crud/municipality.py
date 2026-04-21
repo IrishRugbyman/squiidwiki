@@ -1,5 +1,6 @@
 import uuid
 
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import func, select
 
@@ -30,20 +31,40 @@ async def get_municipality(
 
 async def list_municipalities(
     session: AsyncSession, universe_id: uuid.UUID, offset: int = 0, limit: int = 100
-) -> tuple[list[Municipality], int]:
-    count_result = await session.execute(
-        select(func.count()).select_from(Municipality).where(
-            Municipality.universe_id == universe_id
-        )
-    )
-    total = count_result.scalar_one()
-    result = await session.execute(
-        select(Municipality)
-        .where(Municipality.universe_id == universe_id)
-        .offset(offset)
-        .limit(limit)
-    )
-    return result.scalars().all(), total
+) -> tuple[list, int]:
+    rows = (await session.execute(text("""
+        SELECT
+            m.id,
+            m.name,
+            m.parent_id,
+            m.universe_id,
+            COUNT(DISTINCT i.id)::int AS incident_count,
+            COUNT(DISTINCT c.id)::int AS child_count
+        FROM municipality m
+        LEFT JOIN incident i ON i.municipality_id = m.id
+        LEFT JOIN municipality c ON c.parent_id = m.id
+        WHERE m.universe_id = :uid
+        GROUP BY m.id
+        ORDER BY m.name
+        LIMIT :lim OFFSET :off
+    """), {"uid": str(universe_id), "lim": limit, "off": offset})).mappings().all()
+
+    total_row = (await session.execute(text(
+        "SELECT count(*) FROM municipality WHERE universe_id = :uid"
+    ), {"uid": str(universe_id)})).scalar_one()
+
+    items = [
+        {
+            "id": r["id"],
+            "name": r["name"],
+            "parent_id": r["parent_id"],
+            "universe_id": r["universe_id"],
+            "incident_count": r["incident_count"],
+            "child_count": r["child_count"],
+        }
+        for r in rows
+    ]
+    return items, total_row
 
 
 async def update_municipality(

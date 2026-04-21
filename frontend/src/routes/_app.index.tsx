@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
 import {
   AlertTriangle, ArrowRight, CheckCircle2, FileText,
-  Network, Shield, Skull, Users,
+  Network, Shield, Skull, User, Users,
 } from 'lucide-react'
 import { FuzzyDate } from '@/components/FuzzyDate'
 import { Badge } from '@/components/ui/badge'
@@ -221,6 +221,50 @@ function Dashboard() {
                     </span>
                     <span className="rounded-full bg-zinc-800 px-2 py-0.5 text-xs font-medium tabular-nums text-zinc-400">
                       {s.incident_count}
+                    </span>
+                  </Link>
+                ))}
+              </div>
+            )}
+          </Card>
+
+          {/* Top members by incident involvement */}
+          <Card
+            title="Most Active Members"
+            action={
+              <Link to="/members" className="text-xs text-zinc-500 hover:text-violet-400 transition-colors">
+                All members →
+              </Link>
+            }
+          >
+            {analyticsLoading ? (
+              <div className="space-y-2.5">
+                {Array.from({ length: 4 }).map((_, i) => (
+                  <div key={i} className="flex items-center gap-3">
+                    <Skeleton className="h-3 w-3" />
+                    <Skeleton className="h-3 flex-1" />
+                    <Skeleton className="h-4 w-6" />
+                  </div>
+                ))}
+              </div>
+            ) : !analytics?.top_members_by_incidents.length ? (
+              <p className="text-sm text-zinc-600">No incident data yet.</p>
+            ) : (
+              <div className="space-y-1">
+                {analytics.top_members_by_incidents.map((m, i) => (
+                  <Link
+                    key={m.id}
+                    to="/members/$id"
+                    params={{ id: m.id }}
+                    className="group flex items-center gap-3 rounded-md px-2 py-1.5 transition-colors hover:bg-zinc-800/60"
+                  >
+                    <span className="w-4 text-right text-xs text-zinc-600">{i + 1}</span>
+                    <User className="h-3 w-3 shrink-0 text-zinc-600 group-hover:text-zinc-400" />
+                    <span className="flex-1 truncate text-sm text-zinc-300 group-hover:text-white">
+                      {m.display_name}
+                    </span>
+                    <span className="rounded-full bg-zinc-800 px-2 py-0.5 text-xs font-medium tabular-nums text-zinc-400">
+                      {m.incident_count}
                     </span>
                   </Link>
                 ))}

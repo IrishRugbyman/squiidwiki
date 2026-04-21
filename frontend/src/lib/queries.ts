@@ -241,6 +241,14 @@ export const useMembers = (universeId: UUID | null, cursor?: string) =>
     enabled: !!universeId,
   })
 
+export const useAllMembers = (universeId: UUID | null) =>
+  useQuery({
+    queryKey: ['members', 'all', universeId],
+    queryFn: () => api.get<CursorPage<MemberListItem>>(`/members/?universe_id=${universeId}&limit=500`),
+    enabled: !!universeId,
+    staleTime: 30_000,
+  })
+
 export const useMemberSearch = (universeId: UUID | null, q: string) =>
   useQuery({
     queryKey: ['members', 'search', universeId, q],
@@ -425,6 +433,16 @@ export const useMunicipality = (id: UUID, universeId: UUID | null) =>
     queryKey: ['municipalities', id],
     queryFn: () => api.get<MunicipalityRead>(`/municipalities/${id}?universe_id=${universeId}`),
     enabled: !!universeId,
+  })
+
+export const useIncidentsByMunicipality = (municipalityId: UUID | null, universeId: UUID | null) =>
+  useQuery({
+    queryKey: ['incidents', 'municipality', municipalityId, universeId],
+    queryFn: () =>
+      api.get<CursorPage<IncidentListItem>>(
+        `/incidents/?universe_id=${universeId}&municipality_id=${municipalityId}`
+      ),
+    enabled: !!municipalityId && !!universeId,
   })
 
 export const useCreateMunicipality = () => {

@@ -84,6 +84,7 @@ class MemberListItem(BaseModel):
     slug: Optional[str] = None
     photo_url: Optional[str] = None
     aliases: Optional[list[str]] = None
+    date_of_death: FuzzyDateField = None
 
 
 class MemberStats(BaseModel):

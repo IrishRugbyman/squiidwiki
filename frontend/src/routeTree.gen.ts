@@ -13,7 +13,6 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as AppIndexRouteImport } from './routes/_app.index'
 import { Route as AppUniversesRouteImport } from './routes/_app.universes'
-import { Route as AppStatsRouteImport } from './routes/_app.stats'
 import { Route as AppProfileRouteImport } from './routes/_app.profile'
 import { Route as AppCalendarRouteImport } from './routes/_app.calendar'
 import { Route as AppAuditRouteImport } from './routes/_app.audit'
@@ -48,11 +47,6 @@ const AppIndexRoute = AppIndexRouteImport.update({
 const AppUniversesRoute = AppUniversesRouteImport.update({
   id: '/universes',
   path: '/universes',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppStatsRoute = AppStatsRouteImport.update({
-  id: '/stats',
-  path: '/stats',
   getParentRoute: () => AppRoute,
 } as any)
 const AppProfileRoute = AppProfileRouteImport.update({
@@ -142,7 +136,6 @@ export interface FileRoutesByFullPath {
   '/audit': typeof AppAuditRoute
   '/calendar': typeof AppCalendarRoute
   '/profile': typeof AppProfileRoute
-  '/stats': typeof AppStatsRoute
   '/universes': typeof AppUniversesRoute
   '/admin/users': typeof AppAdminUsersRoute
   '/alliances/$id': typeof AppAlliancesIdRoute
@@ -163,7 +156,6 @@ export interface FileRoutesByTo {
   '/audit': typeof AppAuditRoute
   '/calendar': typeof AppCalendarRoute
   '/profile': typeof AppProfileRoute
-  '/stats': typeof AppStatsRoute
   '/universes': typeof AppUniversesRoute
   '/': typeof AppIndexRoute
   '/admin/users': typeof AppAdminUsersRoute
@@ -187,7 +179,6 @@ export interface FileRoutesById {
   '/_app/audit': typeof AppAuditRoute
   '/_app/calendar': typeof AppCalendarRoute
   '/_app/profile': typeof AppProfileRoute
-  '/_app/stats': typeof AppStatsRoute
   '/_app/universes': typeof AppUniversesRoute
   '/_app/': typeof AppIndexRoute
   '/_app/admin/users': typeof AppAdminUsersRoute
@@ -212,7 +203,6 @@ export interface FileRouteTypes {
     | '/audit'
     | '/calendar'
     | '/profile'
-    | '/stats'
     | '/universes'
     | '/admin/users'
     | '/alliances/$id'
@@ -233,7 +223,6 @@ export interface FileRouteTypes {
     | '/audit'
     | '/calendar'
     | '/profile'
-    | '/stats'
     | '/universes'
     | '/'
     | '/admin/users'
@@ -256,7 +245,6 @@ export interface FileRouteTypes {
     | '/_app/audit'
     | '/_app/calendar'
     | '/_app/profile'
-    | '/_app/stats'
     | '/_app/universes'
     | '/_app/'
     | '/_app/admin/users'
@@ -307,13 +295,6 @@ declare module '@tanstack/react-router' {
       path: '/universes'
       fullPath: '/universes'
       preLoaderRoute: typeof AppUniversesRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/_app/stats': {
-      id: '/_app/stats'
-      path: '/stats'
-      fullPath: '/stats'
-      preLoaderRoute: typeof AppStatsRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/profile': {
@@ -435,7 +416,6 @@ interface AppRouteChildren {
   AppAuditRoute: typeof AppAuditRoute
   AppCalendarRoute: typeof AppCalendarRoute
   AppProfileRoute: typeof AppProfileRoute
-  AppStatsRoute: typeof AppStatsRoute
   AppUniversesRoute: typeof AppUniversesRoute
   AppIndexRoute: typeof AppIndexRoute
   AppAdminUsersRoute: typeof AppAdminUsersRoute
@@ -457,7 +437,6 @@ const AppRouteChildren: AppRouteChildren = {
   AppAuditRoute: AppAuditRoute,
   AppCalendarRoute: AppCalendarRoute,
   AppProfileRoute: AppProfileRoute,
-  AppStatsRoute: AppStatsRoute,
   AppUniversesRoute: AppUniversesRoute,
   AppIndexRoute: AppIndexRoute,
   AppAdminUsersRoute: AppAdminUsersRoute,

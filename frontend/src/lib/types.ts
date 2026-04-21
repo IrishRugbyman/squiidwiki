@@ -41,6 +41,8 @@ export interface MunicipalityListItem {
   name: string
   parent_id: UUID | null
   universe_id: UUID
+  incident_count: number
+  child_count: number
 }
 
 export interface MunicipalityRead extends MunicipalityListItem {}
@@ -125,6 +127,7 @@ export interface MemberListItem {
   slug: string | null
   photo_url: string | null
   aliases: string[] | null
+  date_of_death: FuzzyDateValue | null
 }
 
 export interface MemberRead extends MemberListItem {
@@ -171,6 +174,7 @@ export interface IncidentListItem {
   municipality_id: UUID | null
   verified: boolean
   universe_id: UUID
+  victim_names: string[]
 }
 
 export interface IncidentRead extends IncidentListItem {
@@ -208,6 +212,9 @@ export interface UniverseAnalytics {
   incident_by_type: Record<string, number>
   top_sets_by_incidents: Array<{ id: string; name: string; incident_count: number }>
   top_sources_by_references: Array<{ id: string; title: string; ref_count: number }>
+  incidents_by_month: Array<{ month: string; count: number }>
+  source_by_reliability: Record<string, number>
+  top_members_by_incidents: Array<{ id: string; display_name: string; incident_count: number }>
 }
 
 // Users

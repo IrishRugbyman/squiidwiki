@@ -11,6 +11,68 @@ from app.schemas.common import make_cursor, parse_cursor
 from app.schemas.member import MemberCreate, MemberUpdate
 
 
+INVERSE_REL: dict[str, str] = {
+    "father": "son",
+    "son": "father",
+    "uncle": "nephew",
+    "nephew": "uncle",
+    "brother": "brother",
+    "cousin": "cousin",
+}
+SINGLE_RELS = {"father"}
+
+
+def _family_ids(family: dict | None, rel: str) -> set[str]:
+    if not family:
+        return set()
+    val = family.get(rel)
+    if val is None:
+        return set()
+    if isinstance(val, list):
+        return {str(v) for v in val}
+    return {str(val)}
+
+
+def _set_family_ids(family: dict, rel: str, ids: set[str]) -> None:
+    if not ids:
+        family.pop(rel, None)
+    elif rel in SINGLE_RELS:
+        family[rel] = next(iter(ids))
+    else:
+        family[rel] = list(ids)
+
+
+async def _sync_bilateral_family(
+    session: AsyncSession,
+    member_id: uuid.UUID,
+    universe_id: uuid.UUID,
+    old_family: dict | None,
+    new_family: dict | None,
+) -> None:
+    old_family = old_family or {}
+    new_family = new_family or {}
+    for rel, inv_rel in INVERSE_REL.items():
+        added = _family_ids(new_family, rel) - _family_ids(old_family, rel)
+        removed = _family_ids(old_family, rel) - _family_ids(new_family, rel)
+        for rid in added | removed:
+            try:
+                related = await get_member(session, uuid.UUID(rid), universe_id)
+            except ValueError:
+                continue
+            if not related:
+                continue
+            rel_family = dict(related.family or {})
+            inv_ids = _family_ids(rel_family, inv_rel)
+            if rid in added:
+                inv_ids.add(str(member_id))
+            else:
+                inv_ids.discard(str(member_id))
+            _set_family_ids(rel_family, inv_rel, inv_ids)
+            related.family = rel_family or None
+            related.updated_at = datetime.utcnow()
+            session.add(related)
+
+
 def _fuzzy_to_dict(fd) -> dict | None:
     if fd is None:
         return None
@@ -63,6 +125,8 @@ async def create_member(
     session.add(obj)
     await session.flush()
     await _sync_member_sources(session, obj.id, data.source_ids)
+    if data.family:
+        await _sync_bilateral_family(session, obj.id, data.universe_id, None, data.family)
     await session.commit()
     await session.refresh(obj)
     return obj
@@ -148,11 +212,14 @@ async def update_member(
             base = _slugify(display)
             dump["slug"] = await _unique_slug(session, universe_id, base, exclude_id=id)
 
+    old_family = dict(obj.family or {})
     for k, v in dump.items():
         setattr(obj, k, v)
     session.add(obj)
     if data.source_ids is not None:
         await _sync_member_sources(session, obj.id, data.source_ids)
+    if "family" in data.model_fields_set:
+        await _sync_bilateral_family(session, obj.id, universe_id, old_family, dump.get("family"))
     await session.commit()
     await session.refresh(obj)
     return obj

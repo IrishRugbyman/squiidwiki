@@ -24,6 +24,9 @@ class UniverseAnalytics(BaseModel):
     incident_by_type: dict[str, int]
     top_sets_by_incidents: list[dict]
     top_sources_by_references: list[dict]
+    incidents_by_month: list[dict]
+    source_by_reliability: dict[str, int]
+    top_members_by_incidents: list[dict]
 
 router = APIRouter(prefix="/universes", tags=["universes"])
 
@@ -133,6 +136,31 @@ async def get_universe_analytics(
         LIMIT 5
     """), {"uid": uid})).fetchall()
 
+    month_rows = (await session.execute(text("""
+        SELECT TO_CHAR(DATE_TRUNC('month', sortable_date), 'YYYY-MM') AS month, count(*) AS cnt
+        FROM incident
+        WHERE universe_id = :uid AND sortable_date IS NOT NULL
+        GROUP BY month
+        ORDER BY month
+    """), {"uid": uid})).fetchall()
+
+    reliability_rows = (await session.execute(text(
+        "SELECT reliability, count(*) AS cnt FROM source WHERE universe_id = :uid GROUP BY reliability"
+    ), {"uid": uid})).fetchall()
+
+    top_members_rows = (await session.execute(text("""
+        SELECT m.id,
+            CASE WHEN m.nickname_unknown OR m.nickname IS NULL THEN m.legal_name ELSE m.nickname END AS display_name,
+            count(DISTINCT ip.incident_id) AS incident_count
+        FROM member m
+        JOIN incident_participant ip ON ip.member_id = m.id
+        JOIN incident i ON i.id = ip.incident_id AND i.universe_id = :uid
+        WHERE m.universe_id = :uid
+        GROUP BY m.id, display_name
+        ORDER BY incident_count DESC
+        LIMIT 5
+    """), {"uid": uid})).fetchall()
+
     return UniverseAnalytics(
         total_members=totals.members,
         total_sets=totals.sets,
@@ -148,5 +176,11 @@ async def get_universe_analytics(
         top_sources_by_references=[
             {"id": str(r.id), "title": r.title, "ref_count": r.ref_count}
             for r in top_sources_rows
+        ],
+        incidents_by_month=[{"month": r.month, "count": r.cnt} for r in month_rows],
+        source_by_reliability={r.reliability: r.cnt for r in reliability_rows},
+        top_members_by_incidents=[
+            {"id": str(r.id), "display_name": r.display_name or "Unknown", "incident_count": r.incident_count}
+            for r in top_members_rows
         ],
     )

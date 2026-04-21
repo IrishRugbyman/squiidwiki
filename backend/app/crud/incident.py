@@ -215,6 +215,22 @@ async def list_incidents_by_alliance(
     return result.scalars().all()
 
 
+async def list_incidents_by_municipality(
+    session: AsyncSession,
+    municipality_id: uuid.UUID,
+    universe_id: uuid.UUID,
+    limit: int = 50,
+) -> list[Incident]:
+    stmt = (
+        select(Incident)
+        .where(Incident.municipality_id == municipality_id, Incident.universe_id == universe_id)
+        .order_by(Incident.sortable_date.desc(), Incident.created_at.desc())
+        .limit(limit)
+    )
+    result = await session.execute(stmt)
+    return result.scalars().all()
+
+
 async def list_incidents_by_source(
     session: AsyncSession,
     source_id: uuid.UUID,
