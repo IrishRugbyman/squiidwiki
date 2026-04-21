@@ -201,6 +201,7 @@ export interface AuditLogRead {
 export interface UniverseAnalytics {
   total_members: number
   total_sets: number
+  total_alliances: number
   total_incidents: number
   total_sources: number
   member_by_status: Record<string, number>

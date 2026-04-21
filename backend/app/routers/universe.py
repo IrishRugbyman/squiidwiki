@@ -17,6 +17,7 @@ from app.schemas.universe import UniverseCreate, UniverseListItem, UniverseRead,
 class UniverseAnalytics(BaseModel):
     total_members: int
     total_sets: int
+    total_alliances: int
     total_incidents: int
     total_sources: int
     member_by_status: dict[str, int]
@@ -97,6 +98,7 @@ async def get_universe_analytics(
         SELECT
             (SELECT count(*) FROM member WHERE universe_id = :uid) AS members,
             (SELECT count(*) FROM sets WHERE universe_id = :uid) AS sets,
+            (SELECT count(*) FROM alliance WHERE universe_id = :uid) AS alliances,
             (SELECT count(*) FROM incident WHERE universe_id = :uid) AS incidents,
             (SELECT count(*) FROM source WHERE universe_id = :uid) AS sources
     """), {"uid": uid})).one()
@@ -135,6 +137,7 @@ async def get_universe_analytics(
         total_members=totals.members,
         total_sets=totals.sets,
         total_incidents=totals.incidents,
+        total_alliances=totals.alliances,
         total_sources=totals.sources,
         member_by_status={r.status: r.cnt for r in status_rows},
         incident_by_type={r.type: r.cnt for r in type_rows},
