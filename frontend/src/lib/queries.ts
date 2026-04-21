@@ -79,6 +79,20 @@ export const useSetSearch = (universeId: UUID | null, q: string) =>
     enabled: !!universeId && q.length >= 2,
   })
 
+export const useAllianceSearch = (universeId: UUID | null, q: string) =>
+  useQuery({
+    queryKey: ['alliances', 'search', universeId, q],
+    queryFn: () => api.get<AllianceListItem[]>(`/alliances/search?universe_id=${universeId}&q=${encodeURIComponent(q)}`),
+    enabled: !!universeId && q.length >= 2,
+  })
+
+export const useIncidentSearch = (universeId: UUID | null, q: string) =>
+  useQuery({
+    queryKey: ['incidents', 'search', universeId, q],
+    queryFn: () => api.get<IncidentListItem[]>(`/incidents/search?universe_id=${universeId}&q=${encodeURIComponent(q)}`),
+    enabled: !!universeId && q.length >= 2,
+  })
+
 export const useSet = (id: UUID, universeId: UUID | null) =>
   useQuery({
     queryKey: ['sets', id],

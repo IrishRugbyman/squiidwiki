@@ -82,6 +82,8 @@ class MemberListItem(BaseModel):
     set_id: Optional[uuid.UUID]
     universe_id: uuid.UUID
     slug: Optional[str] = None
+    photo_url: Optional[str] = None
+    aliases: Optional[list[str]] = None
 
 
 class MemberStats(BaseModel):

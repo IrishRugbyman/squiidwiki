@@ -87,13 +87,29 @@ function MemberDetailPage() {
       ) : member ? (
         <>
           <div className="mb-6 flex items-start justify-between">
-            <div>
-              <MemberIdentity member={member} showLegalName className="text-2xl font-bold" secondaryClassName="text-base mt-1" />
-              <div className="mt-2 flex items-center gap-2">
-                <MemberStatusBadge status={member.status} />
-                {member.aliases && member.aliases.length > 0 && (
-                  <span className="text-xs text-zinc-500">also: {member.aliases.join(', ')}</span>
+            <div className="flex items-start gap-4">
+              {/* Photo avatar */}
+              <div className="shrink-0">
+                {member.photo_url ? (
+                  <img
+                    src={member.photo_url}
+                    alt={member.display_name}
+                    className="h-16 w-16 rounded-xl object-cover ring-1 ring-zinc-700"
+                  />
+                ) : (
+                  <div className="flex h-16 w-16 items-center justify-center rounded-xl bg-zinc-800 text-xl font-bold text-zinc-400">
+                    {member.display_name.slice(0, 2).toUpperCase()}
+                  </div>
                 )}
+              </div>
+              <div>
+                <MemberIdentity member={member} showLegalName className="text-2xl font-bold" secondaryClassName="text-base mt-1" />
+                <div className="mt-2 flex items-center gap-2">
+                  <MemberStatusBadge status={member.status} />
+                  {member.aliases && member.aliases.length > 0 && (
+                    <span className="text-xs text-zinc-500">also: {member.aliases.join(', ')}</span>
+                  )}
+                </div>
               </div>
             </div>
             <div className="flex items-center gap-2">

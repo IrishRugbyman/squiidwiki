@@ -123,6 +123,8 @@ export interface MemberListItem {
   set_id: UUID | null
   universe_id: UUID
   slug: string | null
+  photo_url: string | null
+  aliases: string[] | null
 }
 
 export interface MemberRead extends MemberListItem {

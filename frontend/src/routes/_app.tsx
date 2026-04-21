@@ -18,6 +18,7 @@ import {
 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { UniverseSwitcher } from '@/components/UniverseSwitcher'
+import { GlobalCommandPalette } from '@/components/GlobalCommandPalette'
 import { useAuthStore, type AuthState, type AuthUser } from '@/stores/auth'
 import { api, ApiError } from '@/lib/api'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
@@ -49,7 +50,7 @@ const ADMIN_NAV_ITEMS = [
 ] as const
 
 const SHORTCUTS = [
-  { keys: 'Ctrl+K', desc: 'Open universe switcher' },
+  { keys: 'Ctrl+K', desc: 'Open global search / universe switcher' },
   { keys: '?', desc: 'Show keyboard shortcuts' },
   { keys: 'Esc', desc: 'Close dialogs / sheets' },
 ]
@@ -75,6 +76,7 @@ function AppLayout() {
   const clearAuth = useAuthStore((s: AuthState) => s.clearAuth)
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [helpOpen, setHelpOpen] = useState(false)
+  const [commandOpen, setCommandOpen] = useState(false)
 
   useEffect(() => {
     if (user) return
@@ -92,6 +94,11 @@ function AppLayout() {
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault()
+        setCommandOpen((v) => !v)
+        return
+      }
       const tag = (e.target as HTMLElement).tagName
       if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return
       if (e.key === '?') { e.preventDefault(); setHelpOpen(true) }
@@ -119,7 +126,7 @@ function AppLayout() {
       </div>
 
       <div className="border-b border-zinc-800 p-2">
-        <UniverseSwitcher />
+        <UniverseSwitcher onOpen={() => setCommandOpen(true)} />
       </div>
 
       <nav className="flex-1 space-y-0.5 overflow-y-auto p-2">
@@ -177,6 +184,8 @@ function AppLayout() {
           <Outlet />
         </main>
       </div>
+
+      <GlobalCommandPalette open={commandOpen} onClose={() => setCommandOpen(false)} />
 
       <Dialog open={helpOpen} onOpenChange={setHelpOpen}>
         <DialogContent className="max-w-sm">

@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
-import { Download, Plus, Search, Users, X } from 'lucide-react'
+import { Download, Pencil, Plus, Search, Users, X } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { NoUniverse } from '@/components/NoUniverse'
 import { PageHeader } from '@/components/PageHeader'
@@ -13,7 +13,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { FuzzyDateInput } from '@/components/FuzzyDateInput'
 import {
   useCreateMember, useMembers, useMemberSearch, useUpdateMember,
-  useSets, useAlliances, useBulkMemberStatus,
+  useSets, useAlliances, useBulkMemberStatus, useMember,
 } from '@/lib/queries'
 import { useUniverseStore } from '@/stores/universe'
 import { downloadCsv } from '@/lib/download'
@@ -53,12 +53,42 @@ const STATUS_CHIP_ACTIVE: Record<MemberStatus, string> = {
   ABSCONDER: 'bg-yellow-900/60 text-yellow-300 border-yellow-700',
 }
 
+const STATUS_BADGE: Record<MemberStatus, string> = {
+  FREE: 'bg-emerald-900/50 text-emerald-300',
+  LOCKED: 'bg-orange-900/50 text-orange-300',
+  DEAD: 'bg-zinc-800 text-zinc-500',
+  UNKNOWN: 'bg-zinc-800/50 text-zinc-500',
+  ESCAPEE: 'bg-amber-900/50 text-amber-300',
+  ABSCONDER: 'bg-yellow-900/50 text-yellow-300',
+}
+
 const ALL_STATUSES: MemberStatus[] = ['FREE', 'LOCKED', 'ESCAPEE', 'ABSCONDER', 'DEAD', 'UNKNOWN']
 
 function initials(name: string) {
   const parts = name.trim().split(/\s+/)
   if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase()
   return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
+}
+
+// ─── Avatar ───────────────────────────────────────────────────────────────────
+
+function MemberAvatar({ member }: { member: MemberListItem }) {
+  const [imgError, setImgError] = useState(false)
+  if (member.photo_url && !imgError) {
+    return (
+      <img
+        src={member.photo_url}
+        alt={member.display_name}
+        className="h-7 w-7 rounded-full object-cover ring-1 ring-zinc-700"
+        onError={() => setImgError(true)}
+      />
+    )
+  }
+  return (
+    <div className={`flex h-7 w-7 items-center justify-center rounded-full text-[10px] font-bold ${STATUS_AVATAR[member.status]}`}>
+      {initials(member.display_name)}
+    </div>
+  )
 }
 
 // ─── Form sheet ───────────────────────────────────────────────────────────────
@@ -206,6 +236,30 @@ export function MemberFormSheet({ universeId, open, onClose, initial, defaultSet
   )
 }
 
+// ─── Quick-edit sheet (fetches full member, then opens form) ──────────────────
+
+function EditMemberSheet({ memberId, universeId, onClose }: { memberId: string; universeId: string; onClose: () => void }) {
+  const { data: member, isLoading } = useMember(memberId, universeId)
+
+  if (isLoading) {
+    return (
+      <Sheet open onOpenChange={(v) => !v && onClose()}>
+        <SheetContent title="Edit Member" description="Loading…">
+          <div className="space-y-3 pt-2">
+            {Array.from({ length: 7 }).map((_, i) => (
+              <Skeleton key={i} className="h-9 w-full rounded-md" />
+            ))}
+          </div>
+        </SheetContent>
+      </Sheet>
+    )
+  }
+
+  if (!member) return null
+
+  return <MemberFormSheet universeId={universeId} open onClose={onClose} initial={member} />
+}
+
 // ─── Main page ────────────────────────────────────────────────────────────────
 
 function MembersPage() {
@@ -213,6 +267,7 @@ function MembersPage() {
   const [q, setQ] = useState('')
   const [cursor, setCursor] = useState<string | undefined>(undefined)
   const [creating, setCreating] = useState(false)
+  const [editingMemberId, setEditingMemberId] = useState<string | null>(null)
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [bulkStatus, setBulkStatus] = useState<MemberStatus>('FREE')
   const [statusFilter, setStatusFilter] = useState<MemberStatus | null>(null)
@@ -236,7 +291,6 @@ function MembersPage() {
   const baseItems = q.length >= 2 ? (searchResults ?? []) : (data?.items ?? [])
   const total = data?.total
 
-  // Status counts from full unfiltered list
   const statusCounts = useMemo(() => {
     const counts: Partial<Record<MemberStatus, number>> = {}
     for (const m of baseItems) counts[m.status] = (counts[m.status] ?? 0) + 1
@@ -283,12 +337,24 @@ function MembersPage() {
   return (
     <div className="pb-20">
       {/* Header */}
-      <div className="mb-5 flex items-center justify-between">
+      <div className="mb-5 flex items-start justify-between">
         <div>
           <h1 className="text-xl font-bold text-white">Members</h1>
-          {total != null && (
-            <p className="mt-0.5 text-sm text-zinc-500">{total} total</p>
-          )}
+          <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-zinc-500">
+            {total != null && <span>{total} total</span>}
+            {(statusCounts.FREE ?? 0) > 0 && (
+              <span className="text-emerald-500">{statusCounts.FREE} free</span>
+            )}
+            {(statusCounts.LOCKED ?? 0) > 0 && (
+              <span className="text-orange-400">{statusCounts.LOCKED} locked</span>
+            )}
+            {(statusCounts.DEAD ?? 0) > 0 && (
+              <span>{statusCounts.DEAD} dead</span>
+            )}
+            {(statusCounts.ESCAPEE ?? 0) > 0 && (
+              <span className="text-amber-400">{statusCounts.ESCAPEE} escaped</span>
+            )}
+          </div>
         </div>
         <Button size="sm" onClick={() => setCreating(true)}>
           <Plus className="mr-1.5 h-4 w-4" />Add Member
@@ -334,7 +400,6 @@ function MembersPage() {
           <Input className="pl-8 h-8 text-sm" placeholder="Search members…" value={q} onChange={(e) => { setQ(e.target.value); setCursor(undefined) }} />
         </div>
 
-        {/* Set filter */}
         <Select value={setFilter || 'all'} onValueChange={(v) => setSetFilter(v === 'all' ? '' : v)}>
           <SelectTrigger className="h-8 w-36 text-xs"><SelectValue placeholder="All sets" /></SelectTrigger>
           <SelectContent>
@@ -353,8 +418,8 @@ function MembersPage() {
       {/* Table */}
       <div className="overflow-hidden rounded-lg border border-zinc-800">
         <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-zinc-800 bg-zinc-900/60">
+          <thead className="sticky top-0 z-10">
+            <tr className="border-b border-zinc-800 bg-zinc-900/90 backdrop-blur">
               <th className="w-10 px-3 py-2.5">
                 <input
                   type="checkbox"
@@ -377,6 +442,7 @@ function MembersPage() {
                   Status <span className="text-zinc-600">{sortKey === 'status' ? (sortDir === 'asc' ? '↑' : '↓') : '↕'}</span>
                 </button>
               </th>
+              <th className="w-8 px-3 py-2.5" />
             </tr>
           </thead>
           <tbody className="divide-y divide-zinc-800/60">
@@ -385,9 +451,13 @@ function MembersPage() {
                   <tr key={i} className="animate-pulse">
                     <td className="px-3 py-3.5"><div className="h-4 w-4 rounded bg-zinc-800" /></td>
                     <td className="px-3 py-3.5"><div className="h-7 w-7 rounded-full bg-zinc-800" /></td>
-                    <td className="px-3 py-3.5"><div className="h-3.5 w-32 rounded bg-zinc-800" /></td>
+                    <td className="px-3 py-3.5">
+                      <div className="h-3.5 w-32 rounded bg-zinc-800" />
+                      <div className="mt-1.5 h-2.5 w-20 rounded bg-zinc-800/60" />
+                    </td>
                     <td className="hidden px-3 py-3.5 sm:table-cell"><div className="h-3 w-20 rounded bg-zinc-800/60" /></td>
                     <td className="px-3 py-3.5"><div className="h-5 w-14 rounded-full bg-zinc-800/60" /></td>
+                    <td className="px-3 py-3.5" />
                   </tr>
                 ))
               : items.map((member) => {
@@ -399,7 +469,7 @@ function MembersPage() {
                       key={member.id}
                       className={`group transition-colors hover:bg-zinc-900/40 ${selected.has(member.id) ? 'bg-violet-950/20' : ''} ${isDead ? 'opacity-60' : ''}`}
                     >
-                      <td className="px-3 py-3.5">
+                      <td className="px-3 py-3">
                         <input
                           type="checkbox"
                           checked={selected.has(member.id)}
@@ -408,28 +478,33 @@ function MembersPage() {
                         />
                       </td>
                       {/* Avatar */}
-                      <td className="px-3 py-3.5">
-                        <div className={`flex h-7 w-7 items-center justify-center rounded-full text-[10px] font-bold ${STATUS_AVATAR[member.status]}`}>
-                          {initials(member.display_name)}
-                        </div>
+                      <td className="px-3 py-3">
+                        <MemberAvatar member={member} />
                       </td>
-                      {/* Name */}
+                      {/* Name + aliases */}
                       <td className="p-0">
                         <Link
                           to="/members/$id"
                           params={{ id: linkId }}
-                          className={`block px-3 py-3.5 font-medium transition-colors group-hover:text-violet-400 ${isDead ? 'text-zinc-400 line-through decoration-zinc-600' : 'text-white'}`}
+                          className="block px-3 py-3 transition-colors group-hover:text-violet-400"
                         >
-                          {member.display_name}
+                          <span className={`font-medium ${isDead ? 'text-zinc-400 line-through decoration-zinc-600' : 'text-white'}`}>
+                            {member.display_name}
+                          </span>
+                          {member.aliases && member.aliases.length > 0 && (
+                            <span className="mt-0.5 block text-[11px] text-zinc-600 group-hover:text-zinc-500 transition-colors">
+                              {member.aliases.slice(0, 3).join(' · ')}
+                            </span>
+                          )}
                         </Link>
                       </td>
                       {/* Set */}
-                      <td className="hidden px-3 py-3.5 sm:table-cell">
+                      <td className="hidden px-3 py-3 sm:table-cell">
                         {setInfo ? (
                           <Link
                             to="/sets/$id"
                             params={{ id: setInfo.slug ?? member.set_id! }}
-                            className="text-xs text-zinc-500 hover:text-violet-400 transition-colors"
+                            className="inline-flex items-center rounded-full bg-zinc-800/60 px-2 py-0.5 text-xs text-zinc-400 hover:bg-zinc-800 hover:text-violet-400 transition-colors"
                           >
                             {setInfo.name}
                           </Link>
@@ -438,25 +513,29 @@ function MembersPage() {
                         )}
                       </td>
                       {/* Status */}
-                      <td className="px-3 py-3.5">
-                        <span className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium ${
-                          member.status === 'FREE' ? 'bg-emerald-900/50 text-emerald-300' :
-                          member.status === 'LOCKED' ? 'bg-orange-900/50 text-orange-300' :
-                          member.status === 'DEAD' ? 'bg-zinc-800 text-zinc-500' :
-                          member.status === 'ESCAPEE' ? 'bg-amber-900/50 text-amber-300' :
-                          member.status === 'ABSCONDER' ? 'bg-yellow-900/50 text-yellow-300' :
-                          'bg-zinc-800/50 text-zinc-500'
-                        }`}>
+                      <td className="px-3 py-3">
+                        <span className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_BADGE[member.status]}`}>
                           <span className={`h-1.5 w-1.5 rounded-full ${STATUS_DOT[member.status]}`} />
                           {member.status}
                         </span>
+                      </td>
+                      {/* Quick-edit */}
+                      <td className="px-3 py-3">
+                        <button
+                          type="button"
+                          onClick={(e) => { e.preventDefault(); e.stopPropagation(); setEditingMemberId(member.id) }}
+                          title="Quick edit"
+                          className="invisible rounded p-1 text-zinc-600 transition-colors hover:bg-zinc-800 hover:text-violet-400 group-hover:visible"
+                        >
+                          <Pencil className="h-3.5 w-3.5" />
+                        </button>
                       </td>
                     </tr>
                   )
                 })}
             {!isLoading && items.length === 0 && (
               <tr>
-                <td colSpan={5}>
+                <td colSpan={6}>
                   <div className="flex flex-col items-center py-14 text-center">
                     <Users className="mb-3 h-8 w-8 text-zinc-700" />
                     <p className="text-sm text-zinc-500">
@@ -482,7 +561,10 @@ function MembersPage() {
 
       {/* Load more */}
       {!q && data?.next_cursor && (
-        <div className="mt-4 flex justify-center">
+        <div className="mt-4 flex items-center justify-between text-xs text-zinc-500">
+          {total != null && items.length > 0 && (
+            <span>Showing {items.length} of {total}</span>
+          )}
           <Button variant="outline" size="sm" onClick={() => setCursor(data.next_cursor ?? undefined)}>
             Load more
           </Button>
@@ -511,6 +593,14 @@ function MembersPage() {
       )}
 
       <MemberFormSheet universeId={universe.id} open={creating} onClose={() => setCreating(false)} />
+
+      {editingMemberId && (
+        <EditMemberSheet
+          memberId={editingMemberId}
+          universeId={universe.id}
+          onClose={() => setEditingMemberId(null)}
+        />
+      )}
     </div>
   )
 }
