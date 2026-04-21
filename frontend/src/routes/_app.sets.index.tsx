@@ -262,8 +262,8 @@ function SetsPage() {
     )
     if (!sortKey) return filtered
     return [...filtered].sort((a, b) => {
-      const av = String((a as any)[sortKey] ?? '')
-      const bv = String((b as any)[sortKey] ?? '')
+      const av = String(a[sortKey] ?? '')
+      const bv = String(b[sortKey] ?? '')
       return sortDir === 'asc' ? av.localeCompare(bv) : bv.localeCompare(av)
     })
   }, [rawItems, statusFilter, allianceFilter, sortKey, sortDir])
@@ -365,8 +365,8 @@ function SetsPage() {
                             <p className="font-medium text-white group-hover:text-violet-400 transition-colors">
                               {set.name}
                             </p>
-                            {(set as any).alias && (
-                              <p className="text-xs text-zinc-500">{(set as any).alias}</p>
+                            {set.alias && (
+                              <p className="text-xs text-zinc-500">{set.alias}</p>
                             )}
                           </div>
                         </Link>

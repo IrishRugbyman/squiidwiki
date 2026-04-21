@@ -4,6 +4,7 @@ import {
   Pencil, Skull, Trash2,
 } from 'lucide-react'
 import { useState } from 'react'
+import { toast } from 'sonner'
 import { FuzzyDate } from '@/components/FuzzyDate'
 import { MemberIdentity } from '@/components/MemberIdentity'
 import { MemberStatusBadge } from '@/components/StatusBadge'
@@ -142,8 +143,9 @@ function MemberDetailPage() {
     try {
       await deleteMember.mutateAsync(member.id)
       navigate({ to: '/members' })
-    } catch {
+    } catch (err) {
       setDeleting(false)
+      toast.error(err instanceof Error ? err.message : 'Failed to delete member')
     }
   }
 

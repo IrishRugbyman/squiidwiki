@@ -1,6 +1,7 @@
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
 import { ArrowLeft, Pencil, Plus, Swords, Trash2, Users } from 'lucide-react'
 import { useState } from 'react'
+import { toast } from 'sonner'
 import {
   useSet, useSetStats, useSets, useDeleteSet,
   useAddSetRelationship, useRemoveSetRelationship,
@@ -129,8 +130,9 @@ function SetDetailPage() {
     try {
       await deleteSet.mutateAsync(set.id)
       navigate({ to: '/sets' })
-    } catch {
+    } catch (err) {
       setDeleting(false)
+      toast.error(err instanceof Error ? err.message : 'Failed to delete set')
     }
   }
 

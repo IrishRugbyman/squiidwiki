@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
 import { CheckCircle2, Download, Pencil, Plus, ShieldAlert, Skull, Swords } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { FuzzyDate } from '@/components/FuzzyDate'
 import { FuzzyDateInput } from '@/components/FuzzyDateInput'
 import { NoUniverse } from '@/components/NoUniverse'
@@ -15,9 +15,10 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Textarea } from '@/components/ui/textarea'
 import {
   useCreateIncident, useUpdateIncident, useIncident,
-  useIncidents, useMemberSearch, useMunicipalities,
+  useIncidents, useMemberSearch, useMunicipalities, useAllMembers,
 } from '@/lib/queries'
 import { downloadCsv } from '@/lib/download'
+import { api } from '@/lib/api'
 import type { FuzzyDateValue } from '@/components/FuzzyDate'
 import type { IncidentListItem, IncidentReadDetail, IncidentType, ParticipantOutcome, ParticipantRole, UUID } from '@/lib/types'
 import { useUniverseStore } from '@/stores/universe'
@@ -148,6 +149,13 @@ export function IncidentFormSheet({ universeId, open, onClose, initial }: Incide
   const update = useUpdateIncident(initial?.id ?? '', universeId)
   const isEdit = !!initial
   const { data: munis } = useMunicipalities(universeId)
+  const { data: allMembersData } = useAllMembers(isEdit ? universeId : null)
+
+  const memberNameMap = useMemo(() => {
+    const map: Record<string, string> = {}
+    for (const m of allMembersData?.items ?? []) map[m.id] = m.display_name
+    return map
+  }, [allMembersData])
 
   const [type, setType] = useState<IncidentType>(initial?.type ?? 'SHOOTING')
   const [date, setDate] = useState<FuzzyDateValue | null>(initial?.date ?? null)
@@ -155,11 +163,29 @@ export function IncidentFormSheet({ universeId, open, onClose, initial }: Incide
   const [municipalityId, setMunicipalityId] = useState<string>(initial?.municipality_id ?? '')
   const [narrative, setNarrative] = useState(initial?.narrative ?? '')
   const [verified, setVerified] = useState(initial?.verified ?? false)
-  const [participants, setParticipants] = useState<ParticipantDraft[]>(
-    initial?.participants?.map((p) => ({ member_id: p.member_id, member_name: p.member_id, role: p.role, outcome: p.outcome })) ?? []
+  const [participants, setParticipants] = useState<ParticipantDraft[]>(() =>
+    initial?.participants?.map((p) => ({
+      member_id: p.member_id,
+      member_name: memberNameMap[p.member_id] ?? p.member_id,
+      role: p.role,
+      outcome: p.outcome,
+    })) ?? []
   )
   const [deathPrompts, setDeathPrompts] = useState<DeathDatePrompt[]>([])
   const [error, setError] = useState<string | null>(null)
+
+  // Re-resolve participant names once member map loads (edit mode only)
+  useEffect(() => {
+    if (!isEdit || Object.keys(memberNameMap).length === 0) return
+    setParticipants((prev) =>
+      prev.map((p) => ({
+        ...p,
+        member_name: memberNameMap[p.member_id] ?? p.member_name,
+      }))
+    )
+  // Only re-run when the name map finishes loading
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [memberNameMap])
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -174,9 +200,16 @@ export function IncidentFormSheet({ universeId, open, onClose, initial }: Incide
         verified,
         participants: participants.map(({ member_id, role, outcome }) => ({ member_id, role, outcome })),
       }
-      if (isEdit) await update.mutateAsync(body)
-      else await create.mutateAsync(body)
-      if (!isEdit) {
+      if (isEdit) {
+        await update.mutateAsync(body)
+      } else {
+        await create.mutateAsync(body)
+        // Apply death dates for KILLED participants
+        for (const prompt of deathPrompts) {
+          if (prompt.date) {
+            await api.patch(`/members/${prompt.memberId}?universe_id=${universeId}`, { date_of_death: prompt.date })
+          }
+        }
         setType('SHOOTING'); setDate(null); setLocationText(''); setMunicipalityId('')
         setNarrative(''); setVerified(false); setParticipants([]); setDeathPrompts([])
       }
@@ -226,13 +259,11 @@ export function IncidentFormSheet({ universeId, open, onClose, initial }: Incide
               className="rounded border-zinc-700 bg-zinc-900 accent-violet-600" />
             <label htmlFor="inc-verified" className="text-sm text-zinc-300">Verified</label>
           </div>
-          {!isEdit && (
-            <div className="space-y-1.5">
-              <Label>Participants</Label>
-              <ParticipantBuilder universeId={universeId} participants={participants} onChange={setParticipants}
-                onDeathDateNeeded={(p) => setDeathPrompts((prev) => [...prev, p])} />
-            </div>
-          )}
+          <div className="space-y-1.5">
+            <Label>Participants</Label>
+            <ParticipantBuilder universeId={universeId} participants={participants} onChange={setParticipants}
+              onDeathDateNeeded={!isEdit ? (p) => setDeathPrompts((prev) => [...prev, p]) : undefined} />
+          </div>
           {deathPrompts.length > 0 && (
             <div className="space-y-3 rounded-lg border border-amber-800 bg-amber-950/30 p-3">
               <p className="text-xs font-semibold text-amber-400">Killed participant(s) — set date of death?</p>

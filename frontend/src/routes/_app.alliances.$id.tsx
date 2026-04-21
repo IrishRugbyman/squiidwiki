@@ -1,6 +1,7 @@
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
 import { ArrowLeft, Pencil, Trash2 } from 'lucide-react'
 import { useState } from 'react'
+import { toast } from 'sonner'
 import { FuzzyDate } from '@/components/FuzzyDate'
 import { AllianceStatusBadge, MemberStatusBadge } from '@/components/StatusBadge'
 import { ErrorState } from '@/components/ErrorState'
@@ -41,8 +42,9 @@ function AllianceDetailPage() {
     try {
       await deleteAlliance.mutateAsync(alliance.id)
       navigate({ to: '/alliances' })
-    } catch {
+    } catch (err) {
       setDeleting(false)
+      toast.error(err instanceof Error ? err.message : 'Failed to delete alliance')
     }
   }
 

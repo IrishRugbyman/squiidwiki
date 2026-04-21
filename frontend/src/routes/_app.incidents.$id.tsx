@@ -8,7 +8,8 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { useIncident, useMembers, useDeleteIncident } from '@/lib/queries'
+import { useIncident, useAllMembers, useDeleteIncident } from '@/lib/queries'
+import { toast } from 'sonner'
 import { useUniverseStore } from '@/stores/universe'
 import { useAuthStore } from '@/stores/auth'
 import { IncidentFormSheet } from './_app.incidents.index'
@@ -25,7 +26,7 @@ const ROLE_STYLE: Record<string, string> = {
 }
 
 const OUTCOME_STYLE: Record<string, string> = {
-  KILLED: 'bg-zinc-900 text-zinc-500 line-through border-zinc-700',
+  KILLED: 'bg-rose-950/50 text-rose-400 line-through border-rose-900/50',
   INJURED: 'bg-amber-900 text-amber-300 border-transparent',
   UNHARMED: 'bg-emerald-900 text-emerald-300 border-transparent',
   UNKNOWN: 'border-zinc-700 text-zinc-500',
@@ -37,22 +38,24 @@ function IncidentDetailPage() {
   const user = useAuthStore((s) => s.user)
   const navigate = useNavigate()
   const { data: incident, isLoading, isError, refetch } = useIncident(id, universe?.id ?? null)
-  const { data: allMembers } = useMembers(universe?.id ?? null)
+  const { data: allMembers } = useAllMembers(universe?.id ?? null)
   const deleteIncident = useDeleteIncident(universe?.id ?? '')
 
   const [editing, setEditing] = useState(false)
   const [deleting, setDeleting] = useState(false)
 
-  const memberName = (mid: string) => allMembers?.items.find((m) => m.id === mid)?.display_name ?? mid
-  const memberSlug = (mid: string) => allMembers?.items.find((m) => m.id === mid)?.slug ?? mid
+  const memberMap = Object.fromEntries((allMembers?.items ?? []).map((m) => [m.id, m]))
+  const memberName = (mid: string) => memberMap[mid]?.display_name ?? mid
+  const memberSlug = (mid: string) => memberMap[mid]?.slug ?? mid
 
   async function handleDelete() {
     if (!incident) return
     try {
       await deleteIncident.mutateAsync(incident.id)
       navigate({ to: '/incidents' })
-    } catch {
+    } catch (err) {
       setDeleting(false)
+      toast.error(err instanceof Error ? err.message : 'Failed to delete incident')
     }
   }
 

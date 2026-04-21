@@ -2,6 +2,19 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Verification Requirements
+
+- After making a UI or navigation change, state exactly: (1) what URL to visit, (2) what to click, (3) what to expect — then wait for user confirmation before declaring done
+- Never mark work complete based on type-checks or compilation alone; `tsc --noEmit` passing is necessary but not sufficient
+- Do not move to the next task until the user confirms the fix works in the browser
+
+## Windows Development Environment
+
+- `uvicorn --reload` is unreliable on Windows — restart without `--reload`; use `netstat -ano | grep 8000` to find the PID, `taskkill /PID <pid> /F` to kill it, then restart
+- If a bash command fails twice, stop retrying: summarize what was tried, state the hypothesis, and ask the user how to proceed
+- `asyncpg` does not support multi-statement `execute()` calls — always split into separate statements
+- SQLModel dict/JSON fields require `sa_column=Column(JSONB)`; circular foreign keys need `use_alter=True` in Alembic
+
 ## Project Overview
 
 SquiidWiki is a gang research database wiki that tracks social networks, incidents, and relationships in metropolitan areas. It uses a **Universe** concept where each city/metro area is an isolated namespace. See `README.md` for the full schema reference.

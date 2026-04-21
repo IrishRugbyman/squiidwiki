@@ -1,6 +1,7 @@
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
 import { AlertTriangle, ChevronRight, MapPin, Pencil, Trash2 } from 'lucide-react'
 import { useState } from 'react'
+import { toast } from 'sonner'
 import { ErrorState } from '@/components/ErrorState'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { FuzzyDate } from '@/components/FuzzyDate'
@@ -40,8 +41,9 @@ function MunicipalityDetailPage() {
     try {
       await deleteMunicipality.mutateAsync(municipality.id)
       navigate({ to: '/municipalities' })
-    } catch {
+    } catch (err) {
       setDeleting(false)
+      toast.error(err instanceof Error ? err.message : 'Failed to delete municipality')
     }
   }
 
@@ -103,7 +105,7 @@ function MunicipalityDetailPage() {
 
       {/* Stats row */}
       {municipality && (
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-2">
           <div className="rounded-xl border border-zinc-800 bg-zinc-900/30 p-4 text-center">
             <div className="text-2xl font-bold tabular-nums text-white">{incidents.length}</div>
             <div className="mt-0.5 text-xs text-zinc-500">Incidents</div>

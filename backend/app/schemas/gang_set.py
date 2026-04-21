@@ -59,6 +59,7 @@ class SetListItem(BaseModel):
     id: uuid.UUID
     name: str
     slug: Optional[str]
+    alias: Optional[str]
     status: SetStatus
     universe_id: uuid.UUID
     alliance_id: Optional[uuid.UUID]

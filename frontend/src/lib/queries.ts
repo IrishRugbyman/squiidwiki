@@ -244,7 +244,7 @@ export const useMembers = (universeId: UUID | null, cursor?: string) =>
 export const useAllMembers = (universeId: UUID | null) =>
   useQuery({
     queryKey: ['members', 'all', universeId],
-    queryFn: () => api.get<CursorPage<MemberListItem>>(`/members/?universe_id=${universeId}&limit=500`),
+    queryFn: () => api.get<CursorPage<MemberListItem>>(`/members/?universe_id=${universeId}&limit=200`),
     enabled: !!universeId,
     staleTime: 30_000,
   })

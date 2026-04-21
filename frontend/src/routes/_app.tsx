@@ -21,6 +21,7 @@ import { GlobalCommandPalette } from '@/components/GlobalCommandPalette'
 import { useAuthStore, type AuthState, type AuthUser } from '@/stores/auth'
 import { api, ApiError } from '@/lib/api'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Toaster } from '@/components/ui/sonner'
 
 export const Route = createFileRoute('/_app')({
   beforeLoad: () => {
@@ -183,6 +184,7 @@ function AppLayout() {
         </main>
       </div>
 
+      <Toaster />
       <GlobalCommandPalette open={commandOpen} onClose={() => setCommandOpen(false)} />
 
       <Dialog open={helpOpen} onOpenChange={setHelpOpen}>

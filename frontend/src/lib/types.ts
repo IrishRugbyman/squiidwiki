@@ -90,6 +90,7 @@ export interface SetListItem {
   id: UUID
   name: string
   slug: string | null
+  alias: string | null
   status: SetStatus
   universe_id: UUID
   alliance_id: UUID | null

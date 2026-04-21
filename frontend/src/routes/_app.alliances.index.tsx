@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
 import { Download, Network, Plus, Search } from 'lucide-react'
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { NoUniverse } from '@/components/NoUniverse'
 import { PageHeader } from '@/components/PageHeader'
 import { AllianceStatusBadge } from '@/components/StatusBadge'
@@ -15,7 +15,6 @@ import { useAlliances, useCreateAlliance, useUpdateAlliance } from '@/lib/querie
 import type { AllianceRead, AllianceStatus } from '@/lib/types'
 import { useUniverseStore } from '@/stores/universe'
 import { downloadCsv } from '@/lib/download'
-import { useMemo } from 'react'
 
 export const Route = createFileRoute('/_app/alliances/')({
   component: AlliancesPage,
@@ -121,7 +120,6 @@ function AlliancesPage() {
     else { setSortKey(key); setSortDir('asc') }
   }
 
-  // eslint-disable-next-line react-hooks/rules-of-hooks
   const items = useMemo(() => {
     if (!sortKey) return rawItems
     return [...rawItems].sort((a, b) => {

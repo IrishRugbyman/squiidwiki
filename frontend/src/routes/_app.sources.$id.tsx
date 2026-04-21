@@ -1,6 +1,7 @@
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
 import { ArrowLeft, ExternalLink, Pencil, Trash2 } from 'lucide-react'
 import { useState } from 'react'
+import { toast } from 'sonner'
 import { FuzzyDate } from '@/components/FuzzyDate'
 import { ReliabilityBadge } from '@/components/StatusBadge'
 import { MemberStatusBadge } from '@/components/StatusBadge'
@@ -37,8 +38,9 @@ function SourceDetailPage() {
     try {
       await deleteSource.mutateAsync(source.id)
       navigate({ to: '/sources' })
-    } catch {
+    } catch (err) {
       setDeleting(false)
+      toast.error(err instanceof Error ? err.message : 'Failed to delete source')
     }
   }
 
