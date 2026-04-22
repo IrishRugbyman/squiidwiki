@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
 import { CheckCircle2, Download, Pencil, Plus, ShieldAlert, Skull, Swords } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
+import { toast } from 'sonner'
 import { FuzzyDate } from '@/components/FuzzyDate'
 import { FuzzyDateInput } from '@/components/FuzzyDateInput'
 import { NoUniverse } from '@/components/NoUniverse'
@@ -202,6 +203,7 @@ export function IncidentFormSheet({ universeId, open, onClose, initial }: Incide
       }
       if (isEdit) {
         await update.mutateAsync(body)
+        toast.success(`Updated ${type.toLowerCase()} incident`)
       } else {
         await create.mutateAsync(body)
         // Apply death dates for KILLED participants
@@ -210,6 +212,7 @@ export function IncidentFormSheet({ universeId, open, onClose, initial }: Incide
             await api.patch(`/members/${prompt.memberId}?universe_id=${universeId}`, { date_of_death: prompt.date })
           }
         }
+        toast.success(`Recorded ${type.toLowerCase()} incident`)
         setType('SHOOTING'); setDate(null); setLocationText(''); setMunicipalityId('')
         setNarrative(''); setVerified(false); setParticipants([]); setDeathPrompts([])
       }

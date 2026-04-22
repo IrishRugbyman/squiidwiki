@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
 import { Download, Pencil, Plus, Search, Trash2, UserPlus, Users, X } from 'lucide-react'
 import { useMemo, useState } from 'react'
+import { toast } from 'sonner'
 import { NoUniverse } from '@/components/NoUniverse'
 import { PageHeader } from '@/components/PageHeader'
 import { Button } from '@/components/ui/button'
@@ -326,9 +327,11 @@ export function MemberFormSheet({ universeId, open, onClose, initial, defaultSet
       release_date: status === 'LOCKED' ? releaseDate : null,
       family: familyEntriesToDict(familyEntries),
     }
+    const label = nickname || legalName || 'member'
     try {
       if (isEdit) await update.mutateAsync(body)
       else await create.mutateAsync(body)
+      toast.success(`${isEdit ? 'Updated' : 'Created'} ${label}`)
       onClose()
     } catch (err) {
       setError(err instanceof Error ? err.message : `Failed to ${isEdit ? 'update' : 'create'} member`)
@@ -537,8 +540,14 @@ function MembersPage() {
 
   async function applyBulkStatus() {
     if (selected.size === 0) return
-    await bulkUpdate.mutateAsync({ member_ids: Array.from(selected), status: bulkStatus })
-    setSelected(new Set())
+    const count = selected.size
+    try {
+      await bulkUpdate.mutateAsync({ member_ids: Array.from(selected), status: bulkStatus })
+      toast.success(`Updated ${count} member${count === 1 ? '' : 's'} to ${bulkStatus}`)
+      setSelected(new Set())
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Bulk update failed')
+    }
   }
 
   const hasFilters = statusFilter || setFilter

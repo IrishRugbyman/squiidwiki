@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
 import { MapPin, Pencil, Plus, Search, X } from 'lucide-react'
 import { useState, useMemo } from 'react'
+import { toast } from 'sonner'
 import { NoUniverse } from '@/components/NoUniverse'
 import { PageHeader } from '@/components/PageHeader'
 import { Sheet, SheetContent, SheetClose } from '@/components/Sheet'
@@ -41,9 +42,12 @@ export function MunicipalityFormSheet({ universeId, open, onClose, initial, allM
     setError(null)
     const body = { universe_id: universeId, name, parent_id: parentId || null }
     try {
-      if (isEdit) await update.mutateAsync(body)
-      else {
+      if (isEdit) {
+        await update.mutateAsync(body)
+        toast.success(`Updated "${name}"`)
+      } else {
         await create.mutateAsync(body)
+        toast.success(`Added "${name}"`)
         setName(''); setParentId('')
       }
       onClose()

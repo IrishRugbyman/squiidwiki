@@ -16,8 +16,9 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import {
   useMember, useMemberStats, useSets, useAlliances,
-  useDeleteMember, useMemberIncidents,
+  useDeleteMember, useMemberIncidents, useAllMembers,
 } from '@/lib/queries'
+import type { MemberListItem } from '@/lib/types'
 import { useUniverseStore } from '@/stores/universe'
 import { useAuthStore } from '@/stores/auth'
 import { MemberFormSheet, familyDictToEntries, ROLE_LABEL } from './_app.members.index'
@@ -49,26 +50,25 @@ function DetailRow({ label, children }: { label: string; children: React.ReactNo
 
 // ─── Family member inline link ─────────────────────────────────────────────────
 
-function FamilyMemberLink({ memberId, universeId }: { memberId: string; universeId: string }) {
-  const { data: m } = useMember(memberId, universeId)
-  if (!m) {
+function FamilyMemberLink({ memberId, member }: { memberId: string; member: MemberListItem | undefined }) {
+  if (!member) {
     return <span className="text-xs text-zinc-600 font-mono">{memberId.slice(0, 8)}…</span>
   }
   return (
     <Link
       to="/members/$id"
-      params={{ id: m.slug ?? m.id }}
+      params={{ id: member.slug ?? member.id }}
       className="group inline-flex items-center gap-2 rounded-lg border border-zinc-800 bg-zinc-900/40 px-3 py-2 transition-colors hover:border-zinc-700 hover:bg-zinc-900"
     >
-      {m.photo_url ? (
-        <img src={m.photo_url} alt={m.display_name} className="h-6 w-6 rounded-full object-cover ring-1 ring-zinc-700" />
+      {member.photo_url ? (
+        <img src={member.photo_url} alt={member.display_name} className="h-6 w-6 rounded-full object-cover ring-1 ring-zinc-700" />
       ) : (
         <div className="flex h-6 w-6 items-center justify-center rounded-full bg-zinc-800 text-[9px] font-bold text-zinc-400">
-          {m.display_name.slice(0, 2).toUpperCase()}
+          {member.display_name.slice(0, 2).toUpperCase()}
         </div>
       )}
-      <span className="text-sm text-zinc-300 group-hover:text-white">{m.display_name}</span>
-      <MemberStatusBadge status={m.status} />
+      <span className="text-sm text-zinc-300 group-hover:text-white">{member.display_name}</span>
+      <MemberStatusBadge status={member.status} />
     </Link>
   )
 }
@@ -85,6 +85,11 @@ const ROLE_COLOR: Record<FamilyRole, string> = {
 }
 
 function FamilyTab({ family, universeId }: { family: Record<string, unknown> | null; universeId: string }) {
+  const { data: allMembers } = useAllMembers(universeId)
+  const memberMap: Record<string, MemberListItem> = Object.fromEntries(
+    (allMembers?.items ?? []).map((m) => [m.id, m])
+  )
+
   const entries = familyDictToEntries(family)
   const grouped = (['father', 'son', 'brother', 'cousin', 'uncle', 'nephew'] as FamilyRole[])
     .map((role) => ({ role, ids: entries.filter((e) => e.role === role).map((e) => e.memberId) }))
@@ -106,7 +111,7 @@ function FamilyTab({ family, universeId }: { family: Record<string, unknown> | n
           </div>
           <div className="flex flex-wrap gap-2">
             {ids.map((id) => (
-              <FamilyMemberLink key={id} memberId={id} universeId={universeId} />
+              <FamilyMemberLink key={id} memberId={id} member={memberMap[id]} />
             ))}
           </div>
         </div>

@@ -325,6 +325,14 @@ export const useIncidents = (universeId: UUID | null, cursor?: string) =>
     enabled: !!universeId,
   })
 
+export const useAllIncidents = (universeId: UUID | null) =>
+  useQuery({
+    queryKey: ['incidents', 'all', universeId],
+    queryFn: () => api.get<CursorPage<IncidentListItem>>(`/incidents/?universe_id=${universeId}&limit=200`),
+    enabled: !!universeId,
+    staleTime: 30_000,
+  })
+
 export const useIncident = (id: UUID, universeId: UUID | null) =>
   useQuery({
     queryKey: ['incidents', id],

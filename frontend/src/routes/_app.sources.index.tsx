@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
 import { Download, ExternalLink, FileText, Plus, Search } from 'lucide-react'
 import { useState } from 'react'
+import { toast } from 'sonner'
 import { NoUniverse } from '@/components/NoUniverse'
 import { PageHeader } from '@/components/PageHeader'
 import { ReliabilityBadge } from '@/components/StatusBadge'
@@ -53,9 +54,12 @@ export function SourceFormSheet({ universeId, open, onClose, initial }: SourceFo
       archive_url: archiveUrl || null,
     }
     try {
-      if (isEdit) await update.mutateAsync(body)
-      else {
+      if (isEdit) {
+        await update.mutateAsync(body)
+        toast.success(`Updated "${title}"`)
+      } else {
         await create.mutateAsync(body)
+        toast.success(`Added "${title}"`)
         setUrl(''); setTitle(''); setPublication(''); setReliability('UNVERIFIED'); setNotes(''); setArchiveUrl('')
       }
       onClose()

@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import { FuzzyDate } from '@/components/FuzzyDate'
 import { NoUniverse } from '@/components/NoUniverse'
 import { Button } from '@/components/ui/button'
-import { useIncidents, useMembers } from '@/lib/queries'
+import { useAllIncidents, useAllMembers } from '@/lib/queries'
 import { useUniverseStore } from '@/stores/universe'
 import type { FuzzyDateValue } from '@/components/FuzzyDate'
 import type { IncidentType } from '@/lib/types'
@@ -218,8 +218,8 @@ function CalendarPage() {
     return () => window.removeEventListener('keydown', handle)
   }, [])
 
-  const { data: incidentData } = useIncidents(universe?.id ?? null)
-  const { data: memberData }   = useMembers(universe?.id ?? null)
+  const { data: incidentData } = useAllIncidents(universe?.id ?? null)
+  const { data: memberData }   = useAllMembers(universe?.id ?? null)
 
   if (!universe) return <NoUniverse />
 

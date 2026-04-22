@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
 import { Download, Network, Plus, Search } from 'lucide-react'
 import { useState, useMemo } from 'react'
+import { toast } from 'sonner'
 import { NoUniverse } from '@/components/NoUniverse'
 import { PageHeader } from '@/components/PageHeader'
 import { AllianceStatusBadge } from '@/components/StatusBadge'
@@ -46,9 +47,11 @@ export function AllianceFormSheet({ universeId, open, onClose, initial, onSaved 
       if (isEdit) {
         const updated = await update.mutateAsync(body)
         onSaved?.(updated)
+        toast.success(`Updated "${name}"`)
       } else {
         await create.mutateAsync(body)
         setName(''); setDescription(''); setStatus('ACTIVE')
+        toast.success(`Created "${name}"`)
       }
       onClose()
     } catch (err) {

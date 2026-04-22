@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
 import { Download, Pencil, Plus, Search, Shield } from 'lucide-react'
 import { useMemo, useState } from 'react'
+import { toast } from 'sonner'
 import { NoUniverse } from '@/components/NoUniverse'
 import { PageHeader } from '@/components/PageHeader'
 import { SetStatusBadge } from '@/components/StatusBadge'
@@ -76,9 +77,11 @@ export function SetFormSheet({ universeId, open, onClose, initial, onSaved }: Se
       if (isEdit) {
         const updated = await update.mutateAsync({ universe_id: universeId, name, alias: alias || null, bio: bio || null, status })
         onSaved?.(updated)
+        toast.success(`Updated "${name}"`)
       } else {
         await create.mutateAsync({ universe_id: universeId, name, alias: alias || null, bio: bio || null, status })
         setName(''); setAlias(''); setBio(''); setStatus('ACTIVE')
+        toast.success(`Created "${name}"`)
       }
       onClose()
     } catch (err) {
