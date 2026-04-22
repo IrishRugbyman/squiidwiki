@@ -1,15 +1,17 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
-import { MapPin, Pencil, Plus, Search, X } from 'lucide-react'
+import { AlertTriangle, MapPin, Pencil, Plus, Search, X } from 'lucide-react'
 import { useState, useMemo } from 'react'
 import { toast } from 'sonner'
 import { NoUniverse } from '@/components/NoUniverse'
 import { PageHeader } from '@/components/PageHeader'
 import { Sheet, SheetContent, SheetClose } from '@/components/Sheet'
+import { EmptyState } from '@/components/EmptyState'
+import { TreeSkeleton } from '@/components/skeletons'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Skeleton } from '@/components/ui/skeleton'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { useCreateMunicipality, useUpdateMunicipality, useMunicipalities } from '@/lib/queries'
 import { useUniverseStore } from '@/stores/universe'
 import type { MunicipalityListItem, MunicipalityRead } from '@/lib/types'
@@ -25,16 +27,18 @@ interface MunicipalityFormProps {
   open: boolean
   onClose: () => void
   initial?: MunicipalityRead
+  /** When creating a new municipality, preselect this parent in the form. */
+  defaultParentId?: string
   allMunicipalities?: MunicipalityListItem[]
 }
 
-export function MunicipalityFormSheet({ universeId, open, onClose, initial, allMunicipalities }: MunicipalityFormProps) {
+export function MunicipalityFormSheet({ universeId, open, onClose, initial, defaultParentId, allMunicipalities }: MunicipalityFormProps) {
   const create = useCreateMunicipality()
   const update = useUpdateMunicipality(initial?.id ?? '', universeId)
   const isEdit = !!initial
 
   const [name, setName] = useState(initial?.name ?? '')
-  const [parentId, setParentId] = useState<string>(initial?.parent_id ?? '')
+  const [parentId, setParentId] = useState<string>(initial?.parent_id ?? defaultParentId ?? '')
   const [error, setError] = useState<string | null>(null)
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -104,14 +108,18 @@ export function MunicipalityFormSheet({ universeId, open, onClose, initial, allM
 function MuniRow({
   m,
   indent = false,
+  dim = false,
+  orphan = false,
   onEdit,
 }: {
   m: MunicipalityListItem
   indent?: boolean
+  dim?: boolean
+  orphan?: boolean
   onEdit: (m: MunicipalityListItem) => void
 }) {
   return (
-    <div className="group relative flex items-center gap-3 rounded-lg border border-zinc-800 bg-zinc-900/30 px-4 py-3 transition-colors hover:border-zinc-700 hover:bg-zinc-900/60">
+    <div className={`group relative flex items-center gap-3 rounded-lg border border-zinc-800 bg-zinc-900/30 px-4 py-3 transition-colors hover:border-zinc-700 hover:bg-zinc-900/60 ${dim ? 'opacity-60' : ''}`}>
       {indent && (
         <div className="absolute left-0 top-0 bottom-0 w-px ml-6 bg-zinc-800" />
       )}
@@ -120,30 +128,48 @@ function MuniRow({
       <Link
         to="/municipalities/$id"
         params={{ id: m.id }}
-        className="min-w-0 flex-1"
+        className="min-w-0 flex-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/50 rounded"
       >
         <span className={`text-sm ${indent ? 'text-zinc-300' : 'font-medium text-zinc-100'}`}>
           {m.name}
         </span>
       </Link>
       <div className="flex shrink-0 items-center gap-2">
+        {orphan && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span className="inline-flex items-center gap-1 rounded-full border border-amber-900/60 bg-amber-950/40 px-2 py-0.5 text-[11px] text-amber-400">
+                <AlertTriangle className="h-3 w-3" /> orphan
+              </span>
+            </TooltipTrigger>
+            <TooltipContent>This municipality's parent no longer exists.</TooltipContent>
+          </Tooltip>
+        )}
         {m.child_count > 0 && (
           <span className="rounded-full border border-zinc-700 bg-zinc-800/60 px-2 py-0.5 text-[11px] text-zinc-500">
             {m.child_count} {m.child_count === 1 ? 'district' : 'districts'}
           </span>
         )}
-        <span
-          className={`rounded-full px-2 py-0.5 text-[11px] font-medium tabular-nums ${
-            m.incident_count > 0
-              ? 'bg-amber-500/10 text-amber-400'
-              : 'bg-zinc-800/60 text-zinc-600'
-          }`}
-        >
-          {m.incident_count} {m.incident_count === 1 ? 'incident' : 'incidents'}
-        </span>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <span
+              className={`rounded-full px-2 py-0.5 text-[11px] font-medium tabular-nums ${
+                m.incident_count > 0
+                  ? 'bg-amber-500/10 text-amber-400'
+                  : 'bg-zinc-800/60 text-zinc-600'
+              }`}
+            >
+              {m.incident_count} {m.incident_count === 1 ? 'incident' : 'incidents'}
+            </span>
+          </TooltipTrigger>
+          <TooltipContent>
+            {m.incident_count > 0 ? 'Amber highlight = has recorded incidents' : 'No incidents recorded'}
+          </TooltipContent>
+        </Tooltip>
         <button
           onClick={(e) => { e.preventDefault(); e.stopPropagation(); onEdit(m) }}
-          className="rounded-md p-1 text-zinc-600 opacity-0 transition-all hover:bg-zinc-700 hover:text-zinc-200 group-hover:opacity-100"
+          aria-label={`Edit ${m.name}`}
+          className="rounded-md p-1.5 text-zinc-600 transition-colors hover:bg-zinc-700 hover:text-zinc-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/50 lg:opacity-0 lg:group-hover:opacity-100 lg:group-focus-within:opacity-100"
         >
           <Pencil className="h-3.5 w-3.5" />
         </button>
@@ -166,10 +192,14 @@ function MunicipalitiesPage() {
 
   const items = data?.items ?? []
 
-  const filtered = useMemo(() => {
+  // Match any name containing the query; when searching, we keep the tree
+  // structure but dim non-matching ancestors so context is preserved.
+  const matchIds = useMemo(() => {
     if (!q.trim()) return null
     const lower = q.toLowerCase()
-    return items.filter((m) => m.name.toLowerCase().includes(lower))
+    return new Set(
+      items.filter((m) => m.name.toLowerCase().includes(lower)).map((m) => m.id),
+    )
   }, [items, q])
 
   // Build tree: top-level items, each with their children
@@ -180,6 +210,17 @@ function MunicipalitiesPage() {
       if (!childMap[m.parent_id]) childMap[m.parent_id] = []
       childMap[m.parent_id].push(m)
     }
+  }
+
+  const orphanIds = new Set(
+    items.filter((m) => m.parent_id && !items.find((p) => p.id === m.parent_id)).map((m) => m.id),
+  )
+
+  // A parent is "relevant" when it or any child matches the query
+  function branchMatches(parent: MunicipalityListItem): boolean {
+    if (!matchIds) return true
+    if (matchIds.has(parent.id)) return true
+    return (childMap[parent.id] ?? []).some((c) => matchIds.has(c.id))
   }
 
   const editItem = editTarget
@@ -215,45 +256,58 @@ function MunicipalitiesPage() {
       </div>
 
       {/* List */}
-      {isLoading ? (
-        <div className="space-y-1.5">
-          {Array.from({ length: 4 }).map((_, i) => (
-            <Skeleton key={i} className="h-12 w-full rounded-lg" />
-          ))}
-        </div>
-      ) : filtered !== null ? (
-        // Search results — flat list
-        <div className="space-y-1.5">
-          {filtered.length === 0 ? (
-            <p className="py-8 text-center text-sm text-zinc-500">No municipalities match "{q}"</p>
-          ) : (
-            filtered.map((m) => (
-              <MuniRow key={m.id} m={m} onEdit={setEditTarget} />
-            ))
-          )}
-        </div>
-      ) : (
-        // Tree view
-        <div className="space-y-2">
-          {topLevel.length === 0 && (
-            <p className="py-12 text-center text-sm text-zinc-500">No municipalities yet</p>
-          )}
-          {topLevel.map((parent) => (
-            <div key={parent.id} className="space-y-1">
-              <MuniRow m={parent} onEdit={setEditTarget} />
-              {(childMap[parent.id] ?? []).map((child) => (
-                <MuniRow key={child.id} m={child} indent onEdit={setEditTarget} />
-              ))}
-            </div>
-          ))}
-          {/* Orphaned children (parent deleted) */}
-          {items
-            .filter((m) => m.parent_id && !items.find((p) => p.id === m.parent_id))
-            .map((m) => (
-              <MuniRow key={m.id} m={m} onEdit={setEditTarget} />
+      <TooltipProvider delayDuration={250}>
+        {isLoading ? (
+          <TreeSkeleton rows={8} />
+        ) : items.length === 0 ? (
+          <EmptyState
+            icon={MapPin}
+            title="No municipalities yet"
+            description="Add cities and districts to organise incidents geographically."
+            action={
+              <Button size="sm" onClick={() => setCreating(true)}>
+                <Plus className="mr-1.5 h-4 w-4" /> Add the first one
+              </Button>
+            }
+          />
+        ) : matchIds && matchIds.size === 0 ? (
+          <EmptyState icon={Search} title={`No municipalities match "${q}"`} />
+        ) : (
+          // Tree view — when searching, non-matches are dimmed; ancestors stay for context.
+          <div className="space-y-2">
+            {topLevel.filter(branchMatches).map((parent) => (
+              <div key={parent.id} className="space-y-1">
+                <MuniRow
+                  m={parent}
+                  dim={!!matchIds && !matchIds.has(parent.id)}
+                  onEdit={setEditTarget}
+                />
+                {(childMap[parent.id] ?? []).map((child) => (
+                  <MuniRow
+                    key={child.id}
+                    m={child}
+                    indent
+                    dim={!!matchIds && !matchIds.has(child.id)}
+                    onEdit={setEditTarget}
+                  />
+                ))}
+              </div>
             ))}
-        </div>
-      )}
+            {/* Orphaned children (parent deleted) */}
+            {Array.from(orphanIds)
+              .map((id) => items.find((m) => m.id === id)!)
+              .filter((m) => !matchIds || matchIds.has(m.id))
+              .map((m) => (
+                <MuniRow
+                  key={m.id}
+                  m={m}
+                  orphan
+                  onEdit={setEditTarget}
+                />
+              ))}
+          </div>
+        )}
+      </TooltipProvider>
 
       {/* Create sheet */}
       <MunicipalityFormSheet

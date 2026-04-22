@@ -1,12 +1,13 @@
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
-import { ArrowLeft, Pencil, Trash2 } from 'lucide-react'
+import { Pencil, Trash2 } from 'lucide-react'
 import { useState } from 'react'
-import { toast } from 'sonner'
 import { FuzzyDate } from '@/components/FuzzyDate'
 import { AllianceStatusBadge, MemberStatusBadge } from '@/components/StatusBadge'
 import { ErrorState } from '@/components/ErrorState'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
-import { Skeleton } from '@/components/ui/skeleton'
+import { Breadcrumbs } from '@/components/Breadcrumbs'
+import { CopyButton } from '@/components/CopyButton'
+import { DetailHeaderSkeleton } from '@/components/skeletons'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -42,9 +43,8 @@ function AllianceDetailPage() {
     try {
       await deleteAlliance.mutateAsync(alliance.id)
       navigate({ to: '/alliances' })
-    } catch (err) {
+    } catch {
       setDeleting(false)
-      toast.error(err instanceof Error ? err.message : 'Failed to delete alliance')
     }
   }
 
@@ -52,20 +52,23 @@ function AllianceDetailPage() {
 
   return (
     <div>
-      <Link to="/alliances" className="mb-4 inline-flex items-center gap-1.5 text-sm text-zinc-400 hover:text-white transition-colors">
-        <ArrowLeft className="h-3.5 w-3.5" /> Alliances
-      </Link>
+      <Breadcrumbs
+        items={[
+          { label: 'Alliances', to: '/alliances' },
+          { label: alliance?.name ?? 'Alliance' },
+        ]}
+      />
 
       {isLoading ? (
-        <div className="space-y-2">
-          <Skeleton className="h-7 w-48" />
-          <Skeleton className="h-4 w-24" />
-        </div>
+        <DetailHeaderSkeleton />
       ) : alliance ? (
         <>
-          <div className="mb-6 flex items-start justify-between">
+          <div className="mb-6 flex items-start justify-between gap-4">
             <div>
-              <h1 className="text-2xl font-bold text-white">{alliance.name}</h1>
+              <div className="flex items-center gap-1.5">
+                <h1 className="text-2xl font-bold text-white">{alliance.name}</h1>
+                <CopyButton value={window.location.href} label="Copy link to this alliance" className="opacity-60 hover:opacity-100" />
+              </div>
               <div className="mt-2 flex items-center gap-2">
                 <AllianceStatusBadge status={alliance.status} />
                 {alliance.founded_at && (
@@ -133,8 +136,8 @@ function AllianceDetailPage() {
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="border-b border-zinc-800 bg-zinc-900/50">
-                        <th className="px-4 py-2.5 text-left font-medium text-zinc-400">Name</th>
-                        <th className="px-4 py-2.5 text-left font-medium text-zinc-400">Status</th>
+                        <th className="px-4 py-2.5 text-left font-medium text-zinc-400" scope="col">Name</th>
+                        <th className="px-4 py-2.5 text-left font-medium text-zinc-400" scope="col">Status</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-zinc-800">
@@ -145,10 +148,8 @@ function AllianceDetailPage() {
                               {m.display_name}
                             </Link>
                           </td>
-                          <td className="p-0">
-                            <Link to="/members/$id" params={{ id: m.slug ?? m.id }} className="block px-4 py-3" tabIndex={-1}>
-                              <MemberStatusBadge status={m.status} />
-                            </Link>
+                          <td className="px-4 py-3">
+                            <MemberStatusBadge status={m.status} />
                           </td>
                         </tr>
                       ))}
@@ -166,8 +167,8 @@ function AllianceDetailPage() {
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="border-b border-zinc-800 bg-zinc-900/50">
-                        <th className="px-4 py-2.5 text-left font-medium text-zinc-400">Type</th>
-                        <th className="px-4 py-2.5 text-left font-medium text-zinc-400">Date</th>
+                        <th className="px-4 py-2.5 text-left font-medium text-zinc-400" scope="col">Type</th>
+                        <th className="px-4 py-2.5 text-left font-medium text-zinc-400" scope="col">Date</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-zinc-800">
@@ -178,10 +179,8 @@ function AllianceDetailPage() {
                               {inc.type}
                             </Link>
                           </td>
-                          <td className="p-0">
-                            <Link to="/incidents/$id" params={{ id: inc.id }} className="block px-4 py-3 text-zinc-400" tabIndex={-1}>
-                              <FuzzyDate value={inc.date} fallback="Unknown date" />
-                            </Link>
+                          <td className="px-4 py-3 text-zinc-400">
+                            <FuzzyDate value={inc.date} fallback="Unknown date" />
                           </td>
                         </tr>
                       ))}
@@ -210,6 +209,17 @@ function AllianceDetailPage() {
             open={deleting}
             title="Delete Alliance"
             description={`Permanently delete "${alliance.name}"? This cannot be undone.`}
+            impact={(() => {
+              const setCount = alliance.set_ids.length
+              const memberCount = members?.items.length ?? 0
+              const incidentCount = incidents?.items.length ?? 0
+              if (!setCount && !memberCount && !incidentCount) return null
+              const parts: string[] = []
+              if (setCount) parts.push(`${setCount} set${setCount === 1 ? '' : 's'}`)
+              if (memberCount) parts.push(`${memberCount} member${memberCount === 1 ? '' : 's'}`)
+              if (incidentCount) parts.push(`${incidentCount} incident${incidentCount === 1 ? '' : 's'}`)
+              return <span>{parts.join(', ')} will lose this alliance link.</span>
+            })()}
             confirmLabel="Delete"
             destructive
             pending={deleteAlliance.isPending}

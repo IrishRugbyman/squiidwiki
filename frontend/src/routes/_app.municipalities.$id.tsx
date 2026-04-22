@@ -1,12 +1,14 @@
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
-import { AlertTriangle, ChevronRight, MapPin, Pencil, Trash2 } from 'lucide-react'
+import { AlertTriangle, ChevronRight, CheckCircle2, MapPin, Pencil, Plus, Trash2 } from 'lucide-react'
 import { useState } from 'react'
-import { toast } from 'sonner'
 import { ErrorState } from '@/components/ErrorState'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { FuzzyDate } from '@/components/FuzzyDate'
-import { Skeleton } from '@/components/ui/skeleton'
+import { Breadcrumbs } from '@/components/Breadcrumbs'
+import { CopyButton } from '@/components/CopyButton'
+import { DetailHeaderSkeleton } from '@/components/skeletons'
 import { Button } from '@/components/ui/button'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { useMunicipality, useMunicipalities, useDeleteMunicipality, useIncidentsByMunicipality } from '@/lib/queries'
 import { useUniverseStore } from '@/stores/universe'
 import { useAuthStore } from '@/stores/auth'
@@ -37,42 +39,33 @@ function MunicipalityDetailPage() {
   const children = allItems.filter((m) => m.parent_id === id)
   const incidents = incidentData?.items ?? []
 
+  const [creatingChild, setCreatingChild] = useState(false)
+
   async function handleDelete() {
     if (!municipality) return
     try {
       await deleteMunicipality.mutateAsync(municipality.id)
       navigate({ to: '/municipalities' })
-    } catch (err) {
+    } catch {
       setDeleting(false)
-      toast.error(err instanceof Error ? err.message : 'Failed to delete municipality')
     }
   }
 
   if (isError) return <ErrorState title="Municipality not found" onRetry={() => refetch()} />
 
+  const breadcrumbItems = [
+    { label: 'Municipalities', to: '/municipalities' },
+    ...(parent ? [{ label: parent.name, to: `/municipalities/${parent.id}` }] : []),
+    { label: municipality?.name ?? 'Municipality' },
+  ]
+
   return (
     <div className="space-y-6">
-      {/* Breadcrumb */}
-      <div className="flex items-center gap-1.5 text-sm text-zinc-500">
-        <Link to="/municipalities" className="hover:text-white transition-colors">Municipalities</Link>
-        {parent && (
-          <>
-            <ChevronRight className="h-3.5 w-3.5" />
-            <Link to="/municipalities/$id" params={{ id: parent.id }} className="hover:text-white transition-colors">
-              {parent.name}
-            </Link>
-          </>
-        )}
-        <ChevronRight className="h-3.5 w-3.5" />
-        <span className="text-zinc-300">{municipality?.name ?? '…'}</span>
-      </div>
+      <Breadcrumbs items={breadcrumbItems} />
 
       {/* Header */}
       {isLoading ? (
-        <div className="space-y-2">
-          <Skeleton className="h-8 w-48" />
-          <Skeleton className="h-4 w-32" />
-        </div>
+        <DetailHeaderSkeleton />
       ) : municipality ? (
         <div className="flex items-start justify-between gap-4">
           <div className="flex items-center gap-3">
@@ -80,7 +73,10 @@ function MunicipalityDetailPage() {
               <MapPin className="h-6 w-6 text-zinc-400" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-white">{municipality.name}</h1>
+              <div className="flex items-center gap-1.5">
+                <h1 className="text-2xl font-bold text-white">{municipality.name}</h1>
+                <CopyButton value={window.location.href} label="Copy link to this municipality" className="opacity-60 hover:opacity-100" />
+              </div>
               {parent && (
                 <p className="mt-0.5 text-sm text-zinc-500">
                   District of{' '}
@@ -92,6 +88,9 @@ function MunicipalityDetailPage() {
             </div>
           </div>
           <div className="flex shrink-0 items-center gap-2">
+            <Button size="sm" variant="outline" onClick={() => setCreatingChild(true)}>
+              <Plus className="mr-1.5 h-3.5 w-3.5" />Add sub-district
+            </Button>
             <Button size="sm" variant="outline" onClick={() => setEditing(true)}>
               <Pencil className="mr-1.5 h-3.5 w-3.5" />Edit
             </Button>
@@ -122,22 +121,22 @@ function MunicipalityDetailPage() {
       {children.length > 0 && (
         <div className="rounded-xl border border-zinc-800 bg-zinc-900/30">
           <div className="border-b border-zinc-800 px-4 py-3">
-            <h2 className="text-xs font-semibold uppercase tracking-wider text-zinc-500">Sub-districts</h2>
+            <h2 className="text-xs font-semibold uppercase tracking-wider text-zinc-500">Sub-districts ({children.length})</h2>
           </div>
-          <div className="divide-y divide-zinc-800/60">
+          <div className="grid grid-cols-1 gap-1 p-2 sm:grid-cols-2 lg:grid-cols-3">
             {children.map((child) => (
               <Link
                 key={child.id}
                 to="/municipalities/$id"
                 params={{ id: child.id }}
-                className="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-zinc-800/40"
+                className="group flex items-center gap-2 rounded-md border border-transparent px-3 py-2 transition-colors hover:border-zinc-700 hover:bg-zinc-800/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/50"
               >
-                <MapPin className="h-3.5 w-3.5 shrink-0 text-zinc-600" />
-                <span className="flex-1 text-sm text-zinc-300 hover:text-white">{child.name}</span>
+                <MapPin className="h-3.5 w-3.5 shrink-0 text-zinc-600 group-hover:text-zinc-400" />
+                <span className="flex-1 truncate text-sm text-zinc-300 group-hover:text-white">{child.name}</span>
                 <span className={`text-xs tabular-nums ${child.incident_count > 0 ? 'text-amber-400' : 'text-zinc-600'}`}>
-                  {child.incident_count} incidents
+                  {child.incident_count}
                 </span>
-                <ChevronRight className="h-3.5 w-3.5 text-zinc-700" />
+                <ChevronRight className="h-3.5 w-3.5 text-zinc-700 group-hover:text-zinc-500" />
               </Link>
             ))}
           </div>
@@ -145,44 +144,51 @@ function MunicipalityDetailPage() {
       )}
 
       {/* Incidents */}
-      <div className="rounded-xl border border-zinc-800 bg-zinc-900/30">
-        <div className="border-b border-zinc-800 px-4 py-3 flex items-center justify-between">
-          <h2 className="text-xs font-semibold uppercase tracking-wider text-zinc-500">Incidents</h2>
-          <Link to="/incidents" className="text-xs text-zinc-500 hover:text-violet-400 transition-colors">
-            All incidents →
-          </Link>
+      <TooltipProvider delayDuration={250}>
+        <div className="rounded-xl border border-zinc-800 bg-zinc-900/30">
+          <div className="border-b border-zinc-800 px-4 py-3 flex items-center justify-between">
+            <h2 className="text-xs font-semibold uppercase tracking-wider text-zinc-500">Incidents</h2>
+            <Link to="/incidents" className="text-xs text-zinc-500 hover:text-violet-400 transition-colors">
+              All incidents →
+            </Link>
+          </div>
+          <div className="divide-y divide-zinc-800/60">
+            {incidentsLoading ? (
+              <div className="space-y-1 p-4">
+                {Array.from({ length: 3 }).map((_, i) => <div key={i} className="h-10 w-full animate-pulse rounded-md bg-zinc-800" />)}
+              </div>
+            ) : incidents.length === 0 ? (
+              <p className="px-4 py-6 text-sm text-zinc-600">No incidents recorded in {municipality?.name}.</p>
+            ) : (
+              incidents.map((inc) => (
+                <Link
+                  key={inc.id}
+                  to="/incidents/$id"
+                  params={{ id: inc.id }}
+                  className="group flex items-center gap-3 px-4 py-3 transition-colors hover:bg-zinc-800/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/50"
+                >
+                  <AlertTriangle className={`h-3.5 w-3.5 shrink-0 ${inc.type === 'MURDER' ? 'text-rose-500' : 'text-amber-500'}`} />
+                  <span className="text-sm font-medium text-zinc-300 group-hover:text-white">{inc.type}</span>
+                  {inc.victim_names.length > 0 && (
+                    <span className="text-sm text-zinc-500">— {inc.victim_names.slice(0, 2).join(', ')}{inc.victim_names.length > 2 ? ` +${inc.victim_names.length - 2}` : ''}</span>
+                  )}
+                  <span className="ml-auto text-xs text-zinc-600">
+                    {inc.date ? <FuzzyDate value={inc.date} /> : 'Unknown date'}
+                  </span>
+                  {inc.verified && (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <CheckCircle2 className="h-3 w-3 shrink-0 text-emerald-500" />
+                      </TooltipTrigger>
+                      <TooltipContent>Verified incident</TooltipContent>
+                    </Tooltip>
+                  )}
+                </Link>
+              ))
+            )}
+          </div>
         </div>
-        <div className="divide-y divide-zinc-800/60">
-          {incidentsLoading ? (
-            <div className="space-y-1 p-4">
-              {Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-10 w-full rounded-md" />)}
-            </div>
-          ) : incidents.length === 0 ? (
-            <p className="px-4 py-6 text-sm text-zinc-600">No incidents recorded in {municipality?.name}.</p>
-          ) : (
-            incidents.map((inc) => (
-              <Link
-                key={inc.id}
-                to="/incidents/$id"
-                params={{ id: inc.id }}
-                className="group flex items-center gap-3 px-4 py-3 transition-colors hover:bg-zinc-800/40"
-              >
-                <AlertTriangle className={`h-3.5 w-3.5 shrink-0 ${inc.type === 'MURDER' ? 'text-rose-500' : 'text-amber-500'}`} />
-                <span className="text-sm font-medium text-zinc-300 group-hover:text-white">{inc.type}</span>
-                {inc.victim_names.length > 0 && (
-                  <span className="text-sm text-zinc-500">— {inc.victim_names.slice(0, 2).join(', ')}{inc.victim_names.length > 2 ? ` +${inc.victim_names.length - 2}` : ''}</span>
-                )}
-                <span className="ml-auto text-xs text-zinc-600">
-                  {inc.date ? <FuzzyDate value={inc.date} /> : 'Unknown date'}
-                </span>
-                {inc.verified && (
-                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" title="Verified" />
-                )}
-              </Link>
-            ))
-          )}
-        </div>
-      </div>
+      </TooltipProvider>
 
       {/* Sheets / dialogs */}
       {universe && municipality && (
@@ -195,10 +201,27 @@ function MunicipalityDetailPage() {
         />
       )}
 
+      {universe && (
+        <MunicipalityFormSheet
+          universeId={universe.id}
+          open={creatingChild}
+          onClose={() => setCreatingChild(false)}
+          defaultParentId={id}
+          allMunicipalities={allItems as MunicipalityListItem[]}
+        />
+      )}
+
       <ConfirmDialog
         open={deleting}
         title="Delete Municipality"
         description={`Permanently delete "${municipality?.name}"? This cannot be undone.`}
+        impact={(() => {
+          const parts: string[] = []
+          if (children.length) parts.push(`${children.length} sub-district${children.length === 1 ? '' : 's'} will be orphaned`)
+          if (incidents.length) parts.push(`${incidents.length} incident${incidents.length === 1 ? '' : 's'} will lose this location`)
+          if (!parts.length) return null
+          return <span>{parts.join('. ')}.</span>
+        })()}
         confirmLabel="Delete"
         destructive
         pending={deleteMunicipality.isPending}

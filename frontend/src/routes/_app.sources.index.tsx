@@ -1,19 +1,22 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
-import { Download, ExternalLink, FileText, Plus, Search } from 'lucide-react'
-import { useState } from 'react'
+import { Download, ExternalLink, FileText, HelpCircle, Plus, Search } from 'lucide-react'
+import { useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import { NoUniverse } from '@/components/NoUniverse'
 import { PageHeader } from '@/components/PageHeader'
 import { ReliabilityBadge } from '@/components/StatusBadge'
 import { Sheet, SheetContent, SheetClose } from '@/components/Sheet'
+import { EmptyState } from '@/components/EmptyState'
+import { TableRowSkeleton } from '@/components/skeletons'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Skeleton } from '@/components/ui/skeleton'
 import { Textarea } from '@/components/ui/textarea'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { useCreateSource, useUpdateSource, useSources } from '@/lib/queries'
 import { downloadCsv } from '@/lib/download'
+import { RELIABILITY_DESCRIPTION } from '@/lib/statusColors'
 import type { SourceRead, SourceReliability } from '@/lib/types'
 import { useUniverseStore } from '@/stores/universe'
 
@@ -94,10 +97,10 @@ export function SourceFormSheet({ universeId, open, onClose, initial }: SourceFo
             <Select value={reliability} onValueChange={(v) => setReliability(v as SourceReliability)}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="HIGH">High</SelectItem>
-                <SelectItem value="MEDIUM">Medium</SelectItem>
-                <SelectItem value="LOW">Low</SelectItem>
-                <SelectItem value="UNVERIFIED">Unverified</SelectItem>
+                <SelectItem value="HIGH">High — {RELIABILITY_DESCRIPTION.HIGH}</SelectItem>
+                <SelectItem value="MEDIUM">Medium — {RELIABILITY_DESCRIPTION.MEDIUM}</SelectItem>
+                <SelectItem value="LOW">Low — {RELIABILITY_DESCRIPTION.LOW}</SelectItem>
+                <SelectItem value="UNVERIFIED">Unverified — {RELIABILITY_DESCRIPTION.UNVERIFIED}</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -124,9 +127,13 @@ export function SourceFormSheet({ universeId, open, onClose, initial }: SourceFo
   )
 }
 
+const RELIABILITY_FILTERS: (SourceReliability | 'ALL')[] = ['ALL', 'HIGH', 'MEDIUM', 'LOW', 'UNVERIFIED']
+
 function SourcesPage() {
   const universe = useUniverseStore((s) => s.activeUniverse)
   const [q, setQ] = useState('')
+  const [publicationFilter, setPublicationFilter] = useState<string>('ALL')
+  const [reliabilityFilter, setReliabilityFilter] = useState<SourceReliability | 'ALL'>('ALL')
   const [offset, setOffset] = useState(0)
   const [creating, setCreating] = useState(false)
   const PAGE = 20
@@ -135,96 +142,166 @@ function SourcesPage() {
 
   if (!universe) return <NoUniverse />
 
-  const items = (data?.items ?? []).filter((s) => !q || s.title.toLowerCase().includes(q.toLowerCase()))
+  const rawItems = data?.items ?? []
   const total = data?.total ?? 0
 
+  const publications = useMemo(() => {
+    const set = new Set<string>()
+    for (const s of rawItems) {
+      // publication is on SourceRead; we only have SourceListItem in the list query
+      const pub = (s as unknown as { publication?: string | null }).publication
+      if (pub) set.add(pub)
+    }
+    return Array.from(set).sort()
+  }, [rawItems])
+
+  const items = rawItems
+    .filter((s) => !q || s.title.toLowerCase().includes(q.toLowerCase()))
+    .filter((s) => reliabilityFilter === 'ALL' || s.reliability === reliabilityFilter)
+    .filter((s) => {
+      if (publicationFilter === 'ALL') return true
+      const pub = (s as unknown as { publication?: string | null }).publication
+      return pub === publicationFilter
+    })
+
   return (
-    <div>
-      <PageHeader
-        title="Sources"
-        description={`${total} total`}
-        action={
-          <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={() => downloadCsv(`/sources/?universe_id=${universe.id}&format=csv`, 'sources.csv')}>
-              <Download className="mr-1.5 h-3.5 w-3.5" />Export
-            </Button>
-            <Button size="sm" onClick={() => setCreating(true)}><Plus className="mr-1.5 h-4 w-4" />Add Source</Button>
+    <TooltipProvider delayDuration={200}>
+      <div>
+        <PageHeader
+          title="Sources"
+          description={total > 0 ? `${total} total` : 'No sources yet'}
+          action={
+            <div className="flex items-center gap-2">
+              <Button variant="outline" size="sm" onClick={() => {
+                const date = new Date().toISOString().slice(0, 10)
+                downloadCsv(`/sources/?universe_id=${universe.id}&format=csv`, `sources-${universe.slug}-${date}.csv`)
+              }}>
+                <Download className="mr-1.5 h-3.5 w-3.5" />Export
+              </Button>
+              <Button size="sm" onClick={() => setCreating(true)}><Plus className="mr-1.5 h-4 w-4" />Add Source</Button>
+            </div>
+          }
+        />
+
+        <div className="mb-4 flex flex-wrap items-center gap-2">
+          <div className="relative flex-1 min-w-48 max-w-sm">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
+            <Input className="pl-8" placeholder="Filter sources…" value={q} onChange={(e) => setQ(e.target.value)} />
           </div>
-        }
-      />
-
-      <div className="mb-4 flex items-center gap-2">
-        <div className="relative flex-1 max-w-sm">
-          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
-          <Input className="pl-8" placeholder="Filter sources…" value={q} onChange={(e) => setQ(e.target.value)} />
-        </div>
-      </div>
-
-      <div className="overflow-hidden rounded-lg border border-zinc-800">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-zinc-800 bg-zinc-900/50">
-              <th className="px-4 py-2.5 text-left font-medium text-zinc-400">Title</th>
-              <th className="px-4 py-2.5 text-left font-medium text-zinc-400">Reliability</th>
-              <th className="px-4 py-2.5 text-left font-medium text-zinc-400 w-10"></th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-zinc-800">
-            {isLoading
-              ? Array.from({ length: 5 }).map((_, i) => (
-                  <tr key={i}>
-                    <td className="px-4 py-3" colSpan={3}><Skeleton className="h-4 w-64" /></td>
-                  </tr>
-                ))
-              : items.map((source) => (
-                  <tr key={source.id} className="hover:bg-zinc-900/50 transition-colors">
-                    <td className="p-0">
-                      <Link to="/sources/$id" params={{ id: source.id }} className="block px-4 py-3 font-medium text-white hover:text-violet-400 transition-colors">
-                        {source.title}
-                      </Link>
-                    </td>
-                    <td className="p-0">
-                      <Link to="/sources/$id" params={{ id: source.id }} className="block px-4 py-3" tabIndex={-1}>
-                        <ReliabilityBadge reliability={source.reliability} />
-                      </Link>
-                    </td>
-                    <td className="px-4 py-3">
-                      <a href={source.url} target="_blank" rel="noopener noreferrer" className="text-zinc-500 hover:text-violet-400 transition-colors">
-                        <ExternalLink className="h-3.5 w-3.5" />
-                      </a>
-                    </td>
-                  </tr>
+          <Select value={reliabilityFilter} onValueChange={(v) => setReliabilityFilter(v as SourceReliability | 'ALL')}>
+            <SelectTrigger className="h-8 w-36 text-xs"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              {RELIABILITY_FILTERS.map((r) => (
+                <SelectItem key={r} value={r}>{r === 'ALL' ? 'All reliability' : r}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {publications.length > 0 && (
+            <Select value={publicationFilter} onValueChange={setPublicationFilter}>
+              <SelectTrigger className="h-8 w-40 text-xs"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ALL">All publications</SelectItem>
+                {publications.map((pub) => (
+                  <SelectItem key={pub} value={pub}>{pub}</SelectItem>
                 ))}
-            {!isLoading && items.length === 0 && (
-              <tr>
-                <td colSpan={3}>
-                  <div className="flex flex-col items-center py-12 text-center">
-                    <FileText className="mb-3 h-8 w-8 text-zinc-700" />
-                    <p className="text-sm text-zinc-500">{items.length === 0 && q ? 'No sources match your search' : 'No sources yet'}</p>
-                    {!q && (
-                      <button onClick={() => setCreating(true)} className="mt-2 text-xs text-violet-400 hover:text-violet-300 transition-colors">
-                        Add the first source →
-                      </button>
-                    )}
-                  </div>
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
-
-      {!q && total > PAGE && (
-        <div className="mt-4 flex items-center justify-between text-sm text-zinc-400">
-          <span>Showing {offset + 1}–{Math.min(offset + PAGE, total)} of {total}</span>
-          <div className="flex gap-2">
-            <Button variant="outline" size="sm" disabled={offset === 0} onClick={() => setOffset(Math.max(0, offset - PAGE))}>Prev</Button>
-            <Button variant="outline" size="sm" disabled={offset + PAGE >= total} onClick={() => setOffset(offset + PAGE)}>Next</Button>
-          </div>
+              </SelectContent>
+            </Select>
+          )}
         </div>
-      )}
 
-      <SourceFormSheet universeId={universe.id} open={creating} onClose={() => setCreating(false)} />
-    </div>
+        <div className="overflow-hidden rounded-lg border border-zinc-800">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-zinc-800 bg-zinc-900/50">
+                <th className="px-4 py-2.5 text-left font-medium text-zinc-400" scope="col">Title</th>
+                <th className="px-4 py-2.5 text-left font-medium text-zinc-400" scope="col">
+                  <span className="inline-flex items-center gap-1">
+                    Reliability
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <HelpCircle className="h-3 w-3 text-zinc-600 hover:text-zinc-400" />
+                      </TooltipTrigger>
+                      <TooltipContent side="top">
+                        <div className="space-y-1 max-w-xs">
+                          <div><strong>HIGH</strong> — {RELIABILITY_DESCRIPTION.HIGH}</div>
+                          <div><strong>MEDIUM</strong> — {RELIABILITY_DESCRIPTION.MEDIUM}</div>
+                          <div><strong>LOW</strong> — {RELIABILITY_DESCRIPTION.LOW}</div>
+                          <div><strong>UNVERIFIED</strong> — {RELIABILITY_DESCRIPTION.UNVERIFIED}</div>
+                        </div>
+                      </TooltipContent>
+                    </Tooltip>
+                  </span>
+                </th>
+                <th className="px-4 py-2.5 text-left font-medium text-zinc-400 w-10" scope="col" aria-label="Open external link"></th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-zinc-800">
+              {isLoading
+                ? Array.from({ length: 5 }).map((_, i) => <TableRowSkeleton key={i} cols={3} height={52} />)
+                : items.map((source) => (
+                    <tr key={source.id} className="hover:bg-zinc-900/50 transition-colors">
+                      <td className="p-0">
+                        <Link to="/sources/$id" params={{ id: source.id }} className="block px-4 py-3 font-medium text-white hover:text-violet-400 transition-colors">
+                          {source.title}
+                        </Link>
+                      </td>
+                      <td className="px-4 py-3">
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className="inline-block">
+                              <ReliabilityBadge reliability={source.reliability} />
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent side="top">{RELIABILITY_DESCRIPTION[source.reliability]}</TooltipContent>
+                        </Tooltip>
+                      </td>
+                      <td className="px-4 py-3">
+                        <a
+                          href={source.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          aria-label="Open source in new tab"
+                          className="rounded p-1 text-zinc-500 hover:text-violet-400 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/50"
+                        >
+                          <ExternalLink className="h-3.5 w-3.5" />
+                        </a>
+                      </td>
+                    </tr>
+                  ))}
+              {!isLoading && items.length === 0 && (
+                <tr>
+                  <td colSpan={3}>
+                    <EmptyState
+                      icon={FileText}
+                      title={q ? `No sources match "${q}"` : 'No sources yet'}
+                      description={!q ? 'Add a citation to underpin the incidents you record.' : undefined}
+                      action={
+                        !q ? (
+                          <Button size="sm" onClick={() => setCreating(true)}>
+                            <Plus className="mr-1.5 h-4 w-4" /> Add the first source
+                          </Button>
+                        ) : undefined
+                      }
+                    />
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        {!q && total > PAGE && (
+          <nav className="mt-4 flex items-center justify-between text-sm text-zinc-400" aria-label="Pagination">
+            <span>Showing {offset + 1}–{Math.min(offset + PAGE, total)} of {total}</span>
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" aria-disabled={offset === 0} disabled={offset === 0} onClick={() => setOffset(Math.max(0, offset - PAGE))}>Prev</Button>
+              <Button variant="outline" size="sm" aria-disabled={offset + PAGE >= total} disabled={offset + PAGE >= total} onClick={() => setOffset(offset + PAGE)}>Next</Button>
+            </div>
+          </nav>
+        )}
+
+        <SourceFormSheet universeId={universe.id} open={creating} onClose={() => setCreating(false)} />
+      </div>
+    </TooltipProvider>
   )
 }

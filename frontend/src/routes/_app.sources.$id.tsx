@@ -1,16 +1,19 @@
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
-import { ArrowLeft, ExternalLink, Pencil, Trash2 } from 'lucide-react'
+import { Archive, ExternalLink, Pencil, Trash2 } from 'lucide-react'
 import { useState } from 'react'
-import { toast } from 'sonner'
 import { FuzzyDate } from '@/components/FuzzyDate'
 import { ReliabilityBadge } from '@/components/StatusBadge'
 import { MemberStatusBadge } from '@/components/StatusBadge'
 import { ErrorState } from '@/components/ErrorState'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
-import { Skeleton } from '@/components/ui/skeleton'
+import { Breadcrumbs } from '@/components/Breadcrumbs'
+import { CopyButton } from '@/components/CopyButton'
+import { DetailHeaderSkeleton } from '@/components/skeletons'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
+import { RELIABILITY_DESCRIPTION } from '@/lib/statusColors'
 import { useSource, useSourceIncidents, useSourceMembers, useDeleteSource } from '@/lib/queries'
 import { useUniverseStore } from '@/stores/universe'
 import { useAuthStore } from '@/stores/auth'
@@ -38,33 +41,41 @@ function SourceDetailPage() {
     try {
       await deleteSource.mutateAsync(source.id)
       navigate({ to: '/sources' })
-    } catch (err) {
+    } catch {
       setDeleting(false)
-      toast.error(err instanceof Error ? err.message : 'Failed to delete source')
     }
   }
 
   if (isError) return <ErrorState title="Source not found" onRetry={() => refetch()} />
 
   return (
+    <TooltipProvider delayDuration={200}>
     <div>
-      <Link to="/sources" className="mb-4 inline-flex items-center gap-1.5 text-sm text-zinc-400 hover:text-white transition-colors">
-        <ArrowLeft className="h-3.5 w-3.5" /> Sources
-      </Link>
+      <Breadcrumbs
+        items={[
+          { label: 'Sources', to: '/sources' },
+          { label: source?.title ?? 'Source' },
+        ]}
+      />
 
       {isLoading ? (
-        <div className="space-y-2">
-          <Skeleton className="h-7 w-48" />
-          <Skeleton className="h-4 w-24" />
-        </div>
+        <DetailHeaderSkeleton />
       ) : source ? (
         <>
           <div className="mb-6 flex items-start justify-between gap-4">
             <div>
-              <h1 className="text-2xl font-bold text-white">{source.title}</h1>
+              <div className="flex items-center gap-1.5">
+                <h1 className="text-2xl font-bold text-white">{source.title}</h1>
+                <CopyButton value={window.location.href} label="Copy link to this source" className="opacity-60 hover:opacity-100" />
+              </div>
               {source.publication && <p className="text-sm text-zinc-400">{source.publication}</p>}
               <div className="mt-2 flex items-center gap-2">
-                <ReliabilityBadge reliability={source.reliability} />
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span className="inline-block"><ReliabilityBadge reliability={source.reliability} /></span>
+                  </TooltipTrigger>
+                  <TooltipContent side="right">{RELIABILITY_DESCRIPTION[source.reliability]}</TooltipContent>
+                </Tooltip>
                 {source.published_at && (
                   <span className="text-xs text-zinc-500">
                     Published <FuzzyDate value={source.published_at} />
@@ -82,24 +93,25 @@ function SourceDetailPage() {
                 </Button>
               )}
               <a href={source.url} target="_blank" rel="noopener noreferrer">
-                <Button variant="outline" size="sm" className="gap-1.5">
+                <Button variant="secondary" size="sm" className="gap-1.5">
                   <ExternalLink className="h-3.5 w-3.5" /> Open
                 </Button>
               </a>
+              {source.archive_url && (
+                <a href={source.archive_url} target="_blank" rel="noopener noreferrer">
+                  <Button variant="secondary" size="sm" className="gap-1.5">
+                    <Archive className="h-3.5 w-3.5" /> Archive
+                  </Button>
+                </a>
+              )}
             </div>
           </div>
 
           {source.notes && (
-            <div className="mb-4 rounded-lg border border-zinc-800 bg-zinc-900/30 p-4">
+            <div className="mb-6 rounded-lg border border-zinc-800 bg-zinc-900/30 p-4">
+              <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-zinc-500">Notes</h3>
               <p className="text-sm text-zinc-300 leading-relaxed whitespace-pre-wrap">{source.notes}</p>
             </div>
-          )}
-
-          {source.archive_url && (
-            <a href={source.archive_url} target="_blank" rel="noopener noreferrer"
-              className="mb-6 inline-flex items-center gap-1.5 text-xs text-zinc-500 hover:text-zinc-300 transition-colors">
-              <ExternalLink className="h-3 w-3" /> Archived version
-            </a>
           )}
 
           <Tabs defaultValue="incidents" className="mt-4">
@@ -138,10 +150,8 @@ function SourceDetailPage() {
                               {inc.type}
                             </Link>
                           </td>
-                          <td className="p-0">
-                            <Link to="/incidents/$id" params={{ id: inc.id }} className="block px-4 py-3 text-zinc-400" tabIndex={-1}>
-                              <FuzzyDate value={inc.date} fallback="Unknown date" />
-                            </Link>
+                          <td className="px-4 py-3 text-zinc-400">
+                            <FuzzyDate value={inc.date} fallback="Unknown date" />
                           </td>
                         </tr>
                       ))}
@@ -171,10 +181,8 @@ function SourceDetailPage() {
                               {m.display_name}
                             </Link>
                           </td>
-                          <td className="p-0">
-                            <Link to="/members/$id" params={{ id: m.slug ?? m.id }} className="block px-4 py-3" tabIndex={-1}>
-                              <MemberStatusBadge status={m.status} />
-                            </Link>
+                          <td className="px-4 py-3">
+                            <MemberStatusBadge status={m.status} />
                           </td>
                         </tr>
                       ))}
@@ -198,6 +206,15 @@ function SourceDetailPage() {
             open={deleting}
             title="Delete Source"
             description={`Permanently delete "${source.title}"? This cannot be undone.`}
+            impact={(() => {
+              const incCount = incidents?.items.length ?? 0
+              const memCount = members?.items.length ?? 0
+              if (!incCount && !memCount) return null
+              const parts: string[] = []
+              if (incCount) parts.push(`${incCount} incident${incCount === 1 ? '' : 's'}`)
+              if (memCount) parts.push(`${memCount} member${memCount === 1 ? '' : 's'}`)
+              return <span>{parts.join(' and ')} will lose this citation.</span>
+            })()}
             confirmLabel="Delete"
             destructive
             pending={deleteSource.isPending}
@@ -207,5 +224,6 @@ function SourceDetailPage() {
         </>
       ) : null}
     </div>
+    </TooltipProvider>
   )
 }

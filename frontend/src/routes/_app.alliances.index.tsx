@@ -6,11 +6,12 @@ import { NoUniverse } from '@/components/NoUniverse'
 import { PageHeader } from '@/components/PageHeader'
 import { AllianceStatusBadge } from '@/components/StatusBadge'
 import { Sheet, SheetContent, SheetClose } from '@/components/Sheet'
+import { EmptyState } from '@/components/EmptyState'
+import { TableRowSkeleton } from '@/components/skeletons'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Skeleton } from '@/components/ui/skeleton'
 import { Textarea } from '@/components/ui/textarea'
 import { useAlliances, useCreateAlliance, useUpdateAlliance } from '@/lib/queries'
 import type { AllianceRead, AllianceStatus } from '@/lib/types'
@@ -126,17 +127,30 @@ function AlliancesPage() {
   const items = useMemo(() => {
     if (!sortKey) return rawItems
     return [...rawItems].sort((a, b) => {
-      const av = String((a as any)[sortKey] ?? '')
-      const bv = String((b as any)[sortKey] ?? '')
+      const av = String((a as unknown as Record<string, unknown>)[sortKey] ?? '')
+      const bv = String((b as unknown as Record<string, unknown>)[sortKey] ?? '')
       return sortDir === 'asc' ? av.localeCompare(bv) : bv.localeCompare(av)
     })
   }, [rawItems, sortKey, sortDir])
+
+  const activeCount = (data?.items ?? []).filter((a) => a.status === 'ACTIVE').length
+  const dormantCount = (data?.items ?? []).filter((a) => a.status === 'DORMANT').length
+  const extinctCount = (data?.items ?? []).filter((a) => a.status === 'EXTINCT').length
+  const description = isLoading
+    ? undefined
+    : total === 0
+    ? 'No alliances yet'
+    : [
+        activeCount > 0 && `${activeCount} active`,
+        dormantCount > 0 && `${dormantCount} dormant`,
+        extinctCount > 0 && `${extinctCount} extinct`,
+      ].filter(Boolean).join(' · ') || `${total} total`
 
   return (
     <div>
       <PageHeader
         title="Alliances"
-        description={`${total} total`}
+        description={description}
         action={<Button size="sm" onClick={() => setCreating(true)}><Plus className="mr-1.5 h-4 w-4" />Add Alliance</Button>}
       />
 
@@ -145,7 +159,10 @@ function AlliancesPage() {
           <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
           <Input className="pl-8" placeholder="Search alliances…" value={q} onChange={(e) => setQ(e.target.value)} />
         </div>
-        <Button variant="outline" size="sm" onClick={() => downloadCsv(`/alliances/?universe_id=${universe.id}&format=csv`, 'alliances.csv')}>
+        <Button variant="outline" size="sm" onClick={() => {
+          const date = new Date().toISOString().slice(0, 10)
+          downloadCsv(`/alliances/?universe_id=${universe.id}&format=csv`, `alliances-${universe.slug}-${date}.csv`)
+        }}>
           <Download className="mr-1.5 h-3.5 w-3.5" />Export
         </Button>
       </div>
@@ -154,25 +171,29 @@ function AlliancesPage() {
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-zinc-800 bg-zinc-900/50">
-              <th className="px-4 py-2.5 text-left">
-                <button onClick={() => toggleSort('name')} className="flex items-center gap-1 text-xs font-medium text-zinc-400 hover:text-white transition-colors">
-                  Name <span className="text-zinc-600">{sortKey === 'name' ? (sortDir === 'asc' ? '↑' : '↓') : '↕'}</span>
+              <th
+                className="px-4 py-2.5 text-left"
+                scope="col"
+                aria-sort={sortKey === 'name' ? (sortDir === 'asc' ? 'ascending' : 'descending') : 'none'}
+              >
+                <button onClick={() => toggleSort('name')} className="flex items-center gap-1 text-xs font-medium text-zinc-400 hover:text-white transition-colors focus-visible:outline-none focus-visible:text-white">
+                  Name <span className="text-zinc-600" aria-hidden>{sortKey === 'name' ? (sortDir === 'asc' ? '↑' : '↓') : '↕'}</span>
                 </button>
               </th>
-              <th className="px-4 py-2.5 text-left">
-                <button onClick={() => toggleSort('status')} className="flex items-center gap-1 text-xs font-medium text-zinc-400 hover:text-white transition-colors">
-                  Status <span className="text-zinc-600">{sortKey === 'status' ? (sortDir === 'asc' ? '↑' : '↓') : '↕'}</span>
+              <th
+                className="px-4 py-2.5 text-left"
+                scope="col"
+                aria-sort={sortKey === 'status' ? (sortDir === 'asc' ? 'ascending' : 'descending') : 'none'}
+              >
+                <button onClick={() => toggleSort('status')} className="flex items-center gap-1 text-xs font-medium text-zinc-400 hover:text-white transition-colors focus-visible:outline-none focus-visible:text-white">
+                  Status <span className="text-zinc-600" aria-hidden>{sortKey === 'status' ? (sortDir === 'asc' ? '↑' : '↓') : '↕'}</span>
                 </button>
               </th>
             </tr>
           </thead>
           <tbody className="divide-y divide-zinc-800">
             {isLoading
-              ? Array.from({ length: 5 }).map((_, i) => (
-                  <tr key={i}>
-                    <td className="px-4 py-3" colSpan={2}><Skeleton className="h-4 w-48" /></td>
-                  </tr>
-                ))
+              ? Array.from({ length: 5 }).map((_, i) => <TableRowSkeleton key={i} cols={2} height={52} />)
               : items.map((alliance) => (
                     <tr key={alliance.id} className="hover:bg-zinc-900/50 transition-colors">
                       <td className="p-0">
@@ -180,25 +201,26 @@ function AlliancesPage() {
                           {alliance.name}
                         </Link>
                       </td>
-                      <td className="p-0">
-                        <Link to="/alliances/$id" params={{ id: alliance.slug ?? alliance.id }} className="block px-4 py-3" tabIndex={-1}>
-                          <AllianceStatusBadge status={alliance.status} />
-                        </Link>
+                      <td className="px-4 py-3">
+                        <AllianceStatusBadge status={alliance.status} />
                       </td>
                     </tr>
                   ))}
             {!isLoading && items.length === 0 && (
               <tr>
                 <td colSpan={2}>
-                  <div className="flex flex-col items-center py-12 text-center">
-                    <Network className="mb-3 h-8 w-8 text-zinc-700" />
-                    <p className="text-sm text-zinc-500">{q ? 'No alliances match your search' : 'No alliances yet'}</p>
-                    {!q && (
-                      <button onClick={() => setCreating(true)} className="mt-2 text-xs text-violet-400 hover:text-violet-300 transition-colors">
-                        Create the first alliance →
-                      </button>
-                    )}
-                  </div>
+                  <EmptyState
+                    icon={Network}
+                    title={q ? `No alliances match "${q}"` : 'No alliances yet'}
+                    description={!q ? 'Create an alliance to organise sets.' : undefined}
+                    action={
+                      !q ? (
+                        <Button size="sm" onClick={() => setCreating(true)}>
+                          <Plus className="mr-1.5 h-4 w-4" /> Create the first alliance
+                        </Button>
+                      ) : undefined
+                    }
+                  />
                 </td>
               </tr>
             )}
@@ -207,13 +229,13 @@ function AlliancesPage() {
       </div>
 
       {!q && total > PAGE && (
-        <div className="mt-4 flex items-center justify-between text-sm text-zinc-400">
+        <nav className="mt-4 flex items-center justify-between text-sm text-zinc-400" aria-label="Pagination">
           <span>Showing {offset + 1}–{Math.min(offset + PAGE, total)} of {total}</span>
           <div className="flex gap-2">
-            <Button variant="outline" size="sm" disabled={offset === 0} onClick={() => setOffset(Math.max(0, offset - PAGE))}>Prev</Button>
-            <Button variant="outline" size="sm" disabled={offset + PAGE >= total} onClick={() => setOffset(offset + PAGE)}>Next</Button>
+            <Button variant="outline" size="sm" aria-disabled={offset === 0} disabled={offset === 0} onClick={() => setOffset(Math.max(0, offset - PAGE))}>Prev</Button>
+            <Button variant="outline" size="sm" aria-disabled={offset + PAGE >= total} disabled={offset + PAGE >= total} onClick={() => setOffset(offset + PAGE)}>Next</Button>
           </div>
-        </div>
+        </nav>
       )}
 
       <AllianceFormSheet universeId={universe.id} open={creating} onClose={() => setCreating(false)} />
