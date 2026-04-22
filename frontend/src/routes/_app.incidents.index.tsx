@@ -20,6 +20,9 @@ import {
 } from '@/lib/queries'
 import { downloadCsv } from '@/lib/download'
 import { api } from '@/lib/api'
+import { useDebounce } from '@/hooks/useDebounce'
+import { EmptyState } from '@/components/EmptyState'
+import { TableRowSkeleton } from '@/components/skeletons'
 import type { FuzzyDateValue } from '@/components/FuzzyDate'
 import type { IncidentListItem, IncidentReadDetail, IncidentType, ParticipantOutcome, ParticipantRole, UUID } from '@/lib/types'
 import { useUniverseStore } from '@/stores/universe'
@@ -70,7 +73,8 @@ function ParticipantBuilder({ universeId, participants, onChange, onDeathDateNee
   const [search, setSearch] = useState('')
   const [role, setRole] = useState<ParticipantRole>('VICTIM')
   const [outcome, setOutcome] = useState<ParticipantOutcome>('UNKNOWN')
-  const { data: results } = useMemberSearch(universeId, search)
+  const debouncedSearch = useDebounce(search, 200)
+  const { data: results } = useMemberSearch(universeId, debouncedSearch)
 
   function addParticipant(memberId: UUID, memberName: string) {
     if (participants.some((p) => p.member_id === memberId)) return
@@ -394,7 +398,10 @@ function IncidentsPage() {
         action={
           <div className="flex items-center gap-2">
             <Button variant="outline" size="sm"
-              onClick={() => downloadCsv(`/incidents/?universe_id=${universe.id}&format=csv`, 'incidents.csv')}>
+              onClick={() => {
+                const date = new Date().toISOString().slice(0, 10)
+                downloadCsv(`/incidents/?universe_id=${universe.id}&format=csv`, `incidents-${universe.slug}-${date}.csv`)
+              }}>
               <Download className="mr-1.5 h-3.5 w-3.5" />Export
             </Button>
             <Button size="sm" onClick={() => setCreating(true)}>
@@ -431,26 +438,17 @@ function IncidentsPage() {
         <table className="w-full text-sm">
           <thead className="sticky top-0 z-10 bg-zinc-900/90 backdrop-blur">
             <tr className="border-b border-zinc-800">
-              <th className="px-4 py-2.5 text-left text-xs font-medium text-zinc-400">Type</th>
-              <th className="px-4 py-2.5 text-left text-xs font-medium text-zinc-400">Date</th>
-              <th className="px-4 py-2.5 text-left text-xs font-medium text-zinc-400">Location</th>
-              <th className="px-4 py-2.5 text-left text-xs font-medium text-zinc-400">Status</th>
-              <th className="w-8" />
+              <th className="px-4 py-2.5 text-left text-xs font-medium text-zinc-400" scope="col">Type</th>
+              <th className="px-4 py-2.5 text-left text-xs font-medium text-zinc-400" scope="col">Date</th>
+              <th className="hidden px-4 py-2.5 text-left text-xs font-medium text-zinc-400 md:table-cell" scope="col">Location</th>
+              <th className="hidden px-4 py-2.5 text-left text-xs font-medium text-zinc-400 lg:table-cell" scope="col">Victims</th>
+              <th className="px-4 py-2.5 text-left text-xs font-medium text-zinc-400" scope="col">Status</th>
+              <th className="w-8" scope="col" aria-label="Actions" />
             </tr>
           </thead>
           <tbody className="divide-y divide-zinc-800">
             {isLoading
-              ? Array.from({ length: 5 }).map((_, i) => (
-                  <tr key={i}>
-                    <td className="px-4 py-3" colSpan={5}>
-                      <div className="flex items-center gap-3">
-                        <Skeleton className="h-5 w-5 rounded" />
-                        <Skeleton className="h-4 w-24" />
-                        <Skeleton className="h-4 w-20 ml-8" />
-                      </div>
-                    </td>
-                  </tr>
-                ))
+              ? Array.from({ length: 5 }).map((_, i) => <TableRowSkeleton key={i} cols={6} height={56} />)
               : items.map((incident) => {
                   const cfg = TYPE_CONFIG[incident.type]
                   const Icon = cfg?.icon ?? ShieldAlert
@@ -483,10 +481,25 @@ function IncidentsPage() {
                       </td>
 
                       {/* Location */}
-                      <td className="p-0">
+                      <td className="hidden p-0 md:table-cell">
                         <Link to="/incidents/$id" params={{ id: incident.id }}
                           className="block px-4 py-3 text-xs text-zinc-500" tabIndex={-1}>
                           {muniName ?? <span className="text-zinc-700">—</span>}
+                        </Link>
+                      </td>
+
+                      {/* Victims */}
+                      <td className="hidden p-0 lg:table-cell">
+                        <Link to="/incidents/$id" params={{ id: incident.id }}
+                          className="block px-4 py-3 text-xs text-zinc-400" tabIndex={-1}>
+                          {incident.victim_names.length > 0 ? (
+                            <span className="truncate max-w-xs inline-block align-bottom">
+                              {incident.victim_names.slice(0, 3).join(', ')}
+                              {incident.victim_names.length > 3 && ` +${incident.victim_names.length - 3}`}
+                            </span>
+                          ) : (
+                            <span className="text-zinc-700">—</span>
+                          )}
                         </Link>
                       </td>
 
@@ -506,8 +519,8 @@ function IncidentsPage() {
                       <td className="pr-3 py-3">
                         <button
                           onClick={() => setEditingId(incident.id)}
-                          className="invisible group-hover:visible rounded p-1 text-zinc-600 hover:bg-zinc-800 hover:text-zinc-300 transition-colors"
-                          title="Edit"
+                          aria-label="Edit incident"
+                          className="rounded p-1.5 text-zinc-600 hover:bg-zinc-800 hover:text-zinc-300 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/50 lg:opacity-0 lg:group-hover:opacity-100 lg:group-focus-within:opacity-100"
                         >
                           <Pencil className="h-3.5 w-3.5" />
                         </button>
@@ -517,21 +530,23 @@ function IncidentsPage() {
                 })}
             {!isLoading && items.length === 0 && (
               <tr>
-                <td colSpan={5}>
-                  <div className="flex flex-col items-center py-12 text-center">
-                    <ShieldAlert className="mb-3 h-8 w-8 text-zinc-700" />
-                    <p className="text-sm text-zinc-500">
-                      {typeFilter !== 'ALL' || verifiedFilter !== 'ALL'
+                <td colSpan={6}>
+                  <EmptyState
+                    icon={ShieldAlert}
+                    title={
+                      typeFilter !== 'ALL' || verifiedFilter !== 'ALL'
                         ? 'No incidents match the current filters'
-                        : 'No incidents recorded yet'}
-                    </p>
-                    {typeFilter === 'ALL' && verifiedFilter === 'ALL' && (
-                      <button onClick={() => setCreating(true)}
-                        className="mt-2 text-xs text-violet-400 hover:text-violet-300 transition-colors">
-                        Record the first incident →
-                      </button>
-                    )}
-                  </div>
+                        : 'No incidents recorded yet'
+                    }
+                    description={typeFilter === 'ALL' && verifiedFilter === 'ALL' ? 'Record a shooting or murder to begin tracking.' : undefined}
+                    action={
+                      typeFilter === 'ALL' && verifiedFilter === 'ALL' ? (
+                        <Button size="sm" onClick={() => setCreating(true)}>
+                          <Plus className="mr-1.5 h-4 w-4" /> Record the first incident
+                        </Button>
+                      ) : undefined
+                    }
+                  />
                 </td>
               </tr>
             )}

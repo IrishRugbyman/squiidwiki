@@ -17,6 +17,8 @@ import {
 } from '@/lib/queries'
 import { useUniverseStore } from '@/stores/universe'
 import { downloadCsv } from '@/lib/download'
+import { useDebounce } from '@/hooks/useDebounce'
+import { MemberRowSkeleton } from '@/components/skeletons'
 import type { MemberListItem, MemberRead, MemberStatus } from '@/lib/types'
 import type { FuzzyDateValue } from '@/components/FuzzyDate'
 
@@ -487,8 +489,9 @@ function MembersPage() {
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc')
   const bulkUpdate = useBulkMemberStatus(universe?.id ?? '')
 
+  const debouncedQ = useDebounce(q, 250)
   const { data, isLoading } = useMembers(universe?.id ?? null, cursor)
-  const { data: searchResults } = useMemberSearch(universe?.id ?? null, q)
+  const { data: searchResults, isLoading: searchLoading } = useMemberSearch(universe?.id ?? null, debouncedQ)
   const { data: setsData } = useSets(universe?.id ?? null)
 
   if (!universe) return <NoUniverse />
@@ -499,8 +502,10 @@ function MembersPage() {
     return m
   }, [setsData])
 
-  const baseItems = q.length >= 2 ? (searchResults ?? []) : (data?.items ?? [])
+  const isSearching = debouncedQ.length >= 2
+  const baseItems = isSearching ? (searchResults ?? []) : (data?.items ?? [])
   const total = data?.total
+  const listLoading = isSearching ? searchLoading : isLoading
 
   const statusCounts = useMemo(() => {
     const counts: Partial<Record<MemberStatus, number>> = {}
@@ -550,9 +555,16 @@ function MembersPage() {
   }
 
   const hasFilters = statusFilter || setFilter
+  const hasSelection = selected.size > 0
+  const universeSlug = universe.slug
+
+  function exportFilename() {
+    const date = new Date().toISOString().slice(0, 10)
+    return `members-${universeSlug}-${date}.csv`
+  }
 
   return (
-    <div className="pb-20">
+    <div className={hasSelection ? 'pb-28' : 'pb-20'}>
       {/* Header */}
       <div className="mb-5 flex items-start justify-between">
         <div>
@@ -615,7 +627,7 @@ function MembersPage() {
             ))}
           </SelectContent>
         </Select>
-        <Button variant="outline" size="sm" className="h-8" onClick={() => downloadCsv(`/members/?universe_id=${universe.id}&format=csv`, 'members.csv')}>
+        <Button variant="outline" size="sm" className="h-8" onClick={() => downloadCsv(`/members/?universe_id=${universe.id}&format=csv`, exportFilename())}>
           <Download className="mr-1.5 h-3.5 w-3.5" />Export
         </Button>
       </div>
@@ -625,41 +637,36 @@ function MembersPage() {
         <table className="w-full text-sm">
           <thead className="sticky top-0 z-10">
             <tr className="border-b border-zinc-800 bg-zinc-900/90 backdrop-blur">
-              <th className="w-10 px-3 py-2.5">
-                <input type="checkbox" checked={items.length > 0 && selected.size === items.length} onChange={toggleAll} className="rounded border-zinc-700 bg-zinc-900 accent-violet-600" />
+              <th className="w-10 px-3 py-2.5" scope="col">
+                <input
+                  id="members-select-all"
+                  type="checkbox"
+                  aria-label="Select all members"
+                  checked={items.length > 0 && selected.size === items.length}
+                  onChange={toggleAll}
+                  className="rounded border-zinc-700 bg-zinc-900 accent-violet-600"
+                />
               </th>
-              <th className="px-3 py-2.5 w-8" />
-              <th className="px-3 py-2.5 text-left">
-                <button onClick={() => toggleSort('display_name')} className="flex items-center gap-1 text-xs font-medium text-zinc-400 hover:text-white transition-colors">
-                  Name <span className="text-zinc-600">{sortKey === 'display_name' ? (sortDir === 'asc' ? '↑' : '↓') : '↕'}</span>
+              <th className="px-3 py-2.5 w-8" scope="col" aria-label="Avatar" />
+              <th className="px-3 py-2.5 text-left" scope="col" aria-sort={sortKey === 'display_name' ? (sortDir === 'asc' ? 'ascending' : 'descending') : 'none'}>
+                <button onClick={() => toggleSort('display_name')} className="flex items-center gap-1 text-xs font-medium text-zinc-400 hover:text-white transition-colors focus-visible:outline-none focus-visible:text-white">
+                  Name <span className="text-zinc-600" aria-hidden>{sortKey === 'display_name' ? (sortDir === 'asc' ? '↑' : '↓') : '↕'}</span>
                 </button>
               </th>
-              <th className="hidden px-3 py-2.5 text-left sm:table-cell">
+              <th className="hidden px-3 py-2.5 text-left sm:table-cell" scope="col">
                 <span className="text-xs font-medium text-zinc-400">Set</span>
               </th>
-              <th className="px-3 py-2.5 text-left">
-                <button onClick={() => toggleSort('status')} className="flex items-center gap-1 text-xs font-medium text-zinc-400 hover:text-white transition-colors">
-                  Status <span className="text-zinc-600">{sortKey === 'status' ? (sortDir === 'asc' ? '↑' : '↓') : '↕'}</span>
+              <th className="px-3 py-2.5 text-left" scope="col" aria-sort={sortKey === 'status' ? (sortDir === 'asc' ? 'ascending' : 'descending') : 'none'}>
+                <button onClick={() => toggleSort('status')} className="flex items-center gap-1 text-xs font-medium text-zinc-400 hover:text-white transition-colors focus-visible:outline-none focus-visible:text-white">
+                  Status <span className="text-zinc-600" aria-hidden>{sortKey === 'status' ? (sortDir === 'asc' ? '↑' : '↓') : '↕'}</span>
                 </button>
               </th>
-              <th className="w-8 px-3 py-2.5" />
+              <th className="w-8 px-3 py-2.5" scope="col" aria-label="Actions" />
             </tr>
           </thead>
           <tbody className="divide-y divide-zinc-800/60">
-            {isLoading && !q
-              ? Array.from({ length: 8 }).map((_, i) => (
-                  <tr key={i} className="animate-pulse">
-                    <td className="px-3 py-3.5"><div className="h-4 w-4 rounded bg-zinc-800" /></td>
-                    <td className="px-3 py-3.5"><div className="h-7 w-7 rounded-full bg-zinc-800" /></td>
-                    <td className="px-3 py-3.5">
-                      <div className="h-3.5 w-32 rounded bg-zinc-800" />
-                      <div className="mt-1.5 h-2.5 w-20 rounded bg-zinc-800/60" />
-                    </td>
-                    <td className="hidden px-3 py-3.5 sm:table-cell"><div className="h-3 w-20 rounded bg-zinc-800/60" /></td>
-                    <td className="px-3 py-3.5"><div className="h-5 w-14 rounded-full bg-zinc-800/60" /></td>
-                    <td className="px-3 py-3.5" />
-                  </tr>
-                ))
+            {listLoading
+              ? Array.from({ length: 8 }).map((_, i) => <MemberRowSkeleton key={i} />)
               : items.map((member) => {
                   const linkId = member.slug ?? member.id
                   const setInfo = member.set_id ? setMap[member.set_id] : null
@@ -667,7 +674,13 @@ function MembersPage() {
                   return (
                     <tr key={member.id} className={`group transition-colors hover:bg-zinc-900/40 ${selected.has(member.id) ? 'bg-violet-950/20' : ''} ${isDead ? 'opacity-60' : ''}`}>
                       <td className="px-3 py-3">
-                        <input type="checkbox" checked={selected.has(member.id)} onChange={() => toggleSelect(member.id)} className="rounded border-zinc-700 bg-zinc-900 accent-violet-600" />
+                        <input
+                          type="checkbox"
+                          aria-label={`Select ${member.display_name}`}
+                          checked={selected.has(member.id)}
+                          onChange={() => toggleSelect(member.id)}
+                          className="rounded border-zinc-700 bg-zinc-900 accent-violet-600"
+                        />
                       </td>
                       <td className="px-3 py-3"><MemberAvatar member={member} /></td>
                       <td className="p-0">
@@ -694,7 +707,12 @@ function MembersPage() {
                         </span>
                       </td>
                       <td className="px-3 py-3">
-                        <button type="button" onClick={(e) => { e.preventDefault(); e.stopPropagation(); setEditingMemberId(member.id) }} className="invisible rounded p-1 text-zinc-600 transition-colors hover:bg-zinc-800 hover:text-violet-400 group-hover:visible">
+                        <button
+                          type="button"
+                          aria-label={`Edit ${member.display_name}`}
+                          onClick={(e) => { e.preventDefault(); e.stopPropagation(); setEditingMemberId(member.id) }}
+                          className="rounded p-1.5 text-zinc-600 transition-colors hover:bg-zinc-800 hover:text-violet-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/50 lg:opacity-0 lg:group-hover:opacity-100 lg:group-focus-within:opacity-100"
+                        >
                           <Pencil className="h-3.5 w-3.5" />
                         </button>
                       </td>

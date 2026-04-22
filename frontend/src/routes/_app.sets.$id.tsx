@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
-import { ArrowLeft, Pencil, Plus, Swords, Trash2, Users } from 'lucide-react'
+import { Pencil, Plus, Swords, Trash2, Users, X } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import {
@@ -10,26 +10,28 @@ import {
 import { useUniverseStore } from '@/stores/universe'
 import { useAuthStore } from '@/stores/auth'
 import { SetStatusBadge, MemberStatusBadge } from '@/components/StatusBadge'
-import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { ErrorState } from '@/components/ErrorState'
 import { FuzzyDate } from '@/components/FuzzyDate'
-import { SetFormSheet } from './_app.sets.index'
+import { Breadcrumbs } from '@/components/Breadcrumbs'
+import { CopyButton } from '@/components/CopyButton'
+import { DetailHeaderSkeleton } from '@/components/skeletons'
+import { SetAvatar, SetFormSheet } from './_app.sets.index'
 
 export const Route = createFileRoute('/_app/sets/$id')({
   component: SetDetailPage,
 })
 
-function StatPill({ label, value }: { label: string; value: number }) {
+function StatPill({ label, value, accent = 'text-white' }: { label: string; value: number; accent?: string }) {
   return (
     <div className="flex flex-col items-center rounded-lg border border-zinc-800 bg-zinc-900/50 p-3 text-center">
-      <span className="text-2xl font-bold text-white">{value}</span>
-      <span className="mt-0.5 text-xs text-zinc-400">{label}</span>
+      <span className={`text-2xl font-bold tabular-nums ${accent}`}>{value}</span>
+      <span className="mt-0.5 text-xs text-zinc-500">{label}</span>
     </div>
   )
 }
@@ -60,31 +62,60 @@ function AddRelationshipDialog({
     }
   }
 
+  const isAlly = type === 'FRIEND'
+
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Add Relationship</DialogTitle>
+          <DialogTitle className="flex items-center gap-2">
+            {isAlly ? <Users className="h-4 w-4 text-emerald-400" /> : <Swords className="h-4 w-4 text-red-400" />}
+            Add {isAlly ? 'Ally' : 'Enemy'}
+          </DialogTitle>
+          <DialogDescription>
+            Relationships are bilateral — the selected set will show this set as {isAlly ? 'an ally' : 'an enemy'} too.
+          </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4 pt-2">
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium text-zinc-300">Relationship type</label>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => setType('FRIEND')}
+                className={`flex items-center justify-center gap-2 rounded-md border px-3 py-2 text-sm transition-colors ${
+                  isAlly
+                    ? 'border-emerald-600 bg-emerald-950/40 text-emerald-300'
+                    : 'border-zinc-800 bg-zinc-900/50 text-zinc-500 hover:text-zinc-300'
+                }`}
+              >
+                <Users className="h-4 w-4" /> Ally
+              </button>
+              <button
+                type="button"
+                onClick={() => setType('ENEMY')}
+                className={`flex items-center justify-center gap-2 rounded-md border px-3 py-2 text-sm transition-colors ${
+                  !isAlly
+                    ? 'border-red-700 bg-red-950/40 text-red-300'
+                    : 'border-zinc-800 bg-zinc-900/50 text-zinc-500 hover:text-zinc-300'
+                }`}
+              >
+                <Swords className="h-4 w-4" /> Enemy
+              </button>
+            </div>
+          </div>
           <div className="space-y-1.5">
             <label className="text-sm font-medium text-zinc-300">Set</label>
             <Select value={targetId} onValueChange={setTargetId}>
               <SelectTrigger><SelectValue placeholder="Select a set…" /></SelectTrigger>
               <SelectContent>
-                {available.map((s) => (
-                  <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-1.5">
-            <label className="text-sm font-medium text-zinc-300">Type</label>
-            <Select value={type} onValueChange={(v) => setType(v as 'FRIEND' | 'ENEMY')}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="FRIEND">Ally</SelectItem>
-                <SelectItem value="ENEMY">Enemy</SelectItem>
+                {available.length === 0 ? (
+                  <div className="px-2 py-4 text-center text-xs text-zinc-500">No available sets to link.</div>
+                ) : (
+                  available.map((s) => (
+                    <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                  ))
+                )}
               </SelectContent>
             </Select>
           </div>
@@ -92,7 +123,7 @@ function AddRelationshipDialog({
           <div className="flex gap-2 justify-end">
             <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
             <Button type="submit" disabled={!targetId || add.isPending}>
-              {add.isPending ? 'Adding…' : 'Add'}
+              {add.isPending ? 'Adding…' : `Add ${isAlly ? 'Ally' : 'Enemy'}`}
             </Button>
           </div>
         </form>
@@ -140,22 +171,28 @@ function SetDetailPage() {
 
   return (
     <div>
-      <Link to="/sets" className="mb-4 inline-flex items-center gap-1.5 text-sm text-zinc-400 hover:text-white transition-colors">
-        <ArrowLeft className="h-3.5 w-3.5" /> Sets
-      </Link>
+      <Breadcrumbs
+        items={[
+          { label: 'Sets', to: '/sets' },
+          { label: set?.name ?? 'Set' },
+        ]}
+      />
 
       {isLoading ? (
-        <div className="space-y-2">
-          <Skeleton className="h-7 w-48" />
-          <Skeleton className="h-4 w-24" />
-        </div>
+        <DetailHeaderSkeleton />
       ) : set ? (
         <>
-          <div className="mb-6 flex items-start justify-between">
-            <div>
-              <h1 className="text-2xl font-bold text-white">{set.name}</h1>
-              {set.alias && <p className="text-sm text-zinc-400">a/k/a {set.alias}</p>}
-              <div className="mt-2"><SetStatusBadge status={set.status} /></div>
+          <div className="mb-6 flex items-start justify-between gap-4">
+            <div className="flex items-start gap-4">
+              <SetAvatar name={set.name} size="md" />
+              <div>
+                <div className="flex items-center gap-1.5">
+                  <h1 className="text-2xl font-bold text-white">{set.name}</h1>
+                  <CopyButton value={window.location.href} label="Copy link to this set" className="opacity-60 hover:opacity-100" />
+                </div>
+                {set.alias && <p className="text-sm text-zinc-400">a/k/a {set.alias}</p>}
+                <div className="mt-2"><SetStatusBadge status={set.status} /></div>
+              </div>
             </div>
             <div className="flex items-center gap-2">
               <Button size="sm" variant="outline" onClick={() => setEditing(true)}>
@@ -172,10 +209,10 @@ function SetDetailPage() {
           {stats && (
             <div className="mb-6 grid grid-cols-5 gap-2">
               <StatPill label="Members" value={stats.member_count} />
-              <StatPill label="Dead" value={stats.dead_members} />
-              <StatPill label="Shootings" value={stats.total_shootings} />
-              <StatPill label="Assists" value={stats.total_assists} />
-              <StatPill label="Kills" value={stats.total_kills} />
+              <StatPill label="Dead" value={stats.dead_members} accent="text-zinc-400" />
+              <StatPill label="Shootings" value={stats.total_shootings} accent="text-amber-400" />
+              <StatPill label="Assists" value={stats.total_assists} accent="text-violet-400" />
+              <StatPill label="Kills" value={stats.total_kills} accent="text-rose-400" />
             </div>
           )}
 
@@ -307,10 +344,11 @@ function SetDetailPage() {
                             </Link>
                             <Button
                               size="sm" variant="ghost"
+                              aria-label={`Remove relationship with ${setName(sid)}`}
                               className="h-6 w-6 p-0 text-zinc-500 hover:text-red-400"
                               onClick={() => removeRel.mutate(sid)}
                             >
-                              ×
+                              <X className="h-3.5 w-3.5" />
                             </Button>
                           </div>
                         ))}
@@ -330,10 +368,11 @@ function SetDetailPage() {
                             </Link>
                             <Button
                               size="sm" variant="ghost"
+                              aria-label={`Remove relationship with ${setName(sid)}`}
                               className="h-6 w-6 p-0 text-zinc-500 hover:text-red-400"
                               onClick={() => removeRel.mutate(sid)}
                             >
-                              ×
+                              <X className="h-3.5 w-3.5" />
                             </Button>
                           </div>
                         ))}
@@ -358,6 +397,17 @@ function SetDetailPage() {
             open={deleting}
             title="Delete Set"
             description={`Permanently delete "${set.name}"? This cannot be undone.`}
+            impact={(() => {
+              const memberCount = membersData?.items.length ?? 0
+              const incidentCount = incidentsData?.items.length ?? 0
+              const relCount = set.friend_ids.length + set.enemy_ids.length
+              if (!memberCount && !incidentCount && !relCount) return null
+              const parts: string[] = []
+              if (memberCount) parts.push(`${memberCount} member${memberCount === 1 ? '' : 's'}`)
+              if (incidentCount) parts.push(`${incidentCount} incident${incidentCount === 1 ? '' : 's'}`)
+              if (relCount) parts.push(`${relCount} relationship${relCount === 1 ? '' : 's'}`)
+              return <span>{parts.join(', ')} will be unlinked from this set.</span>
+            })()}
             confirmLabel="Delete"
             destructive
             pending={deleteSet.isPending}

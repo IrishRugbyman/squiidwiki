@@ -15,6 +15,9 @@ import { Textarea } from '@/components/ui/textarea'
 import { useAlliances, useCreateSet, useSet, useSets, useSetSearch, useUpdateSet } from '@/lib/queries'
 import { useUniverseStore } from '@/stores/universe'
 import { downloadCsv } from '@/lib/download'
+import { useDebounce } from '@/hooks/useDebounce'
+import { EmptyState } from '@/components/EmptyState'
+import { TableRowSkeleton } from '@/components/skeletons'
 import type { SetRead, SetStatus } from '@/lib/types'
 
 export const Route = createFileRoute('/_app/sets/')({
@@ -23,27 +26,27 @@ export const Route = createFileRoute('/_app/sets/')({
 
 // ─── Set avatar ───────────────────────────────────────────────────────────────
 
-const SET_COLORS = [
-  'bg-violet-900/60 text-violet-300',
-  'bg-blue-900/60 text-blue-300',
-  'bg-emerald-900/60 text-emerald-300',
-  'bg-amber-900/60 text-amber-300',
-  'bg-rose-900/60 text-rose-300',
-  'bg-cyan-900/60 text-cyan-300',
-  'bg-orange-900/60 text-orange-300',
-  'bg-pink-900/60 text-pink-300',
-]
-
-function setColor(name: string) {
+// Perceptually uniform palette: HSL with fixed saturation + lightness so every
+// avatar has the same brightness regardless of the hashed hue.
+function setColorStyle(name: string): React.CSSProperties {
   let h = 0
   for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) & 0xffff
-  return SET_COLORS[h % SET_COLORS.length]
+  const hue = h % 360
+  return {
+    backgroundColor: `hsl(${hue} 45% 26% / 0.75)`,
+    color: `hsl(${hue} 60% 78%)`,
+    borderColor: `hsl(${hue} 40% 36% / 0.45)`,
+  }
 }
 
-function SetAvatar({ name, size = 'md' }: { name: string; size?: 'sm' | 'md' }) {
+export function SetAvatar({ name, size = 'md' }: { name: string; size?: 'sm' | 'md' }) {
   const sz = size === 'sm' ? 'h-7 w-7 text-xs' : 'h-8 w-8 text-sm'
   return (
-    <div className={`${sz} ${setColor(name)} shrink-0 rounded-md flex items-center justify-center font-bold`}>
+    <div
+      className={`${sz} shrink-0 rounded-md border flex items-center justify-center font-bold`}
+      style={setColorStyle(name)}
+      aria-hidden
+    >
       {name.slice(0, 2).toUpperCase()}
     </div>
   )
@@ -198,15 +201,20 @@ type SortKey = 'name' | 'status'
 function SortHeader({ label, col, sortKey, sortDir, onSort }: {
   label: string; col: SortKey; sortKey: SortKey | null; sortDir: 'asc' | 'desc'; onSort: (k: SortKey) => void
 }) {
+  const sorted = sortKey === col
   return (
-    <th className="px-4 py-2.5 text-left">
+    <th
+      className="px-4 py-2.5 text-left"
+      scope="col"
+      aria-sort={sorted ? (sortDir === 'asc' ? 'ascending' : 'descending') : 'none'}
+    >
       <button
         onClick={() => onSort(col)}
-        className="flex items-center gap-1 text-xs font-medium text-zinc-400 hover:text-white transition-colors"
+        className="flex items-center gap-1 text-xs font-medium text-zinc-400 hover:text-white transition-colors focus-visible:outline-none focus-visible:text-white"
       >
         {label}
-        <span className="text-zinc-600">
-          {sortKey === col ? (sortDir === 'asc' ? '↑' : '↓') : '↕'}
+        <span className="text-zinc-600" aria-hidden>
+          {sorted ? (sortDir === 'asc' ? '↑' : '↓') : '↕'}
         </span>
       </button>
     </th>
@@ -227,8 +235,9 @@ function SetsPage() {
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc')
   const PAGE = 20
 
+  const debouncedQ = useDebounce(q, 250)
   const { data, isLoading } = useSets(universe?.id ?? null, offset)
-  const { data: searchResults } = useSetSearch(universe?.id ?? null, q)
+  const { data: searchResults, isLoading: searchLoading } = useSetSearch(universe?.id ?? null, debouncedQ)
   const { data: alliancesData } = useAlliances(universe?.id ?? null)
 
   if (!universe) return <NoUniverse />
@@ -236,8 +245,10 @@ function SetsPage() {
   const allianceMap: Record<string, { name: string; slug: string | null }> = {}
   for (const a of alliancesData?.items ?? []) allianceMap[a.id] = { name: a.name, slug: a.slug }
 
-  const rawItems = q.length >= 2 ? (searchResults ?? []) : (data?.items ?? [])
+  const isSearching = debouncedQ.length >= 2
+  const rawItems = isSearching ? (searchResults ?? []) : (data?.items ?? [])
   const total = data?.total ?? 0
+  const listLoading = isSearching ? searchLoading : isLoading
 
   // Status counts over all loaded items (not filtered)
   const allItems = data?.items ?? []
@@ -320,9 +331,22 @@ function SetsPage() {
           </Select>
         )}
 
+        {allianceFilter !== 'ALL' && (
+          <button
+            onClick={() => setAllianceFilter('ALL')}
+            className="flex items-center gap-1 rounded-full border border-zinc-700 px-2.5 py-1 text-xs text-zinc-400 hover:text-white transition-colors"
+          >
+            <span>Alliance: {allianceFilter === 'NONE' ? 'None' : allianceMap[allianceFilter]?.name ?? '?'}</span>
+            <span aria-hidden>×</span>
+          </button>
+        )}
+
         <Button
           variant="outline" size="sm" className="ml-auto"
-          onClick={() => downloadCsv(`/sets/?universe_id=${universe.id}&format=csv`, 'sets.csv')}
+          onClick={() => {
+            const date = new Date().toISOString().slice(0, 10)
+            downloadCsv(`/sets/?universe_id=${universe.id}&format=csv`, `sets-${universe.slug}-${date}.csv`)
+          }}
         >
           <Download className="mr-1.5 h-3.5 w-3.5" />Export
         </Button>
@@ -340,17 +364,8 @@ function SetsPage() {
             </tr>
           </thead>
           <tbody className="divide-y divide-zinc-800">
-            {isLoading && !q
-              ? Array.from({ length: 5 }).map((_, i) => (
-                  <tr key={i}>
-                    <td className="px-4 py-3" colSpan={4}>
-                      <div className="flex items-center gap-3">
-                        <Skeleton className="h-8 w-8 rounded-md" />
-                        <Skeleton className="h-4 w-40" />
-                      </div>
-                    </td>
-                  </tr>
-                ))
+            {listLoading
+              ? Array.from({ length: 5 }).map((_, i) => <TableRowSkeleton key={i} cols={4} height={56} />)
               : items.map((set) => {
                   const linkId = set.slug ?? set.id
                   const alliance = set.alliance_id ? allianceMap[set.alliance_id] : null
@@ -400,8 +415,8 @@ function SetsPage() {
                       <td className="pr-3 py-3">
                         <button
                           onClick={() => setEditingId(set.id)}
-                          className="invisible group-hover:visible rounded p-1 text-zinc-600 hover:bg-zinc-800 hover:text-zinc-300 transition-colors"
-                          title="Edit"
+                          aria-label={`Edit ${set.name}`}
+                          className="rounded p-1.5 text-zinc-600 hover:bg-zinc-800 hover:text-zinc-300 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/50 lg:opacity-0 lg:group-hover:opacity-100 lg:group-focus-within:opacity-100"
                         >
                           <Pencil className="h-3.5 w-3.5" />
                         </button>
@@ -409,27 +424,31 @@ function SetsPage() {
                     </tr>
                   )
                 })}
-            {!isLoading && items.length === 0 && (
+            {!listLoading && items.length === 0 && (
               <tr>
                 <td colSpan={4}>
-                  <div className="flex flex-col items-center py-12 text-center">
-                    <Shield className="mb-3 h-8 w-8 text-zinc-700" />
-                    <p className="text-sm text-zinc-500">
-                      {q
+                  <EmptyState
+                    icon={Shield}
+                    title={
+                      q
                         ? `No sets match "${q}"`
                         : statusFilter !== 'ALL'
-                        ? `No ${statusFilter.toLowerCase()} sets`
-                        : 'No sets yet'}
-                    </p>
-                    {!q && statusFilter === 'ALL' && (
-                      <button
-                        onClick={() => setCreating(true)}
-                        className="mt-2 text-xs text-violet-400 hover:text-violet-300 transition-colors"
-                      >
-                        Create the first set →
-                      </button>
-                    )}
-                  </div>
+                        ? `No ${statusFilter === 'ACTIVE' ? 'active' : 'extinct'} sets`
+                        : 'No sets yet'
+                    }
+                    description={
+                      !q && statusFilter === 'ALL'
+                        ? 'Create a set to start tracking a crew.'
+                        : undefined
+                    }
+                    action={
+                      !q && statusFilter === 'ALL' ? (
+                        <Button size="sm" onClick={() => setCreating(true)}>
+                          <Plus className="mr-1.5 h-4 w-4" /> Create the first set
+                        </Button>
+                      ) : undefined
+                    }
+                  />
                 </td>
               </tr>
             )}
@@ -438,14 +457,26 @@ function SetsPage() {
       </div>
 
       {/* Pagination */}
-      {!q && total > PAGE && (
-        <div className="mt-4 flex items-center justify-between text-sm text-zinc-400">
+      {!isSearching && total > PAGE && (
+        <nav className="mt-4 flex items-center justify-between text-sm text-zinc-400" aria-label="Pagination">
           <span>Showing {offset + 1}–{Math.min(offset + PAGE, total)} of {total}</span>
           <div className="flex gap-2">
-            <Button variant="outline" size="sm" disabled={offset === 0} onClick={() => setOffset(Math.max(0, offset - PAGE))}>Prev</Button>
-            <Button variant="outline" size="sm" disabled={offset + PAGE >= total} onClick={() => setOffset(offset + PAGE)}>Next</Button>
+            <Button
+              variant="outline"
+              size="sm"
+              aria-disabled={offset === 0}
+              disabled={offset === 0}
+              onClick={() => setOffset(Math.max(0, offset - PAGE))}
+            >Prev</Button>
+            <Button
+              variant="outline"
+              size="sm"
+              aria-disabled={offset + PAGE >= total}
+              disabled={offset + PAGE >= total}
+              onClick={() => setOffset(offset + PAGE)}
+            >Next</Button>
           </div>
-        </div>
+        </nav>
       )}
 
       <SetFormSheet universeId={universe.id} open={creating} onClose={() => setCreating(false)} />

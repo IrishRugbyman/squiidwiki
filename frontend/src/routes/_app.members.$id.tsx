@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
 import {
-  ArrowLeft, CheckCircle2, ExternalLink, Heart,
+  AlertTriangle, CheckCircle2, ExternalLink, Heart,
   Pencil, Skull, Trash2,
 } from 'lucide-react'
 import { useState } from 'react'
@@ -10,10 +10,13 @@ import { MemberIdentity } from '@/components/MemberIdentity'
 import { MemberStatusBadge } from '@/components/StatusBadge'
 import { ErrorState } from '@/components/ErrorState'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
-import { Skeleton } from '@/components/ui/skeleton'
+import { Breadcrumbs } from '@/components/Breadcrumbs'
+import { CopyButton } from '@/components/CopyButton'
+import { DetailHeaderSkeleton } from '@/components/skeletons'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import {
   useMember, useMemberStats, useSets, useAlliances,
   useDeleteMember, useMemberIncidents, useAllMembers,
@@ -41,11 +44,27 @@ function StatPill({ label, value, accent = 'text-white' }: { label: string; valu
 
 function DetailRow({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div className="flex items-baseline gap-4 border-b border-zinc-800/50 py-2.5 last:border-0">
+    <div className="flex items-baseline gap-4 border-b border-zinc-800/70 py-2.5 last:border-0">
       <span className="w-32 shrink-0 text-xs text-zinc-500">{label}</span>
       <span className="text-sm text-zinc-200">{children}</span>
     </div>
   )
+}
+
+const SOCIAL_HOST_REGEX = /^https?:\/\/([^/]+)/i
+
+function extractHost(url: string): string | null {
+  const match = url.match(SOCIAL_HOST_REGEX)
+  return match?.[1] ?? null
+}
+
+function isValidUrl(url: string): boolean {
+  try {
+    new URL(url)
+    return true
+  } catch {
+    return false
+  }
 }
 
 // ─── Family member inline link ─────────────────────────────────────────────────
@@ -84,6 +103,15 @@ const ROLE_COLOR: Record<FamilyRole, string> = {
   nephew: 'text-pink-400',
 }
 
+const ROLE_TOOLTIP: Record<FamilyRole, string> = {
+  father: 'Biological or adoptive father',
+  son: 'Male child of this member',
+  brother: 'Brother (shared parent)',
+  cousin: 'Shares a grandparent',
+  uncle: "Sibling of this member's parent",
+  nephew: "Child of this member's sibling",
+}
+
 function FamilyTab({ family, universeId }: { family: Record<string, unknown> | null; universeId: string }) {
   const { data: allMembers } = useAllMembers(universeId)
   const memberMap: Record<string, MemberListItem> = Object.fromEntries(
@@ -104,10 +132,17 @@ function FamilyTab({ family, universeId }: { family: Record<string, unknown> | n
       {grouped.map(({ role, ids }) => (
         <div key={role}>
           <div className="mb-2 flex items-center gap-2">
-            <Heart className={`h-3 w-3 ${ROLE_COLOR[role]}`} />
-            <span className={`text-xs font-semibold uppercase tracking-wider ${ROLE_COLOR[role]}`}>
-              {ROLE_LABEL[role]}{ids.length > 1 ? 's' : ''}
-            </span>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className={`inline-flex items-center gap-2 ${ROLE_COLOR[role]}`}>
+                  <Heart className="h-3 w-3" />
+                  <span className="text-xs font-semibold uppercase tracking-wider">
+                    {ROLE_LABEL[role]}{ids.length > 1 ? 's' : ''}
+                  </span>
+                </span>
+              </TooltipTrigger>
+              <TooltipContent side="right">{ROLE_TOOLTIP[role]}</TooltipContent>
+            </Tooltip>
           </div>
           <div className="flex flex-wrap gap-2">
             {ids.map((id) => (
@@ -159,22 +194,17 @@ function MemberDetailPage() {
   if (isError) return <ErrorState title="Member not found" onRetry={() => refetch()} />
 
   return (
+    <TooltipProvider delayDuration={200}>
     <div className="space-y-5">
-      <Link to="/members" className="inline-flex items-center gap-1.5 text-sm text-zinc-400 hover:text-white transition-colors">
-        <ArrowLeft className="h-3.5 w-3.5" /> Members
-      </Link>
+      <Breadcrumbs
+        items={[
+          { label: 'Members', to: '/members' },
+          { label: member?.display_name ?? 'Member' },
+        ]}
+      />
 
       {isLoading ? (
-        <div className="space-y-3">
-          <div className="flex items-start gap-4">
-            <Skeleton className="h-20 w-20 rounded-xl" />
-            <div className="space-y-2 flex-1">
-              <Skeleton className="h-7 w-40" />
-              <Skeleton className="h-4 w-28" />
-              <Skeleton className="h-5 w-16 rounded-full" />
-            </div>
-          </div>
-        </div>
+        <DetailHeaderSkeleton />
       ) : member ? (
         <>
           {/* Hero header */}
@@ -184,17 +214,22 @@ function MemberDetailPage() {
                 {member.photo_url ? (
                   <img
                     src={member.photo_url}
-                    alt={member.display_name}
-                    className="h-20 w-20 rounded-xl object-cover ring-2 ring-zinc-700"
+                    alt={`Photo of ${member.display_name}`}
+                    loading="lazy"
+                    decoding="async"
+                    className="h-20 w-20 rounded-xl object-cover ring-1 ring-zinc-600/80 shadow-lg shadow-black/30"
                   />
                 ) : (
-                  <div className="flex h-20 w-20 items-center justify-center rounded-xl bg-zinc-800 text-2xl font-bold text-zinc-400">
+                  <div className="flex h-20 w-20 items-center justify-center rounded-xl bg-zinc-800 text-2xl font-bold text-zinc-400 ring-1 ring-zinc-700">
                     {member.display_name.slice(0, 2).toUpperCase()}
                   </div>
                 )}
               </div>
               <div className="min-w-0">
-                <MemberIdentity member={member} showLegalName className="text-2xl font-bold" secondaryClassName="text-base mt-0.5" />
+                <div className="flex items-center gap-1">
+                  <MemberIdentity member={member} showLegalName className="text-2xl font-bold" secondaryClassName="text-base mt-0.5" />
+                  <CopyButton value={window.location.href} label="Copy link to this member" className="ml-1 opacity-60 hover:opacity-100" />
+                </div>
                 <div className="mt-2 flex flex-wrap items-center gap-2">
                   <MemberStatusBadge status={member.status} />
                   {member.aliases && member.aliases.length > 0 && (
@@ -238,14 +273,22 @@ function MemberDetailPage() {
           </div>
 
           {/* Stats row */}
-          {stats && (
-            <div className="grid grid-cols-4 gap-2">
-              <StatPill label="Shootings" value={stats.shootings} accent="text-amber-400" />
-              <StatPill label="Assists" value={stats.assists} accent="text-violet-400" />
-              <StatPill label="Kills" value={stats.kills} accent="text-rose-400" />
-              <StatPill label="Survived" value={stats.times_shot_survived} accent="text-emerald-400" />
-            </div>
-          )}
+          {stats && (() => {
+            const hasAny = stats.shootings || stats.assists || stats.kills || stats.times_shot_survived
+            return (
+              <div>
+                <div className="grid grid-cols-4 gap-2">
+                  <StatPill label="Shootings" value={stats.shootings} accent="text-amber-400" />
+                  <StatPill label="Assists" value={stats.assists} accent="text-violet-400" />
+                  <StatPill label="Kills" value={stats.kills} accent="text-rose-400" />
+                  <StatPill label="Survived" value={stats.times_shot_survived} accent="text-emerald-400" />
+                </div>
+                {!hasAny && (
+                  <p className="mt-2 text-center text-xs text-zinc-600">No recorded incidents yet.</p>
+                )}
+              </div>
+            )
+          })()}
 
           {/* Tabs */}
           <Tabs defaultValue="overview">
@@ -304,18 +347,34 @@ function MemberDetailPage() {
               {/* Social media */}
               {member.social_media && Object.keys(member.social_media).length > 0 && (
                 <div className="rounded-xl border border-zinc-800 bg-zinc-900/30 px-4 py-2">
-                  {Object.entries(member.social_media).map(([platform, handle]) => (
-                    <DetailRow key={platform} label={platform}>
-                      {String(handle).startsWith('http') ? (
-                        <a href={String(handle)} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-sky-400 hover:underline">
-                          {String(handle)}
-                          <ExternalLink className="h-3 w-3" />
-                        </a>
-                      ) : (
-                        <span className="text-zinc-300">{String(handle)}</span>
-                      )}
-                    </DetailRow>
-                  ))}
+                  {Object.entries(member.social_media).map(([platform, handle]) => {
+                    const raw = String(handle)
+                    const looksLikeUrl = raw.startsWith('http')
+                    const valid = looksLikeUrl && isValidUrl(raw)
+                    const host = valid ? extractHost(raw) : null
+                    return (
+                      <DetailRow key={platform} label={platform}>
+                        {valid ? (
+                          <a href={raw} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-sky-400 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/50 rounded">
+                            <span>{host ?? raw}</span>
+                            <ExternalLink className="h-3 w-3" />
+                          </a>
+                        ) : looksLikeUrl ? (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span className="inline-flex items-center gap-1 text-amber-400">
+                                <AlertTriangle className="h-3 w-3" />
+                                <span className="truncate">{raw}</span>
+                              </span>
+                            </TooltipTrigger>
+                            <TooltipContent side="right">Malformed URL — could not be parsed</TooltipContent>
+                          </Tooltip>
+                        ) : (
+                          <span className="text-zinc-300">{raw}</span>
+                        )}
+                      </DetailRow>
+                    )
+                  })}
                 </div>
               )}
             </TabsContent>
@@ -373,9 +432,14 @@ function MemberDetailPage() {
                             {inc.victim_names.length > 0 ? inc.victim_names.join(', ') : '—'}
                           </td>
                           <td className="px-4 py-3">
-                            {inc.verified
-                              ? <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
-                              : <span className="text-zinc-600 text-xs">—</span>}
+                            {inc.verified ? (
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
+                                </TooltipTrigger>
+                                <TooltipContent side="left">Verified incident</TooltipContent>
+                              </Tooltip>
+                            ) : <span className="text-zinc-600 text-xs">—</span>}
                           </td>
                         </tr>
                       ))}
@@ -394,6 +458,11 @@ function MemberDetailPage() {
             open={deleting}
             title="Delete Member"
             description={`Permanently delete "${member.display_name}"? This cannot be undone.`}
+            impact={incidents && incidents.items.length > 0 ? (
+              <span>
+                This member appears in <strong>{incidents.items.length}</strong> incident{incidents.items.length === 1 ? '' : 's'} and will be removed from each.
+              </span>
+            ) : null}
             confirmLabel="Delete"
             destructive
             pending={deleteMember.isPending}
@@ -403,5 +472,6 @@ function MemberDetailPage() {
         </>
       ) : null}
     </div>
+    </TooltipProvider>
   )
 }

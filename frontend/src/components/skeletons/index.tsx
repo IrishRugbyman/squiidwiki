@@ -46,27 +46,23 @@ export function TableSkeleton({ rows = 6, cols = 4 }: { rows?: number; cols?: nu
 export function MemberRowSkeleton() {
   return (
     <tr className="h-14">
-      <td className="px-4 py-3">
+      <td className="px-3 py-3">
         <Skeleton className="h-4 w-4 rounded" />
       </td>
-      <td className="px-4 py-3">
-        <div className="flex items-center gap-3">
-          <Skeleton className="h-8 w-8 rounded-full" />
-          <div className="space-y-1">
-            <Skeleton className="h-4 w-32" />
-            <Skeleton className="h-3 w-20" />
-          </div>
-        </div>
+      <td className="px-3 py-3">
+        <Skeleton className="h-7 w-7 rounded-full" />
       </td>
-      <td className="px-4 py-3">
+      <td className="px-3 py-3">
+        <Skeleton className="h-3.5 w-32" />
+        <Skeleton className="mt-1.5 h-2.5 w-20" />
+      </td>
+      <td className="hidden px-3 py-3 sm:table-cell">
+        <Skeleton className="h-5 w-24 rounded-full" />
+      </td>
+      <td className="px-3 py-3">
         <Skeleton className="h-5 w-16 rounded-full" />
       </td>
-      <td className="px-4 py-3">
-        <Skeleton className="h-4 w-24" />
-      </td>
-      <td className="px-4 py-3">
-        <Skeleton className="h-4 w-12" />
-      </td>
+      <td className="px-3 py-3" />
     </tr>
   )
 }

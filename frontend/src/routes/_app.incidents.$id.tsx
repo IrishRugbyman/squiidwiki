@@ -1,36 +1,24 @@
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
-import { ArrowLeft, Pencil, Trash2 } from 'lucide-react'
+import { CheckCircle2, MapPin, Pencil, Trash2, User } from 'lucide-react'
 import { useState } from 'react'
 import { FuzzyDate } from '@/components/FuzzyDate'
 import { ErrorState } from '@/components/ErrorState'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
-import { Skeleton } from '@/components/ui/skeleton'
+import { Breadcrumbs } from '@/components/Breadcrumbs'
+import { CopyButton } from '@/components/CopyButton'
+import { DetailHeaderSkeleton } from '@/components/skeletons'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { useIncident, useAllMembers, useDeleteIncident } from '@/lib/queries'
-import { toast } from 'sonner'
+import { useIncident, useAllMembers, useDeleteIncident, useMunicipality } from '@/lib/queries'
 import { useUniverseStore } from '@/stores/universe'
 import { useAuthStore } from '@/stores/auth'
 import { IncidentFormSheet } from './_app.incidents.index'
+import { INCIDENT_TYPE_CHIP, ROLE_CHIP, OUTCOME_CHIP, OUTCOME_LABEL, ROLE_LABEL } from '@/lib/incidentColors'
 
 export const Route = createFileRoute('/_app/incidents/$id')({
   component: IncidentDetailPage,
 })
-
-const ROLE_STYLE: Record<string, string> = {
-  SHOOTER: 'bg-red-900 text-red-300 border-transparent',
-  ASSISTED: 'bg-orange-900 text-orange-300 border-transparent',
-  VICTIM: 'bg-zinc-800 text-zinc-300 border-transparent',
-  BYSTANDER: 'bg-zinc-900 text-zinc-500 border-zinc-700',
-}
-
-const OUTCOME_STYLE: Record<string, string> = {
-  KILLED: 'bg-rose-950/50 text-rose-400 line-through border-rose-900/50',
-  INJURED: 'bg-amber-900 text-amber-300 border-transparent',
-  UNHARMED: 'bg-emerald-900 text-emerald-300 border-transparent',
-  UNKNOWN: 'border-zinc-700 text-zinc-500',
-}
 
 function IncidentDetailPage() {
   const { id } = Route.useParams()
@@ -39,13 +27,17 @@ function IncidentDetailPage() {
   const navigate = useNavigate()
   const { data: incident, isLoading, isError, refetch } = useIncident(id, universe?.id ?? null)
   const { data: allMembers } = useAllMembers(universe?.id ?? null)
+  const { data: municipality } = useMunicipality(
+    incident?.municipality_id ?? '',
+    incident?.municipality_id ? (universe?.id ?? null) : null,
+  )
   const deleteIncident = useDeleteIncident(universe?.id ?? '')
 
   const [editing, setEditing] = useState(false)
   const [deleting, setDeleting] = useState(false)
 
   const memberMap = Object.fromEntries((allMembers?.items ?? []).map((m) => [m.id, m]))
-  const memberName = (mid: string) => memberMap[mid]?.display_name ?? mid
+  const memberName = (mid: string) => memberMap[mid]?.display_name ?? null
   const memberSlug = (mid: string) => memberMap[mid]?.slug ?? mid
 
   async function handleDelete() {
@@ -53,9 +45,8 @@ function IncidentDetailPage() {
     try {
       await deleteIncident.mutateAsync(incident.id)
       navigate({ to: '/incidents' })
-    } catch (err) {
+    } catch {
       setDeleting(false)
-      toast.error(err instanceof Error ? err.message : 'Failed to delete incident')
     }
   }
 
@@ -63,27 +54,50 @@ function IncidentDetailPage() {
 
   return (
     <div>
-      <Link to="/incidents" className="mb-4 inline-flex items-center gap-1.5 text-sm text-zinc-400 hover:text-white transition-colors">
-        <ArrowLeft className="h-3.5 w-3.5" /> Incidents
-      </Link>
+      <Breadcrumbs
+        items={[
+          { label: 'Incidents', to: '/incidents' },
+          { label: incident ? incident.type : 'Incident' },
+        ]}
+      />
 
       {isLoading ? (
-        <div className="space-y-2">
-          <Skeleton className="h-7 w-48" />
-          <Skeleton className="h-4 w-32" />
-        </div>
+        <DetailHeaderSkeleton />
       ) : incident ? (
         <>
-          <div className="mb-6 flex items-start justify-between">
+          <div className="mb-6 flex items-start justify-between gap-4">
             <div>
-              <div className="flex items-center gap-3">
-                <h1 className="text-2xl font-bold text-white">{incident.type}</h1>
-                {incident.verified && <Badge className="bg-emerald-900 text-emerald-300 border-transparent">Verified</Badge>}
+              <div className="flex items-center gap-2">
+                <Badge className={`border ${INCIDENT_TYPE_CHIP[incident.type]} text-sm font-semibold px-2.5 py-0.5`}>
+                  {incident.type}
+                </Badge>
+                {incident.verified && (
+                  <Badge className="border border-emerald-800/70 bg-emerald-950/30 text-emerald-300">
+                    <CheckCircle2 className="mr-1 h-3 w-3" /> Verified
+                  </Badge>
+                )}
+                <CopyButton value={window.location.href} label="Copy link to this incident" className="opacity-60 hover:opacity-100" />
               </div>
-              <p className="mt-1 text-sm text-zinc-400">
+              <p className="mt-2 text-sm text-zinc-400">
                 <FuzzyDate value={incident.date} fallback="Date unknown" />
-                {incident.location_text && <> · {incident.location_text}</>}
+                {municipality && (
+                  <>
+                    {' · '}
+                    <Link
+                      to="/municipalities/$id"
+                      params={{ id: municipality.id }}
+                      className="inline-flex items-center gap-1 text-zinc-300 hover:text-violet-400 transition-colors"
+                    >
+                      <MapPin className="h-3 w-3" />
+                      {municipality.name}
+                    </Link>
+                  </>
+                )}
+                {incident.location_text && !municipality && <> · {incident.location_text}</>}
               </p>
+              {incident.location_text && municipality && (
+                <p className="mt-1 text-xs text-zinc-500">{incident.location_text}</p>
+              )}
             </div>
             <div className="flex items-center gap-2">
               <Button size="sm" variant="outline" onClick={() => setEditing(true)}>
@@ -113,26 +127,47 @@ function IncidentDetailPage() {
                 <p className="text-sm text-zinc-600">No participants recorded.</p>
               ) : (
                 <div className="space-y-2">
-                  {incident.participants.map((p) => (
-                    <div key={p.member_id} className="flex items-center justify-between rounded-lg border border-zinc-800 bg-zinc-900/30 px-4 py-3">
-                      <Link to="/members/$id" params={{ id: memberSlug(p.member_id) }} className="text-sm font-medium text-white hover:text-violet-400 transition-colors">
-                        {memberName(p.member_id)}
-                      </Link>
-                      <div className="flex items-center gap-2">
-                        <Badge className={ROLE_STYLE[p.role] ?? ''}>{p.role}</Badge>
-                        <Badge className={OUTCOME_STYLE[p.outcome] ?? ''}>{p.outcome}</Badge>
+                  {incident.participants.map((p) => {
+                    const name = memberName(p.member_id)
+                    return (
+                      <div
+                        key={p.member_id}
+                        className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-zinc-800 bg-zinc-900/30 px-4 py-3"
+                      >
+                        {name ? (
+                          <Link
+                            to="/members/$id"
+                            params={{ id: memberSlug(p.member_id) }}
+                            className="inline-flex items-center gap-2 text-sm font-medium text-white hover:text-violet-400 transition-colors"
+                          >
+                            <User className="h-3.5 w-3.5 text-zinc-500" />
+                            {name}
+                          </Link>
+                        ) : (
+                          <span className="inline-flex items-center gap-2 text-sm font-medium text-zinc-500">
+                            <User className="h-3.5 w-3.5" />
+                            Unknown member
+                            <span className="font-mono text-xs text-zinc-600">({p.member_id.slice(0, 8)}…)</span>
+                          </span>
+                        )}
+                        <div className="flex items-center gap-2">
+                          <Badge className={`border ${ROLE_CHIP[p.role]}`}>{ROLE_LABEL[p.role]}</Badge>
+                          <Badge className={`border ${OUTCOME_CHIP[p.outcome]}`}>{OUTCOME_LABEL[p.outcome]}</Badge>
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    )
+                  })}
                 </div>
               )}
             </TabsContent>
 
             <TabsContent value="narrative">
               {incident.narrative ? (
-                <p className="text-sm text-zinc-300 leading-relaxed whitespace-pre-wrap">{incident.narrative}</p>
+                <div className="rounded-lg border border-zinc-800 bg-zinc-900/30 p-4">
+                  <p className="text-sm text-zinc-300 leading-relaxed whitespace-pre-wrap">{incident.narrative}</p>
+                </div>
               ) : (
-                <p className="text-sm text-zinc-600">No narrative recorded.</p>
+                <p className="py-6 text-sm text-zinc-600">No narrative recorded.</p>
               )}
             </TabsContent>
           </Tabs>
@@ -150,6 +185,11 @@ function IncidentDetailPage() {
             open={deleting}
             title="Delete Incident"
             description={`Permanently delete this ${incident.type.toLowerCase()} incident? This cannot be undone.`}
+            impact={incident.participants.length > 0 ? (
+              <span>
+                <strong>{incident.participants.length}</strong> participant{incident.participants.length === 1 ? '' : 's'} will lose this incident from their timeline.
+              </span>
+            ) : null}
             confirmLabel="Delete"
             destructive
             pending={deleteIncident.isPending}
