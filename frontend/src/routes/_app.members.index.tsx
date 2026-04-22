@@ -122,6 +122,8 @@ function MemberAvatar({ member }: { member: MemberListItem }) {
       <img
         src={member.photo_url}
         alt={member.display_name}
+        loading="lazy"
+        decoding="async"
         className="h-7 w-7 rounded-full object-cover ring-1 ring-zinc-700"
         onError={() => setImgError(true)}
       />
@@ -751,7 +753,12 @@ function MembersPage() {
 
       {/* Bulk action bar */}
       {selected.size > 0 && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 flex items-center gap-3 rounded-xl border border-zinc-700 bg-zinc-900 px-4 py-2.5 shadow-2xl shadow-black/50">
+        <div
+          className="fixed left-1/2 -translate-x-1/2 z-40 flex items-center gap-3 rounded-xl border border-zinc-700 bg-zinc-900 px-4 py-2.5 shadow-2xl shadow-black/50"
+          style={{ bottom: 'max(1.5rem, env(safe-area-inset-bottom))' }}
+          role="region"
+          aria-label="Bulk actions for selected members"
+        >
           <span className="text-sm font-medium text-white">{selected.size} selected</span>
           <div className="h-4 w-px bg-zinc-700" />
           <span className="text-xs text-zinc-500">Set status:</span>

@@ -85,7 +85,7 @@ function NavLink({ to, icon: Icon, label, exact, onClick }: { to: string; icon: 
     <Link
       to={to}
       activeOptions={exact ? { exact: true } : undefined}
-      className="flex items-center gap-2.5 rounded-md px-2.5 py-1.5 text-sm text-zinc-400 transition-colors hover:bg-zinc-800 hover:text-white"
+      className="flex items-center gap-2.5 rounded-md px-2.5 py-2 text-sm text-zinc-400 transition-colors hover:bg-zinc-800 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/50 lg:py-1.5"
       activeProps={{ className: 'bg-zinc-800 !text-white' }}
       onClick={onClick}
     >
@@ -146,7 +146,11 @@ function AppLayout() {
           <Skull className="mr-2 h-5 w-5 text-violet-500" />
           <span className="font-bold tracking-tight text-white">SquiidWiki</span>
         </div>
-        <button onClick={() => setSidebarOpen(false)} className="lg:hidden text-zinc-500 hover:text-white">
+        <button
+          onClick={() => setSidebarOpen(false)}
+          aria-label="Close navigation menu"
+          className="lg:hidden inline-flex h-9 w-9 items-center justify-center rounded-md text-zinc-500 hover:bg-zinc-800 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/50"
+        >
           <X className="h-4 w-4" />
         </button>
       </div>
@@ -185,28 +189,40 @@ function AppLayout() {
 
   return (
     <div className="flex min-h-screen bg-zinc-950">
+      {/* Skip-to-main link (accessibility) — visible only when focused */}
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:absolute focus:left-2 focus:top-2 focus:z-[100] focus:rounded-md focus:bg-violet-600 focus:px-3 focus:py-1.5 focus:text-sm focus:font-medium focus:text-white focus:shadow-lg"
+      >
+        Skip to main content
+      </a>
+
       {/* Desktop sidebar */}
       <div className="hidden lg:flex">{sidebar}</div>
 
       {/* Mobile sidebar overlay */}
       {sidebarOpen && (
         <div className="fixed inset-0 z-50 flex lg:hidden">
-          <div className="absolute inset-0 bg-black/60" onClick={() => setSidebarOpen(false)} />
-          <div className="relative z-10 flex">{sidebar}</div>
+          <div className="absolute inset-0 bg-black/60" onClick={() => setSidebarOpen(false)} aria-hidden />
+          <div className="relative z-10 flex" role="dialog" aria-label="Main navigation">{sidebar}</div>
         </div>
       )}
 
       <div className="flex flex-1 flex-col overflow-hidden">
         {/* Mobile top bar */}
         <div className="flex h-14 items-center border-b border-zinc-800 px-4 lg:hidden">
-          <button onClick={() => setSidebarOpen(true)} className="mr-3 text-zinc-400 hover:text-white">
+          <button
+            onClick={() => setSidebarOpen(true)}
+            aria-label="Open navigation menu"
+            className="mr-3 inline-flex h-9 w-9 items-center justify-center rounded-md text-zinc-400 hover:bg-zinc-800 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/50"
+          >
             <Menu className="h-5 w-5" />
           </button>
           <Skull className="mr-2 h-5 w-5 text-violet-500" />
           <span className="font-bold tracking-tight text-white">SquiidWiki</span>
         </div>
 
-        <main className="flex-1 overflow-auto p-6">
+        <main id="main-content" className="flex-1 overflow-auto p-6">
           <Outlet />
         </main>
       </div>

@@ -18,11 +18,16 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { ErrorState } from '@/components/ErrorState'
 import { FuzzyDate } from '@/components/FuzzyDate'
+import { lazy, Suspense } from 'react'
 import { Breadcrumbs } from '@/components/Breadcrumbs'
 import { CopyButton } from '@/components/CopyButton'
 import { DetailHeaderSkeleton } from '@/components/skeletons'
-import { SetRelationshipGraph } from '@/components/graphs/SetRelationshipGraph'
+import { Skeleton } from '@/components/ui/skeleton'
 import { SetAvatar, SetFormSheet } from './_app.sets.index'
+
+const SetRelationshipGraph = lazy(() =>
+  import('@/components/graphs/SetRelationshipGraph').then((m) => ({ default: m.SetRelationshipGraph })),
+)
 
 export const Route = createFileRoute('/_app/sets/$id')({
   component: SetDetailPage,
@@ -388,15 +393,17 @@ function SetDetailPage() {
             </TabsContent>
 
             <TabsContent value="network" className="mt-4">
-              <SetRelationshipGraph
-                input={{
-                  centerSetId: set.id,
-                  centerSetName: set.name,
-                  friendIds: set.friend_ids,
-                  enemyIds: set.enemy_ids,
-                  sets: allSets?.items ?? [],
-                }}
-              />
+              <Suspense fallback={<Skeleton className="h-[420px] w-full" />}>
+                <SetRelationshipGraph
+                  input={{
+                    centerSetId: set.id,
+                    centerSetName: set.name,
+                    friendIds: set.friend_ids,
+                    enemyIds: set.enemy_ids,
+                    sets: allSets?.items ?? [],
+                  }}
+                />
+              </Suspense>
               <p className="mt-2 text-center text-[11px] text-zinc-600">
                 Click a set to open it. Pan with drag, zoom with the controls.
               </p>

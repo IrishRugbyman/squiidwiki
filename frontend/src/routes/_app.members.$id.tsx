@@ -3,7 +3,7 @@ import {
   AlertTriangle, CheckCircle2, ExternalLink, Heart,
   Pencil, Skull, Trash2,
 } from 'lucide-react'
-import { useState } from 'react'
+import { lazy, Suspense, useState } from 'react'
 import { toast } from 'sonner'
 import { FuzzyDate } from '@/components/FuzzyDate'
 import { MemberIdentity } from '@/components/MemberIdentity'
@@ -13,7 +13,7 @@ import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { Breadcrumbs } from '@/components/Breadcrumbs'
 import { CopyButton } from '@/components/CopyButton'
 import { DetailHeaderSkeleton } from '@/components/skeletons'
-import { MemberTimeline } from '@/components/graphs/MemberTimeline'
+import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -27,6 +27,10 @@ import { useUniverseStore } from '@/stores/universe'
 import { useAuthStore } from '@/stores/auth'
 import { MemberFormSheet, familyDictToEntries, ROLE_LABEL } from './_app.members.index'
 import type { FamilyRole } from './_app.members.index'
+
+const MemberTimeline = lazy(() =>
+  import('@/components/graphs/MemberTimeline').then((m) => ({ default: m.MemberTimeline })),
+)
 
 export const Route = createFileRoute('/_app/members/$id')({
   component: MemberDetailPage,
@@ -81,7 +85,7 @@ function FamilyMemberLink({ memberId, member }: { memberId: string; member: Memb
       className="group inline-flex items-center gap-2 rounded-lg border border-zinc-800 bg-zinc-900/40 px-3 py-2 transition-colors hover:border-zinc-700 hover:bg-zinc-900"
     >
       {member.photo_url ? (
-        <img src={member.photo_url} alt={member.display_name} className="h-6 w-6 rounded-full object-cover ring-1 ring-zinc-700" />
+        <img src={member.photo_url} alt={member.display_name} loading="lazy" decoding="async" className="h-6 w-6 rounded-full object-cover ring-1 ring-zinc-700" />
       ) : (
         <div className="flex h-6 w-6 items-center justify-center rounded-full bg-zinc-800 text-[9px] font-bold text-zinc-400">
           {member.display_name.slice(0, 2).toUpperCase()}
@@ -454,11 +458,13 @@ function MemberDetailPage() {
             </TabsContent>
 
             <TabsContent value="timeline" className="mt-4">
-              <MemberTimeline
-                incidents={incidents?.items ?? []}
-                dob={member.dob}
-                dateOfDeath={member.date_of_death}
-              />
+              <Suspense fallback={<Skeleton className="h-40 w-full" />}>
+                <MemberTimeline
+                  incidents={incidents?.items ?? []}
+                  dob={member.dob}
+                  dateOfDeath={member.date_of_death}
+                />
+              </Suspense>
               <p className="mt-2 text-center text-[11px] text-zinc-600">Hover a dot for details, click to open the incident.</p>
             </TabsContent>
           </Tabs>

@@ -3,12 +3,19 @@ import {
   AlertTriangle, ArrowRight, CheckCircle2, FileText,
   Network, Shield, Skull, User, Users,
 } from 'lucide-react'
+import { lazy, Suspense } from 'react'
 import { FuzzyDate } from '@/components/FuzzyDate'
 import { Badge } from '@/components/ui/badge'
+import { Skeleton } from '@/components/ui/skeleton'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { StatCardSkeleton, ListItemSkeleton } from '@/components/skeletons'
-import { IncidentsOverTime } from '@/components/charts/IncidentsOverTime'
-import { ReliabilityDonut } from '@/components/charts/ReliabilityDonut'
+
+const IncidentsOverTime = lazy(() =>
+  import('@/components/charts/IncidentsOverTime').then((m) => ({ default: m.IncidentsOverTime })),
+)
+const ReliabilityDonut = lazy(() =>
+  import('@/components/charts/ReliabilityDonut').then((m) => ({ default: m.ReliabilityDonut })),
+)
 import { useIncidents, useSets, useUniverseAnalytics } from '@/lib/queries'
 import { useUniverseStore } from '@/stores/universe'
 import { NoUniverse } from '@/components/NoUniverse'
@@ -388,12 +395,16 @@ function Dashboard() {
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
             {analytics.incidents_by_month.length > 0 && (
               <Card title="Incidents Over Time" hint="monthly">
-                <IncidentsOverTime data={analytics.incidents_by_month} />
+                <Suspense fallback={<Skeleton className="h-40 w-full" />}>
+                  <IncidentsOverTime data={analytics.incidents_by_month} />
+                </Suspense>
               </Card>
             )}
             {Object.keys(analytics.source_by_reliability).length > 0 && (
               <Card title="Source Reliability" hint="by reference count">
-                <ReliabilityDonut counts={analytics.source_by_reliability} />
+                <Suspense fallback={<Skeleton className="h-40 w-full" />}>
+                  <ReliabilityDonut counts={analytics.source_by_reliability} />
+                </Suspense>
               </Card>
             )}
           </div>
