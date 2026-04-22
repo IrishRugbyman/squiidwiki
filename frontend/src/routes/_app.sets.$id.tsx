@@ -21,6 +21,7 @@ import { FuzzyDate } from '@/components/FuzzyDate'
 import { Breadcrumbs } from '@/components/Breadcrumbs'
 import { CopyButton } from '@/components/CopyButton'
 import { DetailHeaderSkeleton } from '@/components/skeletons'
+import { SetRelationshipGraph } from '@/components/graphs/SetRelationshipGraph'
 import { SetAvatar, SetFormSheet } from './_app.sets.index'
 
 export const Route = createFileRoute('/_app/sets/$id')({
@@ -239,6 +240,9 @@ function SetDetailPage() {
                   </Badge>
                 )}
               </TabsTrigger>
+              {set.friend_ids.length + set.enemy_ids.length > 0 && (
+                <TabsTrigger value="network">Network</TabsTrigger>
+              )}
             </TabsList>
 
             <TabsContent value="overview" className="mt-4">
@@ -381,6 +385,21 @@ function SetDetailPage() {
                   )}
                 </div>
               )}
+            </TabsContent>
+
+            <TabsContent value="network" className="mt-4">
+              <SetRelationshipGraph
+                input={{
+                  centerSetId: set.id,
+                  centerSetName: set.name,
+                  friendIds: set.friend_ids,
+                  enemyIds: set.enemy_ids,
+                  sets: allSets?.items ?? [],
+                }}
+              />
+              <p className="mt-2 text-center text-[11px] text-zinc-600">
+                Click a set to open it. Pan with drag, zoom with the controls.
+              </p>
             </TabsContent>
           </Tabs>
 

@@ -13,6 +13,7 @@ import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { Breadcrumbs } from '@/components/Breadcrumbs'
 import { CopyButton } from '@/components/CopyButton'
 import { DetailHeaderSkeleton } from '@/components/skeletons'
+import { MemberTimeline } from '@/components/graphs/MemberTimeline'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -307,6 +308,9 @@ function MemberDetailPage() {
                   <Badge variant="secondary" className="ml-1.5 px-1.5 py-0 text-xs">{incidents.items.length}</Badge>
                 )}
               </TabsTrigger>
+              {incidents && incidents.items.length > 0 && (
+                <TabsTrigger value="timeline">Timeline</TabsTrigger>
+              )}
             </TabsList>
 
             {/* Overview */}
@@ -447,6 +451,15 @@ function MemberDetailPage() {
                   </table>
                 </div>
               )}
+            </TabsContent>
+
+            <TabsContent value="timeline" className="mt-4">
+              <MemberTimeline
+                incidents={incidents?.items ?? []}
+                dob={member.dob}
+                dateOfDeath={member.date_of_death}
+              />
+              <p className="mt-2 text-center text-[11px] text-zinc-600">Hover a dot for details, click to open the incident.</p>
             </TabsContent>
           </Tabs>
 

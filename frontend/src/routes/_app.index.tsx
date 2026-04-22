@@ -7,6 +7,8 @@ import { FuzzyDate } from '@/components/FuzzyDate'
 import { Badge } from '@/components/ui/badge'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { StatCardSkeleton, ListItemSkeleton } from '@/components/skeletons'
+import { IncidentsOverTime } from '@/components/charts/IncidentsOverTime'
+import { ReliabilityDonut } from '@/components/charts/ReliabilityDonut'
 import { useIncidents, useSets, useUniverseAnalytics } from '@/lib/queries'
 import { useUniverseStore } from '@/stores/universe'
 import { NoUniverse } from '@/components/NoUniverse'
@@ -380,6 +382,22 @@ function Dashboard() {
 
           </div>
         </div>
+
+        {/* Analytics charts row */}
+        {analytics && (analytics.incidents_by_month.length > 0 || Object.keys(analytics.source_by_reliability).length > 0) && (
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+            {analytics.incidents_by_month.length > 0 && (
+              <Card title="Incidents Over Time" hint="monthly">
+                <IncidentsOverTime data={analytics.incidents_by_month} />
+              </Card>
+            )}
+            {Object.keys(analytics.source_by_reliability).length > 0 && (
+              <Card title="Source Reliability" hint="by reference count">
+                <ReliabilityDonut counts={analytics.source_by_reliability} />
+              </Card>
+            )}
+          </div>
+        )}
       </div>
     </TooltipProvider>
   )
