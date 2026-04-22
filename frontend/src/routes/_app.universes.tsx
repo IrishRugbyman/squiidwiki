@@ -1,13 +1,15 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { Pencil, Plus, Trash2 } from 'lucide-react'
+import { Globe, Pencil, Plus, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import { PageHeader } from '@/components/PageHeader'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { Sheet, SheetContent, SheetClose } from '@/components/Sheet'
+import { CopyButton } from '@/components/CopyButton'
+import { EmptyState } from '@/components/EmptyState'
+import { ListItemSkeleton } from '@/components/skeletons'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Skeleton } from '@/components/ui/skeleton'
 import { Textarea } from '@/components/ui/textarea'
 import { useUniverses, useCreateUniverse, useUpdateUniverse, useDeleteUniverse } from '@/lib/queries'
 import { useAuthStore } from '@/stores/auth'
@@ -136,32 +138,57 @@ function UniversesPage() {
 
       <div className="space-y-2">
         {isLoading
-          ? Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-16 w-full rounded-lg" />)
-          : items.map((u) => (
-              <div key={u.id} className="flex items-center justify-between rounded-lg border border-zinc-800 bg-zinc-900/30 px-4 py-3">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="font-medium text-white">{u.name}</span>
-                    {activeUniverse?.id === u.id && (
-                      <span className="rounded-full bg-violet-900 px-2 py-0.5 text-xs text-violet-300">active</span>
-                    )}
+          ? Array.from({ length: 3 }).map((_, i) => <ListItemSkeleton key={i} />)
+          : items.map((u) => {
+              const isCurrent = activeUniverse?.id === u.id
+              return (
+                <div
+                  key={u.id}
+                  className={`flex items-center justify-between rounded-lg border px-4 py-3 transition-colors ${
+                    isCurrent
+                      ? 'border-violet-700/60 bg-violet-950/20'
+                      : 'border-zinc-800 bg-zinc-900/30'
+                  }`}
+                >
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2">
+                      <Globe className={`h-4 w-4 ${isCurrent ? 'text-violet-400' : 'text-zinc-500'}`} />
+                      <span className="font-medium text-white">{u.name}</span>
+                      {isCurrent && (
+                        <span className="rounded-full bg-violet-900/60 px-2 py-0.5 text-xs text-violet-300">Current</span>
+                      )}
+                    </div>
+                    <div className="mt-0.5 flex items-center gap-1">
+                      <span className="text-xs text-zinc-600 font-mono">{u.slug}</span>
+                      <CopyButton value={u.slug} label="Copy slug" className="opacity-50 hover:opacity-100" silent={false} />
+                    </div>
                   </div>
-                  <span className="text-xs text-zinc-600 font-mono">{u.slug}</span>
+                  {user?.global_role === 'ADMIN' && (
+                    <div className="flex items-center gap-2">
+                      <Button size="sm" variant="ghost" aria-label={`Edit ${u.name}`} onClick={() => setEditing(u)} className="h-7 px-2">
+                        <Pencil className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button size="sm" variant="ghost" aria-label={`Delete ${u.name}`} onClick={() => setDeleting(u)} className="h-7 px-2 text-red-500 hover:text-red-400" disabled={isCurrent}>
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  )}
                 </div>
-                {user?.global_role === 'ADMIN' && (
-                  <div className="flex items-center gap-2">
-                    <Button size="sm" variant="ghost" onClick={() => setEditing(u)} className="h-7 px-2">
-                      <Pencil className="h-3.5 w-3.5" />
-                    </Button>
-                    <Button size="sm" variant="ghost" onClick={() => setDeleting(u)} className="h-7 px-2 text-red-500 hover:text-red-400">
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </Button>
-                  </div>
-                )}
-              </div>
-            ))}
+              )
+            })}
         {!isLoading && items.length === 0 && (
-          <p className="py-12 text-center text-sm text-zinc-500">No universes yet</p>
+          <EmptyState
+            icon={Globe}
+            title="No universes yet"
+            description="A universe is an isolated research namespace. Create one to start recording incidents."
+            action={
+              user?.global_role === 'ADMIN' ? (
+                <Button size="sm" onClick={() => setCreating(true)}>
+                  <Plus className="mr-1.5 h-4 w-4" /> Create the first universe
+                </Button>
+              ) : undefined
+            }
+          />
         )}
       </div>
 
@@ -174,7 +201,13 @@ function UniversesPage() {
         open={!!deleting}
         title="Delete Universe"
         description={`Permanently delete "${deleting?.name}"? All data in this universe will be lost.`}
-        confirmLabel="Delete"
+        impact={
+          <span>
+            All sets, alliances, members, incidents, sources, and municipalities inside this universe will be
+            permanently destroyed. This cannot be undone.
+          </span>
+        }
+        confirmLabel="Delete universe"
         destructive
         pending={deleteUniverse.isPending}
         onConfirm={handleDelete}

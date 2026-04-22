@@ -1,8 +1,9 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
-import { ChevronLeft, ChevronRight, Skull, Swords } from 'lucide-react'
+import { CheckCircle2, ChevronLeft, ChevronRight, Keyboard, Skull, Swords } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { NoUniverse } from '@/components/NoUniverse'
 import { Button } from '@/components/ui/button'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { useAllIncidents, useAllMembers } from '@/lib/queries'
 import { useUniverseStore } from '@/stores/universe'
 import type { FuzzyDateValue } from '@/components/FuzzyDate'
@@ -322,11 +323,30 @@ function CalendarPage() {
               </span>
             ))}
           </div>
-          <Button variant="outline" size="sm" onClick={prevMonth}>
+          <TooltipProvider delayDuration={200}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  type="button"
+                  aria-label="Keyboard shortcuts"
+                  className="hidden sm:inline-flex items-center justify-center rounded-md border border-zinc-800 bg-zinc-900/60 p-1.5 text-zinc-500 hover:text-zinc-200 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/50"
+                >
+                  <Keyboard className="h-3.5 w-3.5" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom">
+                <div className="space-y-1 text-[11px]">
+                  <div><kbd className="rounded bg-zinc-700 px-1">←</kbd> previous month</div>
+                  <div><kbd className="rounded bg-zinc-700 px-1">→</kbd> next month</div>
+                </div>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+          <Button variant="outline" size="sm" onClick={prevMonth} aria-label="Previous month">
             <ChevronLeft className="h-4 w-4" />
           </Button>
           <Button variant="outline" size="sm" onClick={goToday}>Today</Button>
-          <Button variant="outline" size="sm" onClick={nextMonth}>
+          <Button variant="outline" size="sm" onClick={nextMonth} aria-label="Next month">
             <ChevronRight className="h-4 w-4" />
           </Button>
         </div>
@@ -371,16 +391,27 @@ function CalendarPage() {
                 const evs = day ? (dayEvents[day] ?? []) : []
                 const isSelected = day === selectedDay
                 const hasEvents = evs.length > 0
-                const dots = evs.slice(0, 4)
+                const hasVerified = evs.some((e) => e.verified)
+                const dateLabel = day ? `${MONTH_NAMES[month - 1]} ${day}, ${year}` : undefined
 
                 return (
                   <div
                     key={di}
+                    role={day ? 'button' : undefined}
+                    tabIndex={day ? 0 : undefined}
+                    aria-label={dateLabel ? `${dateLabel}${hasEvents ? ` — ${evs.length} event${evs.length === 1 ? '' : 's'}` : ''}` : undefined}
                     onClick={() => {
                       if (!day) return
                       setSelectedDay(day === selectedDay ? null : day)
                     }}
-                    className={`min-h-[88px] p-1.5 transition-colors ${
+                    onKeyDown={(e) => {
+                      if (!day) return
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault()
+                        setSelectedDay(day === selectedDay ? null : day)
+                      }
+                    }}
+                    className={`min-h-[88px] p-1.5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-violet-500/50 ${
                       !day ? 'bg-zinc-950/30' :
                       isSelected ? 'bg-zinc-800/80 cursor-pointer' :
                       hasEvents ? 'bg-zinc-950 hover:bg-zinc-900/70 cursor-pointer' :
@@ -400,9 +431,14 @@ function CalendarPage() {
                           }`}>
                             {day}
                           </span>
-                          {evs.length > 0 && (
-                            <span className="text-[10px] tabular-nums text-zinc-600">{evs.length}</span>
-                          )}
+                          <div className="flex items-center gap-1">
+                            {hasVerified && (
+                              <CheckCircle2 className="h-3 w-3 text-emerald-500" aria-label="Contains verified events" />
+                            )}
+                            {evs.length > 0 && (
+                              <span className="text-[10px] tabular-nums text-zinc-600">{evs.length}</span>
+                            )}
+                          </div>
                         </div>
 
                         {/* Event pills — show up to 2, then "+N more" */}
@@ -419,14 +455,16 @@ function CalendarPage() {
                             )
                           })}
                           {evs.length > 2 && (
-                            <div className="flex items-center gap-1.5 px-1">
-                              {dots.slice(2).map((ev) => (
+                            <button
+                              type="button"
+                              onClick={(e) => { e.stopPropagation(); setSelectedDay(day) }}
+                              className="flex w-full items-center gap-1 rounded border border-zinc-700 bg-zinc-900/60 px-1 py-0.5 text-[10px] text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200 transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-violet-500/50"
+                            >
+                              {evs.slice(2).map((ev) => (
                                 <span key={ev.id} className={`h-1.5 w-1.5 rounded-full ${KIND_CONFIG[ev.kind].dot}`} />
-                              ))}
-                              {evs.length > 4 && (
-                                <span className="text-[10px] text-zinc-600">+{evs.length - 2}</span>
-                              )}
-                            </div>
+                              )).slice(0, 3)}
+                              <span className="ml-auto">+{evs.length - 2} more</span>
+                            </button>
                           )}
                         </div>
                       </>
