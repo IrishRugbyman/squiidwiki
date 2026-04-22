@@ -1,9 +1,8 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
-import { Download, Pencil, Plus, Search, Trash2, UserPlus, Users, X } from 'lucide-react'
+import { Download, Pencil, Plus, Search, UserPlus, Users, X } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import { NoUniverse } from '@/components/NoUniverse'
-import { PageHeader } from '@/components/PageHeader'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -520,8 +519,8 @@ function MembersPage() {
     if (setFilter) list = list.filter((m) => m.set_id === setFilter)
     if (!sortKey) return list
     return [...list].sort((a, b) => {
-      const av = String((a as Record<string, unknown>)[sortKey] ?? '')
-      const bv = String((b as Record<string, unknown>)[sortKey] ?? '')
+      const av = String((a as unknown as Record<string, unknown>)[sortKey] ?? '')
+      const bv = String((b as unknown as Record<string, unknown>)[sortKey] ?? '')
       return sortDir === 'asc' ? av.localeCompare(bv) : bv.localeCompare(av)
     })
   }, [baseItems, statusFilter, setFilter, sortKey, sortDir])

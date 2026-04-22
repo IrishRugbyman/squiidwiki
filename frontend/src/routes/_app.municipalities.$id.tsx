@@ -11,6 +11,7 @@ import { useMunicipality, useMunicipalities, useDeleteMunicipality, useIncidents
 import { useUniverseStore } from '@/stores/universe'
 import { useAuthStore } from '@/stores/auth'
 import { MunicipalityFormSheet } from './_app.municipalities.index'
+import type { MunicipalityListItem } from '@/lib/types'
 
 export const Route = createFileRoute('/_app/municipalities/$id')({
   component: MunicipalityDetailPage,

@@ -1,13 +1,11 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
 import { ChevronLeft, ChevronRight, Skull, Swords } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
-import { FuzzyDate } from '@/components/FuzzyDate'
 import { NoUniverse } from '@/components/NoUniverse'
 import { Button } from '@/components/ui/button'
 import { useAllIncidents, useAllMembers } from '@/lib/queries'
 import { useUniverseStore } from '@/stores/universe'
 import type { FuzzyDateValue } from '@/components/FuzzyDate'
-import type { IncidentType } from '@/lib/types'
 
 export const Route = createFileRoute('/_app/calendar')({
   component: CalendarPage,

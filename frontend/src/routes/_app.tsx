@@ -20,8 +20,9 @@ import { UniverseSwitcher } from '@/components/UniverseSwitcher'
 import { GlobalCommandPalette } from '@/components/GlobalCommandPalette'
 import { useAuthStore, type AuthState, type AuthUser } from '@/stores/auth'
 import { api, ApiError } from '@/lib/api'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { Toaster } from '@/components/ui/sonner'
+import { GO_TO_SHORTCUTS, useGoToNavigation } from '@/hooks/useKeymap'
 
 export const Route = createFileRoute('/_app')({
   beforeLoad: () => {
@@ -48,11 +49,36 @@ const ADMIN_NAV_ITEMS = [
   { to: '/admin/users', icon: UserCog, label: 'Users' },
 ] as const
 
-const SHORTCUTS = [
-  { keys: 'Ctrl+K', desc: 'Open global search / universe switcher' },
-  { keys: '?', desc: 'Show keyboard shortcuts' },
-  { keys: 'Esc', desc: 'Close dialogs / sheets' },
+interface ShortcutGroup {
+  title: string
+  items: { keys: string; desc: string }[]
+}
+
+const SHORTCUT_GROUPS: ShortcutGroup[] = [
+  {
+    title: 'Global',
+    items: [
+      { keys: 'Ctrl+K', desc: 'Open global search / universe switcher' },
+      { keys: '?', desc: 'Show keyboard shortcuts' },
+      { keys: 'Esc', desc: 'Close dialogs / sheets' },
+    ],
+  },
+  {
+    title: 'Navigation',
+    items: GO_TO_SHORTCUTS.map((s) => ({ keys: s.keys, desc: `Go to ${s.label}` })),
+  },
 ]
+
+function renderKey(keys: string) {
+  return keys.split(/[\s+]/).filter(Boolean).map((k, i, arr) => (
+    <span key={i} className="inline-flex items-center">
+      <kbd className="rounded bg-zinc-800 px-1.5 py-0.5 text-[10px] font-mono text-zinc-300 shadow-sm">
+        {k === 'Ctrl' ? '⌘' : k}
+      </kbd>
+      {i < arr.length - 1 && <span className="mx-0.5 text-zinc-600">{keys.includes('+') ? '+' : 'then'}</span>}
+    </span>
+  ))
+}
 
 function NavLink({ to, icon: Icon, label, exact, onClick }: { to: string; icon: typeof Home; label: string; exact?: boolean; onClick?: () => void }) {
   return (
@@ -76,6 +102,7 @@ function AppLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [helpOpen, setHelpOpen] = useState(false)
   const [commandOpen, setCommandOpen] = useState(false)
+  useGoToNavigation()
 
   useEffect(() => {
     if (user) return
@@ -188,16 +215,24 @@ function AppLayout() {
       <GlobalCommandPalette open={commandOpen} onClose={() => setCommandOpen(false)} />
 
       <Dialog open={helpOpen} onOpenChange={setHelpOpen}>
-        <DialogContent className="max-w-sm">
+        <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>Keyboard shortcuts</DialogTitle>
+            <DialogDescription>Move around SquiidWiki without touching the mouse.</DialogDescription>
           </DialogHeader>
-          <div className="mt-2 space-y-2">
-            {SHORTCUTS.map((s) => (
-              <div key={s.keys} className="flex items-center justify-between text-sm">
-                <span className="text-zinc-300">{s.desc}</span>
-                <kbd className="rounded bg-zinc-800 px-2 py-0.5 text-xs font-mono text-zinc-400">{s.keys}</kbd>
-              </div>
+          <div className="mt-2 space-y-5 max-h-[60vh] overflow-y-auto pr-1">
+            {SHORTCUT_GROUPS.map((group) => (
+              <section key={group.title}>
+                <h4 className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-zinc-500">{group.title}</h4>
+                <ul className="space-y-1.5">
+                  {group.items.map((s) => (
+                    <li key={`${group.title}-${s.keys}`} className="flex items-center justify-between text-sm">
+                      <span className="text-zinc-300">{s.desc}</span>
+                      <span className="flex items-center gap-1">{renderKey(s.keys)}</span>
+                    </li>
+                  ))}
+                </ul>
+              </section>
             ))}
           </div>
         </DialogContent>
