@@ -40,15 +40,16 @@ export default function MunicipalityMap({ geojson, focusId }: Props) {
 
   const initialViewState = useMemo(() => {
     const focused = focusId ? geojson.features.find((f) => f.id === focusId) : null
-    if (focused) {
+    if (focused?.geometry) {
       const [lng, lat] = centroid(focused.geometry)
       return { longitude: lng, latitude: lat, zoom: 12 }
     }
-    if (geojson.features.length > 0) {
-      const [lng, lat] = centroid(geojson.features[0].geometry)
+    const first = geojson.features.find((f) => f.geometry != null)
+    if (first) {
+      const [lng, lat] = centroid(first.geometry)
       return { longitude: lng, latitude: lat, zoom: 10 }
     }
-    return { longitude: -74.006, latitude: 40.7128, zoom: 10 }
+    return { longitude: -83.0458, latitude: 42.3314, zoom: 10 }
   }, [focusId, geojson])
 
   const fillLayer = useMemo(

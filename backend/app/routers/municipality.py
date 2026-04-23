@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.dependencies import CurrentUser, require_global_role
-from app.core.database import get_session
+from app.core.database import get_prod_session, get_session
 from app.core.enums import GlobalRole
 from app.crud import municipality as crud
 from app.schemas.common import OffsetPage
@@ -36,8 +36,17 @@ async def get_municipalities_geojson(
     universe_id: uuid.UUID,
     _: CurrentUser,
     session: Annotated[AsyncSession, Depends(get_session)],
+    prod_session: Annotated[AsyncSession, Depends(get_prod_session)],
 ) -> Any:
-    return await crud.get_municipality_geojson(session, universe_id)
+    from sqlalchemy import select
+    from app.models.universe import Universe
+    univ = (await session.execute(select(Universe).where(Universe.id == universe_id))).scalar_one_or_none()
+    if univ is None:
+        return {"type": "FeatureCollection", "features": []}
+    prod_univ = (await prod_session.execute(select(Universe).where(Universe.slug == univ.slug))).scalar_one_or_none()
+    if prod_univ is None:
+        return {"type": "FeatureCollection", "features": []}
+    return await crud.get_municipality_geojson(prod_session, prod_univ.id)
 
 
 @router.post("/", response_model=MunicipalityRead, status_code=201)

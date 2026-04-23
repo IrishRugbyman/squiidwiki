@@ -87,7 +87,7 @@ async def get_municipality_geojson(
             COUNT(DISTINCT i.id)::int AS incident_count
         FROM municipality m
         LEFT JOIN incident i ON i.municipality_id = m.id
-        WHERE m.universe_id = :uid AND m.geometry IS NOT NULL
+        WHERE m.universe_id = :uid AND m.geometry IS NOT NULL AND m.geometry != 'null'::jsonb
         GROUP BY m.id
         ORDER BY m.name
     """), {"uid": str(universe_id)})).mappings().all()
