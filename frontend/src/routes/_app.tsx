@@ -20,6 +20,7 @@ import { useEffect, useState } from 'react'
 import { UniverseSwitcher } from '@/components/UniverseSwitcher'
 import { GlobalCommandPalette } from '@/components/GlobalCommandPalette'
 import { useAuthStore, type AuthState, type AuthUser } from '@/stores/auth'
+import { useDbMode, useSetDbMode } from '@/lib/queries'
 import { api, ApiError } from '@/lib/api'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { Toaster } from '@/components/ui/sonner'
@@ -80,6 +81,25 @@ function renderKey(keys: string) {
       {i < arr.length - 1 && <span className="mx-0.5 text-zinc-600">{keys.includes('+') ? '+' : 'then'}</span>}
     </span>
   ))
+}
+
+function DbModeToggle() {
+  const { data } = useDbMode()
+  const { mutate, isPending } = useSetDbMode()
+  const mode = data?.mode ?? 'prod'
+  return (
+    <button
+      onClick={() => mutate(mode === 'prod' ? 'test' : 'prod')}
+      disabled={isPending}
+      className={`mt-2 w-full rounded px-2 py-1 text-left text-[11px] font-semibold tracking-widest transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/50 ${
+        mode === 'test'
+          ? 'bg-amber-500/15 text-amber-400 hover:bg-amber-500/25'
+          : 'bg-zinc-800/60 text-zinc-500 hover:bg-zinc-800 hover:text-zinc-300'
+      }`}
+    >
+      {mode === 'test' ? '⚠ TEST DB' : 'PROD DB'}
+    </button>
+  )
 }
 
 function NavLink({ to, icon: Icon, label, exact, onClick }: { to: string; icon: typeof Home; label: string; exact?: boolean; onClick?: () => void }) {
@@ -185,6 +205,7 @@ function AppLayout() {
         >
           Sign out
         </button>
+        {user?.global_role === 'ADMIN' && <DbModeToggle />}
       </div>
     </aside>
   )

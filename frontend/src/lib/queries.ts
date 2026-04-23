@@ -529,6 +529,26 @@ export const useUpdateUserRole = () => {
   })
 }
 
+// ─── DB mode ──────────────────────────────────────────────────────────────────
+
+export type DbMode = 'prod' | 'test'
+
+export const useDbMode = () =>
+  useQuery({
+    queryKey: ['db-mode'],
+    queryFn: () => api.get<{ mode: DbMode }>('/admin/db-mode'),
+    staleTime: Infinity,
+  })
+
+export const useSetDbMode = () => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (mode: DbMode) =>
+      api.post<{ mode: DbMode }>(`/admin/db-mode?mode=${mode}`, {}),
+    onSuccess: () => qc.invalidateQueries(),
+  })
+}
+
 // ─── Analytics ────────────────────────────────────────────────────────────────
 
 export const useUniverseAnalytics = (universeId: UUID | null) =>

@@ -70,6 +70,7 @@ async def health():
 # Routers
 from app.auth.router import router as auth_router  # noqa: E402
 from app.routers.alliance import router as alliance_router  # noqa: E402
+from app.routers.admin import router as admin_router  # noqa: E402
 from app.routers.audit import router as audit_router  # noqa: E402
 from app.routers.gang_set import router as gang_set_router  # noqa: E402
 from app.routers.incident import router as incident_router  # noqa: E402
@@ -87,3 +88,4 @@ app.include_router(gang_set_router, prefix="/api/v1")
 app.include_router(member_router, prefix="/api/v1")
 app.include_router(incident_router, prefix="/api/v1")
 app.include_router(audit_router, prefix="/api/v1")
+app.include_router(admin_router, prefix="/api/v1")
