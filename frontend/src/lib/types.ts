@@ -43,11 +43,30 @@ export interface MunicipalityListItem {
   universe_id: UUID
   incident_count: number
   child_count: number
-  latitude: number | null
-  longitude: number | null
+  has_geometry: boolean
 }
 
-export interface MunicipalityRead extends MunicipalityListItem {}
+export interface MunicipalityRead extends MunicipalityListItem {
+  // GeoJSON Polygon or MultiPolygon geometry object, null when not set
+  geometry: GeoJSONGeometry | null
+}
+
+export interface GeoJSONGeometry {
+  type: 'Polygon' | 'MultiPolygon'
+  coordinates: number[][][] | number[][][][]
+}
+
+export interface MunicipalityGeoJSONFeature {
+  type: 'Feature'
+  id: string
+  geometry: GeoJSONGeometry
+  properties: { id: string; name: string; incident_count: number }
+}
+
+export interface MunicipalityGeoJSON {
+  type: 'FeatureCollection'
+  features: MunicipalityGeoJSONFeature[]
+}
 
 // Source
 export interface SourceListItem {

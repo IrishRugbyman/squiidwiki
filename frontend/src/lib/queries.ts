@@ -15,6 +15,7 @@ import type {
   MemberRead,
   MemberReadDetail,
   MemberStats,
+  MunicipalityGeoJSON,
   MunicipalityListItem,
   MunicipalityRead,
   OffsetPage,
@@ -436,11 +437,10 @@ export const useMunicipalities = (universeId: UUID | null, offset = 0) =>
     enabled: !!universeId,
   })
 
-export const useMunicipalitiesAll = (universeId: UUID | null) =>
+export const useMunicipalityGeoJSON = (universeId: UUID | null) =>
   useQuery({
-    queryKey: ['municipalities', universeId, 'all'],
-    queryFn: () =>
-      api.get<OffsetPage<MunicipalityListItem>>(`/municipalities/?universe_id=${universeId}&limit=500`),
+    queryKey: ['municipalities', universeId, 'geojson'],
+    queryFn: () => api.get<MunicipalityGeoJSON>(`/municipalities/geojson?universe_id=${universeId}`),
     enabled: !!universeId,
     staleTime: 60_000,
   })

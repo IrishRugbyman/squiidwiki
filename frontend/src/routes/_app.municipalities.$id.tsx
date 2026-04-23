@@ -88,7 +88,7 @@ function MunicipalityDetailPage() {
             </div>
           </div>
           <div className="flex shrink-0 items-center gap-2">
-            {municipality.latitude != null && municipality.longitude != null && (
+            {municipality.has_geometry && (
               <Link to="/map" search={{ focus: municipality.id }}>
                 <Button size="sm" variant="outline">
                   <Map className="mr-1.5 h-3.5 w-3.5" />View on map

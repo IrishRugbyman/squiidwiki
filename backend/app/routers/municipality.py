@@ -1,5 +1,5 @@
 import uuid
-from typing import Annotated
+from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -31,13 +31,23 @@ async def list_municipalities(
     return OffsetPage(items=items, total=total)
 
 
+@router.get("/geojson")
+async def get_municipalities_geojson(
+    universe_id: uuid.UUID,
+    _: CurrentUser,
+    session: Annotated[AsyncSession, Depends(get_session)],
+) -> Any:
+    return await crud.get_municipality_geojson(session, universe_id)
+
+
 @router.post("/", response_model=MunicipalityRead, status_code=201)
 async def create_municipality(
     data: MunicipalityCreate,
     current_user: CurrentUser,
     session: Annotated[AsyncSession, Depends(get_session)],
 ):
-    return await crud.create_municipality(session, data, current_user.id)
+    obj = await crud.create_municipality(session, data, current_user.id)
+    return await crud.get_municipality(session, obj.id, obj.universe_id)
 
 
 @router.get("/search", response_model=list[MunicipalityListItem])

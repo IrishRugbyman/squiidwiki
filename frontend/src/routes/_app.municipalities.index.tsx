@@ -39,20 +39,33 @@ export function MunicipalityFormSheet({ universeId, open, onClose, initial, defa
 
   const [name, setName] = useState(initial?.name ?? '')
   const [parentId, setParentId] = useState<string>(initial?.parent_id ?? defaultParentId ?? '')
-  const [latitude, setLatitude] = useState<string>(initial?.latitude != null ? String(initial.latitude) : '')
-  const [longitude, setLongitude] = useState<string>(initial?.longitude != null ? String(initial.longitude) : '')
+  const [geometryText, setGeometryText] = useState<string>(
+    initial?.geometry ? JSON.stringify(initial.geometry, null, 2) : ''
+  )
   const [error, setError] = useState<string | null>(null)
+
+  function parseGeometry(text: string): object | null | 'error' {
+    if (!text.trim()) return null
+    try {
+      const parsed = JSON.parse(text)
+      // Accept a Feature (extract geometry) or a bare Geometry object
+      const geom = parsed.type === 'Feature' ? parsed.geometry : parsed
+      if (!['Polygon', 'MultiPolygon'].includes(geom?.type)) return 'error'
+      return geom
+    } catch {
+      return 'error'
+    }
+  }
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     setError(null)
-    const lat = latitude !== '' ? parseFloat(latitude) : null
-    const lng = longitude !== '' ? parseFloat(longitude) : null
-    if ((latitude !== '' && isNaN(lat!)) || (longitude !== '' && isNaN(lng!))) {
-      setError('Latitude and longitude must be valid numbers')
+    const geometry = parseGeometry(geometryText)
+    if (geometry === 'error') {
+      setError('Invalid GeoJSON — paste a Polygon or MultiPolygon geometry (or a GeoJSON Feature)')
       return
     }
-    const body = { universe_id: universeId, name, parent_id: parentId || null, latitude: lat, longitude: lng }
+    const body = { universe_id: universeId, name, parent_id: parentId || null, geometry }
     try {
       if (isEdit) {
         await update.mutateAsync(body)
@@ -60,7 +73,7 @@ export function MunicipalityFormSheet({ universeId, open, onClose, initial, defa
       } else {
         await create.mutateAsync(body)
         toast.success(`Added "${name}"`)
-        setName(''); setParentId(''); setLatitude(''); setLongitude('')
+        setName(''); setParentId(''); setGeometryText('')
       }
       onClose()
     } catch (err) {
@@ -97,21 +110,22 @@ export function MunicipalityFormSheet({ universeId, open, onClose, initial, defa
             </div>
           )}
           <div className="space-y-1.5">
-            <Label>Coordinates <span className="text-zinc-500 font-normal">(for map)</span></Label>
-            <div className="flex gap-2">
-              <Input
-                value={latitude}
-                onChange={(e) => setLatitude(e.target.value)}
-                placeholder="Latitude (e.g. 42.3314)"
-                inputMode="decimal"
-              />
-              <Input
-                value={longitude}
-                onChange={(e) => setLongitude(e.target.value)}
-                placeholder="Longitude (e.g. -83.0458)"
-                inputMode="decimal"
-              />
-            </div>
+            <Label htmlFor="m-geometry">
+              Boundary GeoJSON <span className="text-zinc-500 font-normal">(for map)</span>
+            </Label>
+            <textarea
+              id="m-geometry"
+              value={geometryText}
+              onChange={(e) => setGeometryText(e.target.value)}
+              placeholder={'Paste a GeoJSON Polygon or MultiPolygon geometry here.\n{"type":"Polygon","coordinates":[[[lng,lat],...]]}'}
+              rows={6}
+              className="w-full rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 font-mono text-xs text-zinc-300 placeholder:text-zinc-600 focus:border-violet-500 focus:outline-none focus:ring-1 focus:ring-violet-500/40 resize-y"
+            />
+            <p className="text-[11px] text-zinc-500">
+              Accepts a <code className="text-zinc-400">Polygon</code>, <code className="text-zinc-400">MultiPolygon</code>, or a full GeoJSON <code className="text-zinc-400">Feature</code>. Get boundaries from{' '}
+              <a href="https://osm-boundaries.com" target="_blank" rel="noopener noreferrer" className="text-violet-400 hover:underline">osm-boundaries.com</a> or{' '}
+              <a href="https://overpass-turbo.eu" target="_blank" rel="noopener noreferrer" className="text-violet-400 hover:underline">Overpass Turbo</a>.
+            </p>
           </div>
           {error && <p className="text-sm text-red-400">{error}</p>}
           <div className="flex gap-2 pt-2">

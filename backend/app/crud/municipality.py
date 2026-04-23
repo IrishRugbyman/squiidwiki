@@ -2,7 +2,7 @@ import uuid
 
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlmodel import func, select
+from sqlmodel import select
 
 from app.models.municipality import Municipality
 from app.schemas.municipality import MunicipalityCreate, MunicipalityUpdate
@@ -20,13 +20,19 @@ async def create_municipality(
 
 async def get_municipality(
     session: AsyncSession, id: uuid.UUID, universe_id: uuid.UUID
-) -> Municipality | None:
-    result = await session.execute(
-        select(Municipality).where(
-            Municipality.id == id, Municipality.universe_id == universe_id
-        )
-    )
-    return result.scalar_one_or_none()
+) -> dict | None:
+    row = (await session.execute(text("""
+        SELECT
+            m.id, m.name, m.parent_id, m.universe_id, m.geometry,
+            COUNT(DISTINCT i.id)::int AS incident_count,
+            COUNT(DISTINCT c.id)::int AS child_count
+        FROM municipality m
+        LEFT JOIN incident i ON i.municipality_id = m.id
+        LEFT JOIN municipality c ON c.parent_id = m.id
+        WHERE m.id = :id AND m.universe_id = :uid
+        GROUP BY m.id
+    """), {"id": str(id), "uid": str(universe_id)})).mappings().one_or_none()
+    return dict(row) if row else None
 
 
 async def list_municipalities(
@@ -38,8 +44,7 @@ async def list_municipalities(
             m.name,
             m.parent_id,
             m.universe_id,
-            m.latitude,
-            m.longitude,
+            (m.geometry IS NOT NULL) AS has_geometry,
             COUNT(DISTINCT i.id)::int AS incident_count,
             COUNT(DISTINCT c.id)::int AS child_count
         FROM municipality m
@@ -61,8 +66,7 @@ async def list_municipalities(
             "name": r["name"],
             "parent_id": r["parent_id"],
             "universe_id": r["universe_id"],
-            "latitude": r["latitude"],
-            "longitude": r["longitude"],
+            "has_geometry": r["has_geometry"],
             "incident_count": r["incident_count"],
             "child_count": r["child_count"],
         }
@@ -71,24 +75,66 @@ async def list_municipalities(
     return items, total_row
 
 
+async def get_municipality_geojson(
+    session: AsyncSession, universe_id: uuid.UUID
+) -> dict:
+    """Return a GeoJSON FeatureCollection for all municipalities that have geometry."""
+    rows = (await session.execute(text("""
+        SELECT
+            m.id,
+            m.name,
+            m.geometry,
+            COUNT(DISTINCT i.id)::int AS incident_count
+        FROM municipality m
+        LEFT JOIN incident i ON i.municipality_id = m.id
+        WHERE m.universe_id = :uid AND m.geometry IS NOT NULL
+        GROUP BY m.id
+        ORDER BY m.name
+    """), {"uid": str(universe_id)})).mappings().all()
+
+    features = [
+        {
+            "type": "Feature",
+            "id": str(r["id"]),
+            "geometry": r["geometry"],
+            "properties": {
+                "id": str(r["id"]),
+                "name": r["name"],
+                "incident_count": r["incident_count"],
+            },
+        }
+        for r in rows
+    ]
+    return {"type": "FeatureCollection", "features": features}
+
+
 async def update_municipality(
     session: AsyncSession, id: uuid.UUID, universe_id: uuid.UUID, data: MunicipalityUpdate
-) -> Municipality | None:
-    obj = await get_municipality(session, id, universe_id)
+) -> dict | None:
+    result = await session.execute(
+        select(Municipality).where(
+            Municipality.id == id, Municipality.universe_id == universe_id
+        )
+    )
+    obj = result.scalar_one_or_none()
     if obj is None:
         return None
     for k, v in data.model_dump(exclude_unset=True).items():
         setattr(obj, k, v)
     session.add(obj)
     await session.commit()
-    await session.refresh(obj)
-    return obj
+    return await get_municipality(session, id, universe_id)
 
 
 async def delete_municipality(
     session: AsyncSession, id: uuid.UUID, universe_id: uuid.UUID
 ) -> bool:
-    obj = await get_municipality(session, id, universe_id)
+    result = await session.execute(
+        select(Municipality).where(
+            Municipality.id == id, Municipality.universe_id == universe_id
+        )
+    )
+    obj = result.scalar_one_or_none()
     if obj is None:
         return False
     await session.delete(obj)
@@ -101,7 +147,8 @@ async def search_municipalities(
 ) -> list[dict]:
     rows = (await session.execute(text("""
         SELECT
-            m.id, m.name, m.parent_id, m.universe_id, m.latitude, m.longitude,
+            m.id, m.name, m.parent_id, m.universe_id,
+            (m.geometry IS NOT NULL) AS has_geometry,
             COUNT(DISTINCT i.id)::int AS incident_count,
             COUNT(DISTINCT c.id)::int AS child_count
         FROM municipality m
