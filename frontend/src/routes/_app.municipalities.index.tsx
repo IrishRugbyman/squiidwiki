@@ -48,8 +48,9 @@ export function MunicipalityFormSheet({ universeId, open, onClose, initial, defa
     if (!text.trim()) return null
     try {
       const parsed = JSON.parse(text)
-      // Accept a Feature (extract geometry) or a bare Geometry object
-      const geom = parsed.type === 'Feature' ? parsed.geometry : parsed
+      let geom = parsed
+      if (parsed?.type === 'FeatureCollection') geom = parsed.features?.[0]?.geometry
+      else if (parsed?.type === 'Feature') geom = parsed.geometry
       if (!['Polygon', 'MultiPolygon'].includes(geom?.type)) return 'error'
       return geom
     } catch {
@@ -62,7 +63,7 @@ export function MunicipalityFormSheet({ universeId, open, onClose, initial, defa
     setError(null)
     const geometry = parseGeometry(geometryText)
     if (geometry === 'error') {
-      setError('Invalid GeoJSON — paste a Polygon or MultiPolygon geometry (or a GeoJSON Feature)')
+      setError('Invalid GeoJSON — paste a Polygon/MultiPolygon geometry, a Feature, or a FeatureCollection whose first feature is a (Multi)Polygon')
       return
     }
     const body = { universe_id: universeId, name, parent_id: parentId || null, geometry }
