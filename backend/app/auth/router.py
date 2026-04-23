@@ -20,7 +20,7 @@ from app.auth.crud import (
 from app.auth.dependencies import CurrentUser, require_global_role
 from app.auth.schemas import CreateUserRequest, LoginRequest, TokenResponse, UserRead
 from app.auth.security import create_access_token, create_refresh_token, decode_token, hash_password
-from app.core.database import get_session
+from app.core.database import get_prod_session as get_session
 from app.core.enums import GlobalRole
 from app.models.auth import User
 from app.schemas.common import OffsetPage
