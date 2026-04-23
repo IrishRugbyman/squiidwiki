@@ -36,6 +36,7 @@ export const GO_TO_SHORTCUTS: GoToShortcut[] = [
   { keys: 'g i', to: '/incidents', label: 'Incidents' },
   { keys: 'g r', to: '/sources', label: 'Sources' },
   { keys: 'g p', to: '/municipalities', label: 'Municipalities' },
+  { keys: 'g x', to: '/map', label: 'Map' },
   { keys: 'g c', to: '/calendar', label: 'Calendar' },
 ]
 

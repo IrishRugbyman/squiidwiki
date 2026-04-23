@@ -11,3 +11,5 @@ class Municipality(SQLModel, table=True):
     universe_id: uuid.UUID = Field(foreign_key="universe.id", index=True)
     name: str
     parent_id: Optional[uuid.UUID] = Field(default=None, foreign_key="municipality.id")
+    latitude: Optional[float] = Field(default=None)
+    longitude: Optional[float] = Field(default=None)

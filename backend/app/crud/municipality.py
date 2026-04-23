@@ -38,6 +38,8 @@ async def list_municipalities(
             m.name,
             m.parent_id,
             m.universe_id,
+            m.latitude,
+            m.longitude,
             COUNT(DISTINCT i.id)::int AS incident_count,
             COUNT(DISTINCT c.id)::int AS child_count
         FROM municipality m
@@ -59,6 +61,8 @@ async def list_municipalities(
             "name": r["name"],
             "parent_id": r["parent_id"],
             "universe_id": r["universe_id"],
+            "latitude": r["latitude"],
+            "longitude": r["longitude"],
             "incident_count": r["incident_count"],
             "child_count": r["child_count"],
         }
@@ -94,11 +98,17 @@ async def delete_municipality(
 
 async def search_municipalities(
     session: AsyncSession, universe_id: uuid.UUID, q: str
-) -> list[Municipality]:
-    result = await session.execute(
-        select(Municipality).where(
-            Municipality.universe_id == universe_id,
-            Municipality.name.ilike(f"%{q}%"),
-        )
-    )
-    return result.scalars().all()
+) -> list[dict]:
+    rows = (await session.execute(text("""
+        SELECT
+            m.id, m.name, m.parent_id, m.universe_id, m.latitude, m.longitude,
+            COUNT(DISTINCT i.id)::int AS incident_count,
+            COUNT(DISTINCT c.id)::int AS child_count
+        FROM municipality m
+        LEFT JOIN incident i ON i.municipality_id = m.id
+        LEFT JOIN municipality c ON c.parent_id = m.id
+        WHERE m.universe_id = :uid AND m.name ILIKE :q
+        GROUP BY m.id
+        ORDER BY m.name
+    """), {"uid": str(universe_id), "q": f"%{q}%"})).mappings().all()
+    return [dict(r) for r in rows]

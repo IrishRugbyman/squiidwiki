@@ -43,6 +43,8 @@ export interface MunicipalityListItem {
   universe_id: UUID
   incident_count: number
   child_count: number
+  latitude: number | null
+  longitude: number | null
 }
 
 export interface MunicipalityRead extends MunicipalityListItem {}

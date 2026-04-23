@@ -39,12 +39,20 @@ export function MunicipalityFormSheet({ universeId, open, onClose, initial, defa
 
   const [name, setName] = useState(initial?.name ?? '')
   const [parentId, setParentId] = useState<string>(initial?.parent_id ?? defaultParentId ?? '')
+  const [latitude, setLatitude] = useState<string>(initial?.latitude != null ? String(initial.latitude) : '')
+  const [longitude, setLongitude] = useState<string>(initial?.longitude != null ? String(initial.longitude) : '')
   const [error, setError] = useState<string | null>(null)
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     setError(null)
-    const body = { universe_id: universeId, name, parent_id: parentId || null }
+    const lat = latitude !== '' ? parseFloat(latitude) : null
+    const lng = longitude !== '' ? parseFloat(longitude) : null
+    if ((latitude !== '' && isNaN(lat!)) || (longitude !== '' && isNaN(lng!))) {
+      setError('Latitude and longitude must be valid numbers')
+      return
+    }
+    const body = { universe_id: universeId, name, parent_id: parentId || null, latitude: lat, longitude: lng }
     try {
       if (isEdit) {
         await update.mutateAsync(body)
@@ -52,7 +60,7 @@ export function MunicipalityFormSheet({ universeId, open, onClose, initial, defa
       } else {
         await create.mutateAsync(body)
         toast.success(`Added "${name}"`)
-        setName(''); setParentId('')
+        setName(''); setParentId(''); setLatitude(''); setLongitude('')
       }
       onClose()
     } catch (err) {
@@ -88,6 +96,23 @@ export function MunicipalityFormSheet({ universeId, open, onClose, initial, defa
               </Select>
             </div>
           )}
+          <div className="space-y-1.5">
+            <Label>Coordinates <span className="text-zinc-500 font-normal">(for map)</span></Label>
+            <div className="flex gap-2">
+              <Input
+                value={latitude}
+                onChange={(e) => setLatitude(e.target.value)}
+                placeholder="Latitude (e.g. 42.3314)"
+                inputMode="decimal"
+              />
+              <Input
+                value={longitude}
+                onChange={(e) => setLongitude(e.target.value)}
+                placeholder="Longitude (e.g. -83.0458)"
+                inputMode="decimal"
+              />
+            </div>
+          </div>
           {error && <p className="text-sm text-red-400">{error}</p>}
           <div className="flex gap-2 pt-2">
             <Button type="submit" disabled={isPending} className="flex-1">

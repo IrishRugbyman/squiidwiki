@@ -436,6 +436,15 @@ export const useMunicipalities = (universeId: UUID | null, offset = 0) =>
     enabled: !!universeId,
   })
 
+export const useMunicipalitiesAll = (universeId: UUID | null) =>
+  useQuery({
+    queryKey: ['municipalities', universeId, 'all'],
+    queryFn: () =>
+      api.get<OffsetPage<MunicipalityListItem>>(`/municipalities/?universe_id=${universeId}&limit=500`),
+    enabled: !!universeId,
+    staleTime: 60_000,
+  })
+
 export const useMunicipality = (id: UUID, universeId: UUID | null) =>
   useQuery({
     queryKey: ['municipalities', id],

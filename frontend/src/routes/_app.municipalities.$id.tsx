@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
-import { AlertTriangle, ChevronRight, CheckCircle2, MapPin, Pencil, Plus, Trash2 } from 'lucide-react'
+import { AlertTriangle, ChevronRight, CheckCircle2, Map, MapPin, Pencil, Plus, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import { ErrorState } from '@/components/ErrorState'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
@@ -88,6 +88,13 @@ function MunicipalityDetailPage() {
             </div>
           </div>
           <div className="flex shrink-0 items-center gap-2">
+            {municipality.latitude != null && municipality.longitude != null && (
+              <Link to="/map" search={{ focus: municipality.id }}>
+                <Button size="sm" variant="outline">
+                  <Map className="mr-1.5 h-3.5 w-3.5" />View on map
+                </Button>
+              </Link>
+            )}
             <Button size="sm" variant="outline" onClick={() => setCreatingChild(true)}>
               <Plus className="mr-1.5 h-3.5 w-3.5" />Add sub-district
             </Button>

@@ -5,6 +5,7 @@ import {
   FileText,
   Globe,
   Home,
+  Map,
   MapPin,
   Menu,
   Network,
@@ -40,6 +41,7 @@ const NAV_ITEMS = [
   { to: '/incidents', icon: AlertTriangle, label: 'Incidents' },
   { to: '/sources', icon: FileText, label: 'Sources' },
   { to: '/municipalities', icon: MapPin, label: 'Municipalities' },
+  { to: '/map', icon: Map, label: 'Map' },
   { to: '/calendar', icon: CalendarDays, label: 'Calendar' },
 ] as const
 
