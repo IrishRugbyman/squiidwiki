@@ -47,6 +47,14 @@ TEST_URL = "postgresql+asyncpg://postgres:quentin20@localhost:5432/squiidwiki_te
 # UUID of admin@squiidwiki.dev in prod — used for universe access in test DB
 PROD_ADMIN_ID = uuid.UUID("e44913fe-9a60-4ff6-9728-82abf2804c1a")
 
+
+def slugify(name: str) -> str:
+    import re
+    s = name.lower().strip()
+    s = re.sub(r"[^\w\s-]", "", s)
+    s = re.sub(r"[\s_]+", "-", s)
+    return re.sub(r"-+", "-", s).strip("-") or "item"
+
 WIPE_ORDER = [
     "incident_source", "member_source",
     "incident_participant", "incident",
@@ -135,6 +143,7 @@ async def seed(session: AsyncSession, is_test: bool) -> None:
     eastside = Alliance(
         universe_id=universe.id,
         name="Eastside Coalition",
+        slug=slugify("Eastside Coalition"),
         created_by_id=admin_id,
     )
     session.add(eastside)
@@ -143,28 +152,21 @@ async def seed(session: AsyncSession, is_test: bool) -> None:
     # Sets
     ghost_gang = GangSet(
         universe_id=universe.id,
-        name="Ghost Gang",
-        alias="GG",
-        bio="East side crew based in Detroit, founded early 2010s.",
-        status=SetStatus.ACTIVE,
-        alliance_id=eastside.id,
-        created_by_id=admin_id,
+        name="Ghost Gang", slug=slugify("Ghost Gang"),
+        alias="GG", bio="East side crew based in Detroit, founded early 2010s.",
+        status=SetStatus.ACTIVE, alliance_id=eastside.id, created_by_id=admin_id,
     )
     seven_mile = GangSet(
         universe_id=universe.id,
-        name="Seven Mile Boys",
-        alias="7MB",
-        bio="Active on the northwest side of Detroit.",
-        status=SetStatus.ACTIVE,
-        created_by_id=admin_id,
+        name="Seven Mile Boys", slug=slugify("Seven Mile Boys"),
+        alias="7MB", bio="Active on the northwest side of Detroit.",
+        status=SetStatus.ACTIVE, created_by_id=admin_id,
     )
     river_crew = GangSet(
         universe_id=universe.id,
-        name="River Crew",
-        alias="RC",
-        bio="Operates in Ecorse and River Rouge.",
-        status=SetStatus.ACTIVE,
-        created_by_id=admin_id,
+        name="River Crew", slug=slugify("River Crew"),
+        alias="RC", bio="Operates in Ecorse and River Rouge.",
+        status=SetStatus.ACTIVE, created_by_id=admin_id,
     )
     session.add_all([ghost_gang, seven_mile, river_crew])
     await session.flush()
@@ -180,33 +182,29 @@ async def seed(session: AsyncSession, is_test: bool) -> None:
 
     # Members
     ghost = Member(
-        universe_id=universe.id, nickname="Ghost", legal_name="Marcus Williams",
-        set_id=ghost_gang.id, status=MemberStatus.FREE,
-        dob=FuzzyDate.year_only(1995).model_dump(),
-        created_by_id=admin_id,
+        universe_id=universe.id, nickname="Ghost", slug=slugify("Ghost"),
+        legal_name="Marcus Williams", set_id=ghost_gang.id, status=MemberStatus.FREE,
+        dob=FuzzyDate.year_only(1995).model_dump(), created_by_id=admin_id,
     )
     dice = Member(
-        universe_id=universe.id, nickname="Dice",
+        universe_id=universe.id, nickname="Dice", slug=slugify("Dice"),
         set_id=ghost_gang.id, status=MemberStatus.LOCKED,
-        release_date=FuzzyDate.year_only(2027).model_dump(),
-        created_by_id=admin_id,
+        release_date=FuzzyDate.year_only(2027).model_dump(), created_by_id=admin_id,
     )
     lil_ray = Member(
-        universe_id=universe.id, nickname="Lil Ray",
+        universe_id=universe.id, nickname="Lil Ray", slug=slugify("Lil Ray"),
         set_id=seven_mile.id, status=MemberStatus.DEAD,
         date_of_death=FuzzyDate(year=2023, month=8, precision=DatePrecision.YM).model_dump(),
         created_by_id=admin_id,
     )
     ko = Member(
-        universe_id=universe.id, nickname="KO", legal_name="Kevin Odom",
-        set_id=seven_mile.id, status=MemberStatus.FREE,
-        dob=FuzzyDate.year_only(1998).model_dump(),
-        created_by_id=admin_id,
+        universe_id=universe.id, nickname="KO", slug=slugify("KO"),
+        legal_name="Kevin Odom", set_id=seven_mile.id, status=MemberStatus.FREE,
+        dob=FuzzyDate.year_only(1998).model_dump(), created_by_id=admin_id,
     )
     shadow = Member(
-        universe_id=universe.id, nickname="Shadow",
-        set_id=river_crew.id, status=MemberStatus.UNKNOWN,
-        created_by_id=admin_id,
+        universe_id=universe.id, nickname="Shadow", slug=slugify("Shadow"),
+        set_id=river_crew.id, status=MemberStatus.UNKNOWN, created_by_id=admin_id,
     )
     session.add_all([ghost, dice, lil_ray, ko, shadow])
     await session.flush()
