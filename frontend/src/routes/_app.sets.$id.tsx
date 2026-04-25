@@ -24,6 +24,8 @@ import { CopyButton } from '@/components/CopyButton'
 import { DetailHeaderSkeleton } from '@/components/skeletons'
 import { Skeleton } from '@/components/ui/skeleton'
 import { SetAvatar, SetFormSheet } from './_app.sets.index'
+import { MemberFormSheet } from './_app.members.index'
+import { AddMemberToSetDialog } from '@/components/AddMemberToSetDialog'
 
 const SetRelationshipGraph = lazy(() =>
   import('@/components/graphs/SetRelationshipGraph').then((m) => ({ default: m.SetRelationshipGraph })),
@@ -158,8 +160,10 @@ function SetDetailPage() {
   const [editing, setEditing] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [addingRel, setAddingRel] = useState(false)
+  const [addingMember, setAddingMember] = useState(false)
+  const [creatingMember, setCreatingMember] = useState(false)
 
-  const setName = (sid: string) => allSets?.items.find((s) => s.id === sid)?.name ?? sid
+  const setName = (sid: string) => (allSets?.items ?? []).find((s) => s.id === sid)?.name ?? sid
   const alliance = set?.alliance_id
     ? (alliancesData?.items ?? []).find((a) => a.id === set.alliance_id) ?? null
     : null
@@ -267,6 +271,11 @@ function SetDetailPage() {
             </TabsList>
 
             <TabsContent value="members" className="mt-4">
+              <div className="mb-3 flex justify-end">
+                <Button size="sm" variant="outline" onClick={() => setAddingMember(true)}>
+                  <Plus className="mr-1.5 h-3.5 w-3.5" />Add Member
+                </Button>
+              </div>
               {!membersData || membersData.items.length === 0 ? (
                 <p className="text-sm text-zinc-600">No members in this set.</p>
               ) : (
@@ -356,7 +365,7 @@ function SetDetailPage() {
                       <div className="space-y-1">
                         {set.friend_ids.map((sid) => (
                           <div key={sid} className="flex items-center justify-between rounded px-2 py-1 hover:bg-zinc-800/50">
-                            <Link to="/sets/$id" params={{ id: allSets?.items.find((s) => s.id === sid)?.slug ?? sid }} className="text-sm text-zinc-300 hover:text-violet-400">
+                            <Link to="/sets/$id" params={{ id: (allSets?.items ?? []).find((s) => s.id === sid)?.slug ?? sid }} className="text-sm text-zinc-300 hover:text-violet-400">
                               {setName(sid)}
                             </Link>
                             <Button
@@ -380,7 +389,7 @@ function SetDetailPage() {
                       <div className="space-y-1">
                         {set.enemy_ids.map((sid) => (
                           <div key={sid} className="flex items-center justify-between rounded px-2 py-1 hover:bg-zinc-800/50">
-                            <Link to="/sets/$id" params={{ id: allSets?.items.find((s) => s.id === sid)?.slug ?? sid }} className="text-sm text-zinc-300 hover:text-violet-400">
+                            <Link to="/sets/$id" params={{ id: (allSets?.items ?? []).find((s) => s.id === sid)?.slug ?? sid }} className="text-sm text-zinc-300 hover:text-violet-400">
                               {setName(sid)}
                             </Link>
                             <Button
@@ -457,6 +466,26 @@ function SetDetailPage() {
               open={addingRel}
               onClose={() => setAddingRel(false)}
               existingIds={allRelIds}
+            />
+          )}
+
+          {universe && (
+            <AddMemberToSetDialog
+              setId={set.id}
+              setName={set.name}
+              universeId={universe.id}
+              open={addingMember}
+              onClose={() => setAddingMember(false)}
+              onCreateNew={() => { setAddingMember(false); setCreatingMember(true) }}
+            />
+          )}
+
+          {universe && (
+            <MemberFormSheet
+              universeId={universe.id}
+              open={creatingMember}
+              onClose={() => setCreatingMember(false)}
+              defaultSetId={set.id}
             />
           )}
         </>

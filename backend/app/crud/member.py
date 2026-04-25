@@ -7,6 +7,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select
 
 from app.models.member import Member, MemberSource
+from app.models.incident import IncidentParticipant
+from app.models.gang_set import GangSet
 from app.schemas.common import make_cursor, parse_cursor
 from app.schemas.member import MemberCreate, MemberUpdate
 
@@ -249,6 +251,20 @@ async def delete_member(
     obj = await get_member(session, id, universe_id)
     if obj is None:
         return False
+    # Remove incident participations (no cascade on member_id FK)
+    await session.execute(
+        IncidentParticipant.__table__.delete().where(IncidentParticipant.member_id == id)
+    )
+    # Remove source citations (no cascade on member_id FK)
+    await session.execute(
+        MemberSource.__table__.delete().where(MemberSource.member_id == id)
+    )
+    # Null out founder_id on any set this member founded (no cascade on founder_id FK)
+    await session.execute(
+        GangSet.__table__.update().where(GangSet.founder_id == id).values(founder_id=None)
+    )
+    # Detach bilateral family references stored as JSONB on other members
+    await _sync_bilateral_family(session, id, universe_id, obj.family, None)
     await session.delete(obj)
     await session.commit()
     return True

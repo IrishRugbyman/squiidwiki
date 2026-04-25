@@ -60,11 +60,12 @@ interface SetFormProps {
   onClose: () => void
   initial?: SetRead
   onSaved?: (data: SetRead) => void
+  defaultAllianceId?: string
 }
 
 const ALLIANCE_NONE = '__none__'
 
-export function SetFormSheet({ universeId, open, onClose, initial, onSaved }: SetFormProps) {
+export function SetFormSheet({ universeId, open, onClose, initial, onSaved, defaultAllianceId }: SetFormProps) {
   const create = useCreateSet()
   const update = useUpdateSet(initial?.id ?? '')
   const { data: alliancesData } = useAlliances(universeId)
@@ -74,7 +75,7 @@ export function SetFormSheet({ universeId, open, onClose, initial, onSaved }: Se
   const [alias, setAlias] = useState(initial?.alias ?? '')
   const [bio, setBio] = useState(initial?.bio ?? '')
   const [status, setStatus] = useState<SetStatus>(initial?.status ?? 'ACTIVE')
-  const [allianceId, setAllianceId] = useState<string>(initial?.alliance_id ?? ALLIANCE_NONE)
+  const [allianceId, setAllianceId] = useState<string>(initial?.alliance_id ?? defaultAllianceId ?? ALLIANCE_NONE)
   const [error, setError] = useState<string | null>(null)
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {

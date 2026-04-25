@@ -1,11 +1,11 @@
 import { useNavigate } from '@tanstack/react-router'
-import { AlertTriangle, Globe, Network, Plus, Shield, Users } from 'lucide-react'
+import { AlertTriangle, FileText, Globe, MapPin, Network, Plus, Shield, Users } from 'lucide-react'
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '@/lib/api'
 import {
-  useAllianceSearch, useIncidentSearch, useMemberSearch, useSetSearch,
-  useCreateUniverse,
+  useAllianceSearch, useIncidentSearch, useMemberSearch, useMunicipalitySearch,
+  useSetSearch, useSourceSearch, useCreateUniverse,
 } from '@/lib/queries'
 import { useUniverseStore, type Universe } from '@/stores/universe'
 import { useAuthStore } from '@/stores/auth'
@@ -137,13 +137,17 @@ export function GlobalCommandPalette({ open, onClose }: GlobalCommandPaletteProp
   const { data: setResults } = useSetSearch(universeId, q)
   const { data: allianceResults } = useAllianceSearch(universeId, q)
   const { data: incidentResults } = useIncidentSearch(universeId, q)
+  const { data: sourceResults } = useSourceSearch(universeId, q)
+  const { data: municipalityResults } = useMunicipalitySearch(universeId, q)
 
   const searching = q.length >= 2
   const hasResults = searching && (
     (memberResults?.length ?? 0) > 0 ||
     (setResults?.length ?? 0) > 0 ||
     (allianceResults?.length ?? 0) > 0 ||
-    (incidentResults?.length ?? 0) > 0
+    (incidentResults?.length ?? 0) > 0 ||
+    (sourceResults?.length ?? 0) > 0 ||
+    (municipalityResults?.length ?? 0) > 0
   )
 
   function go(path: string) {
@@ -170,7 +174,7 @@ export function GlobalCommandPalette({ open, onClose }: GlobalCommandPaletteProp
         }}
       >
         <CommandInput
-          placeholder={universeId ? 'Search members, sets, alliances, incidents…' : 'Search or switch universe…'}
+          placeholder={universeId ? 'Search members, sets, alliances, incidents, sources, places…' : 'Search or switch universe…'}
           value={q}
           onValueChange={setQ}
         />
@@ -222,6 +226,32 @@ export function GlobalCommandPalette({ open, onClose }: GlobalCommandPaletteProp
                   <span>{inc.type}</span>
                   {inc.date && <span className="ml-1.5 text-[10px] text-zinc-600">{fmtDate(inc.date)}</span>}
                   {inc.verified && <span className="ml-auto text-[10px] text-emerald-600">verified</span>}
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          )}
+
+          {searching && (municipalityResults?.length ?? 0) > 0 && (
+            <CommandGroup heading="Municipalities">
+              {municipalityResults!.slice(0, 5).map((m) => (
+                <CommandItem key={m.id} value={`municipality-${m.id}`} onSelect={() => go(`/municipalities/${m.id}`)}>
+                  <MapPin className="mr-2 h-3.5 w-3.5 shrink-0 text-zinc-500" />
+                  <span>{m.name}</span>
+                  {m.incident_count > 0 && (
+                    <span className="ml-auto text-[10px] text-zinc-600">{m.incident_count} incidents</span>
+                  )}
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          )}
+
+          {searching && (sourceResults?.length ?? 0) > 0 && (
+            <CommandGroup heading="Sources">
+              {sourceResults!.slice(0, 5).map((src) => (
+                <CommandItem key={src.id} value={`source-${src.id}`} onSelect={() => go(`/sources/${src.id}`)}>
+                  <FileText className="mr-2 h-3.5 w-3.5 shrink-0 text-zinc-500" />
+                  <span className="truncate">{src.title}</span>
+                  <span className="ml-auto text-[10px] text-zinc-600">{src.reliability}</span>
                 </CommandItem>
               ))}
             </CommandGroup>

@@ -77,6 +77,8 @@ docker compose down
 
 **Commit style:** recent history uses `feat(frontend): <scope> — <short summary>` for the subject, then a multi-line body describing what changed and why. Follow that shape.
 
+Afer implementing something from ideas.md, check it.
+
 ## Architecture
 
 ### Data Model Hierarchy

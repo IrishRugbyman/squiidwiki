@@ -283,9 +283,10 @@ interface MemberFormProps {
   onClose: () => void
   initial?: MemberRead
   defaultSetId?: string
+  defaultAllianceId?: string
 }
 
-export function MemberFormSheet({ universeId, open, onClose, initial, defaultSetId }: MemberFormProps) {
+export function MemberFormSheet({ universeId, open, onClose, initial, defaultSetId, defaultAllianceId }: MemberFormProps) {
   const create = useCreateMember()
   const update = useUpdateMember(initial?.id ?? '', universeId)
   const isEdit = !!initial
@@ -298,7 +299,7 @@ export function MemberFormSheet({ universeId, open, onClose, initial, defaultSet
   const [nicknameUnknown, setNicknameUnknown] = useState(initial?.nickname_unknown ?? false)
   const [status, setStatus] = useState<MemberStatus>(initial?.status ?? 'UNKNOWN')
   const [setId, setSetId] = useState<string>(initial?.set_id ?? defaultSetId ?? '')
-  const [allianceId, setAllianceId] = useState<string>(initial?.alliance_id ?? '')
+  const [allianceId, setAllianceId] = useState<string>(initial?.alliance_id ?? defaultAllianceId ?? '')
   const [biography, setBiography] = useState(initial?.biography ?? '')
   const [photoUrl, setPhotoUrl] = useState(initial?.photo_url ?? '')
   const [aliases, setAliases] = useState(initial?.aliases?.join(', ') ?? '')

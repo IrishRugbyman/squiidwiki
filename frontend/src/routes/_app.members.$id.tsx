@@ -179,9 +179,9 @@ function MemberDetailPage() {
   const [editing, setEditing] = useState(false)
   const [deleting, setDeleting] = useState(false)
 
-  const setName = (sid: string) => allSets?.items.find((s) => s.id === sid)?.name ?? sid
-  const setSlug = (sid: string) => allSets?.items.find((s) => s.id === sid)?.slug ?? sid
-  const allianceName = (aid: string) => allAlliances?.items.find((a) => a.id === aid)?.name ?? aid
+  const setName = (sid: string) => (allSets?.items ?? []).find((s) => s.id === sid)?.name ?? sid
+  const setSlug = (sid: string) => (allSets?.items ?? []).find((s) => s.id === sid)?.slug ?? sid
+  const allianceName = (aid: string) => (allAlliances?.items ?? []).find((a) => a.id === aid)?.name ?? aid
 
   async function handleDelete() {
     if (!member) return

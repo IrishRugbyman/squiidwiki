@@ -56,14 +56,14 @@ function StatTile({
   return (
     <Link
       to={to}
-      className="group relative overflow-hidden rounded-xl border border-zinc-800 bg-zinc-900/50 p-4 transition-all hover:bg-zinc-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/50"
+      className="group relative overflow-hidden rounded-xl border border-zinc-800 bg-zinc-900/50 p-3 transition-all hover:bg-zinc-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/50"
     >
-      <div className={`mb-3 inline-flex rounded-md bg-zinc-800/80 p-2 transition-colors ${accentClass[accent]}`}>
-        <Icon className="h-4 w-4" />
+      <div className={`mb-1.5 inline-flex rounded-md bg-zinc-800/80 p-1.5 transition-colors ${accentClass[accent]}`}>
+        <Icon className="h-3.5 w-3.5" />
       </div>
-      <p className="text-2xl font-bold tabular-nums text-white">{value ?? '—'}</p>
-      <p className="mt-0.5 text-xs text-zinc-500">{label}</p>
-      <ArrowRight className="absolute right-3 top-3 h-3.5 w-3.5 text-zinc-700 opacity-0 transition-opacity group-hover:opacity-100" />
+      <p className="text-xl font-bold tabular-nums text-white leading-none">{value ?? '—'}</p>
+      <p className="mt-1 text-[11px] text-zinc-500">{label}</p>
+      <ArrowRight className="absolute right-2 top-2 h-3 w-3 text-zinc-700 opacity-0 transition-opacity group-hover:opacity-100" />
     </Link>
   )
 }
@@ -73,14 +73,14 @@ function StatTile({
 function Card({ title, hint, action, children }: { title: string; hint?: string; action?: React.ReactNode; children: React.ReactNode }) {
   return (
     <div className="rounded-xl border border-zinc-800 bg-zinc-900/30">
-      <div className="flex items-center justify-between border-b border-zinc-800 px-4 py-3">
+      <div className="flex items-center justify-between border-b border-zinc-800 px-3 py-1.5">
         <div className="flex items-baseline gap-2">
-          <h2 className="text-xs font-semibold uppercase tracking-wider text-zinc-500">{title}</h2>
+          <h2 className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500">{title}</h2>
           {hint && <span className="text-[10px] text-zinc-600">{hint}</span>}
         </div>
         {action}
       </div>
-      <div className="p-4">{children}</div>
+      <div className="p-3">{children}</div>
     </div>
   )
 }
@@ -100,7 +100,7 @@ function Dashboard() {
 
   if (!universe) return <NoUniverse />
 
-  const recentIncidents = incidentData?.items.slice(0, 6) ?? []
+  const recentIncidents = incidentData?.items.slice(0, 4) ?? []
   const statusEntries = Object.entries(analytics?.member_by_status ?? {})
     .sort((a, b) => MEMBER_STATUS_ORDER.indexOf(a[0] as MemberStatus) - MEMBER_STATUS_ORDER.indexOf(b[0] as MemberStatus))
   const totalMembers = statusEntries.reduce((s, [, n]) => s + n, 0)
@@ -109,15 +109,13 @@ function Dashboard() {
 
   return (
     <TooltipProvider delayDuration={150}>
-      <div className="space-y-6">
+      <div className="space-y-3">
         {/* Universe header */}
-        <div className="flex items-start justify-between">
-          <div>
-            <div className="flex items-center gap-2.5">
-              <Skull className="h-5 w-5 text-violet-500" />
-              <h1 className="text-xl font-bold text-white">{universe.name}</h1>
-            </div>
-            <p className="mt-0.5 pl-7 font-mono text-xs text-zinc-600">/{universe.slug}</p>
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2.5">
+            <Skull className="h-5 w-5 shrink-0 text-violet-500" />
+            <h1 className="text-lg font-bold text-white leading-none">{universe.name}</h1>
+            <span className="font-mono text-[11px] text-zinc-600 leading-none">/{universe.slug}</span>
           </div>
           <Link to="/incidents" className="inline-flex items-center gap-1.5 rounded-md bg-violet-600 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-violet-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400">
             <AlertTriangle className="h-3 w-3" />
@@ -126,7 +124,7 @@ function Dashboard() {
         </div>
 
         {/* Stat cards */}
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
           <StatTile icon={Shield} label="Sets" value={analytics?.total_sets} to="/sets" accent="violet" loading={analyticsLoading} />
           <StatTile icon={Network} label="Alliances" value={analytics?.total_alliances} to="/alliances" accent="blue" loading={analyticsLoading} />
           <StatTile icon={Users} label="Members" value={analytics?.total_members} to="/members" accent="emerald" loading={analyticsLoading} />
@@ -135,10 +133,10 @@ function Dashboard() {
         </div>
 
         {/* Main grid */}
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
 
           {/* Left column */}
-          <div className="space-y-4">
+          <div className="space-y-3">
 
             {/* Member status breakdown */}
             <Card
@@ -281,12 +279,12 @@ function Dashboard() {
           </div>
 
           {/* Right column */}
-          <div className="space-y-4">
+          <div className="space-y-3">
 
             {/* Recent incidents */}
             <Card
               title="Recent Incidents"
-              hint="latest 6"
+              hint="latest 4"
               action={
                 <Link to="/incidents" className="text-xs text-zinc-500 hover:text-violet-400 transition-colors">
                   All incidents →
@@ -392,17 +390,17 @@ function Dashboard() {
 
         {/* Analytics charts row */}
         {analytics && (analytics.incidents_by_month.length > 0 || Object.keys(analytics.source_by_reliability).length > 0) && (
-          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+          <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
             {analytics.incidents_by_month.length > 0 && (
               <Card title="Incidents Over Time" hint="monthly">
-                <Suspense fallback={<Skeleton className="h-40 w-full" />}>
+                <Suspense fallback={<Skeleton className="h-28 w-full" />}>
                   <IncidentsOverTime data={analytics.incidents_by_month} />
                 </Suspense>
               </Card>
             )}
             {Object.keys(analytics.source_by_reliability).length > 0 && (
               <Card title="Source Reliability" hint="by reference count">
-                <Suspense fallback={<Skeleton className="h-40 w-full" />}>
+                <Suspense fallback={<Skeleton className="h-28 w-full" />}>
                   <ReliabilityDonut counts={analytics.source_by_reliability} />
                 </Suspense>
               </Card>

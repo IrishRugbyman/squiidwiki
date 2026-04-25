@@ -73,6 +73,14 @@ export const useSets = (universeId: UUID | null, offset = 0) =>
     enabled: !!universeId,
   })
 
+export const useAllSets = (universeId: UUID | null) =>
+  useQuery({
+    queryKey: ['sets', 'all', universeId],
+    queryFn: () => api.get<OffsetPage<SetListItem>>(`/sets/?universe_id=${universeId}&limit=200`),
+    enabled: !!universeId,
+    staleTime: 30_000,
+  })
+
 export const useSetSearch = (universeId: UUID | null, q: string) =>
   useQuery({
     queryKey: ['sets', 'search', universeId, q],
@@ -91,6 +99,20 @@ export const useIncidentSearch = (universeId: UUID | null, q: string) =>
   useQuery({
     queryKey: ['incidents', 'search', universeId, q],
     queryFn: () => api.get<IncidentListItem[]>(`/incidents/search?universe_id=${universeId}&q=${encodeURIComponent(q)}`),
+    enabled: !!universeId && q.length >= 2,
+  })
+
+export const useSourceSearch = (universeId: UUID | null, q: string) =>
+  useQuery({
+    queryKey: ['sources', 'search', universeId, q],
+    queryFn: () => api.get<SourceListItem[]>(`/sources/search?universe_id=${universeId}&q=${encodeURIComponent(q)}`),
+    enabled: !!universeId && q.length >= 2,
+  })
+
+export const useMunicipalitySearch = (universeId: UUID | null, q: string) =>
+  useQuery({
+    queryKey: ['municipalities', 'search', universeId, q],
+    queryFn: () => api.get<MunicipalityListItem[]>(`/municipalities/search?universe_id=${universeId}&q=${encodeURIComponent(q)}`),
     enabled: !!universeId && q.length >= 2,
   })
 
@@ -282,7 +304,61 @@ export const useCreateMember = () => {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: (body: Record<string, unknown>) => api.post<MemberRead>('/members/', body),
-    onSuccess: (data) => { qc.invalidateQueries({ queryKey: ['members', data.universe_id] }) },
+    onSuccess: (data) => {
+      qc.invalidateQueries({ queryKey: ['members', data.universe_id] })
+      qc.invalidateQueries({ queryKey: ['members'] })
+    },
+  })
+}
+
+export const useReassignMembersToSet = (setId: UUID, universeId: UUID) => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async (memberIds: UUID[]) => {
+      await Promise.all(
+        memberIds.map((id) =>
+          api.patch<MemberRead>(`/members/${id}?universe_id=${universeId}`, { set_id: setId }),
+        ),
+      )
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['members'] })
+      qc.invalidateQueries({ queryKey: ['sets', setId, 'stats'] })
+    },
+  })
+}
+
+export const useReassignMembersToAlliance = (allianceId: UUID, universeId: UUID) => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async (memberIds: UUID[]) => {
+      await Promise.all(
+        memberIds.map((id) =>
+          api.patch<MemberRead>(`/members/${id}?universe_id=${universeId}`, { alliance_id: allianceId }),
+        ),
+      )
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['members'] })
+      qc.invalidateQueries({ queryKey: ['alliances', allianceId] })
+    },
+  })
+}
+
+export const useReassignSetsToAlliance = (allianceId: UUID, universeId: UUID) => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async (setIds: UUID[]) => {
+      await Promise.all(
+        setIds.map((id) =>
+          api.patch<SetRead>(`/sets/${id}?universe_id=${universeId}`, { universe_id: universeId, alliance_id: allianceId }),
+        ),
+      )
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['sets'] })
+      qc.invalidateQueries({ queryKey: ['alliances', allianceId] })
+    },
   })
 }
 

@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
-import { Pencil, Trash2 } from 'lucide-react'
+import { Pencil, Plus, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import { FuzzyDate } from '@/components/FuzzyDate'
 import { AllianceStatusBadge, MemberStatusBadge } from '@/components/StatusBadge'
@@ -15,6 +15,10 @@ import { useAlliance, useSets, useDeleteAlliance, useAllianceMembers, useAllianc
 import { useUniverseStore } from '@/stores/universe'
 import { useAuthStore } from '@/stores/auth'
 import { AllianceFormSheet } from './_app.alliances.index'
+import { SetFormSheet } from './_app.sets.index'
+import { MemberFormSheet } from './_app.members.index'
+import { AddSetToAllianceDialog } from '@/components/AddSetToAllianceDialog'
+import { AddMemberToAllianceDialog } from '@/components/AddMemberToAllianceDialog'
 
 export const Route = createFileRoute('/_app/alliances/$id')({
   component: AllianceDetailPage,
@@ -34,9 +38,13 @@ function AllianceDetailPage() {
 
   const [editing, setEditing] = useState(false)
   const [deleting, setDeleting] = useState(false)
+  const [addingSet, setAddingSet] = useState(false)
+  const [creatingSet, setCreatingSet] = useState(false)
+  const [addingMember, setAddingMember] = useState(false)
+  const [creatingMember, setCreatingMember] = useState(false)
 
-  const setName = (sid: string) => allSets?.items.find((s) => s.id === sid)?.name ?? sid
-  const setSlug = (sid: string) => allSets?.items.find((s) => s.id === sid)?.slug ?? sid
+  const setName = (sid: string) => (allSets?.items ?? []).find((s) => s.id === sid)?.name ?? sid
+  const setSlug = (sid: string) => (allSets?.items ?? []).find((s) => s.id === sid)?.slug ?? sid
 
   async function handleDelete() {
     if (!alliance) return
@@ -115,6 +123,11 @@ function AllianceDetailPage() {
             </TabsList>
 
             <TabsContent value="sets" className="mt-4">
+              <div className="mb-3 flex justify-end">
+                <Button size="sm" variant="outline" onClick={() => setAddingSet(true)}>
+                  <Plus className="mr-1.5 h-3.5 w-3.5" />Add Set
+                </Button>
+              </div>
               {alliance.set_ids.length === 0 ? (
                 <p className="text-sm text-zinc-600">No member sets.</p>
               ) : (
@@ -129,6 +142,11 @@ function AllianceDetailPage() {
             </TabsContent>
 
             <TabsContent value="members" className="mt-4">
+              <div className="mb-3 flex justify-end">
+                <Button size="sm" variant="outline" onClick={() => setAddingMember(true)}>
+                  <Plus className="mr-1.5 h-3.5 w-3.5" />Add Member
+                </Button>
+              </div>
               {!members || members.items.length === 0 ? (
                 <p className="text-sm text-zinc-600">No members in this alliance.</p>
               ) : (
@@ -203,6 +221,39 @@ function AllianceDetailPage() {
                 if (newId !== id) navigate({ to: '/alliances/$id', params: { id: newId } })
               }}
             />
+          )}
+
+          {universe && (
+            <>
+              <AddSetToAllianceDialog
+                allianceId={alliance.id}
+                allianceName={alliance.name}
+                universeId={universe.id}
+                open={addingSet}
+                onClose={() => setAddingSet(false)}
+                onCreateNew={() => { setAddingSet(false); setCreatingSet(true) }}
+              />
+              <SetFormSheet
+                universeId={universe.id}
+                open={creatingSet}
+                onClose={() => setCreatingSet(false)}
+                defaultAllianceId={alliance.id}
+              />
+              <AddMemberToAllianceDialog
+                allianceId={alliance.id}
+                allianceName={alliance.name}
+                universeId={universe.id}
+                open={addingMember}
+                onClose={() => setAddingMember(false)}
+                onCreateNew={() => { setAddingMember(false); setCreatingMember(true) }}
+              />
+              <MemberFormSheet
+                universeId={universe.id}
+                open={creatingMember}
+                onClose={() => setCreatingMember(false)}
+                defaultAllianceId={alliance.id}
+              />
+            </>
           )}
 
           <ConfirmDialog

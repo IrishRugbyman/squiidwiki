@@ -80,6 +80,7 @@ class MemberListItem(BaseModel):
     display_name: str
     status: MemberStatus
     set_id: Optional[uuid.UUID]
+    alliance_id: Optional[uuid.UUID] = None
     universe_id: uuid.UUID
     slug: Optional[str] = None
     photo_url: Optional[str] = None

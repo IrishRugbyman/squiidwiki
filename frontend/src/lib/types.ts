@@ -145,6 +145,7 @@ export interface MemberListItem {
   display_name: string
   status: MemberStatus
   set_id: UUID | null
+  alliance_id: UUID | null
   universe_id: UUID
   slug: string | null
   photo_url: string | null

@@ -212,7 +212,7 @@ function AppLayout() {
   )
 
   return (
-    <div className="flex min-h-screen bg-zinc-950">
+    <div className="flex h-screen overflow-hidden bg-zinc-950">
       {/* Skip-to-main link (accessibility) — visible only when focused */}
       <a
         href="#main-content"
