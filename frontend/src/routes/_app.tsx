@@ -9,6 +9,7 @@ import {
   MapPin,
   Menu,
   Network,
+  NotebookText,
   ScrollText,
   Shield,
   Skull,
@@ -45,6 +46,7 @@ const NAV_ITEMS = [
   { to: '/municipalities', icon: MapPin, label: 'Municipalities' },
   { to: '/map', icon: Map, label: 'Map' },
   { to: '/calendar', icon: CalendarDays, label: 'Calendar' },
+  { to: '/research', icon: NotebookText, label: 'Research' },
 ] as const
 
 const ADMIN_NAV_ITEMS = [
@@ -70,6 +72,12 @@ const SHORTCUT_GROUPS: ShortcutGroup[] = [
   {
     title: 'Navigation',
     items: GO_TO_SHORTCUTS.map((s) => ({ keys: s.keys, desc: `Go to ${s.label}` })),
+  },
+  {
+    title: 'On a detail page',
+    items: [
+      { keys: 'e', desc: 'Edit the current entity' },
+    ],
   },
 ]
 

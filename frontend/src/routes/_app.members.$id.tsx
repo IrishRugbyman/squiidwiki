@@ -1,8 +1,9 @@
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
 import {
-  AlertTriangle, CheckCircle2, ExternalLink, Heart,
-  Pencil, Skull, Trash2,
+  AlertTriangle, CheckCircle2, Copy, ExternalLink, Heart,
+  Pencil, Plus, Skull, Trash2,
 } from 'lucide-react'
+import { FacebookIcon, InstagramIcon, TwitterIcon } from '@/components/icons/SocialIcons'
 import { lazy, Suspense, useState } from 'react'
 import { toast } from 'sonner'
 import { FuzzyDate } from '@/components/FuzzyDate'
@@ -27,6 +28,9 @@ import { useUniverseStore } from '@/stores/universe'
 import { useAuthStore } from '@/stores/auth'
 import { MemberFormSheet, familyDictToEntries, ROLE_LABEL } from './_app.members.index'
 import type { FamilyRole } from './_app.members.index'
+import { useRecordRecent } from '@/stores/recents'
+import { useEditShortcut } from '@/hooks/useKeymap'
+import { IncidentFormSheet } from './_app.incidents.index'
 
 const MemberTimeline = lazy(() =>
   import('@/components/graphs/MemberTimeline').then((m) => ({ default: m.MemberTimeline })),
@@ -47,7 +51,7 @@ function StatPill({ label, value, accent = 'text-white' }: { label: string; valu
   )
 }
 
-function DetailRow({ label, children }: { label: string; children: React.ReactNode }) {
+function DetailRow({ label, children }: { label: React.ReactNode; children: React.ReactNode }) {
   return (
     <div className="flex items-baseline gap-4 border-b border-zinc-800/70 py-2.5 last:border-0">
       <span className="w-32 shrink-0 text-xs text-zinc-500">{label}</span>
@@ -69,6 +73,26 @@ function isValidUrl(url: string): boolean {
     return true
   } catch {
     return false
+  }
+}
+
+const SOCIAL_ICON: Record<string, React.ComponentType<{ className?: string }>> = {
+  facebook: FacebookIcon,
+  instagram: InstagramIcon,
+  twitter: TwitterIcon,
+  x: TwitterIcon,
+}
+
+function socialUrl(platform: string, value: string): string | null {
+  if (value.startsWith('http')) return isValidUrl(value) ? value : null
+  const handle = value.replace(/^@/, '').trim()
+  if (!handle) return null
+  switch (platform.toLowerCase()) {
+    case 'facebook': return `https://facebook.com/${handle}`
+    case 'instagram': return `https://instagram.com/${handle}`
+    case 'twitter':
+    case 'x': return `https://x.com/${handle}`
+    default: return null
   }
 }
 
@@ -174,10 +198,16 @@ function MemberDetailPage() {
   const { data: allAlliances } = useAlliances(universe?.id ?? null)
   const { data: incidents } = useMemberIncidents(id, universe?.id ?? null)
 
+  useRecordRecent(member ? { type: 'member', id: member.id, slug: member.slug, label: member.display_name } : null)
+
   const deleteMember = useDeleteMember(universe?.id ?? '')
 
   const [editing, setEditing] = useState(false)
+  const [duplicating, setDuplicating] = useState(false)
   const [deleting, setDeleting] = useState(false)
+  const [creatingIncident, setCreatingIncident] = useState(false)
+
+  useEditShortcut(() => member && setEditing(true))
 
   const setName = (sid: string) => (allSets?.items ?? []).find((s) => s.id === sid)?.name ?? sid
   const setSlug = (sid: string) => (allSets?.items ?? []).find((s) => s.id === sid)?.slug ?? sid
@@ -269,6 +299,9 @@ function MemberDetailPage() {
               <Button size="sm" variant="outline" onClick={() => setEditing(true)}>
                 <Pencil className="mr-1.5 h-3.5 w-3.5" />Edit
               </Button>
+              <Button size="sm" variant="outline" onClick={() => setDuplicating(true)}>
+                <Copy className="mr-1.5 h-3.5 w-3.5" />Duplicate
+              </Button>
               {user?.global_role === 'ADMIN' && (
                 <Button size="sm" variant="destructive" onClick={() => setDeleting(true)}>
                   <Trash2 className="mr-1.5 h-3.5 w-3.5" />Delete
@@ -357,17 +390,25 @@ function MemberDetailPage() {
                 <div className="rounded-xl border border-zinc-800 bg-zinc-900/30 px-4 py-2">
                   {Object.entries(member.social_media).map(([platform, handle]) => {
                     const raw = String(handle)
-                    const looksLikeUrl = raw.startsWith('http')
-                    const valid = looksLikeUrl && isValidUrl(raw)
-                    const host = valid ? extractHost(raw) : null
+                    const url = socialUrl(platform, raw)
+                    const display = raw.startsWith('http') ? (extractHost(raw) ?? raw) : `@${raw.replace(/^@/, '')}`
+                    const Icon = SOCIAL_ICON[platform.toLowerCase()] ?? null
                     return (
-                      <DetailRow key={platform} label={platform}>
-                        {valid ? (
-                          <a href={raw} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-sky-400 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/50 rounded">
-                            <span>{host ?? raw}</span>
+                      <DetailRow
+                        key={platform}
+                        label={
+                          <span className="inline-flex items-center gap-1.5 capitalize">
+                            {Icon ? <Icon className="h-3.5 w-3.5 text-zinc-500" /> : null}
+                            {platform}
+                          </span>
+                        }
+                      >
+                        {url ? (
+                          <a href={url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-sky-400 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/50 rounded">
+                            <span>{display}</span>
                             <ExternalLink className="h-3 w-3" />
                           </a>
-                        ) : looksLikeUrl ? (
+                        ) : raw.startsWith('http') ? (
                           <Tooltip>
                             <TooltipTrigger asChild>
                               <span className="inline-flex items-center gap-1 text-amber-400">
@@ -407,6 +448,11 @@ function MemberDetailPage() {
 
             {/* Incidents */}
             <TabsContent value="incidents" className="mt-4">
+              <div className="mb-3 flex justify-end">
+                <Button size="sm" variant="outline" onClick={() => setCreatingIncident(true)}>
+                  <Plus className="mr-1.5 h-3.5 w-3.5" />Add Incident
+                </Button>
+              </div>
               {!incidents || incidents.items.length === 0 ? (
                 <p className="py-6 text-sm text-zinc-600">No incidents recorded.</p>
               ) : (
@@ -472,6 +518,18 @@ function MemberDetailPage() {
           {universe && (
             <MemberFormSheet universeId={universe.id} open={editing} onClose={() => setEditing(false)} initial={member} />
           )}
+          {universe && duplicating && (
+            <MemberFormSheet
+              key={`dup-${member.id}`}
+              universeId={universe.id}
+              open={duplicating}
+              onClose={() => setDuplicating(false)}
+              copyFrom={{
+                ...member,
+                nickname: member.nickname ? `${member.nickname} (copy)` : member.nickname,
+              }}
+            />
+          )}
 
           <ConfirmDialog
             open={deleting}
@@ -488,6 +546,23 @@ function MemberDetailPage() {
             onConfirm={handleDelete}
             onCancel={() => setDeleting(false)}
           />
+
+          {universe && creatingIncident && (
+            <IncidentFormSheet
+              key={`new-incident-${member.id}`}
+              universeId={universe.id}
+              open={creatingIncident}
+              onClose={() => setCreatingIncident(false)}
+              defaultParticipants={[
+                {
+                  member_id: member.id,
+                  member_name: member.display_name,
+                  role: 'BYSTANDER',
+                  outcome: 'UNKNOWN',
+                },
+              ]}
+            />
+          )}
         </>
       ) : null}
     </div>

@@ -33,6 +33,7 @@ Ranked roughly by impact. None of these are committed to a timeline.
 - [ ] **Inline biography editing** — replace the sheet-based biography editor with a live markdown preview split-pane (like GitHub's issue editor). `react-markdown` is already in the tree for rendering.
 - [ ] **Bulk CSV import** — drag-and-drop CSV → preview table → confirm workflow for mass-importing members or incidents.
 - [ ] **Member merge** — when duplicate records exist, a merge dialog that picks the canonical record and migrates all incident participations, family links, and source citations.
+- [x] **Member social profiles** — Facebook / Instagram / Twitter inputs in the member form (handle or URL), auto-linked on the detail page with brand glyphs.
 
 ## Admin & Ops
 
@@ -48,22 +49,26 @@ Pattern: a button on entity Y's detail page that opens a picker (existing) **or*
 - [x] **Alliance detail → Add Member** — same picker/create pattern on the members tab.
 - [ ] **Incident detail → Add Participant** — inline picker for member + role + outcome; create-new fallback prefills the sets seen in the incident.
 - [ ] **Incident detail → Add Source** — no sources tab on incident detail today; add the tab with attach-existing / create-new.
-- [ ] **Member detail → Add Incident** — incidents tab is read-only; new incident prefilled with this member as a participant.
+- [x] **Member detail → Add Incident** — incidents tab is read-only; new incident prefilled with this member as a participant.
 - [ ] **Member detail → Add Family relative** — family tab is view-only; mirror the set-relationship dialog.
 - [ ] **Source detail → Attach to incident/member** — reverse-direction linker (sources are only referenced from elsewhere today).
 - [ ] **Municipality detail → Create Set/Incident here** — location prefilled with this municipality.
 
 ## Forms & data-entry shortcuts
 
-- [ ] **Inline status toggle in list tables** — flip member/set/alliance status without opening the full edit sheet (today only the bulk-action bar can change member status).
+- [x] **Inline status toggle in list tables** — flip member/set/alliance status without opening the full edit sheet (today only the bulk-action bar can change member status).
 - [ ] **Auto-suggest participants on incident create** — once location + sets are chosen, suggest members from those sets. The current participant search only matches by name.
 - [ ] **Paste-a-URL → save as Source** — when a URL is pasted into a narrative/bio textarea, prompt "Save as source linked to this entity?".
-- [ ] **Duplicate entity action** (sets and members) — useful when a crew splits or you're tracking aliases.
-- [ ] **Keyboard `e` to edit current entity** — action shortcut to pair with the existing `g`-prefixed navigation.
+- [x] **Duplicate entity action** (sets and members) — useful when a crew splits or you're tracking aliases.
+- [x] **Keyboard `e` to edit current entity** — action shortcut to pair with the existing `g`-prefixed navigation.
+
+## Research / notebook
+
+- [x] **Research notebook** — sidebar tab + per-universe notes (title + freeform text, URLs auto-link). Plain-text MVP; markdown editor is a future upgrade.
 
 ## Smaller polish
 
 - [ ] **Bulk actions for sets / incidents / sources / alliances** — the floating bulk bar exists for members; extend it (multi-select to bulk-link a source, bulk-tag, or bulk-delete with one ConfirmDialog).
-- [ ] **Recently viewed entities at the top of ⌘K** — fast bounce-back during research.
+- [x] **Recently viewed entities at the top of ⌘K** — fast bounce-back during research.
 - [ ] **Map markers → side-sheet preview** — quick-look without leaving the map page.
 - [ ] **Print/export single member profile** — PDF or markdown export for offline sharing.

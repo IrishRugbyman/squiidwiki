@@ -14,6 +14,8 @@ import { useUniverseStore } from '@/stores/universe'
 import { useAuthStore } from '@/stores/auth'
 import { MunicipalityFormSheet } from './_app.municipalities.index'
 import type { MunicipalityListItem } from '@/lib/types'
+import { useRecordRecent } from '@/stores/recents'
+import { useEditShortcut } from '@/hooks/useKeymap'
 
 export const Route = createFileRoute('/_app/municipalities/$id')({
   component: MunicipalityDetailPage,
@@ -29,8 +31,12 @@ function MunicipalityDetailPage() {
   const { data: incidentData, isLoading: incidentsLoading } = useIncidentsByMunicipality(id, universe?.id ?? null)
   const deleteMunicipality = useDeleteMunicipality(universe?.id ?? '')
 
+  useRecordRecent(municipality ? { type: 'municipality', id: municipality.id, slug: null, label: municipality.name } : null)
+
   const [editing, setEditing] = useState(false)
   const [deleting, setDeleting] = useState(false)
+
+  useEditShortcut(() => municipality && setEditing(true))
 
   const allItems = allMunicipalities?.items ?? []
   const parent = municipality?.parent_id

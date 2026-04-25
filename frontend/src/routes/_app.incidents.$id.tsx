@@ -15,6 +15,8 @@ import { useUniverseStore } from '@/stores/universe'
 import { useAuthStore } from '@/stores/auth'
 import { IncidentFormSheet } from './_app.incidents.index'
 import { INCIDENT_TYPE_CHIP, ROLE_CHIP, OUTCOME_CHIP, OUTCOME_LABEL, ROLE_LABEL } from '@/lib/incidentColors'
+import { useRecordRecent } from '@/stores/recents'
+import { useEditShortcut } from '@/hooks/useKeymap'
 
 export const Route = createFileRoute('/_app/incidents/$id')({
   component: IncidentDetailPage,
@@ -33,8 +35,21 @@ function IncidentDetailPage() {
   )
   const deleteIncident = useDeleteIncident(universe?.id ?? '')
 
+  useRecordRecent(
+    incident
+      ? {
+          type: 'incident',
+          id: incident.id,
+          slug: null,
+          label: `${incident.type}${incident.date?.year ? ` · ${incident.date.year}` : ''}`,
+        }
+      : null,
+  )
+
   const [editing, setEditing] = useState(false)
   const [deleting, setDeleting] = useState(false)
+
+  useEditShortcut(() => incident && setEditing(true))
 
   const memberMap = Object.fromEntries((allMembers?.items ?? []).map((m) => [m.id, m]))
   const memberName = (mid: string) => memberMap[mid]?.display_name ?? null

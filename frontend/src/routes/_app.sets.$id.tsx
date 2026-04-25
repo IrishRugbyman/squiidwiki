@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
-import { Pencil, Plus, Swords, Trash2, Users, X } from 'lucide-react'
+import { Copy, Pencil, Plus, Swords, Trash2, Users, X } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import {
@@ -26,6 +26,8 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { SetAvatar, SetFormSheet } from './_app.sets.index'
 import { MemberFormSheet } from './_app.members.index'
 import { AddMemberToSetDialog } from '@/components/AddMemberToSetDialog'
+import { useRecordRecent } from '@/stores/recents'
+import { useEditShortcut } from '@/hooks/useKeymap'
 
 const SetRelationshipGraph = lazy(() =>
   import('@/components/graphs/SetRelationshipGraph').then((m) => ({ default: m.SetRelationshipGraph })),
@@ -154,14 +156,19 @@ function SetDetailPage() {
   const { data: membersData } = useSetMembers(realId, universe?.id ?? null)
   const { data: incidentsData } = useSetIncidents(realId, universe?.id ?? null)
 
+  useRecordRecent(set ? { type: 'set', id: set.id, slug: set.slug, label: set.name } : null)
+
   const deleteSet = useDeleteSet(universe?.id ?? '')
   const removeRel = useRemoveSetRelationship(realId, universe?.id ?? '')
 
   const [editing, setEditing] = useState(false)
+  const [duplicating, setDuplicating] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [addingRel, setAddingRel] = useState(false)
   const [addingMember, setAddingMember] = useState(false)
   const [creatingMember, setCreatingMember] = useState(false)
+
+  useEditShortcut(() => set && setEditing(true))
 
   const setName = (sid: string) => (allSets?.items ?? []).find((s) => s.id === sid)?.name ?? sid
   const alliance = set?.alliance_id
@@ -223,6 +230,9 @@ function SetDetailPage() {
             <div className="flex items-center gap-2">
               <Button size="sm" variant="outline" onClick={() => setEditing(true)}>
                 <Pencil className="mr-1.5 h-3.5 w-3.5" />Edit
+              </Button>
+              <Button size="sm" variant="outline" onClick={() => setDuplicating(true)}>
+                <Copy className="mr-1.5 h-3.5 w-3.5" />Duplicate
               </Button>
               {user?.global_role === 'ADMIN' && (
                 <Button size="sm" variant="destructive" onClick={() => setDeleting(true)}>
@@ -434,6 +444,16 @@ function SetDetailPage() {
               open={editing}
               onClose={() => setEditing(false)}
               initial={set}
+            />
+          )}
+
+          {universe && duplicating && (
+            <SetFormSheet
+              key={`dup-${set.id}`}
+              universeId={universe.id}
+              open={duplicating}
+              onClose={() => setDuplicating(false)}
+              copyFrom={{ ...set, name: `${set.name} (copy)` }}
             />
           )}
 

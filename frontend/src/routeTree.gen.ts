@@ -19,12 +19,14 @@ import { Route as AppCalendarRouteImport } from './routes/_app.calendar'
 import { Route as AppAuditRouteImport } from './routes/_app.audit'
 import { Route as AppSourcesIndexRouteImport } from './routes/_app.sources.index'
 import { Route as AppSetsIndexRouteImport } from './routes/_app.sets.index'
+import { Route as AppResearchIndexRouteImport } from './routes/_app.research.index'
 import { Route as AppMunicipalitiesIndexRouteImport } from './routes/_app.municipalities.index'
 import { Route as AppMembersIndexRouteImport } from './routes/_app.members.index'
 import { Route as AppIncidentsIndexRouteImport } from './routes/_app.incidents.index'
 import { Route as AppAlliancesIndexRouteImport } from './routes/_app.alliances.index'
 import { Route as AppSourcesIdRouteImport } from './routes/_app.sources.$id'
 import { Route as AppSetsIdRouteImport } from './routes/_app.sets.$id'
+import { Route as AppResearchIdRouteImport } from './routes/_app.research.$id'
 import { Route as AppMunicipalitiesIdRouteImport } from './routes/_app.municipalities.$id'
 import { Route as AppMembersIdRouteImport } from './routes/_app.members.$id'
 import { Route as AppIncidentsIdRouteImport } from './routes/_app.incidents.$id'
@@ -80,6 +82,11 @@ const AppSetsIndexRoute = AppSetsIndexRouteImport.update({
   path: '/sets/',
   getParentRoute: () => AppRoute,
 } as any)
+const AppResearchIndexRoute = AppResearchIndexRouteImport.update({
+  id: '/research/',
+  path: '/research/',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppMunicipalitiesIndexRoute = AppMunicipalitiesIndexRouteImport.update({
   id: '/municipalities/',
   path: '/municipalities/',
@@ -108,6 +115,11 @@ const AppSourcesIdRoute = AppSourcesIdRouteImport.update({
 const AppSetsIdRoute = AppSetsIdRouteImport.update({
   id: '/sets/$id',
   path: '/sets/$id',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppResearchIdRoute = AppResearchIdRouteImport.update({
+  id: '/research/$id',
+  path: '/research/$id',
   getParentRoute: () => AppRoute,
 } as any)
 const AppMunicipalitiesIdRoute = AppMunicipalitiesIdRouteImport.update({
@@ -149,12 +161,14 @@ export interface FileRoutesByFullPath {
   '/incidents/$id': typeof AppIncidentsIdRoute
   '/members/$id': typeof AppMembersIdRoute
   '/municipalities/$id': typeof AppMunicipalitiesIdRoute
+  '/research/$id': typeof AppResearchIdRoute
   '/sets/$id': typeof AppSetsIdRoute
   '/sources/$id': typeof AppSourcesIdRoute
   '/alliances/': typeof AppAlliancesIndexRoute
   '/incidents/': typeof AppIncidentsIndexRoute
   '/members/': typeof AppMembersIndexRoute
   '/municipalities/': typeof AppMunicipalitiesIndexRoute
+  '/research/': typeof AppResearchIndexRoute
   '/sets/': typeof AppSetsIndexRoute
   '/sources/': typeof AppSourcesIndexRoute
 }
@@ -171,12 +185,14 @@ export interface FileRoutesByTo {
   '/incidents/$id': typeof AppIncidentsIdRoute
   '/members/$id': typeof AppMembersIdRoute
   '/municipalities/$id': typeof AppMunicipalitiesIdRoute
+  '/research/$id': typeof AppResearchIdRoute
   '/sets/$id': typeof AppSetsIdRoute
   '/sources/$id': typeof AppSourcesIdRoute
   '/alliances': typeof AppAlliancesIndexRoute
   '/incidents': typeof AppIncidentsIndexRoute
   '/members': typeof AppMembersIndexRoute
   '/municipalities': typeof AppMunicipalitiesIndexRoute
+  '/research': typeof AppResearchIndexRoute
   '/sets': typeof AppSetsIndexRoute
   '/sources': typeof AppSourcesIndexRoute
 }
@@ -195,12 +211,14 @@ export interface FileRoutesById {
   '/_app/incidents/$id': typeof AppIncidentsIdRoute
   '/_app/members/$id': typeof AppMembersIdRoute
   '/_app/municipalities/$id': typeof AppMunicipalitiesIdRoute
+  '/_app/research/$id': typeof AppResearchIdRoute
   '/_app/sets/$id': typeof AppSetsIdRoute
   '/_app/sources/$id': typeof AppSourcesIdRoute
   '/_app/alliances/': typeof AppAlliancesIndexRoute
   '/_app/incidents/': typeof AppIncidentsIndexRoute
   '/_app/members/': typeof AppMembersIndexRoute
   '/_app/municipalities/': typeof AppMunicipalitiesIndexRoute
+  '/_app/research/': typeof AppResearchIndexRoute
   '/_app/sets/': typeof AppSetsIndexRoute
   '/_app/sources/': typeof AppSourcesIndexRoute
 }
@@ -219,12 +237,14 @@ export interface FileRouteTypes {
     | '/incidents/$id'
     | '/members/$id'
     | '/municipalities/$id'
+    | '/research/$id'
     | '/sets/$id'
     | '/sources/$id'
     | '/alliances/'
     | '/incidents/'
     | '/members/'
     | '/municipalities/'
+    | '/research/'
     | '/sets/'
     | '/sources/'
   fileRoutesByTo: FileRoutesByTo
@@ -241,12 +261,14 @@ export interface FileRouteTypes {
     | '/incidents/$id'
     | '/members/$id'
     | '/municipalities/$id'
+    | '/research/$id'
     | '/sets/$id'
     | '/sources/$id'
     | '/alliances'
     | '/incidents'
     | '/members'
     | '/municipalities'
+    | '/research'
     | '/sets'
     | '/sources'
   id:
@@ -264,12 +286,14 @@ export interface FileRouteTypes {
     | '/_app/incidents/$id'
     | '/_app/members/$id'
     | '/_app/municipalities/$id'
+    | '/_app/research/$id'
     | '/_app/sets/$id'
     | '/_app/sources/$id'
     | '/_app/alliances/'
     | '/_app/incidents/'
     | '/_app/members/'
     | '/_app/municipalities/'
+    | '/_app/research/'
     | '/_app/sets/'
     | '/_app/sources/'
   fileRoutesById: FileRoutesById
@@ -351,6 +375,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppSetsIndexRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/research/': {
+      id: '/_app/research/'
+      path: '/research'
+      fullPath: '/research/'
+      preLoaderRoute: typeof AppResearchIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/municipalities/': {
       id: '/_app/municipalities/'
       path: '/municipalities'
@@ -391,6 +422,13 @@ declare module '@tanstack/react-router' {
       path: '/sets/$id'
       fullPath: '/sets/$id'
       preLoaderRoute: typeof AppSetsIdRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/research/$id': {
+      id: '/_app/research/$id'
+      path: '/research/$id'
+      fullPath: '/research/$id'
+      preLoaderRoute: typeof AppResearchIdRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/municipalities/$id': {
@@ -443,12 +481,14 @@ interface AppRouteChildren {
   AppIncidentsIdRoute: typeof AppIncidentsIdRoute
   AppMembersIdRoute: typeof AppMembersIdRoute
   AppMunicipalitiesIdRoute: typeof AppMunicipalitiesIdRoute
+  AppResearchIdRoute: typeof AppResearchIdRoute
   AppSetsIdRoute: typeof AppSetsIdRoute
   AppSourcesIdRoute: typeof AppSourcesIdRoute
   AppAlliancesIndexRoute: typeof AppAlliancesIndexRoute
   AppIncidentsIndexRoute: typeof AppIncidentsIndexRoute
   AppMembersIndexRoute: typeof AppMembersIndexRoute
   AppMunicipalitiesIndexRoute: typeof AppMunicipalitiesIndexRoute
+  AppResearchIndexRoute: typeof AppResearchIndexRoute
   AppSetsIndexRoute: typeof AppSetsIndexRoute
   AppSourcesIndexRoute: typeof AppSourcesIndexRoute
 }
@@ -465,12 +505,14 @@ const AppRouteChildren: AppRouteChildren = {
   AppIncidentsIdRoute: AppIncidentsIdRoute,
   AppMembersIdRoute: AppMembersIdRoute,
   AppMunicipalitiesIdRoute: AppMunicipalitiesIdRoute,
+  AppResearchIdRoute: AppResearchIdRoute,
   AppSetsIdRoute: AppSetsIdRoute,
   AppSourcesIdRoute: AppSourcesIdRoute,
   AppAlliancesIndexRoute: AppAlliancesIndexRoute,
   AppIncidentsIndexRoute: AppIncidentsIndexRoute,
   AppMembersIndexRoute: AppMembersIndexRoute,
   AppMunicipalitiesIndexRoute: AppMunicipalitiesIndexRoute,
+  AppResearchIndexRoute: AppResearchIndexRoute,
   AppSetsIndexRoute: AppSetsIndexRoute,
   AppSourcesIndexRoute: AppSourcesIndexRoute,
 }

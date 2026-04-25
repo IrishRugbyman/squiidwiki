@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
 import { Download, Pencil, Plus, Search, UserPlus, Users, X } from 'lucide-react'
+import { FacebookIcon, InstagramIcon, TwitterIcon } from '@/components/icons/SocialIcons'
 import { useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import { NoUniverse } from '@/components/NoUniverse'
@@ -14,11 +15,13 @@ import { FuzzyDateInput } from '@/components/FuzzyDateInput'
 import {
   useCreateMember, useMembers, useMemberSearch, useUpdateMember,
   useSets, useAlliances, useBulkMemberStatus, useMember, useAllMembers,
+  useUpdateMemberStatus,
 } from '@/lib/queries'
 import { useUniverseStore } from '@/stores/universe'
 import { downloadCsv } from '@/lib/download'
 import { useDebounce } from '@/hooks/useDebounce'
 import { MemberRowSkeleton } from '@/components/skeletons'
+import { MemberStatusToggle } from '@/components/StatusToggle'
 import type { MemberListItem, MemberRead, MemberStatus } from '@/lib/types'
 import type { FuzzyDateValue } from '@/components/FuzzyDate'
 
@@ -53,15 +56,6 @@ const STATUS_CHIP_ACTIVE: Record<MemberStatus, string> = {
   UNKNOWN: 'bg-zinc-800 text-zinc-400 border-zinc-600',
   ESCAPEE: 'bg-amber-900/60 text-amber-300 border-amber-700',
   ABSCONDER: 'bg-yellow-900/60 text-yellow-300 border-yellow-700',
-}
-
-const STATUS_BADGE: Record<MemberStatus, string> = {
-  FREE: 'bg-emerald-900/50 text-emerald-300',
-  LOCKED: 'bg-orange-900/50 text-orange-300',
-  DEAD: 'bg-zinc-800 text-zinc-500',
-  UNKNOWN: 'bg-zinc-800/50 text-zinc-500',
-  ESCAPEE: 'bg-amber-900/50 text-amber-300',
-  ABSCONDER: 'bg-yellow-900/50 text-yellow-300',
 }
 
 const ALL_STATUSES: MemberStatus[] = ['FREE', 'LOCKED', 'ESCAPEE', 'ABSCONDER', 'DEAD', 'UNKNOWN']
@@ -284,9 +278,10 @@ interface MemberFormProps {
   initial?: MemberRead
   defaultSetId?: string
   defaultAllianceId?: string
+  copyFrom?: MemberRead
 }
 
-export function MemberFormSheet({ universeId, open, onClose, initial, defaultSetId, defaultAllianceId }: MemberFormProps) {
+export function MemberFormSheet({ universeId, open, onClose, initial, defaultSetId, defaultAllianceId, copyFrom }: MemberFormProps) {
   const create = useCreateMember()
   const update = useUpdateMember(initial?.id ?? '', universeId)
   const isEdit = !!initial
@@ -294,18 +289,27 @@ export function MemberFormSheet({ universeId, open, onClose, initial, defaultSet
   const { data: sets } = useSets(universeId)
   const { data: alliances } = useAlliances(universeId)
 
-  const [nickname, setNickname] = useState(initial?.nickname ?? '')
-  const [legalName, setLegalName] = useState(initial?.legal_name ?? '')
-  const [nicknameUnknown, setNicknameUnknown] = useState(initial?.nickname_unknown ?? false)
-  const [status, setStatus] = useState<MemberStatus>(initial?.status ?? 'UNKNOWN')
-  const [setId, setSetId] = useState<string>(initial?.set_id ?? defaultSetId ?? '')
-  const [allianceId, setAllianceId] = useState<string>(initial?.alliance_id ?? defaultAllianceId ?? '')
-  const [biography, setBiography] = useState(initial?.biography ?? '')
-  const [photoUrl, setPhotoUrl] = useState(initial?.photo_url ?? '')
-  const [aliases, setAliases] = useState(initial?.aliases?.join(', ') ?? '')
-  const [dob, setDob] = useState<FuzzyDateValue | null>(initial?.dob ?? null)
-  const [dateOfDeath, setDateOfDeath] = useState<FuzzyDateValue | null>(initial?.date_of_death ?? null)
-  const [releaseDate, setReleaseDate] = useState<FuzzyDateValue | null>(initial?.release_date ?? null)
+  const [nickname, setNickname] = useState(initial?.nickname ?? copyFrom?.nickname ?? '')
+  const [legalName, setLegalName] = useState(initial?.legal_name ?? copyFrom?.legal_name ?? '')
+  const [nicknameUnknown, setNicknameUnknown] = useState(initial?.nickname_unknown ?? copyFrom?.nickname_unknown ?? false)
+  const [status, setStatus] = useState<MemberStatus>(initial?.status ?? copyFrom?.status ?? 'UNKNOWN')
+  const [setId, setSetId] = useState<string>(initial?.set_id ?? copyFrom?.set_id ?? defaultSetId ?? '')
+  const [allianceId, setAllianceId] = useState<string>(initial?.alliance_id ?? copyFrom?.alliance_id ?? defaultAllianceId ?? '')
+  const [biography, setBiography] = useState(initial?.biography ?? copyFrom?.biography ?? '')
+  const [photoUrl, setPhotoUrl] = useState(initial?.photo_url ?? copyFrom?.photo_url ?? '')
+  const [aliases, setAliases] = useState(initial?.aliases?.join(', ') ?? copyFrom?.aliases?.join(', ') ?? '')
+  const seedSocial = (key: 'facebook' | 'instagram' | 'twitter'): string => {
+    const sm = (initial?.social_media ?? copyFrom?.social_media) as Record<string, string> | null | undefined
+    return sm?.[key] ?? ''
+  }
+  const [facebook, setFacebook] = useState<string>(seedSocial('facebook'))
+  const [instagram, setInstagram] = useState<string>(seedSocial('instagram'))
+  const [twitter, setTwitter] = useState<string>(seedSocial('twitter'))
+  const [dob, setDob] = useState<FuzzyDateValue | null>(initial?.dob ?? copyFrom?.dob ?? null)
+  const [dateOfDeath, setDateOfDeath] = useState<FuzzyDateValue | null>(initial?.date_of_death ?? copyFrom?.date_of_death ?? null)
+  const [releaseDate, setReleaseDate] = useState<FuzzyDateValue | null>(initial?.release_date ?? copyFrom?.release_date ?? null)
+  // Note: family is intentionally NOT copied — entries are bilateral and would create
+  // duplicated reverse links on save. User can re-add family on the new record.
   const [familyEntries, setFamilyEntries] = useState<FamilyEntry[]>(
     () => familyDictToEntries(initial?.family as Record<string, unknown> | null)
   )
@@ -315,6 +319,10 @@ export function MemberFormSheet({ universeId, open, onClose, initial, defaultSet
     e.preventDefault()
     setError(null)
     const aliasList = aliases.split(',').map((s) => s.trim()).filter(Boolean)
+    const social: Record<string, string> = {}
+    if (facebook.trim()) social.facebook = facebook.trim()
+    if (instagram.trim()) social.instagram = instagram.trim()
+    if (twitter.trim()) social.twitter = twitter.trim()
     const body: Record<string, unknown> = {
       universe_id: universeId,
       nickname: nickname || null,
@@ -330,6 +338,7 @@ export function MemberFormSheet({ universeId, open, onClose, initial, defaultSet
       date_of_death: status === 'DEAD' ? dateOfDeath : null,
       release_date: status === 'LOCKED' ? releaseDate : null,
       family: familyEntriesToDict(familyEntries),
+      social_media: Object.keys(social).length > 0 ? social : null,
     }
     const label = nickname || legalName || 'member'
     try {
@@ -371,6 +380,25 @@ export function MemberFormSheet({ universeId, open, onClose, initial, defaultSet
           <div className="space-y-1.5">
             <Label htmlFor="m-photo">Photo URL</Label>
             <Input id="m-photo" type="url" value={photoUrl} onChange={(e) => setPhotoUrl(e.target.value)} placeholder="https://…" />
+          </div>
+
+          {/* Social media */}
+          <div className="space-y-2">
+            <Label>Social media <span className="text-zinc-600 font-normal text-xs">(handle or URL)</span></Label>
+            <div className="space-y-1.5">
+              <div className="flex items-center gap-2">
+                <FacebookIcon className="h-4 w-4 shrink-0 text-zinc-500" />
+                <Input value={facebook} onChange={(e) => setFacebook(e.target.value)} placeholder="username or full URL" aria-label="Facebook" />
+              </div>
+              <div className="flex items-center gap-2">
+                <InstagramIcon className="h-4 w-4 shrink-0 text-zinc-500" />
+                <Input value={instagram} onChange={(e) => setInstagram(e.target.value)} placeholder="username or full URL" aria-label="Instagram" />
+              </div>
+              <div className="flex items-center gap-2">
+                <TwitterIcon className="h-4 w-4 shrink-0 text-zinc-500" />
+                <Input value={twitter} onChange={(e) => setTwitter(e.target.value)} placeholder="username or full URL" aria-label="Twitter / X" />
+              </div>
+            </div>
           </div>
 
           {/* Status */}
@@ -491,6 +519,7 @@ function MembersPage() {
   const [sortKey, setSortKey] = useState<'display_name' | 'status' | null>(null)
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc')
   const bulkUpdate = useBulkMemberStatus(universe?.id ?? '')
+  const statusUpdate = useUpdateMemberStatus(universe?.id ?? '')
 
   const debouncedQ = useDebounce(q, 250)
   const { data, isLoading } = useMembers(universe?.id ?? null, cursor)
@@ -705,10 +734,11 @@ function MembersPage() {
                         ) : <span className="text-xs text-zinc-700">—</span>}
                       </td>
                       <td className="px-3 py-3">
-                        <span className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_BADGE[member.status]}`}>
-                          <span className={`h-1.5 w-1.5 rounded-full ${STATUS_DOT[member.status]}`} />
-                          {member.status}
-                        </span>
+                        <MemberStatusToggle
+                          value={member.status}
+                          pending={statusUpdate.isPending && statusUpdate.variables?.id === member.id}
+                          onChange={(s) => statusUpdate.mutate({ id: member.id, status: s })}
+                        />
                       </td>
                       <td className="px-3 py-3">
                         <button

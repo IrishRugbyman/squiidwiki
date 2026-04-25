@@ -7,6 +7,7 @@ from app.models.alliance import Alliance, AllianceMunicipality, AllianceSet
 from app.models.gang_set import GangSet, SetMunicipality, SetRelationship
 from app.models.member import Member, MemberSource
 from app.models.incident import Incident, IncidentParticipant, IncidentSource
+from app.models.research_note import ResearchNote
 
 __all__ = [
     "User",
@@ -26,4 +27,5 @@ __all__ = [
     "Incident",
     "IncidentParticipant",
     "IncidentSource",
+    "ResearchNote",
 ]

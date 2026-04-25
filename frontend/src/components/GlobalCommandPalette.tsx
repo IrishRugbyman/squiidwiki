@@ -1,5 +1,5 @@
 import { useNavigate } from '@tanstack/react-router'
-import { AlertTriangle, FileText, Globe, MapPin, Network, Plus, Shield, Users } from 'lucide-react'
+import { AlertTriangle, Clock, FileText, Globe, MapPin, Network, NotebookText, Plus, Shield, Users } from 'lucide-react'
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '@/lib/api'
@@ -9,6 +9,7 @@ import {
 } from '@/lib/queries'
 import { useUniverseStore, type Universe } from '@/stores/universe'
 import { useAuthStore } from '@/stores/auth'
+import { useRecentsStore, type RecentEntityType } from '@/stores/recents'
 import {
   CommandDialog,
   CommandEmpty,
@@ -110,6 +111,28 @@ function fmtDate(d: FuzzyDateValue | null): string {
   return `${d.year}/${String(d.month).padStart(2, '0')}/${String(d.day).padStart(2, '0')}`
 }
 
+// ─── Recent-entity icon mapping ───────────────────────────────────────────────
+
+const RECENT_ICON: Record<RecentEntityType, typeof Users> = {
+  member: Users,
+  set: Shield,
+  alliance: Network,
+  incident: AlertTriangle,
+  source: FileText,
+  municipality: MapPin,
+  research: NotebookText,
+}
+
+const RECENT_ROUTE: Record<RecentEntityType, string> = {
+  member: '/members',
+  set: '/sets',
+  alliance: '/alliances',
+  incident: '/incidents',
+  source: '/sources',
+  municipality: '/municipalities',
+  research: '/research',
+}
+
 // ─── Global command palette ───────────────────────────────────────────────────
 
 interface GlobalCommandPaletteProps {
@@ -126,6 +149,7 @@ export function GlobalCommandPalette({ open, onClose }: GlobalCommandPaletteProp
 
   const [q, setQ] = useState('')
   const [creating, setCreating] = useState(false)
+  const recents = useRecentsStore((s) => s.entries)
 
   const { data: universeData } = useQuery({
     queryKey: ['universes'],
@@ -180,6 +204,27 @@ export function GlobalCommandPalette({ open, onClose }: GlobalCommandPaletteProp
         />
         <CommandList>
           {searching && !hasResults && <CommandEmpty>No results for "{q}"</CommandEmpty>}
+
+          {/* Recently viewed — only when no search */}
+          {!searching && recents.length > 0 && (
+            <CommandGroup heading="Recent">
+              {recents.map((r) => {
+                const Icon = RECENT_ICON[r.type]
+                const path = `${RECENT_ROUTE[r.type]}/${r.slug ?? r.id}`
+                return (
+                  <CommandItem
+                    key={`${r.type}-${r.id}`}
+                    value={`recent-${r.type}-${r.id}`}
+                    onSelect={() => go(path)}
+                  >
+                    <Icon className="mr-2 h-3.5 w-3.5 shrink-0 text-zinc-500" />
+                    <span className="truncate">{r.label}</span>
+                    <Clock className="ml-auto h-3 w-3 shrink-0 text-zinc-700" />
+                  </CommandItem>
+                )
+              })}
+            </CommandGroup>
+          )}
 
           {/* Entity search results */}
           {searching && (memberResults?.length ?? 0) > 0 && (

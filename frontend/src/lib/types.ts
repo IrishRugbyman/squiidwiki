@@ -76,6 +76,23 @@ export interface SourceListItem {
   reliability: SourceReliability
 }
 
+// Research notes
+export interface ResearchNoteRead {
+  id: UUID
+  universe_id: UUID
+  title: string
+  content: string
+  created_at: string
+  updated_at: string
+}
+
+export interface ResearchNoteListItem {
+  id: UUID
+  title: string
+  content: string
+  updated_at: string
+}
+
 export interface SourceRead extends SourceListItem {
   universe_id: UUID
   publication: string | null

@@ -18,6 +18,8 @@ import { useSource, useSourceIncidents, useSourceMembers, useDeleteSource } from
 import { useUniverseStore } from '@/stores/universe'
 import { useAuthStore } from '@/stores/auth'
 import { SourceFormSheet } from './_app.sources.index'
+import { useRecordRecent } from '@/stores/recents'
+import { useEditShortcut } from '@/hooks/useKeymap'
 
 export const Route = createFileRoute('/_app/sources/$id')({
   component: SourceDetailPage,
@@ -33,8 +35,12 @@ function SourceDetailPage() {
   const { data: members } = useSourceMembers(id, universe?.id ?? null)
   const deleteSource = useDeleteSource(universe?.id ?? '')
 
+  useRecordRecent(source ? { type: 'source', id: source.id, slug: null, label: source.title } : null)
+
   const [editing, setEditing] = useState(false)
   const [deleting, setDeleting] = useState(false)
+
+  useEditShortcut(() => source && setEditing(true))
 
   async function handleDelete() {
     if (!source) return

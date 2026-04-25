@@ -4,7 +4,7 @@ import { useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import { NoUniverse } from '@/components/NoUniverse'
 import { PageHeader } from '@/components/PageHeader'
-import { SetStatusBadge } from '@/components/StatusBadge'
+import { SetStatusToggle } from '@/components/StatusToggle'
 import { Sheet, SheetContent, SheetClose } from '@/components/Sheet'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -12,7 +12,7 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Textarea } from '@/components/ui/textarea'
-import { useAlliances, useCreateSet, useSet, useSets, useSetSearch, useUpdateSet } from '@/lib/queries'
+import { useAlliances, useCreateSet, useSet, useSets, useSetSearch, useUpdateSet, useUpdateSetStatus } from '@/lib/queries'
 import { useUniverseStore } from '@/stores/universe'
 import { downloadCsv } from '@/lib/download'
 import { useDebounce } from '@/hooks/useDebounce'
@@ -61,21 +61,22 @@ interface SetFormProps {
   initial?: SetRead
   onSaved?: (data: SetRead) => void
   defaultAllianceId?: string
+  copyFrom?: SetRead
 }
 
 const ALLIANCE_NONE = '__none__'
 
-export function SetFormSheet({ universeId, open, onClose, initial, onSaved, defaultAllianceId }: SetFormProps) {
+export function SetFormSheet({ universeId, open, onClose, initial, onSaved, defaultAllianceId, copyFrom }: SetFormProps) {
   const create = useCreateSet()
   const update = useUpdateSet(initial?.id ?? '')
   const { data: alliancesData } = useAlliances(universeId)
   const isEdit = !!initial
 
-  const [name, setName] = useState(initial?.name ?? '')
-  const [alias, setAlias] = useState(initial?.alias ?? '')
-  const [bio, setBio] = useState(initial?.bio ?? '')
-  const [status, setStatus] = useState<SetStatus>(initial?.status ?? 'ACTIVE')
-  const [allianceId, setAllianceId] = useState<string>(initial?.alliance_id ?? defaultAllianceId ?? ALLIANCE_NONE)
+  const [name, setName] = useState(initial?.name ?? copyFrom?.name ?? '')
+  const [alias, setAlias] = useState(initial?.alias ?? copyFrom?.alias ?? '')
+  const [bio, setBio] = useState(initial?.bio ?? copyFrom?.bio ?? '')
+  const [status, setStatus] = useState<SetStatus>(initial?.status ?? copyFrom?.status ?? 'ACTIVE')
+  const [allianceId, setAllianceId] = useState<string>(initial?.alliance_id ?? copyFrom?.alliance_id ?? defaultAllianceId ?? ALLIANCE_NONE)
   const [error, setError] = useState<string | null>(null)
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -254,6 +255,7 @@ function SetsPage() {
   const PAGE = 20
 
   const debouncedQ = useDebounce(q, 250)
+  const statusUpdate = useUpdateSetStatus(universe?.id ?? '')
   const { data, isLoading } = useSets(universe?.id ?? null, offset)
   const { data: searchResults, isLoading: searchLoading } = useSetSearch(universe?.id ?? null, debouncedQ)
   const { data: alliancesData } = useAlliances(universe?.id ?? null)
@@ -427,7 +429,11 @@ function SetsPage() {
 
                       {/* Status */}
                       <td className="px-4 py-3">
-                        <SetStatusBadge status={set.status} />
+                        <SetStatusToggle
+                          value={set.status}
+                          pending={statusUpdate.isPending && statusUpdate.variables?.id === set.id}
+                          onChange={(s) => statusUpdate.mutate({ id: set.id, status: s })}
+                        />
                       </td>
 
                       {/* Quick edit */}

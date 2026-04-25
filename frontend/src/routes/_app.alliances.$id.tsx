@@ -19,6 +19,8 @@ import { SetFormSheet } from './_app.sets.index'
 import { MemberFormSheet } from './_app.members.index'
 import { AddSetToAllianceDialog } from '@/components/AddSetToAllianceDialog'
 import { AddMemberToAllianceDialog } from '@/components/AddMemberToAllianceDialog'
+import { useRecordRecent } from '@/stores/recents'
+import { useEditShortcut } from '@/hooks/useKeymap'
 
 export const Route = createFileRoute('/_app/alliances/$id')({
   component: AllianceDetailPage,
@@ -36,12 +38,16 @@ function AllianceDetailPage() {
   const { data: incidents } = useAllianceIncidents(id, universe?.id ?? null)
   const deleteAlliance = useDeleteAlliance(universe?.id ?? '')
 
+  useRecordRecent(alliance ? { type: 'alliance', id: alliance.id, slug: alliance.slug, label: alliance.name } : null)
+
   const [editing, setEditing] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [addingSet, setAddingSet] = useState(false)
   const [creatingSet, setCreatingSet] = useState(false)
   const [addingMember, setAddingMember] = useState(false)
   const [creatingMember, setCreatingMember] = useState(false)
+
+  useEditShortcut(() => alliance && setEditing(true))
 
   const setName = (sid: string) => (allSets?.items ?? []).find((s) => s.id === sid)?.name ?? sid
   const setSlug = (sid: string) => (allSets?.items ?? []).find((s) => s.id === sid)?.slug ?? sid

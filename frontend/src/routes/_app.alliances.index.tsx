@@ -4,7 +4,7 @@ import { useState, useMemo } from 'react'
 import { toast } from 'sonner'
 import { NoUniverse } from '@/components/NoUniverse'
 import { PageHeader } from '@/components/PageHeader'
-import { AllianceStatusBadge } from '@/components/StatusBadge'
+import { AllianceStatusToggle } from '@/components/StatusToggle'
 import { Sheet, SheetContent, SheetClose } from '@/components/Sheet'
 import { EmptyState } from '@/components/EmptyState'
 import { TableRowSkeleton } from '@/components/skeletons'
@@ -13,7 +13,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
-import { useAlliances, useCreateAlliance, useUpdateAlliance } from '@/lib/queries'
+import { useAlliances, useCreateAlliance, useUpdateAlliance, useUpdateAllianceStatus } from '@/lib/queries'
 import type { AllianceRead, AllianceStatus } from '@/lib/types'
 import { useUniverseStore } from '@/stores/universe'
 import { downloadCsv } from '@/lib/download'
@@ -112,6 +112,7 @@ function AlliancesPage() {
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc')
   const PAGE = 20
 
+  const statusUpdate = useUpdateAllianceStatus(universe?.id ?? '')
   const { data, isLoading } = useAlliances(universe?.id ?? null, offset)
 
   const rawItems = (data?.items ?? []).filter((a) => !q || a.name.toLowerCase().includes(q.toLowerCase()))
@@ -203,7 +204,11 @@ function AlliancesPage() {
                         </Link>
                       </td>
                       <td className="px-4 py-3">
-                        <AllianceStatusBadge status={alliance.status} />
+                        <AllianceStatusToggle
+                          value={alliance.status}
+                          pending={statusUpdate.isPending && statusUpdate.variables?.id === alliance.id}
+                          onChange={(s) => statusUpdate.mutate({ id: alliance.id, status: s })}
+                        />
                       </td>
                     </tr>
                   ))}

@@ -19,6 +19,8 @@ import type {
   MunicipalityListItem,
   MunicipalityRead,
   OffsetPage,
+  ResearchNoteListItem,
+  ResearchNoteRead,
   SetListItem,
   SetRead,
   SetReadDetail,
@@ -390,6 +392,36 @@ export const useBulkMemberStatus = (universeId: UUID) => {
   })
 }
 
+// Single-row status toggles for list tables. Take {id, status} at call time
+// so a list page can use one hook for N rows.
+
+export const useUpdateMemberStatus = (universeId: UUID) => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, status }: { id: UUID; status: string }) =>
+      api.patch<MemberRead>(`/members/${id}?universe_id=${universeId}`, { status }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['members'] }) },
+  })
+}
+
+export const useUpdateSetStatus = (universeId: UUID) => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, status }: { id: UUID; status: string }) =>
+      api.patch<SetRead>(`/sets/${id}?universe_id=${universeId}`, { universe_id: universeId, status }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['sets'] }) },
+  })
+}
+
+export const useUpdateAllianceStatus = (universeId: UUID) => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, status }: { id: UUID; status: string }) =>
+      api.patch<AllianceRead>(`/alliances/${id}?universe_id=${universeId}`, { status }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['alliances'] }) },
+  })
+}
+
 export const useMemberIncidents = (memberId: UUID, universeId: UUID | null) =>
   useQuery({
     queryKey: ['incidents', 'member', memberId],
@@ -570,6 +602,62 @@ export const useDeleteMunicipality = (universeId: UUID) => {
   return useMutation({
     mutationFn: (id: UUID) => api.delete(`/municipalities/${id}?universe_id=${universeId}`),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['municipalities'] }) },
+  })
+}
+
+// ─── Research notes ───────────────────────────────────────────────────────────
+
+export const useResearchNotes = (universeId: UUID | null, offset = 0) =>
+  useQuery({
+    queryKey: ['research', universeId, offset],
+    queryFn: () =>
+      api.get<OffsetPage<ResearchNoteListItem>>(`/research/?universe_id=${universeId}&offset=${offset}`),
+    enabled: !!universeId,
+  })
+
+export const useResearchNote = (id: UUID, universeId: UUID | null) =>
+  useQuery({
+    queryKey: ['research', id],
+    queryFn: () => api.get<ResearchNoteRead>(`/research/${id}?universe_id=${universeId}`),
+    enabled: !!universeId && !!id,
+  })
+
+export const useResearchSearch = (universeId: UUID | null, q: string) =>
+  useQuery({
+    queryKey: ['research', 'search', universeId, q],
+    queryFn: () => api.get<ResearchNoteListItem[]>(`/research/search?universe_id=${universeId}&q=${encodeURIComponent(q)}`),
+    enabled: !!universeId && q.length >= 2,
+  })
+
+export const useCreateResearchNote = () => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (body: { universe_id: UUID; title: string; content: string }) =>
+      api.post<ResearchNoteRead>('/research/', body),
+    onSuccess: (data) => {
+      qc.invalidateQueries({ queryKey: ['research', data.universe_id] })
+      qc.invalidateQueries({ queryKey: ['research'] })
+    },
+  })
+}
+
+export const useUpdateResearchNote = (id: UUID, universeId: UUID) => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (body: { title?: string; content?: string }) =>
+      api.patch<ResearchNoteRead>(`/research/${id}?universe_id=${universeId}`, body),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['research', id] })
+      qc.invalidateQueries({ queryKey: ['research'] })
+    },
+  })
+}
+
+export const useDeleteResearchNote = (universeId: UUID) => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (id: UUID) => api.delete(`/research/${id}?universe_id=${universeId}`),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['research'] }) },
   })
 }
 

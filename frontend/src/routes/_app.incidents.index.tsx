@@ -51,7 +51,7 @@ function TypeChip({ type }: { type: IncidentType }) {
 
 // ─── Participant builder ──────────────────────────────────────────────────────
 
-interface ParticipantDraft {
+export interface ParticipantDraft {
   member_id: UUID
   member_name: string
   role: ParticipantRole
@@ -147,9 +147,10 @@ interface IncidentFormProps {
   open: boolean
   onClose: () => void
   initial?: IncidentReadDetail
+  defaultParticipants?: ParticipantDraft[]
 }
 
-export function IncidentFormSheet({ universeId, open, onClose, initial }: IncidentFormProps) {
+export function IncidentFormSheet({ universeId, open, onClose, initial, defaultParticipants }: IncidentFormProps) {
   const create = useCreateIncident()
   const update = useUpdateIncident(initial?.id ?? '', universeId)
   const isEdit = !!initial
@@ -174,7 +175,7 @@ export function IncidentFormSheet({ universeId, open, onClose, initial }: Incide
       member_name: memberNameMap[p.member_id] ?? p.member_id,
       role: p.role,
       outcome: p.outcome,
-    })) ?? []
+    })) ?? defaultParticipants ?? []
   )
   const [deathPrompts, setDeathPrompts] = useState<DeathDatePrompt[]>([])
   const [error, setError] = useState<string | null>(null)
