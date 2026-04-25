@@ -68,6 +68,27 @@ async def _sync_set_relationships(
         session.add(SetRelationship(set_a_id=a, set_b_id=b, relationship_type=SetRelationshipType.ENEMY))
 
 
+async def _sync_alliance_auto_allies(
+    session: AsyncSession, set_id: uuid.UUID, alliance_id: uuid.UUID
+) -> None:
+    """Create FRIEND relationships between set_id and all other sets in alliance_id."""
+    result = await session.execute(
+        select(GangSet.id).where(GangSet.alliance_id == alliance_id, GangSet.id != set_id)
+    )
+    sibling_ids = result.scalars().all()
+    for sibling_id in sibling_ids:
+        a, b = (set_id, sibling_id) if set_id < sibling_id else (sibling_id, set_id)
+        existing = await session.execute(
+            select(SetRelationship).where(
+                SetRelationship.set_a_id == a, SetRelationship.set_b_id == b
+            )
+        )
+        if existing.scalar_one_or_none() is None:
+            session.add(SetRelationship(
+                set_a_id=a, set_b_id=b, relationship_type=SetRelationshipType.FRIEND
+            ))
+
+
 async def create_gang_set(
     session: AsyncSession, data: SetCreate, actor_id: uuid.UUID
 ) -> GangSet:
@@ -78,6 +99,8 @@ async def create_gang_set(
     await session.flush()
     await _sync_set_municipalities(session, obj.id, data.territory_ids)
     await _sync_set_relationships(session, obj.id, data.friend_ids, data.enemy_ids)
+    if obj.alliance_id:
+        await _sync_alliance_auto_allies(session, obj.id, obj.alliance_id)
     await session.commit()
     await session.refresh(obj)
     return obj
@@ -132,6 +155,8 @@ async def update_gang_set(
         friend_ids = data.friend_ids if data.friend_ids is not None else []
         enemy_ids = data.enemy_ids if data.enemy_ids is not None else []
         await _sync_set_relationships(session, obj.id, friend_ids, enemy_ids)
+    if "alliance_id" in dump and obj.alliance_id:
+        await _sync_alliance_auto_allies(session, obj.id, obj.alliance_id)
     await session.commit()
     await session.refresh(obj)
     return obj

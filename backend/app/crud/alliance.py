@@ -4,8 +4,9 @@ import uuid
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import func, select
 
+from app.core.enums import SetRelationshipType
 from app.models.alliance import Alliance, AllianceMunicipality
-from app.models.gang_set import GangSet
+from app.models.gang_set import GangSet, SetRelationship
 from app.schemas.alliance import AllianceCreate, AllianceUpdate
 
 
@@ -70,6 +71,28 @@ async def _sync_alliance_sets(
         )
 
 
+async def _sync_alliance_friend_relationships(
+    session: AsyncSession, alliance_id: uuid.UUID
+) -> None:
+    """Create FRIEND relationships between all sets in alliance_id (pairwise)."""
+    result = await session.execute(
+        select(GangSet.id).where(GangSet.alliance_id == alliance_id)
+    )
+    set_ids = result.scalars().all()
+    for i, a_id in enumerate(set_ids):
+        for b_id in set_ids[i + 1:]:
+            a, b = (a_id, b_id) if a_id < b_id else (b_id, a_id)
+            existing = await session.execute(
+                select(SetRelationship).where(
+                    SetRelationship.set_a_id == a, SetRelationship.set_b_id == b
+                )
+            )
+            if existing.scalar_one_or_none() is None:
+                session.add(SetRelationship(
+                    set_a_id=a, set_b_id=b, relationship_type=SetRelationshipType.FRIEND
+                ))
+
+
 async def create_alliance(
     session: AsyncSession, data: AllianceCreate, actor_id: uuid.UUID
 ) -> Alliance:
@@ -82,6 +105,8 @@ async def create_alliance(
     await session.flush()
     await _sync_alliance_municipalities(session, obj.id, data.territory_ids)
     await _sync_alliance_sets(session, obj.id, data.set_ids)
+    if data.set_ids:
+        await _sync_alliance_friend_relationships(session, obj.id)
     await session.commit()
     await session.refresh(obj)
     return obj
@@ -137,6 +162,8 @@ async def update_alliance(
         await _sync_alliance_municipalities(session, obj.id, data.territory_ids)
     if data.set_ids is not None:
         await _sync_alliance_sets(session, obj.id, data.set_ids)
+        if data.set_ids:
+            await _sync_alliance_friend_relationships(session, obj.id)
     await session.commit()
     await session.refresh(obj)
     return obj

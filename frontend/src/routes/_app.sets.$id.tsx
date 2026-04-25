@@ -5,7 +5,7 @@ import { toast } from 'sonner'
 import {
   useSet, useSetStats, useSets, useDeleteSet,
   useAddSetRelationship, useRemoveSetRelationship,
-  useSetMembers, useSetIncidents,
+  useSetMembers, useSetIncidents, useAlliances,
 } from '@/lib/queries'
 import { useUniverseStore } from '@/stores/universe'
 import { useAuthStore } from '@/stores/auth'
@@ -148,6 +148,7 @@ function SetDetailPage() {
   const realId = set?.id ?? ''
   const { data: stats } = useSetStats(realId, universe?.id ?? null)
   const { data: allSets } = useSets(universe?.id ?? null)
+  const { data: alliancesData } = useAlliances(universe?.id ?? null)
   const { data: membersData } = useSetMembers(realId, universe?.id ?? null)
   const { data: incidentsData } = useSetIncidents(realId, universe?.id ?? null)
 
@@ -159,8 +160,12 @@ function SetDetailPage() {
   const [addingRel, setAddingRel] = useState(false)
 
   const setName = (sid: string) => allSets?.items.find((s) => s.id === sid)?.name ?? sid
+  const alliance = set?.alliance_id
+    ? (alliancesData?.items ?? []).find((a) => a.id === set.alliance_id) ?? null
+    : null
 
   const allRelIds = set ? [...set.friend_ids, ...set.enemy_ids] : []
+  const hasRelationships = set ? set.friend_ids.length + set.enemy_ids.length > 0 : false
 
   async function handleDelete() {
     if (!set) return
@@ -188,7 +193,7 @@ function SetDetailPage() {
         <DetailHeaderSkeleton />
       ) : set ? (
         <>
-          <div className="mb-6 flex items-start justify-between gap-4">
+          <div className="mb-4 flex items-start justify-between gap-4">
             <div className="flex items-start gap-4">
               <SetAvatar name={set.name} size="md" />
               <div>
@@ -197,7 +202,18 @@ function SetDetailPage() {
                   <CopyButton value={window.location.href} label="Copy link to this set" className="opacity-60 hover:opacity-100" />
                 </div>
                 {set.alias && <p className="text-sm text-zinc-400">a/k/a {set.alias}</p>}
-                <div className="mt-2"><SetStatusBadge status={set.status} /></div>
+                <div className="mt-2 flex flex-wrap items-center gap-2">
+                  <SetStatusBadge status={set.status} />
+                  {alliance && (
+                    <Link
+                      to="/alliances/$id"
+                      params={{ id: alliance.slug ?? alliance.id }}
+                      className="inline-flex items-center gap-1 rounded-full border border-violet-700/50 bg-violet-950/30 px-2 py-0.5 text-xs font-medium text-violet-300 hover:text-violet-200 transition-colors"
+                    >
+                      {alliance.name}
+                    </Link>
+                  )}
+                </div>
               </div>
             </div>
             <div className="flex items-center gap-2">
@@ -212,6 +228,10 @@ function SetDetailPage() {
             </div>
           </div>
 
+          {set.bio && (
+            <p className="mb-4 text-sm text-zinc-400 leading-relaxed max-w-2xl">{set.bio}</p>
+          )}
+
           {stats && (
             <div className="mb-6 grid grid-cols-5 gap-2">
               <StatPill label="Members" value={stats.member_count} />
@@ -222,9 +242,8 @@ function SetDetailPage() {
             </div>
           )}
 
-          <Tabs defaultValue="overview">
+          <Tabs defaultValue="members">
             <TabsList>
-              <TabsTrigger value="overview">Overview</TabsTrigger>
               <TabsTrigger value="members">
                 Members
                 {membersData && membersData.items.length > 0 && (
@@ -239,24 +258,13 @@ function SetDetailPage() {
               </TabsTrigger>
               <TabsTrigger value="relationships">
                 Relationships
-                {set.friend_ids.length + set.enemy_ids.length > 0 && (
+                {hasRelationships && (
                   <Badge variant="secondary" className="ml-1.5 text-xs px-1.5 py-0">
                     {set.friend_ids.length + set.enemy_ids.length}
                   </Badge>
                 )}
               </TabsTrigger>
-              {set.friend_ids.length + set.enemy_ids.length > 0 && (
-                <TabsTrigger value="network">Network</TabsTrigger>
-              )}
             </TabsList>
-
-            <TabsContent value="overview" className="mt-4">
-              {set.bio ? (
-                <p className="text-sm text-zinc-300 leading-relaxed">{set.bio}</p>
-              ) : (
-                <p className="text-sm text-zinc-600">No biography recorded.</p>
-              )}
-            </TabsContent>
 
             <TabsContent value="members" className="mt-4">
               {!membersData || membersData.items.length === 0 ? (
@@ -336,7 +344,7 @@ function SetDetailPage() {
                   <Plus className="mr-1.5 h-3.5 w-3.5" />Add Relationship
                 </Button>
               </div>
-              {set.friend_ids.length === 0 && set.enemy_ids.length === 0 ? (
+              {!hasRelationships ? (
                 <p className="text-sm text-zinc-600">No relationships recorded.</p>
               ) : (
                 <div className="space-y-4">
@@ -388,25 +396,26 @@ function SetDetailPage() {
                       </div>
                     </div>
                   )}
+
+                  <div className="pt-2 border-t border-zinc-800">
+                    <p className="mb-3 text-xs font-semibold text-zinc-500 uppercase tracking-wider">Network</p>
+                    <Suspense fallback={<Skeleton className="h-[420px] w-full" />}>
+                      <SetRelationshipGraph
+                        input={{
+                          centerSetId: set.id,
+                          centerSetName: set.name,
+                          friendIds: set.friend_ids,
+                          enemyIds: set.enemy_ids,
+                          sets: allSets?.items ?? [],
+                        }}
+                      />
+                    </Suspense>
+                    <p className="mt-2 text-center text-[11px] text-zinc-600">
+                      Click a set to open it. Pan with drag, zoom with the controls.
+                    </p>
+                  </div>
                 </div>
               )}
-            </TabsContent>
-
-            <TabsContent value="network" className="mt-4">
-              <Suspense fallback={<Skeleton className="h-[420px] w-full" />}>
-                <SetRelationshipGraph
-                  input={{
-                    centerSetId: set.id,
-                    centerSetName: set.name,
-                    friendIds: set.friend_ids,
-                    enemyIds: set.enemy_ids,
-                    sets: allSets?.items ?? [],
-                  }}
-                />
-              </Suspense>
-              <p className="mt-2 text-center text-[11px] text-zinc-600">
-                Click a set to open it. Pan with drag, zoom with the controls.
-              </p>
             </TabsContent>
           </Tabs>
 
