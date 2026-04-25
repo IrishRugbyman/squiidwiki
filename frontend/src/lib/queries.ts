@@ -347,19 +347,26 @@ export const useReassignMembersToAlliance = (allianceId: UUID, universeId: UUID)
   })
 }
 
+/**
+ * Atomically attach one or more sets to an alliance by PATCHing the alliance
+ * with the merged set_ids. This routes through `_sync_alliance_friend_relationships`
+ * server-side so all pairwise FRIENDs are created in a single transaction —
+ * avoids the race that occurs when issuing N parallel /sets PATCHes.
+ */
 export const useReassignSetsToAlliance = (allianceId: UUID, universeId: UUID) => {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: async (setIds: UUID[]) => {
-      await Promise.all(
-        setIds.map((id) =>
-          api.patch<SetRead>(`/sets/${id}?universe_id=${universeId}`, { universe_id: universeId, alliance_id: allianceId }),
-        ),
-      )
+    mutationFn: async ({ currentSetIds, newSetIds }: { currentSetIds: UUID[]; newSetIds: UUID[] }) => {
+      const merged = Array.from(new Set([...currentSetIds, ...newSetIds]))
+      await api.patch(`/alliances/${allianceId}?universe_id=${universeId}`, {
+        universe_id: universeId,
+        set_ids: merged,
+      })
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['sets'] })
       qc.invalidateQueries({ queryKey: ['alliances', allianceId] })
+      qc.invalidateQueries({ queryKey: ['alliances'] })
     },
   })
 }

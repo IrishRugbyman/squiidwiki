@@ -9,13 +9,16 @@ interface AddSetToAllianceDialogProps {
   allianceId: string
   allianceName: string
   universeId: string
+  /** Set ids already attached to this alliance — merged with the user's selection
+   *  to PATCH the alliance with the full new list (atomic pairwise FRIEND sync). */
+  currentSetIds: string[]
   open: boolean
   onClose: () => void
   onCreateNew: () => void
 }
 
 export function AddSetToAllianceDialog({
-  allianceId, allianceName, universeId, open, onClose, onCreateNew,
+  allianceId, allianceName, universeId, currentSetIds, open, onClose, onCreateNew,
 }: AddSetToAllianceDialogProps) {
   const { data: allSets, isLoading } = useAllSets(universeId)
   const reassign = useReassignSetsToAlliance(allianceId, universeId)
@@ -42,7 +45,7 @@ export function AddSetToAllianceDialog({
 
   async function handleSubmit() {
     if (selected.size === 0) return
-    await reassign.mutateAsync(Array.from(selected))
+    await reassign.mutateAsync({ currentSetIds, newSetIds: Array.from(selected) })
     handleClose()
   }
 

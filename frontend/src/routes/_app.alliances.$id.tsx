@@ -375,6 +375,7 @@ function AllianceDetailPage() {
                 allianceId={alliance.id}
                 allianceName={alliance.name}
                 universeId={universe.id}
+                currentSetIds={setIds}
                 open={addingSet}
                 onClose={() => setAddingSet(false)}
                 onCreateNew={() => { setAddingSet(false); setCreatingSet(true) }}
