@@ -107,6 +107,20 @@ function initials(name: string) {
   return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
 }
 
+// ─── Form section ─────────────────────────────────────────────────────────────
+
+function FormSection({ title, hint, children }: { title: string; hint?: string; children: React.ReactNode }) {
+  return (
+    <section className="space-y-2 py-3 first:pt-0 last:pb-0">
+      <div className="flex items-baseline justify-between">
+        <h3 className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500">{title}</h3>
+        {hint && <span className="text-[11px] text-zinc-600">{hint}</span>}
+      </div>
+      <div className="space-y-2">{children}</div>
+    </section>
+  )
+}
+
 // ─── Avatar ───────────────────────────────────────────────────────────────────
 
 export function MemberAvatar({ member }: { member: MemberListItem }) {
@@ -184,9 +198,9 @@ function FamilyEditor({
   })).filter((g) => g.entries.length > 0)
 
   return (
-    <div className="space-y-3">
-      {/* Current entries */}
-      {groupedEntries.length > 0 && (
+    <div className="space-y-2">
+      {/* Current entries — or a placeholder when empty */}
+      {groupedEntries.length > 0 ? (
         <div className="rounded-lg border border-zinc-800 bg-zinc-900/30 p-3 space-y-2">
           {groupedEntries.map(({ role, entries: grp }) => (
             <div key={role} className="flex flex-wrap items-center gap-1.5">
@@ -211,59 +225,65 @@ function FamilyEditor({
             </div>
           ))}
         </div>
+      ) : (
+        <p className="text-xs italic text-zinc-600">No family members added yet.</p>
       )}
 
       {/* Add new entry */}
-      <div className="flex gap-1.5">
-        <Select value={newRole} onValueChange={(v) => setNewRole(v as FamilyRole)}>
-          <SelectTrigger className="h-8 w-24 text-xs">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {FAMILY_ROLES.map((r) => (
-              <SelectItem key={r} value={r} className="text-xs">{ROLE_LABEL[r]}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-
-        <div className="relative flex-1">
-          <Input
-            className="h-8 text-xs"
-            placeholder={selectedMember ? selectedMember.display_name : 'Search member…'}
-            value={memberSearch}
-            onChange={(e) => {
-              setMemberSearch(e.target.value)
-              setNewMemberId('')
-              setShowDropdown(true)
-            }}
-            onFocus={() => setShowDropdown(true)}
-            onBlur={() => setTimeout(() => setShowDropdown(false), 150)}
-          />
-          {showDropdown && filteredMembers.length > 0 && (
-            <div className="absolute left-0 right-0 top-full z-50 mt-1 rounded-md border border-zinc-700 bg-zinc-900 shadow-xl">
-              {filteredMembers.map((m) => (
-                <button
-                  key={m.id}
-                  type="button"
-                  className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs hover:bg-zinc-800"
-                  onMouseDown={() => {
-                    setNewMemberId(m.id)
-                    setMemberSearch(m.display_name)
-                    setShowDropdown(false)
-                  }}
-                >
-                  <span className={`h-1.5 w-1.5 rounded-full ${STATUS_DOT[m.status]}`} />
-                  <span className="text-zinc-200">{m.display_name}</span>
-                  <span className="ml-auto text-zinc-600 text-[10px]">{m.status}</span>
-                </button>
+      <div>
+        <p className="mb-1 text-[11px] text-zinc-500">Add family member</p>
+        <div className="flex gap-1.5">
+          <Select value={newRole} onValueChange={(v) => setNewRole(v as FamilyRole)}>
+            <SelectTrigger className="h-9 w-28 text-xs">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {FAMILY_ROLES.map((r) => (
+                <SelectItem key={r} value={r} className="text-xs">{ROLE_LABEL[r]}</SelectItem>
               ))}
-            </div>
-          )}
-        </div>
+            </SelectContent>
+          </Select>
 
-        <Button type="button" size="sm" className="h-8 px-2.5" onClick={addEntry} disabled={!newMemberId}>
-          <UserPlus className="h-3.5 w-3.5" />
-        </Button>
+          <div className="relative flex-1">
+            <Input
+              className="h-9 text-xs"
+              placeholder={selectedMember ? selectedMember.display_name : 'Search member by name…'}
+              value={memberSearch}
+              onChange={(e) => {
+                setMemberSearch(e.target.value)
+                setNewMemberId('')
+                setShowDropdown(true)
+              }}
+              onFocus={() => setShowDropdown(true)}
+              onBlur={() => setTimeout(() => setShowDropdown(false), 150)}
+            />
+            {showDropdown && filteredMembers.length > 0 && (
+              <div className="absolute left-0 right-0 top-full z-50 mt-1 rounded-md border border-zinc-700 bg-zinc-900 shadow-xl">
+                {filteredMembers.map((m) => (
+                  <button
+                    key={m.id}
+                    type="button"
+                    className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs hover:bg-zinc-800"
+                    onMouseDown={() => {
+                      setNewMemberId(m.id)
+                      setMemberSearch(m.display_name)
+                      setShowDropdown(false)
+                    }}
+                  >
+                    <span className={`h-1.5 w-1.5 rounded-full ${STATUS_DOT[m.status]}`} />
+                    <span className="text-zinc-200">{m.display_name}</span>
+                    <span className="ml-auto text-zinc-600 text-[10px]">{m.status}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <Button type="button" size="sm" className="h-9" onClick={addEntry} disabled={!newMemberId}>
+            <UserPlus className="mr-1 h-3.5 w-3.5" />
+            Add
+          </Button>
+        </div>
       </div>
     </div>
   )
@@ -315,9 +335,18 @@ export function MemberFormSheet({ universeId, open, onClose, initial, defaultSet
   )
   const [error, setError] = useState<string | null>(null)
 
+  const displayPreview = (nicknameUnknown || !nickname.trim()) ? legalName.trim() : nickname.trim()
+  const identityValid = displayPreview.length > 0
+
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     setError(null)
+    if (!identityValid) {
+      setError(nicknameUnknown
+        ? 'Provide a legal name (nickname is marked unknown).'
+        : 'Provide a nickname or legal name.')
+      return
+    }
     const aliasList = aliases.split(',').map((s) => s.trim()).filter(Boolean)
     const social: Record<string, string> = {}
     if (facebook.trim()) social.facebook = facebook.trim()
@@ -356,119 +385,143 @@ export function MemberFormSheet({ universeId, open, onClose, initial, defaultSet
   return (
     <Sheet open={open} onOpenChange={(v) => !v && onClose()}>
       <SheetContent
+        width="2xl"
         title={isEdit ? 'Edit Member' : 'Add Member'}
         description={isEdit ? 'Update this member' : 'Create a new member profile'}
       >
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Identity */}
-          <div className="space-y-1.5">
-            <Label htmlFor="m-nickname">Nickname</Label>
-            <Input id="m-nickname" value={nickname} onChange={(e) => setNickname(e.target.value)} placeholder="Street name" disabled={nicknameUnknown} />
-          </div>
-          <div className="flex items-center gap-2">
-            <input id="m-nku" type="checkbox" checked={nicknameUnknown} onChange={(e) => setNicknameUnknown(e.target.checked)} className="rounded border-zinc-700 bg-zinc-900 accent-violet-600" />
-            <label htmlFor="m-nku" className="text-sm text-zinc-300">Nickname unknown — use legal name as display</label>
-          </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="m-legal">Legal Name</Label>
-            <Input id="m-legal" value={legalName} onChange={(e) => setLegalName(e.target.value)} placeholder="Full legal name" />
-          </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="m-aliases">Aliases <span className="text-zinc-600">(comma-separated)</span></Label>
-            <Input id="m-aliases" value={aliases} onChange={(e) => setAliases(e.target.value)} placeholder="e.g. Big L, Lucky" />
-          </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="m-photo">Photo URL</Label>
-            <Input id="m-photo" type="url" value={photoUrl} onChange={(e) => setPhotoUrl(e.target.value)} placeholder="https://…" />
-          </div>
+        <form onSubmit={handleSubmit} className="divide-y divide-zinc-800/60">
+          <FormSection title="Identity">
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="m-nickname">Nickname</Label>
+                  <label htmlFor="m-nku" className="flex cursor-pointer items-center gap-1.5 text-[11px] text-zinc-500 hover:text-zinc-300">
+                    <input
+                      id="m-nku"
+                      type="checkbox"
+                      checked={nicknameUnknown}
+                      onChange={(e) => setNicknameUnknown(e.target.checked)}
+                      className="h-3.5 w-3.5 rounded border-zinc-700 bg-zinc-900 accent-violet-600"
+                    />
+                    unknown
+                  </label>
+                </div>
+                <Input id="m-nickname" value={nickname} onChange={(e) => setNickname(e.target.value)} placeholder="Street name" disabled={nicknameUnknown} />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="m-legal">Legal Name</Label>
+                <Input id="m-legal" value={legalName} onChange={(e) => setLegalName(e.target.value)} placeholder="Full legal name" />
+              </div>
+            </div>
+            <p className="text-xs text-zinc-500">
+              Will display as:{' '}
+              {identityValid
+                ? <span className="font-medium text-zinc-200">{displayPreview}</span>
+                : <span className="italic text-zinc-600">— need a nickname or legal name —</span>}
+            </p>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="space-y-1.5">
+                <Label htmlFor="m-aliases">Aliases <span className="text-zinc-600">(comma-separated)</span></Label>
+                <Input id="m-aliases" value={aliases} onChange={(e) => setAliases(e.target.value)} placeholder="e.g. Big L, Lucky" />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="m-photo">Photo URL</Label>
+                <Input id="m-photo" type="url" value={photoUrl} onChange={(e) => setPhotoUrl(e.target.value)} placeholder="https://…" />
+              </div>
+            </div>
+          </FormSection>
 
-          {/* Social media */}
-          <div className="space-y-2">
-            <Label>Social media <span className="text-zinc-600 font-normal text-xs">(handle or URL)</span></Label>
-            <div className="space-y-1.5">
+          <FormSection title="Status & Affiliation">
+            <div className="grid gap-3 sm:grid-cols-3">
+              <div className="space-y-1.5">
+                <Label>Status</Label>
+                <Select value={status} onValueChange={(v) => setStatus(v as MemberStatus)}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {ALL_STATUSES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label>Set</Label>
+                <Select value={setId || 'none'} onValueChange={(v) => setSetId(v === 'none' ? '' : v)}>
+                  <SelectTrigger><SelectValue placeholder="None" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">— None —</SelectItem>
+                    {(sets?.items ?? []).map((s) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label>Alliance</Label>
+                <Select value={allianceId || 'none'} onValueChange={(v) => setAllianceId(v === 'none' ? '' : v)}>
+                  <SelectTrigger><SelectValue placeholder="None" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">— None —</SelectItem>
+                    {(alliances?.items ?? []).map((a) => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            {status === 'DEAD' && (
+              <div className="rounded-lg border border-zinc-800 bg-zinc-900/50 p-3">
+                <FuzzyDateInput value={dateOfDeath} onChange={setDateOfDeath} label="Date of death" idPrefix="dod" />
+              </div>
+            )}
+            {status === 'LOCKED' && (
+              <div className="rounded-lg border border-zinc-800 bg-zinc-900/50 p-3">
+                <FuzzyDateInput value={releaseDate} onChange={setReleaseDate} label="Expected release date" idPrefix="rel" />
+              </div>
+            )}
+          </FormSection>
+
+          <FormSection title="Dates">
+            <div className="rounded-lg border border-zinc-800 bg-zinc-900/50 p-3">
+              <FuzzyDateInput value={dob} onChange={setDob} label="Date of birth" idPrefix="dob" />
+            </div>
+          </FormSection>
+
+          <FormSection title="Social media" hint="handle or URL">
+            <div className="grid gap-3 sm:grid-cols-3">
               <div className="flex items-center gap-2">
                 <FacebookIcon className="h-4 w-4 shrink-0 text-zinc-500" />
-                <Input value={facebook} onChange={(e) => setFacebook(e.target.value)} placeholder="username or full URL" aria-label="Facebook" />
+                <Input value={facebook} onChange={(e) => setFacebook(e.target.value)} placeholder="Facebook" aria-label="Facebook" />
               </div>
               <div className="flex items-center gap-2">
                 <InstagramIcon className="h-4 w-4 shrink-0 text-zinc-500" />
-                <Input value={instagram} onChange={(e) => setInstagram(e.target.value)} placeholder="username or full URL" aria-label="Instagram" />
+                <Input value={instagram} onChange={(e) => setInstagram(e.target.value)} placeholder="Instagram" aria-label="Instagram" />
               </div>
               <div className="flex items-center gap-2">
                 <TwitterIcon className="h-4 w-4 shrink-0 text-zinc-500" />
-                <Input value={twitter} onChange={(e) => setTwitter(e.target.value)} placeholder="username or full URL" aria-label="Twitter / X" />
+                <Input value={twitter} onChange={(e) => setTwitter(e.target.value)} placeholder="Twitter / X" aria-label="Twitter / X" />
               </div>
             </div>
-          </div>
+          </FormSection>
 
-          {/* Status */}
-          <div className="space-y-1.5">
-            <Label>Status</Label>
-            <Select value={status} onValueChange={(v) => setStatus(v as MemberStatus)}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                {ALL_STATUSES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
-              </SelectContent>
-            </Select>
-          </div>
-          {status === 'DEAD' && (
-            <div className="rounded-lg border border-zinc-800 bg-zinc-900/50 p-3">
-              <FuzzyDateInput value={dateOfDeath} onChange={setDateOfDeath} label="Date of death" idPrefix="dod" />
-            </div>
-          )}
-          {status === 'LOCKED' && (
-            <div className="rounded-lg border border-zinc-800 bg-zinc-900/50 p-3">
-              <FuzzyDateInput value={releaseDate} onChange={setReleaseDate} label="Expected release date" idPrefix="rel" />
-            </div>
-          )}
-
-          {/* Affiliation */}
-          <div className="space-y-1.5">
-            <Label>Set</Label>
-            <Select value={setId || 'none'} onValueChange={(v) => setSetId(v === 'none' ? '' : v)}>
-              <SelectTrigger><SelectValue placeholder="None" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">— None —</SelectItem>
-                {(sets?.items ?? []).map((s) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-1.5">
-            <Label>Alliance</Label>
-            <Select value={allianceId || 'none'} onValueChange={(v) => setAllianceId(v === 'none' ? '' : v)}>
-              <SelectTrigger><SelectValue placeholder="None" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">— None —</SelectItem>
-                {(alliances?.items ?? []).map((a) => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Dates */}
-          <div className="rounded-lg border border-zinc-800 bg-zinc-900/50 p-3">
-            <FuzzyDateInput value={dob} onChange={setDob} label="Date of birth" idPrefix="dob" />
-          </div>
-
-          {/* Family */}
-          <div className="space-y-1.5">
-            <Label>Family <span className="text-zinc-600 font-normal text-xs">(bilateral — inverse links auto-saved)</span></Label>
+          <FormSection title="Family" hint="bilateral — inverse links auto-saved">
             <FamilyEditor
               entries={familyEntries}
               onChange={setFamilyEntries}
               universeId={universeId}
               excludeMemberId={initial?.id}
             />
-          </div>
+          </FormSection>
 
-          {/* Biography */}
-          <div className="space-y-1.5">
-            <Label htmlFor="m-bio">Biography</Label>
-            <Textarea id="m-bio" rows={4} value={biography} onChange={(e) => setBiography(e.target.value)} placeholder="Background notes…" />
-          </div>
+          <FormSection title="Biography">
+            <div className="space-y-1.5">
+              <Label htmlFor="m-bio" className="sr-only">Biography</Label>
+              <Textarea id="m-bio" rows={4} value={biography} onChange={(e) => setBiography(e.target.value)} placeholder="Background notes…" />
+            </div>
+          </FormSection>
 
-          {error && <p className="text-sm text-red-400">{error}</p>}
-          <div className="flex gap-2 pt-2">
-            <Button type="submit" disabled={isPending} className="flex-1">
+          {error && <p className="pt-4 text-sm text-red-400">{error}</p>}
+          <div className="flex gap-2 pt-5">
+            <Button
+              type="submit"
+              disabled={isPending || !identityValid}
+              title={!identityValid ? 'Provide a nickname or legal name' : undefined}
+              className="flex-1"
+            >
               {isPending ? 'Saving…' : isEdit ? 'Save Changes' : 'Create Member'}
             </Button>
             <SheetClose asChild>
