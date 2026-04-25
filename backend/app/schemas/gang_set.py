@@ -10,7 +10,7 @@ from app.core.enums import SetRelationshipType, SetStatus
 class SetCreate(BaseModel):
     universe_id: uuid.UUID
     name: str
-    alias: Optional[str] = None
+    aliases: Optional[list[str]] = None
     bio: Optional[str] = None
     status: SetStatus = SetStatus.ACTIVE
     alliance_id: Optional[uuid.UUID] = None
@@ -22,7 +22,7 @@ class SetCreate(BaseModel):
 
 class SetUpdate(BaseModel):
     name: Optional[str] = None
-    alias: Optional[str] = None
+    aliases: Optional[list[str]] = None
     bio: Optional[str] = None
     status: Optional[SetStatus] = None
     alliance_id: Optional[uuid.UUID] = None
@@ -39,7 +39,7 @@ class SetRead(BaseModel):
     universe_id: uuid.UUID
     name: str
     slug: Optional[str]
-    alias: Optional[str]
+    aliases: Optional[list[str]]
     bio: Optional[str]
     status: SetStatus
     alliance_id: Optional[uuid.UUID]
@@ -59,7 +59,7 @@ class SetListItem(BaseModel):
     id: uuid.UUID
     name: str
     slug: Optional[str]
-    alias: Optional[str]
+    aliases: Optional[list[str]]
     status: SetStatus
     universe_id: uuid.UUID
     alliance_id: Optional[uuid.UUID]

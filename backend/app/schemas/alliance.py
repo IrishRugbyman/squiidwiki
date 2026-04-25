@@ -11,6 +11,7 @@ from app.schemas.common import FuzzyDateField
 class AllianceCreate(BaseModel):
     universe_id: uuid.UUID
     name: str
+    aliases: Optional[list[str]] = None
     description: Optional[str] = None
     status: AllianceStatus = AllianceStatus.ACTIVE
     founded_at: FuzzyDateField = None
@@ -20,6 +21,7 @@ class AllianceCreate(BaseModel):
 
 class AllianceUpdate(BaseModel):
     name: Optional[str] = None
+    aliases: Optional[list[str]] = None
     description: Optional[str] = None
     status: Optional[AllianceStatus] = None
     founded_at: FuzzyDateField = None
@@ -34,6 +36,7 @@ class AllianceRead(BaseModel):
     universe_id: uuid.UUID
     name: str
     slug: Optional[str] = None
+    aliases: Optional[list[str]] = None
     description: Optional[str]
     status: AllianceStatus
     founded_at: FuzzyDateField
@@ -50,6 +53,7 @@ class AllianceListItem(BaseModel):
 
     id: uuid.UUID
     name: str
+    aliases: Optional[list[str]] = None
     status: AllianceStatus
     universe_id: uuid.UUID
     slug: Optional[str] = None

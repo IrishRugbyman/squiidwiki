@@ -233,7 +233,12 @@ function MemberDetailPage() {
     <div className="space-y-5">
       <Breadcrumbs
         items={[
-          { label: 'Members', to: '/members' },
+          (() => {
+            const memberSet = member?.set_id ? (allSets?.items ?? []).find((s) => s.id === member.set_id) : null
+            return memberSet
+              ? { label: memberSet.name, to: `/sets/${memberSet.slug ?? memberSet.id}` }
+              : { label: 'Members', to: '/members' }
+          })(),
           { label: member?.display_name ?? 'Member' },
         ]}
       />

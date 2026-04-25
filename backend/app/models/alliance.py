@@ -30,6 +30,7 @@ class Alliance(SQLModel, table=True):
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
     universe_id: uuid.UUID = Field(foreign_key="universe.id", index=True)
     name: str = Field(index=True)
+    aliases: Optional[list] = Field(default=None, sa_column=Column(JSONB))
     description: Optional[str] = None
     status: AllianceStatus = AllianceStatus.ACTIVE
     founded_at: Optional[dict] = Field(default=None, sa_column=Column(JSONB))

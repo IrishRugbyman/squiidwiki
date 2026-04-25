@@ -109,7 +109,7 @@ function initials(name: string) {
 
 // ─── Avatar ───────────────────────────────────────────────────────────────────
 
-function MemberAvatar({ member }: { member: MemberListItem }) {
+export function MemberAvatar({ member }: { member: MemberListItem }) {
   const [imgError, setImgError] = useState(false)
   if (member.photo_url && !imgError) {
     return (

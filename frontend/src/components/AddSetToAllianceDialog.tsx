@@ -93,7 +93,7 @@ export function AddSetToAllianceDialog({
                     return (
                       <CommandItem
                         key={s.id}
-                        value={`${s.name} ${s.alias ?? ''}`}
+                        value={`${s.name} ${(s.aliases ?? []).join(' ')}`}
                         onSelect={() => toggle(s.id)}
                         className="flex items-center justify-between"
                       >

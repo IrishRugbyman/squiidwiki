@@ -2,6 +2,7 @@ import re
 import uuid
 from datetime import datetime
 
+import sqlalchemy as sa
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select
@@ -295,10 +296,13 @@ async def list_members_by_source(
 async def search_members(
     session: AsyncSession, universe_id: uuid.UUID, q: str
 ) -> list[Member]:
+    pattern = f"%{q}%"
     result = await session.execute(
         select(Member).where(
             Member.universe_id == universe_id,
-            Member.nickname.ilike(f"%{q}%") | Member.legal_name.ilike(f"%{q}%"),
+            Member.nickname.ilike(pattern)
+            | Member.legal_name.ilike(pattern)
+            | sa.cast(Member.aliases, sa.Text).ilike(pattern),
         )
     )
     return result.scalars().all()

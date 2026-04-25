@@ -153,19 +153,19 @@ async def seed(session: AsyncSession, is_test: bool) -> None:
     ghost_gang = GangSet(
         universe_id=universe.id,
         name="Ghost Gang", slug=slugify("Ghost Gang"),
-        alias="GG", bio="East side crew based in Detroit, founded early 2010s.",
+        aliases=["GG"], bio="East side crew based in Detroit, founded early 2010s.",
         status=SetStatus.ACTIVE, alliance_id=eastside.id, created_by_id=admin_id,
     )
     seven_mile = GangSet(
         universe_id=universe.id,
         name="Seven Mile Boys", slug=slugify("Seven Mile Boys"),
-        alias="7MB", bio="Active on the northwest side of Detroit.",
+        aliases=["7MB"], bio="Active on the northwest side of Detroit.",
         status=SetStatus.ACTIVE, created_by_id=admin_id,
     )
     river_crew = GangSet(
         universe_id=universe.id,
         name="River Crew", slug=slugify("River Crew"),
-        alias="RC", bio="Operates in Ecorse and River Rouge.",
+        aliases=["RC"], bio="Operates in Ecorse and River Rouge.",
         status=SetStatus.ACTIVE, created_by_id=admin_id,
     )
     session.add_all([ghost_gang, seven_mile, river_crew])

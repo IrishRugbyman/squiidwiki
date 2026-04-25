@@ -107,6 +107,7 @@ export interface SourceRead extends SourceListItem {
 export interface AllianceListItem {
   id: UUID
   name: string
+  aliases: string[] | null
   status: AllianceStatus
   universe_id: UUID
   slug: string | null
@@ -128,14 +129,13 @@ export interface SetListItem {
   id: UUID
   name: string
   slug: string | null
-  alias: string | null
+  aliases: string[] | null
   status: SetStatus
   universe_id: UUID
   alliance_id: UUID | null
 }
 
 export interface SetRead extends SetListItem {
-  alias: string | null
   bio: string | null
   founder_id: UUID | null
   created_at: string

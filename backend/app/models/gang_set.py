@@ -41,7 +41,7 @@ class GangSet(SQLModel, table=True):
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
     universe_id: uuid.UUID = Field(foreign_key="universe.id", index=True)
     name: str = Field(index=True)
-    alias: Optional[str] = None
+    aliases: Optional[list] = Field(default=None, sa_column=Column(JSONB))
     bio: Optional[str] = None
     status: SetStatus = SetStatus.ACTIVE
     alliance_id: Optional[uuid.UUID] = Field(default=None, foreign_key="alliance.id")

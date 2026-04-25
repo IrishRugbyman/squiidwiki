@@ -212,7 +212,9 @@ function SetDetailPage() {
                   <h1 className="text-2xl font-bold text-white">{set.name}</h1>
                   <CopyButton value={window.location.href} label="Copy link to this set" className="opacity-60 hover:opacity-100" />
                 </div>
-                {set.alias && <p className="text-sm text-zinc-400">a/k/a {set.alias}</p>}
+                {set.aliases && set.aliases.length > 0 && (
+                  <p className="text-sm text-zinc-400">a/k/a {set.aliases.join(', ')}</p>
+                )}
                 <div className="mt-2 flex flex-wrap items-center gap-2">
                   <SetStatusBadge status={set.status} />
                   {alliance && (

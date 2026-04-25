@@ -73,7 +73,7 @@ export function SetFormSheet({ universeId, open, onClose, initial, onSaved, defa
   const isEdit = !!initial
 
   const [name, setName] = useState(initial?.name ?? copyFrom?.name ?? '')
-  const [alias, setAlias] = useState(initial?.alias ?? copyFrom?.alias ?? '')
+  const [aliases, setAliases] = useState(initial?.aliases?.join(', ') ?? copyFrom?.aliases?.join(', ') ?? '')
   const [bio, setBio] = useState(initial?.bio ?? copyFrom?.bio ?? '')
   const [status, setStatus] = useState<SetStatus>(initial?.status ?? copyFrom?.status ?? 'ACTIVE')
   const [allianceId, setAllianceId] = useState<string>(initial?.alliance_id ?? copyFrom?.alliance_id ?? defaultAllianceId ?? ALLIANCE_NONE)
@@ -83,14 +83,16 @@ export function SetFormSheet({ universeId, open, onClose, initial, onSaved, defa
     e.preventDefault()
     setError(null)
     const alliance_id = allianceId === ALLIANCE_NONE ? null : allianceId
+    const aliasList = aliases.split(',').map((s) => s.trim()).filter(Boolean)
+    const aliasesPayload = aliasList.length > 0 ? aliasList : null
     try {
       if (isEdit) {
-        const updated = await update.mutateAsync({ universe_id: universeId, name, alias: alias || null, bio: bio || null, status, alliance_id })
+        const updated = await update.mutateAsync({ universe_id: universeId, name, aliases: aliasesPayload, bio: bio || null, status, alliance_id })
         onSaved?.(updated)
         toast.success(`Updated "${name}"`)
       } else {
-        await create.mutateAsync({ universe_id: universeId, name, alias: alias || null, bio: bio || null, status, alliance_id })
-        setName(''); setAlias(''); setBio(''); setStatus('ACTIVE'); setAllianceId(ALLIANCE_NONE)
+        await create.mutateAsync({ universe_id: universeId, name, aliases: aliasesPayload, bio: bio || null, status, alliance_id })
+        setName(''); setAliases(''); setBio(''); setStatus('ACTIVE'); setAllianceId(ALLIANCE_NONE)
         toast.success(`Created "${name}"`)
       }
       onClose()
@@ -113,8 +115,8 @@ export function SetFormSheet({ universeId, open, onClose, initial, onSaved, defa
             <Input id="set-name" required value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Terror Town" />
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="set-alias">Alias</Label>
-            <Input id="set-alias" value={alias} onChange={(e) => setAlias(e.target.value)} placeholder="Known also as…" />
+            <Label htmlFor="set-aliases">Aliases <span className="text-zinc-600">(comma-separated)</span></Label>
+            <Input id="set-aliases" value={aliases} onChange={(e) => setAliases(e.target.value)} placeholder="e.g. GG, Ghost" />
           </div>
           <div className="space-y-1.5">
             <Label>Status</Label>
@@ -392,7 +394,7 @@ function SetsPage() {
                   const alliance = set.alliance_id ? allianceMap[set.alliance_id] : null
                   return (
                     <tr key={set.id} className="group hover:bg-zinc-900/50 transition-colors">
-                      {/* Name + alias */}
+                      {/* Name + aliases */}
                       <td className="p-0">
                         <Link
                           to="/sets/$id"
@@ -404,8 +406,8 @@ function SetsPage() {
                             <p className="font-medium text-white group-hover:text-violet-400 transition-colors">
                               {set.name}
                             </p>
-                            {set.alias && (
-                              <p className="text-xs text-zinc-500">{set.alias}</p>
+                            {set.aliases && set.aliases.length > 0 && (
+                              <p className="text-xs text-zinc-500">{set.aliases.join(' · ')}</p>
                             )}
                           </div>
                         </Link>

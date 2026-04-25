@@ -36,6 +36,7 @@ export function AllianceFormSheet({ universeId, open, onClose, initial, onSaved 
   const isEdit = !!initial
 
   const [name, setName] = useState(initial?.name ?? '')
+  const [aliases, setAliases] = useState(initial?.aliases?.join(', ') ?? '')
   const [description, setDescription] = useState(initial?.description ?? '')
   const [status, setStatus] = useState<AllianceStatus>(initial?.status ?? 'ACTIVE')
   const [error, setError] = useState<string | null>(null)
@@ -43,7 +44,14 @@ export function AllianceFormSheet({ universeId, open, onClose, initial, onSaved 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     setError(null)
-    const body = { universe_id: universeId, name, description: description || null, status }
+    const aliasList = aliases.split(',').map((s) => s.trim()).filter(Boolean)
+    const body = {
+      universe_id: universeId,
+      name,
+      aliases: aliasList.length > 0 ? aliasList : null,
+      description: description || null,
+      status,
+    }
     try {
       if (isEdit) {
         const updated = await update.mutateAsync(body)
@@ -51,7 +59,7 @@ export function AllianceFormSheet({ universeId, open, onClose, initial, onSaved 
         toast.success(`Updated "${name}"`)
       } else {
         await create.mutateAsync(body)
-        setName(''); setDescription(''); setStatus('ACTIVE')
+        setName(''); setAliases(''); setDescription(''); setStatus('ACTIVE')
         toast.success(`Created "${name}"`)
       }
       onClose()
@@ -72,6 +80,10 @@ export function AllianceFormSheet({ universeId, open, onClose, initial, onSaved 
           <div className="space-y-1.5">
             <Label htmlFor="a-name">Name *</Label>
             <Input id="a-name" required value={name} onChange={(e) => setName(e.target.value)} placeholder="Alliance name" />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="a-aliases">Aliases <span className="text-zinc-600">(comma-separated)</span></Label>
+            <Input id="a-aliases" value={aliases} onChange={(e) => setAliases(e.target.value)} placeholder="e.g. EastSide, ESC" />
           </div>
           <div className="space-y-1.5">
             <Label>Status</Label>

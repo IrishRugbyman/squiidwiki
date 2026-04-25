@@ -1,6 +1,7 @@
 import re
 import uuid
 
+import sqlalchemy as sa
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import func, select
 
@@ -209,10 +210,12 @@ async def list_alliance_set_ids(
 async def search_alliances(
     session: AsyncSession, universe_id: uuid.UUID, q: str
 ) -> list[Alliance]:
+    pattern = f"%{q}%"
     result = await session.execute(
         select(Alliance).where(
             Alliance.universe_id == universe_id,
-            Alliance.name.ilike(f"%{q}%"),
+            Alliance.name.ilike(pattern)
+            | sa.cast(Alliance.aliases, sa.Text).ilike(pattern),
         )
     )
     return result.scalars().all()

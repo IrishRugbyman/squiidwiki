@@ -1,6 +1,7 @@
 import re
 import uuid
 
+import sqlalchemy as sa
 from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import func, select
@@ -247,10 +248,12 @@ async def remove_set_relationship(
 async def search_gang_sets(
     session: AsyncSession, universe_id: uuid.UUID, q: str
 ) -> list[GangSet]:
+    pattern = f"%{q}%"
     result = await session.execute(
         select(GangSet).where(
             GangSet.universe_id == universe_id,
-            GangSet.name.ilike(f"%{q}%"),
+            GangSet.name.ilike(pattern)
+            | sa.cast(GangSet.aliases, sa.Text).ilike(pattern),
         )
     )
     return result.scalars().all()
