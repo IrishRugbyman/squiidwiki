@@ -79,6 +79,8 @@ docker compose down
 
 Afer implementing something from ideas.md, check it.
 
+NEVER MODIFY DATA IN PROD DB
+
 ## Architecture
 
 ### Data Model Hierarchy
