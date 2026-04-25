@@ -6,7 +6,6 @@ from sqlmodel import select
 
 from app.models.incident import Incident, IncidentParticipant, IncidentSource
 from app.models.member import Member, MemberSource
-from app.models.alliance import AllianceSet
 from app.models.gang_set import GangSet
 from app.schemas.common import make_cursor, parse_cursor
 from app.schemas.incident import IncidentCreate, IncidentUpdate, ParticipantCreate

@@ -62,28 +62,33 @@ interface SetFormProps {
   onSaved?: (data: SetRead) => void
 }
 
+const ALLIANCE_NONE = '__none__'
+
 export function SetFormSheet({ universeId, open, onClose, initial, onSaved }: SetFormProps) {
   const create = useCreateSet()
   const update = useUpdateSet(initial?.id ?? '')
+  const { data: alliancesData } = useAlliances(universeId)
   const isEdit = !!initial
 
   const [name, setName] = useState(initial?.name ?? '')
   const [alias, setAlias] = useState(initial?.alias ?? '')
   const [bio, setBio] = useState(initial?.bio ?? '')
   const [status, setStatus] = useState<SetStatus>(initial?.status ?? 'ACTIVE')
+  const [allianceId, setAllianceId] = useState<string>(initial?.alliance_id ?? ALLIANCE_NONE)
   const [error, setError] = useState<string | null>(null)
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     setError(null)
+    const alliance_id = allianceId === ALLIANCE_NONE ? null : allianceId
     try {
       if (isEdit) {
-        const updated = await update.mutateAsync({ universe_id: universeId, name, alias: alias || null, bio: bio || null, status })
+        const updated = await update.mutateAsync({ universe_id: universeId, name, alias: alias || null, bio: bio || null, status, alliance_id })
         onSaved?.(updated)
         toast.success(`Updated "${name}"`)
       } else {
-        await create.mutateAsync({ universe_id: universeId, name, alias: alias || null, bio: bio || null, status })
-        setName(''); setAlias(''); setBio(''); setStatus('ACTIVE')
+        await create.mutateAsync({ universe_id: universeId, name, alias: alias || null, bio: bio || null, status, alliance_id })
+        setName(''); setAlias(''); setBio(''); setStatus('ACTIVE'); setAllianceId(ALLIANCE_NONE)
         toast.success(`Created "${name}"`)
       }
       onClose()
@@ -116,6 +121,18 @@ export function SetFormSheet({ universeId, open, onClose, initial, onSaved }: Se
               <SelectContent>
                 <SelectItem value="ACTIVE">Active</SelectItem>
                 <SelectItem value="EXTINCT">Extinct</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1.5">
+            <Label>Alliance</Label>
+            <Select value={allianceId} onValueChange={setAllianceId}>
+              <SelectTrigger><SelectValue placeholder="No alliance" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value={ALLIANCE_NONE}>No alliance</SelectItem>
+                {(alliancesData?.items ?? []).map((a) => (
+                  <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
@@ -240,13 +257,28 @@ function SetsPage() {
   const { data: searchResults, isLoading: searchLoading } = useSetSearch(universe?.id ?? null, debouncedQ)
   const { data: alliancesData } = useAlliances(universe?.id ?? null)
 
+  const isSearching = debouncedQ.length >= 2
+  const rawItems = isSearching ? (searchResults ?? []) : (data?.items ?? [])
+
+  const items = useMemo(() => {
+    let filtered = rawItems
+    if (statusFilter !== 'ALL') filtered = filtered.filter((s) => s.status === statusFilter)
+    if (allianceFilter !== 'ALL') filtered = filtered.filter((s) =>
+      allianceFilter === 'NONE' ? !s.alliance_id : s.alliance_id === allianceFilter
+    )
+    if (!sortKey) return filtered
+    return [...filtered].sort((a, b) => {
+      const av = String(a[sortKey] ?? '')
+      const bv = String(b[sortKey] ?? '')
+      return sortDir === 'asc' ? av.localeCompare(bv) : bv.localeCompare(av)
+    })
+  }, [rawItems, statusFilter, allianceFilter, sortKey, sortDir])
+
   if (!universe) return <NoUniverse />
 
   const allianceMap: Record<string, { name: string; slug: string | null }> = {}
   for (const a of alliancesData?.items ?? []) allianceMap[a.id] = { name: a.name, slug: a.slug }
 
-  const isSearching = debouncedQ.length >= 2
-  const rawItems = isSearching ? (searchResults ?? []) : (data?.items ?? [])
   const total = data?.total ?? 0
   const listLoading = isSearching ? searchLoading : isLoading
 
@@ -267,20 +299,6 @@ function SetsPage() {
     if (sortKey === key) setSortDir((d) => d === 'asc' ? 'desc' : 'asc')
     else { setSortKey(key); setSortDir('asc') }
   }
-
-  const items = useMemo(() => {
-    let filtered = rawItems
-    if (statusFilter !== 'ALL') filtered = filtered.filter((s) => s.status === statusFilter)
-    if (allianceFilter !== 'ALL') filtered = filtered.filter((s) =>
-      allianceFilter === 'NONE' ? !s.alliance_id : s.alliance_id === allianceFilter
-    )
-    if (!sortKey) return filtered
-    return [...filtered].sort((a, b) => {
-      const av = String(a[sortKey] ?? '')
-      const bv = String(b[sortKey] ?? '')
-      return sortDir === 'asc' ? av.localeCompare(bv) : bv.localeCompare(av)
-    })
-  }, [rawItems, statusFilter, allianceFilter, sortKey, sortDir])
 
   const activeCount = allItems.filter((s) => s.status === 'ACTIVE').length
   const extinctCount = allItems.filter((s) => s.status === 'EXTINCT').length

@@ -496,8 +496,6 @@ function MembersPage() {
   const { data: searchResults, isLoading: searchLoading } = useMemberSearch(universe?.id ?? null, debouncedQ)
   const { data: setsData } = useSets(universe?.id ?? null)
 
-  if (!universe) return <NoUniverse />
-
   const setMap = useMemo(() => {
     const m: Record<string, { name: string; slug: string | null }> = {}
     for (const s of setsData?.items ?? []) m[s.id] = { name: s.name, slug: s.slug }
@@ -506,19 +504,12 @@ function MembersPage() {
 
   const isSearching = debouncedQ.length >= 2
   const baseItems = isSearching ? (searchResults ?? []) : (data?.items ?? [])
-  const total = data?.total
-  const listLoading = isSearching ? searchLoading : isLoading
 
   const statusCounts = useMemo(() => {
     const counts: Partial<Record<MemberStatus, number>> = {}
     for (const m of baseItems) counts[m.status] = (counts[m.status] ?? 0) + 1
     return counts
   }, [baseItems])
-
-  function toggleSort(key: 'display_name' | 'status') {
-    if (sortKey === key) setSortDir((d) => d === 'asc' ? 'desc' : 'asc')
-    else { setSortKey(key); setSortDir('asc') }
-  }
 
   const items: MemberListItem[] = useMemo(() => {
     let list = baseItems
@@ -531,6 +522,16 @@ function MembersPage() {
       return sortDir === 'asc' ? av.localeCompare(bv) : bv.localeCompare(av)
     })
   }, [baseItems, statusFilter, setFilter, sortKey, sortDir])
+
+  if (!universe) return <NoUniverse />
+
+  const total = data?.total
+  const listLoading = isSearching ? searchLoading : isLoading
+
+  function toggleSort(key: 'display_name' | 'status') {
+    if (sortKey === key) setSortDir((d) => d === 'asc' ? 'desc' : 'asc')
+    else { setSortKey(key); setSortDir('asc') }
+  }
 
   function toggleSelect(id: string) {
     setSelected((prev) => {

@@ -20,6 +20,7 @@ import { useEffect, useState } from 'react'
 import { UniverseSwitcher } from '@/components/UniverseSwitcher'
 import { GlobalCommandPalette } from '@/components/GlobalCommandPalette'
 import { useAuthStore, type AuthState, type AuthUser } from '@/stores/auth'
+import { useUniverseStore } from '@/stores/universe'
 import { useDbMode, useSetDbMode } from '@/lib/queries'
 import { api, ApiError } from '@/lib/api'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
@@ -89,7 +90,7 @@ function DbModeToggle() {
   const mode = data?.mode ?? 'prod'
   return (
     <button
-      onClick={() => mutate(mode === 'prod' ? 'test' : 'prod')}
+      onClick={() => { useUniverseStore.getState().setActiveUniverse(null); mutate(mode === 'prod' ? 'test' : 'prod') }}
       disabled={isPending}
       className={`mt-2 w-full rounded px-2 py-1 text-left text-[11px] font-semibold tracking-widest transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/50 ${
         mode === 'test'

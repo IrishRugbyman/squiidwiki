@@ -114,15 +114,7 @@ function AlliancesPage() {
 
   const { data, isLoading } = useAlliances(universe?.id ?? null, offset)
 
-  if (!universe) return <NoUniverse />
-
   const rawItems = (data?.items ?? []).filter((a) => !q || a.name.toLowerCase().includes(q.toLowerCase()))
-  const total = data?.total ?? 0
-
-  function toggleSort(key: 'name' | 'status') {
-    if (sortKey === key) setSortDir((d) => d === 'asc' ? 'desc' : 'asc')
-    else { setSortKey(key); setSortDir('asc') }
-  }
 
   const items = useMemo(() => {
     if (!sortKey) return rawItems
@@ -132,6 +124,15 @@ function AlliancesPage() {
       return sortDir === 'asc' ? av.localeCompare(bv) : bv.localeCompare(av)
     })
   }, [rawItems, sortKey, sortDir])
+
+  if (!universe) return <NoUniverse />
+
+  const total = data?.total ?? 0
+
+  function toggleSort(key: 'name' | 'status') {
+    if (sortKey === key) setSortDir((d) => d === 'asc' ? 'desc' : 'asc')
+    else { setSortKey(key); setSortDir('asc') }
+  }
 
   const activeCount = (data?.items ?? []).filter((a) => a.status === 'ACTIVE').length
   const dormantCount = (data?.items ?? []).filter((a) => a.status === 'DORMANT').length

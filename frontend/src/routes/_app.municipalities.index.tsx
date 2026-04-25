@@ -228,8 +228,6 @@ function MunicipalitiesPage() {
 
   const { data, isLoading } = useMunicipalities(universe?.id ?? null)
 
-  if (!universe) return <NoUniverse />
-
   const items = data?.items ?? []
 
   // Match any name containing the query; when searching, we keep the tree
@@ -241,6 +239,8 @@ function MunicipalitiesPage() {
       items.filter((m) => m.name.toLowerCase().includes(lower)).map((m) => m.id),
     )
   }, [items, q])
+
+  if (!universe) return <NoUniverse />
 
   // Build tree: top-level items, each with their children
   const topLevel = items.filter((m) => !m.parent_id)

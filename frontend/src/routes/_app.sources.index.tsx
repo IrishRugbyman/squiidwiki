@@ -140,10 +140,7 @@ function SourcesPage() {
 
   const { data, isLoading } = useSources(universe?.id ?? null, offset)
 
-  if (!universe) return <NoUniverse />
-
   const rawItems = data?.items ?? []
-  const total = data?.total ?? 0
 
   const publications = useMemo(() => {
     const set = new Set<string>()
@@ -154,6 +151,10 @@ function SourcesPage() {
     }
     return Array.from(set).sort()
   }, [rawItems])
+
+  if (!universe) return <NoUniverse />
+
+  const total = data?.total ?? 0
 
   const items = rawItems
     .filter((s) => !q || s.title.toLowerCase().includes(q.toLowerCase()))

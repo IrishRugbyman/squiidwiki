@@ -363,16 +363,7 @@ function IncidentsPage() {
   const { data, isLoading } = useIncidents(universe?.id ?? null, cursor)
   const { data: munis } = useMunicipalities(universe?.id ?? null)
 
-  if (!universe) return <NoUniverse />
-
-  const muniMap: Record<string, string> = {}
-  for (const m of munis?.items ?? []) muniMap[m.id] = m.name
-
   const allItems: IncidentListItem[] = data?.items ?? []
-
-  const shootingCount = allItems.filter((i) => i.type === 'SHOOTING').length
-  const murderCount = allItems.filter((i) => i.type === 'MURDER').length
-  const verifiedCount = allItems.filter((i) => i.verified).length
 
   const items = useMemo(() => {
     let filtered = allItems
@@ -381,6 +372,15 @@ function IncidentsPage() {
     if (verifiedFilter === 'UNVERIFIED') filtered = filtered.filter((i) => !i.verified)
     return filtered
   }, [allItems, typeFilter, verifiedFilter])
+
+  if (!universe) return <NoUniverse />
+
+  const muniMap: Record<string, string> = {}
+  for (const m of munis?.items ?? []) muniMap[m.id] = m.name
+
+  const shootingCount = allItems.filter((i) => i.type === 'SHOOTING').length
+  const murderCount = allItems.filter((i) => i.type === 'MURDER').length
+  const verifiedCount = allItems.filter((i) => i.verified).length
 
   const headerDesc = isLoading ? undefined
     : allItems.length === 0 ? 'No incidents yet'

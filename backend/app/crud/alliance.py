@@ -4,7 +4,8 @@ import uuid
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import func, select
 
-from app.models.alliance import Alliance, AllianceMunicipality, AllianceSet
+from app.models.alliance import Alliance, AllianceMunicipality
+from app.models.gang_set import GangSet
 from app.schemas.alliance import AllianceCreate, AllianceUpdate
 
 
@@ -50,11 +51,23 @@ async def _sync_alliance_municipalities(
 async def _sync_alliance_sets(
     session: AsyncSession, alliance_id: uuid.UUID, set_ids: list[uuid.UUID]
 ) -> None:
-    await session.execute(
-        AllianceSet.__table__.delete().where(AllianceSet.alliance_id == alliance_id)
+    # Single source of truth: sets.alliance_id (direct FK on the sets table)
+    # 1. Detach any sets currently linked to this alliance but not in the new list
+    detach_q = (
+        GangSet.__table__.update()
+        .where(GangSet.alliance_id == alliance_id)
+        .values(alliance_id=None)
     )
-    for sid in set_ids:
-        session.add(AllianceSet(alliance_id=alliance_id, set_id=sid))
+    if set_ids:
+        detach_q = detach_q.where(GangSet.id.notin_(set_ids))
+    await session.execute(detach_q)
+    # 2. Attach all sets in the new list to this alliance
+    if set_ids:
+        await session.execute(
+            GangSet.__table__.update()
+            .where(GangSet.id.in_(set_ids))
+            .values(alliance_id=alliance_id)
+        )
 
 
 async def create_alliance(
@@ -135,6 +148,12 @@ async def delete_alliance(
     obj = await get_alliance(session, id, universe_id)
     if obj is None:
         return False
+    # Detach sets pointing to this alliance to avoid FK constraint violation
+    await session.execute(
+        GangSet.__table__.update()
+        .where(GangSet.alliance_id == id)
+        .values(alliance_id=None)
+    )
     await session.delete(obj)
     await session.commit()
     return True
@@ -155,7 +174,7 @@ async def list_alliance_set_ids(
     session: AsyncSession, alliance_id: uuid.UUID
 ) -> list[uuid.UUID]:
     result = await session.execute(
-        select(AllianceSet.set_id).where(AllianceSet.alliance_id == alliance_id)
+        select(GangSet.id).where(GangSet.alliance_id == alliance_id)
     )
     return result.scalars().all()
 

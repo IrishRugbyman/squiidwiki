@@ -112,7 +112,10 @@ export const useCreateSet = () => {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: (body: Record<string, unknown>) => api.post<SetRead>('/sets/', body),
-    onSuccess: (data) => { qc.invalidateQueries({ queryKey: ['sets', data.universe_id] }) },
+    onSuccess: (data) => {
+      qc.invalidateQueries({ queryKey: ['sets', data.universe_id] })
+      qc.invalidateQueries({ queryKey: ['alliances'] })
+    },
   })
 }
 
@@ -120,7 +123,11 @@ export const useUpdateSet = (id: UUID) => {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: (body: Record<string, unknown>) => api.patch<SetRead>(`/sets/${id}?universe_id=${body.universe_id}`, body),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['sets', id] }) },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['sets', id] })
+      qc.invalidateQueries({ queryKey: ['sets'] })
+      qc.invalidateQueries({ queryKey: ['alliances'] })
+    },
   })
 }
 
