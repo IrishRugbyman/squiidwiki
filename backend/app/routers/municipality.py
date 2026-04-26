@@ -54,11 +54,31 @@ async def get_municipalities_geojson(
     _: CurrentUser,
     session: Annotated[AsyncSession, Depends(get_session)],
     prod_session: Annotated[AsyncSession, Depends(get_prod_session)],
+    parent_id: str | None = Query(
+        None,
+        description=(
+            "Filter mode. Omitted = all municipalities with geometry. "
+            "'top' = only top-level (parent_id IS NULL). "
+            "A UUID = only children of that municipality."
+        ),
+    ),
 ) -> Any:
     uid = await resolve_prod_universe(session, prod_session, universe_id)
     if uid is None:
         return {"type": "FeatureCollection", "features": []}
-    return await crud.get_municipality_geojson(prod_session, uid)
+
+    parent_filter: str | uuid.UUID | None
+    if parent_id is None:
+        parent_filter = None
+    elif parent_id == "top":
+        parent_filter = "top"
+    else:
+        try:
+            parent_filter = uuid.UUID(parent_id)
+        except ValueError:
+            raise HTTPException(400, "parent_id must be 'top', a UUID, or omitted")
+
+    return await crud.get_municipality_geojson(prod_session, uid, parent_filter=parent_filter)
 
 
 @router.post("/", response_model=MunicipalityRead, status_code=201)

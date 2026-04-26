@@ -60,7 +60,13 @@ export interface MunicipalityGeoJSONFeature {
   type: 'Feature'
   id: string
   geometry: GeoJSONGeometry
-  properties: { id: string; name: string; incident_count: number }
+  properties: {
+    id: string
+    name: string
+    parent_id: string | null
+    incident_count: number
+    set_count: number
+  }
 }
 
 export interface MunicipalityGeoJSON {

@@ -69,3 +69,35 @@ body {
 #root {
   min-height: 100vh;
 }
+
+/* MapLibre popups — override the default white-on-white styling to match the
+   app's dark theme. !important is required because maplibre-gl.css is
+   imported from JS and its rule order isn't guaranteed to lose to ours. */
+.maplibregl-popup-content {
+  background-color: #18181b !important; /* zinc-900 */
+  color: #fafafa !important;
+  border: 1px solid #3f3f46 !important; /* zinc-700 */
+  border-radius: 0.5rem !important;
+  padding: 0 !important;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5) !important;
+}
+.maplibregl-popup-anchor-bottom .maplibregl-popup-tip {
+  border-top-color: #18181b !important;
+}
+.maplibregl-popup-anchor-top .maplibregl-popup-tip {
+  border-bottom-color: #18181b !important;
+}
+.maplibregl-popup-anchor-left .maplibregl-popup-tip {
+  border-right-color: #18181b !important;
+}
+.maplibregl-popup-anchor-right .maplibregl-popup-tip {
+  border-left-color: #18181b !important;
+}
+.maplibregl-popup-close-button {
+  color: #71717a !important; /* zinc-500 */
+  padding: 0.25rem 0.5rem !important;
+}
+.maplibregl-popup-close-button:hover {
+  color: #fafafa !important;
+  background: transparent !important;
+}

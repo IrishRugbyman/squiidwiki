@@ -44,7 +44,7 @@ async def list_municipalities(
             m.name,
             m.parent_id,
             m.universe_id,
-            (m.geometry IS NOT NULL) AS has_geometry,
+            (m.geometry IS NOT NULL AND m.geometry != 'null'::jsonb) AS has_geometry,
             COUNT(DISTINCT i.id)::int AS incident_count,
             COUNT(DISTINCT c.id)::int AS child_count
         FROM municipality m
@@ -76,21 +76,92 @@ async def list_municipalities(
 
 
 async def get_municipality_geojson(
-    session: AsyncSession, universe_id: uuid.UUID
+    session: AsyncSession,
+    universe_id: uuid.UUID,
+    *,
+    parent_filter: str | uuid.UUID | None = None,
 ) -> dict:
-    """Return a GeoJSON FeatureCollection for all municipalities that have geometry."""
-    rows = (await session.execute(text("""
-        SELECT
-            m.id,
-            m.name,
-            m.geometry,
-            COUNT(DISTINCT i.id)::int AS incident_count
-        FROM municipality m
-        LEFT JOIN incident i ON i.municipality_id = m.id
-        WHERE m.universe_id = :uid AND m.geometry IS NOT NULL AND m.geometry != 'null'::jsonb
-        GROUP BY m.id
-        ORDER BY m.name
-    """), {"uid": str(universe_id)})).mappings().all()
+    """Return a GeoJSON FeatureCollection for municipalities that have geometry.
+
+    parent_filter:
+      - None      → all municipalities (legacy behavior)
+      - "top"     → only top-level (parent_id IS NULL)
+      - UUID      → only children of that municipality
+
+    Each feature carries `incident_count` and `set_count` on its properties.
+    For top-level rows the counts are rolled up to include any descendant —
+    so the main-map choropleth reflects activity in sub-districts even though
+    those polygons are hidden.
+    """
+    params: dict = {"uid": str(universe_id)}
+
+    if parent_filter == "top":
+        sql = """
+            SELECT
+                m.id,
+                m.name,
+                m.parent_id,
+                m.geometry,
+                COALESCE((
+                    SELECT COUNT(DISTINCT i.id)::int
+                    FROM incident i
+                    LEFT JOIN municipality c ON c.id = i.municipality_id
+                    WHERE i.universe_id = :uid
+                      AND (i.municipality_id = m.id OR c.parent_id = m.id)
+                ), 0) AS incident_count,
+                COALESCE((
+                    SELECT COUNT(DISTINCT sm.set_id)::int
+                    FROM set_municipality sm
+                    LEFT JOIN municipality cm ON cm.id = sm.municipality_id
+                    WHERE sm.municipality_id = m.id OR cm.parent_id = m.id
+                ), 0) AS set_count
+            FROM municipality m
+            WHERE m.universe_id = :uid
+              AND m.parent_id IS NULL
+              AND m.geometry IS NOT NULL
+              AND m.geometry != 'null'::jsonb
+            ORDER BY m.name
+        """
+    elif parent_filter is not None:
+        params["pid"] = str(parent_filter)
+        sql = """
+            SELECT
+                m.id,
+                m.name,
+                m.parent_id,
+                m.geometry,
+                COUNT(DISTINCT i.id)::int AS incident_count,
+                COUNT(DISTINCT sm.set_id)::int AS set_count
+            FROM municipality m
+            LEFT JOIN incident i ON i.municipality_id = m.id
+            LEFT JOIN set_municipality sm ON sm.municipality_id = m.id
+            WHERE m.universe_id = :uid
+              AND m.parent_id = :pid
+              AND m.geometry IS NOT NULL
+              AND m.geometry != 'null'::jsonb
+            GROUP BY m.id
+            ORDER BY m.name
+        """
+    else:
+        sql = """
+            SELECT
+                m.id,
+                m.name,
+                m.parent_id,
+                m.geometry,
+                COUNT(DISTINCT i.id)::int AS incident_count,
+                COUNT(DISTINCT sm.set_id)::int AS set_count
+            FROM municipality m
+            LEFT JOIN incident i ON i.municipality_id = m.id
+            LEFT JOIN set_municipality sm ON sm.municipality_id = m.id
+            WHERE m.universe_id = :uid
+              AND m.geometry IS NOT NULL
+              AND m.geometry != 'null'::jsonb
+            GROUP BY m.id
+            ORDER BY m.name
+        """
+
+    rows = (await session.execute(text(sql), params)).mappings().all()
 
     features = [
         {
@@ -100,7 +171,9 @@ async def get_municipality_geojson(
             "properties": {
                 "id": str(r["id"]),
                 "name": r["name"],
+                "parent_id": str(r["parent_id"]) if r["parent_id"] else None,
                 "incident_count": r["incident_count"],
+                "set_count": r["set_count"],
             },
         }
         for r in rows
@@ -148,7 +221,7 @@ async def search_municipalities(
     rows = (await session.execute(text("""
         SELECT
             m.id, m.name, m.parent_id, m.universe_id,
-            (m.geometry IS NOT NULL) AS has_geometry,
+            (m.geometry IS NOT NULL AND m.geometry != 'null'::jsonb) AS has_geometry,
             COUNT(DISTINCT i.id)::int AS incident_count,
             COUNT(DISTINCT c.id)::int AS child_count
         FROM municipality m

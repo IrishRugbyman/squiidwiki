@@ -1,12 +1,37 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
 import { MapPin, AlertTriangle } from 'lucide-react'
-import { Suspense, lazy } from 'react'
+import { Suspense, lazy, useState } from 'react'
 import { NoUniverse } from '@/components/NoUniverse'
 import { useUniverseStore } from '@/stores/universe'
 import { useMunicipalities, useMunicipalityGeoJSON } from '@/lib/queries'
 import type { UUID } from '@/lib/types'
+import type { MapMetric } from '@/components/maps/MunicipalityMap'
 
 const MunicipalityMap = lazy(() => import('@/components/maps/MunicipalityMap'))
+
+function MetricToggle({ value, onChange }: { value: MapMetric; onChange: (v: MapMetric) => void }) {
+  const tabs: { key: MapMetric; label: string }[] = [
+    { key: 'sets', label: 'Sets' },
+    { key: 'incidents', label: 'Incidents' },
+  ]
+  return (
+    <div className="inline-flex items-center gap-1 rounded-lg border border-zinc-800 bg-zinc-900/50 p-1" role="tablist" aria-label="Choropleth metric">
+      {tabs.map(({ key, label }) => (
+        <button
+          key={key}
+          role="tab"
+          aria-selected={value === key}
+          onClick={() => onChange(key)}
+          className={`rounded-md px-3 py-1 text-xs font-medium transition-colors ${
+            value === key ? 'bg-zinc-700 text-white' : 'text-zinc-500 hover:text-zinc-300'
+          }`}
+        >
+          {label}
+        </button>
+      ))}
+    </div>
+  )
+}
 
 export const Route = createFileRoute('/_app/map')({
   validateSearch: (s: Record<string, unknown>) => ({
@@ -18,34 +43,40 @@ export const Route = createFileRoute('/_app/map')({
 function MapPage() {
   const { focus } = Route.useSearch()
   const universeId = useUniverseStore((s) => s.activeUniverse?.id ?? null)
+  const [metric, setMetric] = useState<MapMetric>('sets')
   const { data: listData, isLoading: listLoading } = useMunicipalities(universeId)
-  const { data: geojson, isLoading: geoLoading } = useMunicipalityGeoJSON(universeId)
+  const { data: geojson, isLoading: geoLoading } = useMunicipalityGeoJSON(universeId, 'top')
 
   if (!universeId) return <NoUniverse />
 
   const isLoading = listLoading || geoLoading
-  const municipalities = listData?.items ?? []
-  const withoutGeometry = municipalities.filter((m) => !m.has_geometry)
+  // Main map shows top-level municipalities only (drill into one to see its
+  // sub-districts on the detail page). All counts here are over top-level.
+  const topLevel = (listData?.items ?? []).filter((m) => !m.parent_id)
+  const withoutGeometry = topLevel.filter((m) => !m.has_geometry)
   const featureCount = geojson?.features.length ?? 0
 
   return (
     <div className="flex h-[calc(100vh-3.5rem-3rem)] flex-col gap-4">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-4">
         <div>
           <h1 className="text-xl font-semibold text-white">Map</h1>
           <p className="text-sm text-zinc-400">
-            {featureCount} of {municipalities.length} municipalities mapped
+            {featureCount} of {topLevel.length} municipalities mapped
           </p>
         </div>
-        {withoutGeometry.length > 0 && (
-          <Link
-            to="/municipalities"
-            className="flex items-center gap-1.5 rounded-md border border-zinc-700 px-3 py-1.5 text-xs text-zinc-400 hover:border-zinc-500 hover:text-white transition-colors"
-          >
-            <MapPin className="h-3.5 w-3.5" />
-            Add boundaries to {withoutGeometry.length} more
-          </Link>
-        )}
+        <div className="flex items-center gap-2">
+          <MetricToggle value={metric} onChange={setMetric} />
+          {withoutGeometry.length > 0 && (
+            <Link
+              to="/municipalities"
+              className="flex items-center gap-1.5 rounded-md border border-zinc-700 px-3 py-1.5 text-xs text-zinc-400 hover:border-zinc-500 hover:text-white transition-colors"
+            >
+              <MapPin className="h-3.5 w-3.5" />
+              Add boundaries to {withoutGeometry.length} more
+            </Link>
+          )}
+        </div>
       </div>
 
       <div className="relative flex-1 overflow-hidden rounded-xl border border-zinc-800">
@@ -69,7 +100,7 @@ function MapPage() {
           </div>
         ) : (
           <Suspense fallback={<MapPlaceholder label="Loading map…" />}>
-            <MunicipalityMap geojson={geojson!} focusId={focus} />
+            <MunicipalityMap geojson={geojson!} focusId={focus} metric={metric} />
           </Suspense>
         )}
       </div>

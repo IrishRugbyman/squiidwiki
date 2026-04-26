@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
-import { AlertTriangle, MapPin, Pencil, Plus, Search, X } from 'lucide-react'
+import { AlertTriangle, ChevronRight, MapPin, Pencil, Plus, Search, X } from 'lucide-react'
 import { useState, useMemo } from 'react'
 import { toast } from 'sonner'
 import { NoUniverse } from '@/components/NoUniverse'
@@ -150,21 +150,38 @@ function MuniRow({
   indent = false,
   dim = false,
   orphan = false,
+  expanded,
+  onToggleExpand,
   onEdit,
 }: {
   m: MunicipalityListItem
   indent?: boolean
   dim?: boolean
   orphan?: boolean
+  expanded?: boolean
+  onToggleExpand?: () => void
   onEdit: (m: MunicipalityListItem) => void
 }) {
+  const canExpand = m.child_count > 0 && !!onToggleExpand
   return (
     <div className={`group relative flex items-center gap-3 rounded-lg border border-zinc-800 bg-zinc-900/30 px-4 py-3 transition-colors hover:border-zinc-700 hover:bg-zinc-900/60 ${dim ? 'opacity-60' : ''}`}>
       {indent && (
         <div className="absolute left-0 top-0 bottom-0 w-px ml-6 bg-zinc-800" />
       )}
       {indent && <div className="w-4 shrink-0" />}
-      <MapPin className={`h-4 w-4 shrink-0 ${indent ? 'text-zinc-600' : 'text-zinc-500'}`} />
+      {canExpand ? (
+        <button
+          type="button"
+          onClick={onToggleExpand}
+          aria-expanded={expanded}
+          aria-label={expanded ? `Collapse ${m.name}` : `Expand ${m.name}`}
+          className="-ml-1 grid h-5 w-5 shrink-0 place-items-center rounded text-zinc-500 hover:bg-zinc-800 hover:text-zinc-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/50"
+        >
+          <ChevronRight className={`h-3.5 w-3.5 transition-transform ${expanded ? 'rotate-90' : ''}`} />
+        </button>
+      ) : (
+        <MapPin className={`h-4 w-4 shrink-0 ${indent ? 'text-zinc-600' : 'text-zinc-500'}`} />
+      )}
       <Link
         to="/municipalities/$id"
         params={{ id: m.id }}
@@ -186,9 +203,19 @@ function MuniRow({
           </Tooltip>
         )}
         {m.child_count > 0 && (
-          <span className="rounded-full border border-zinc-700 bg-zinc-800/60 px-2 py-0.5 text-[11px] text-zinc-500">
-            {m.child_count} {m.child_count === 1 ? 'district' : 'districts'}
-          </span>
+          canExpand ? (
+            <button
+              type="button"
+              onClick={onToggleExpand}
+              className="rounded-full border border-zinc-700 bg-zinc-800/60 px-2 py-0.5 text-[11px] text-zinc-400 hover:border-zinc-600 hover:text-zinc-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/50"
+            >
+              {m.child_count} {m.child_count === 1 ? 'district' : 'districts'}
+            </button>
+          ) : (
+            <span className="rounded-full border border-zinc-700 bg-zinc-800/60 px-2 py-0.5 text-[11px] text-zinc-500">
+              {m.child_count} {m.child_count === 1 ? 'district' : 'districts'}
+            </span>
+          )
         )}
         <Tooltip>
           <TooltipTrigger asChild>
@@ -225,10 +252,20 @@ function MunicipalitiesPage() {
   const [creating, setCreating] = useState(false)
   const [editTarget, setEditTarget] = useState<MunicipalityListItem | null>(null)
   const [q, setQ] = useState('')
+  const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set())
 
   const { data, isLoading } = useMunicipalities(universe?.id ?? null)
 
   const items = data?.items ?? []
+
+  function toggleExpand(id: string) {
+    setExpandedIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
 
   // Match any name containing the query; when searching, we keep the tree
   // structure but dim non-matching ancestors so context is preserved.
@@ -263,6 +300,31 @@ function MunicipalitiesPage() {
     return (childMap[parent.id] ?? []).some((c) => matchIds.has(c.id))
   }
 
+  // While searching, force-expand any branch that has a matching child so
+  // the user can see the matches without an extra click.
+  const forcedExpanded = useMemo(() => {
+    if (!matchIds) return null
+    const ids = new Set<string>()
+    for (const parent of items) {
+      if (parent.parent_id) continue
+      const children = childMap[parent.id] ?? []
+      if (children.some((c) => matchIds.has(c.id))) ids.add(parent.id)
+    }
+    return ids
+  }, [matchIds, items, childMap])
+
+  const isExpanded = (id: string) =>
+    forcedExpanded ? forcedExpanded.has(id) || expandedIds.has(id) : expandedIds.has(id)
+
+  const parentsWithChildren = topLevel.filter((p) => (childMap[p.id]?.length ?? 0) > 0)
+  const allExpanded = parentsWithChildren.length > 0 && parentsWithChildren.every((p) => expandedIds.has(p.id))
+  function expandAll() {
+    setExpandedIds(new Set(parentsWithChildren.map((p) => p.id)))
+  }
+  function collapseAll() {
+    setExpandedIds(new Set())
+  }
+
   const editItem = editTarget
     ? (items.find((m) => m.id === editTarget.id) ?? editTarget)
     : null
@@ -279,19 +341,30 @@ function MunicipalitiesPage() {
         }
       />
 
-      {/* Search */}
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-500" />
-        <Input
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
-          placeholder="Search municipalities…"
-          className="pl-9 pr-9"
-        />
-        {q && (
-          <button onClick={() => setQ('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-white">
-            <X className="h-4 w-4" />
-          </button>
+      {/* Search + expand toggle */}
+      <div className="flex items-center gap-2">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-500" />
+          <Input
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder="Search municipalities…"
+            className="pl-9 pr-9"
+          />
+          {q && (
+            <button onClick={() => setQ('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-white">
+              <X className="h-4 w-4" />
+            </button>
+          )}
+        </div>
+        {parentsWithChildren.length > 0 && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={allExpanded ? collapseAll : expandAll}
+          >
+            {allExpanded ? 'Collapse all' : 'Expand all'}
+          </Button>
         )}
       </div>
 
@@ -315,24 +388,30 @@ function MunicipalitiesPage() {
         ) : (
           // Tree view — when searching, non-matches are dimmed; ancestors stay for context.
           <div className="space-y-2">
-            {topLevel.filter(branchMatches).map((parent) => (
-              <div key={parent.id} className="space-y-1">
-                <MuniRow
-                  m={parent}
-                  dim={!!matchIds && !matchIds.has(parent.id)}
-                  onEdit={setEditTarget}
-                />
-                {(childMap[parent.id] ?? []).map((child) => (
+            {topLevel.filter(branchMatches).map((parent) => {
+              const expanded = isExpanded(parent.id)
+              const children = childMap[parent.id] ?? []
+              return (
+                <div key={parent.id} className="space-y-1">
                   <MuniRow
-                    key={child.id}
-                    m={child}
-                    indent
-                    dim={!!matchIds && !matchIds.has(child.id)}
+                    m={parent}
+                    dim={!!matchIds && !matchIds.has(parent.id)}
+                    expanded={expanded}
+                    onToggleExpand={children.length > 0 ? () => toggleExpand(parent.id) : undefined}
                     onEdit={setEditTarget}
                   />
-                ))}
-              </div>
-            ))}
+                  {expanded && children.map((child) => (
+                    <MuniRow
+                      key={child.id}
+                      m={child}
+                      indent
+                      dim={!!matchIds && !matchIds.has(child.id)}
+                      onEdit={setEditTarget}
+                    />
+                  ))}
+                </div>
+              )
+            })}
             {/* Orphaned children (parent deleted) */}
             {Array.from(orphanIds)
               .map((id) => items.find((m) => m.id === id)!)

@@ -559,10 +559,25 @@ export const useMunicipalities = (universeId: UUID | null, offset = 0) =>
     enabled: !!universeId,
   })
 
-export const useMunicipalityGeoJSON = (universeId: UUID | null) =>
+/**
+ * GeoJSON for a universe's municipalities.
+ *   parentFilter:
+ *     undefined → all municipalities with geometry
+ *     'top'     → only top-level (parent_id IS NULL)
+ *     UUID      → only children of that municipality
+ */
+export const useMunicipalityGeoJSON = (
+  universeId: UUID | null,
+  parentFilter?: 'top' | UUID,
+) =>
   useQuery({
-    queryKey: ['municipalities', universeId, 'geojson'],
-    queryFn: () => api.get<MunicipalityGeoJSON>(`/municipalities/geojson?universe_id=${universeId}`),
+    queryKey: ['municipalities', universeId, 'geojson', parentFilter ?? 'all'],
+    queryFn: () => {
+      const qp = parentFilter ? `&parent_id=${parentFilter}` : ''
+      return api.get<MunicipalityGeoJSON>(
+        `/municipalities/geojson?universe_id=${universeId}${qp}`,
+      )
+    },
     enabled: !!universeId,
     staleTime: 60_000,
   })

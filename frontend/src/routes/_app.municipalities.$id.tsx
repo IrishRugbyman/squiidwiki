@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
 import { AlertTriangle, ChevronRight, CheckCircle2, Map, MapPin, Pencil, Plus, Trash2 } from 'lucide-react'
-import { useState } from 'react'
+import { lazy, Suspense, useState } from 'react'
 import { ErrorState } from '@/components/ErrorState'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { FuzzyDate } from '@/components/FuzzyDate'
@@ -9,13 +9,18 @@ import { CopyButton } from '@/components/CopyButton'
 import { DetailHeaderSkeleton } from '@/components/skeletons'
 import { Button } from '@/components/ui/button'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
-import { useMunicipality, useMunicipalities, useDeleteMunicipality, useIncidentsByMunicipality } from '@/lib/queries'
+import {
+  useMunicipality, useMunicipalities, useDeleteMunicipality,
+  useIncidentsByMunicipality, useMunicipalityGeoJSON,
+} from '@/lib/queries'
 import { useUniverseStore } from '@/stores/universe'
 import { useAuthStore } from '@/stores/auth'
 import { MunicipalityFormSheet } from './_app.municipalities.index'
 import type { MunicipalityListItem } from '@/lib/types'
 import { useRecordRecent } from '@/stores/recents'
 import { useEditShortcut } from '@/hooks/useKeymap'
+
+const MunicipalityMap = lazy(() => import('@/components/maps/MunicipalityMap'))
 
 export const Route = createFileRoute('/_app/municipalities/$id')({
   component: MunicipalityDetailPage,
@@ -43,7 +48,15 @@ function MunicipalityDetailPage() {
     ? allItems.find((m) => m.id === municipality.parent_id)
     : null
   const children = allItems.filter((m) => m.parent_id === id)
+  const childrenWithGeometry = children.filter((c) => c.has_geometry)
   const incidents = incidentData?.items ?? []
+
+  // GeoJSON for this municipality's children. Only fetched when there are
+  // mappable children, so detail pages without districts pay no cost.
+  const { data: childrenGeoJSON } = useMunicipalityGeoJSON(
+    childrenWithGeometry.length > 0 ? universe?.id ?? null : null,
+    childrenWithGeometry.length > 0 ? id : undefined,
+  )
 
   const [creatingChild, setCreatingChild] = useState(false)
 
@@ -126,6 +139,32 @@ function MunicipalityDetailPage() {
           <div className="rounded-xl border border-zinc-800 bg-zinc-900/30 p-4 text-center">
             <div className="text-2xl font-bold tabular-nums text-white">{children.length}</div>
             <div className="mt-0.5 text-xs text-zinc-500">Sub-districts</div>
+          </div>
+        </div>
+      )}
+
+      {/* Sub-districts map — only when at least one child has geometry */}
+      {childrenGeoJSON && childrenGeoJSON.features.length > 0 && (
+        <div className="rounded-xl border border-zinc-800 bg-zinc-900/30 overflow-hidden">
+          <div className="border-b border-zinc-800 px-4 py-3 flex items-center justify-between">
+            <h2 className="text-xs font-semibold uppercase tracking-wider text-zinc-500">
+              Districts map
+            </h2>
+            <span className="text-[11px] text-zinc-600">
+              {childrenGeoJSON.features.length} of {children.length} mapped · click to zoom
+            </span>
+          </div>
+          <div className="h-[420px] relative">
+            <Suspense fallback={
+              <div className="flex h-full items-center justify-center bg-zinc-900">
+                <div className="flex flex-col items-center gap-2 text-zinc-500">
+                  <MapPin className="h-8 w-8 animate-pulse" />
+                  <span className="text-sm">Loading map…</span>
+                </div>
+              </div>
+            }>
+              <MunicipalityMap geojson={childrenGeoJSON} />
+            </Suspense>
           </div>
         </div>
       )}
