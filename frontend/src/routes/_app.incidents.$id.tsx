@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
-import { CheckCircle2, MapPin, Pencil, Trash2, User } from 'lucide-react'
+import { CheckCircle2, MapPin, Pencil, Plus, Trash2, User } from 'lucide-react'
 import { useState } from 'react'
 import { FuzzyDate } from '@/components/FuzzyDate'
 import { ErrorState } from '@/components/ErrorState'
@@ -14,6 +14,8 @@ import { useIncident, useAllMembers, useDeleteIncident, useMunicipality } from '
 import { useUniverseStore } from '@/stores/universe'
 import { useAuthStore } from '@/stores/auth'
 import { IncidentFormSheet } from './_app.incidents.index'
+import { MemberFormSheet } from './_app.members.index'
+import { AddParticipantToIncidentDialog } from '@/components/AddParticipantToIncidentDialog'
 import { INCIDENT_TYPE_CHIP, ROLE_CHIP, OUTCOME_CHIP, OUTCOME_LABEL, ROLE_LABEL } from '@/lib/incidentColors'
 import { useRecordRecent } from '@/stores/recents'
 import { useEditShortcut } from '@/hooks/useKeymap'
@@ -48,12 +50,26 @@ function IncidentDetailPage() {
 
   const [editing, setEditing] = useState(false)
   const [deleting, setDeleting] = useState(false)
+  const [addingParticipant, setAddingParticipant] = useState(false)
+  const [creatingMember, setCreatingMember] = useState(false)
 
   useEditShortcut(() => incident && setEditing(true))
 
   const memberMap = Object.fromEntries((allMembers?.items ?? []).map((m) => [m.id, m]))
   const memberName = (mid: string) => memberMap[mid]?.display_name ?? null
   const memberSlug = (mid: string) => memberMap[mid]?.slug ?? mid
+
+  // Pick the most common set among current participants for the "Create new" prefill.
+  const defaultSetIdForNewMember = (() => {
+    if (!incident) return undefined
+    const counts: Record<string, number> = {}
+    for (const p of incident.participants) {
+      const sid = memberMap[p.member_id]?.set_id
+      if (sid) counts[sid] = (counts[sid] ?? 0) + 1
+    }
+    const top = Object.entries(counts).sort((a, b) => b[1] - a[1])[0]
+    return top?.[0]
+  })()
 
   async function handleDelete() {
     if (!incident) return
@@ -138,6 +154,11 @@ function IncidentDetailPage() {
             </TabsList>
 
             <TabsContent value="participants">
+              <div className="mb-3 flex justify-end">
+                <Button size="sm" variant="outline" onClick={() => setAddingParticipant(true)}>
+                  <Plus className="mr-1.5 h-3.5 w-3.5" />Add Participant
+                </Button>
+              </div>
               {incident.participants.length === 0 ? (
                 <p className="text-sm text-zinc-600">No participants recorded.</p>
               ) : (
@@ -193,6 +214,25 @@ function IncidentDetailPage() {
               open={editing}
               onClose={() => setEditing(false)}
               initial={incident}
+            />
+          )}
+
+          {universe && (
+            <AddParticipantToIncidentDialog
+              incident={incident}
+              universeId={universe.id}
+              open={addingParticipant}
+              onClose={() => setAddingParticipant(false)}
+              onCreateNew={() => { setAddingParticipant(false); setCreatingMember(true) }}
+            />
+          )}
+
+          {universe && (
+            <MemberFormSheet
+              universeId={universe.id}
+              open={creatingMember}
+              onClose={() => setCreatingMember(false)}
+              defaultSetId={defaultSetIdForNewMember}
             />
           )}
 

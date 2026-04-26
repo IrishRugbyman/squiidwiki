@@ -47,7 +47,7 @@ Pattern: a button on entity Y's detail page that opens a picker (existing) **or*
 - [x] **Set detail → Add Member** — picker of existing members + "Create new" that prefills `set_ids` with this set.
 - [x] **Alliance detail → Add Set** — sets tab has no add. Picker of universe sets not yet in this alliance + create-new option.
 - [x] **Alliance detail → Add Member** — same picker/create pattern on the members tab.
-- [ ] **Incident detail → Add Participant** — inline picker for member + role + outcome; create-new fallback prefills the sets seen in the incident.
+- [x] **Incident detail → Add Participant** — inline picker for member + role + outcome; create-new fallback prefills the sets seen in the incident.
 - [ ] **Incident detail → Add Source** — no sources tab on incident detail today; add the tab with attach-existing / create-new.
 - [x] **Member detail → Add Incident** — incidents tab is read-only; new incident prefilled with this member as a participant.
 - [ ] **Member detail → Add Family relative** — family tab is view-only; mirror the set-relationship dialog.
