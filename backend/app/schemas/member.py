@@ -22,6 +22,7 @@ class MemberCreate(BaseModel):
     dob: FuzzyDateField = None
     date_of_death: FuzzyDateField = None
     release_date: FuzzyDateField = None
+    life_sentence: bool = False
     family: Optional[dict[str, Any]] = None
     social_media: Optional[dict[str, Any]] = None
     source_ids: list[uuid.UUID] = []
@@ -40,6 +41,7 @@ class MemberUpdate(BaseModel):
     dob: FuzzyDateField = None
     date_of_death: FuzzyDateField = None
     release_date: FuzzyDateField = None
+    life_sentence: Optional[bool] = None
     family: Optional[dict[str, Any]] = None
     social_media: Optional[dict[str, Any]] = None
     source_ids: Optional[list[uuid.UUID]] = None
@@ -62,6 +64,7 @@ class MemberRead(BaseModel):
     dob: FuzzyDateField
     date_of_death: FuzzyDateField
     release_date: FuzzyDateField
+    life_sentence: bool
     family: Optional[dict[str, Any]]
     social_media: Optional[dict[str, Any]]
     created_at: datetime

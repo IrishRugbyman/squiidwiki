@@ -39,6 +39,7 @@ class Member(SQLModel, table=True):
     dob: Optional[dict] = Field(default=None, sa_column=Column(JSONB))
     date_of_death: Optional[dict] = Field(default=None, sa_column=Column(JSONB))
     release_date: Optional[dict] = Field(default=None, sa_column=Column(JSONB))
+    life_sentence: bool = False
 
     family: Optional[dict] = Field(default=None, sa_column=Column(JSONB))
     social_media: Optional[dict] = Field(default=None, sa_column=Column(JSONB))

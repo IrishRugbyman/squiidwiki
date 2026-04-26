@@ -369,9 +369,11 @@ function MemberDetailPage() {
                     </span>
                   </DetailRow>
                 )}
-                {member.status === 'LOCKED' && member.release_date && (
+                {member.status === 'LOCKED' && (member.life_sentence || member.release_date) && (
                   <DetailRow label="Release Date">
-                    <FuzzyDate value={member.release_date} />
+                    {member.life_sentence
+                      ? <span className="font-medium text-rose-400">Life</span>
+                      : <FuzzyDate value={member.release_date} />}
                   </DetailRow>
                 )}
                 <DetailRow label="Set">

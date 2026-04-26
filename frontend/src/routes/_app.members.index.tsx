@@ -328,6 +328,7 @@ export function MemberFormSheet({ universeId, open, onClose, initial, defaultSet
   const [dob, setDob] = useState<FuzzyDateValue | null>(initial?.dob ?? copyFrom?.dob ?? null)
   const [dateOfDeath, setDateOfDeath] = useState<FuzzyDateValue | null>(initial?.date_of_death ?? copyFrom?.date_of_death ?? null)
   const [releaseDate, setReleaseDate] = useState<FuzzyDateValue | null>(initial?.release_date ?? copyFrom?.release_date ?? null)
+  const [lifeSentence, setLifeSentence] = useState<boolean>(initial?.life_sentence ?? copyFrom?.life_sentence ?? false)
   // Note: family is intentionally NOT copied — entries are bilateral and would create
   // duplicated reverse links on save. User can re-add family on the new record.
   const [familyEntries, setFamilyEntries] = useState<FamilyEntry[]>(
@@ -365,7 +366,8 @@ export function MemberFormSheet({ universeId, open, onClose, initial, defaultSet
       aliases: aliasList.length > 0 ? aliasList : null,
       dob: dob ?? null,
       date_of_death: status === 'DEAD' ? dateOfDeath : null,
-      release_date: status === 'LOCKED' ? releaseDate : null,
+      release_date: status === 'LOCKED' && !lifeSentence ? releaseDate : null,
+      life_sentence: status === 'LOCKED' ? lifeSentence : false,
       family: familyEntriesToDict(familyEntries),
       social_media: Object.keys(social).length > 0 ? social : null,
     }
@@ -470,7 +472,13 @@ export function MemberFormSheet({ universeId, open, onClose, initial, defaultSet
             )}
             {status === 'LOCKED' && (
               <div className="rounded-lg border border-zinc-800 bg-zinc-900/50 p-3">
-                <FuzzyDateInput value={releaseDate} onChange={setReleaseDate} label="Expected release date" idPrefix="rel" />
+                <FuzzyDateInput
+                  value={releaseDate}
+                  onChange={setReleaseDate}
+                  label="Expected release date"
+                  idPrefix="rel"
+                  life={{ value: lifeSentence, onChange: setLifeSentence }}
+                />
               </div>
             )}
           </FormSection>

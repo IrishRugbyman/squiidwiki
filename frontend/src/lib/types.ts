@@ -188,6 +188,7 @@ export interface MemberRead extends MemberListItem {
   dob: FuzzyDateValue | null
   date_of_death: FuzzyDateValue | null
   release_date: FuzzyDateValue | null
+  life_sentence: boolean
   family: Record<string, string> | null
   social_media: Record<string, string> | null
   created_at: string
