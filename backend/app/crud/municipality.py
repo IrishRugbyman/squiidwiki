@@ -95,6 +95,10 @@ async def get_municipality_geojson(
     """
     params: dict = {"uid": str(universe_id)}
 
+    # Set count counts a set as "in" municipality m when EITHER:
+    #   (a) sets.municipality_id matches (the new primary anchor), or
+    #   (b) the set has a set_municipality row pointing here (sub-district claim)
+    # Top-level rollup also includes any descendant of m on both legs.
     if parent_filter == "top":
         sql = """
             SELECT
@@ -110,10 +114,18 @@ async def get_municipality_geojson(
                       AND (i.municipality_id = m.id OR c.parent_id = m.id)
                 ), 0) AS incident_count,
                 COALESCE((
-                    SELECT COUNT(DISTINCT sm.set_id)::int
-                    FROM set_municipality sm
+                    SELECT COUNT(DISTINCT s.id)::int
+                    FROM sets s
+                    LEFT JOIN municipality smu ON smu.id = s.municipality_id
+                    LEFT JOIN set_municipality sm ON sm.set_id = s.id
                     LEFT JOIN municipality cm ON cm.id = sm.municipality_id
-                    WHERE sm.municipality_id = m.id OR cm.parent_id = m.id
+                    WHERE s.universe_id = :uid
+                      AND (
+                        s.municipality_id = m.id
+                        OR smu.parent_id = m.id
+                        OR sm.municipality_id = m.id
+                        OR cm.parent_id = m.id
+                      )
                 ), 0) AS set_count
             FROM municipality m
             WHERE m.universe_id = :uid
@@ -131,10 +143,16 @@ async def get_municipality_geojson(
                 m.parent_id,
                 m.geometry,
                 COUNT(DISTINCT i.id)::int AS incident_count,
-                COUNT(DISTINCT sm.set_id)::int AS set_count
+                COALESCE((
+                    SELECT COUNT(DISTINCT s.id)::int
+                    FROM sets s
+                    LEFT JOIN set_municipality sm
+                      ON sm.set_id = s.id AND sm.municipality_id = m.id
+                    WHERE s.universe_id = :uid
+                      AND (s.municipality_id = m.id OR sm.set_id IS NOT NULL)
+                ), 0) AS set_count
             FROM municipality m
             LEFT JOIN incident i ON i.municipality_id = m.id
-            LEFT JOIN set_municipality sm ON sm.municipality_id = m.id
             WHERE m.universe_id = :uid
               AND m.parent_id = :pid
               AND m.geometry IS NOT NULL
@@ -150,10 +168,16 @@ async def get_municipality_geojson(
                 m.parent_id,
                 m.geometry,
                 COUNT(DISTINCT i.id)::int AS incident_count,
-                COUNT(DISTINCT sm.set_id)::int AS set_count
+                COALESCE((
+                    SELECT COUNT(DISTINCT s.id)::int
+                    FROM sets s
+                    LEFT JOIN set_municipality sm
+                      ON sm.set_id = s.id AND sm.municipality_id = m.id
+                    WHERE s.universe_id = :uid
+                      AND (s.municipality_id = m.id OR sm.set_id IS NOT NULL)
+                ), 0) AS set_count
             FROM municipality m
             LEFT JOIN incident i ON i.municipality_id = m.id
-            LEFT JOIN set_municipality sm ON sm.municipality_id = m.id
             WHERE m.universe_id = :uid
               AND m.geometry IS NOT NULL
               AND m.geometry != 'null'::jsonb

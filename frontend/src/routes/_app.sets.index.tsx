@@ -12,13 +12,13 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Textarea } from '@/components/ui/textarea'
-import { useAlliances, useCreateSet, useSet, useSets, useSetSearch, useUpdateSet, useUpdateSetStatus } from '@/lib/queries'
+import { useAlliances, useCreateSet, useMunicipalities, useSet, useSets, useSetSearch, useUpdateSet, useUpdateSetStatus } from '@/lib/queries'
 import { useUniverseStore } from '@/stores/universe'
 import { downloadCsv } from '@/lib/download'
 import { useDebounce } from '@/hooks/useDebounce'
 import { EmptyState } from '@/components/EmptyState'
 import { TableRowSkeleton } from '@/components/skeletons'
-import type { SetRead, SetStatus } from '@/lib/types'
+import type { SetReadDetail, SetStatus } from '@/lib/types'
 
 export const Route = createFileRoute('/_app/sets/')({
   component: SetsPage,
@@ -58,18 +58,20 @@ interface SetFormProps {
   universeId: string
   open: boolean
   onClose: () => void
-  initial?: SetRead
-  onSaved?: (data: SetRead) => void
+  initial?: SetReadDetail
+  onSaved?: (data: SetReadDetail) => void
   defaultAllianceId?: string
-  copyFrom?: SetRead
+  copyFrom?: SetReadDetail
 }
 
 const ALLIANCE_NONE = '__none__'
+const MUNI_NONE = '__none__'
 
 export function SetFormSheet({ universeId, open, onClose, initial, onSaved, defaultAllianceId, copyFrom }: SetFormProps) {
   const create = useCreateSet()
   const update = useUpdateSet(initial?.id ?? '')
   const { data: alliancesData } = useAlliances(universeId)
+  const { data: munisData } = useMunicipalities(universeId)
   const isEdit = !!initial
 
   const [name, setName] = useState(initial?.name ?? copyFrom?.name ?? '')
@@ -77,22 +79,66 @@ export function SetFormSheet({ universeId, open, onClose, initial, onSaved, defa
   const [bio, setBio] = useState(initial?.bio ?? copyFrom?.bio ?? '')
   const [status, setStatus] = useState<SetStatus>(initial?.status ?? copyFrom?.status ?? 'ACTIVE')
   const [allianceId, setAllianceId] = useState<string>(initial?.alliance_id ?? copyFrom?.alliance_id ?? defaultAllianceId ?? ALLIANCE_NONE)
+  const [municipalityId, setMunicipalityId] = useState<string>(initial?.municipality_id ?? copyFrom?.municipality_id ?? MUNI_NONE)
+  const [territoryIds, setTerritoryIds] = useState<string[]>(initial?.territory_ids ?? copyFrom?.territory_ids ?? [])
   const [error, setError] = useState<string | null>(null)
+
+  // Top-level municipalities only — these are the choices for the primary anchor.
+  const allMunis = munisData?.items ?? []
+  const topLevelMunis = useMemo(
+    () => allMunis.filter((m) => !m.parent_id).sort((a, b) => a.name.localeCompare(b.name)),
+    [allMunis],
+  )
+  // Sub-districts available for the chosen municipality.
+  const subDistricts = useMemo(
+    () => allMunis
+      .filter((m) => m.parent_id === municipalityId)
+      .sort((a, b) => a.name.localeCompare(b.name)),
+    [allMunis, municipalityId],
+  )
+
+  // When the primary municipality changes, drop any territory selections that
+  // are no longer children of the new parent (or all of them, if user picked
+  // "no municipality").
+  function handleMunicipalityChange(v: string) {
+    setMunicipalityId(v)
+    setTerritoryIds((prev) => {
+      if (v === MUNI_NONE) return []
+      const validChildIds = new Set(allMunis.filter((m) => m.parent_id === v).map((m) => m.id))
+      return prev.filter((id) => validChildIds.has(id))
+    })
+  }
+
+  function toggleTerritory(id: string) {
+    setTerritoryIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]))
+  }
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     setError(null)
     const alliance_id = allianceId === ALLIANCE_NONE ? null : allianceId
+    const municipality_id = municipalityId === MUNI_NONE ? null : municipalityId
     const aliasList = aliases.split(',').map((s) => s.trim()).filter(Boolean)
     const aliasesPayload = aliasList.length > 0 ? aliasList : null
+    const payload = {
+      universe_id: universeId,
+      name,
+      aliases: aliasesPayload,
+      bio: bio || null,
+      status,
+      alliance_id,
+      municipality_id,
+      territory_ids: territoryIds,
+    }
     try {
       if (isEdit) {
-        const updated = await update.mutateAsync({ universe_id: universeId, name, aliases: aliasesPayload, bio: bio || null, status, alliance_id })
-        onSaved?.(updated)
+        const updated = await update.mutateAsync(payload)
+        onSaved?.(updated as SetReadDetail)
         toast.success(`Updated "${name}"`)
       } else {
-        await create.mutateAsync({ universe_id: universeId, name, aliases: aliasesPayload, bio: bio || null, status, alliance_id })
-        setName(''); setAliases(''); setBio(''); setStatus('ACTIVE'); setAllianceId(ALLIANCE_NONE)
+        await create.mutateAsync(payload)
+        setName(''); setAliases(''); setBio(''); setStatus('ACTIVE')
+        setAllianceId(ALLIANCE_NONE); setMunicipalityId(MUNI_NONE); setTerritoryIds([])
         toast.success(`Created "${name}"`)
       }
       onClose()
@@ -140,6 +186,54 @@ export function SetFormSheet({ universeId, open, onClose, initial, onSaved, defa
               </SelectContent>
             </Select>
           </div>
+          <div className="space-y-1.5">
+            <Label>Municipality</Label>
+            <Select value={municipalityId} onValueChange={handleMunicipalityChange}>
+              <SelectTrigger><SelectValue placeholder="No municipality" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value={MUNI_NONE}>— None —</SelectItem>
+                {topLevelMunis.map((m) => (
+                  <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {municipalityId !== MUNI_NONE && subDistricts.length === 0 && (
+              <p className="text-[11px] text-zinc-600">
+                This municipality has no sub-districts.
+              </p>
+            )}
+          </div>
+          {municipalityId !== MUNI_NONE && subDistricts.length > 0 && (
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <Label>Sub-districts</Label>
+                <span className="text-xs text-zinc-500 tabular-nums">
+                  {territoryIds.length} of {subDistricts.length} selected
+                </span>
+              </div>
+              <div className="max-h-48 overflow-y-auto rounded-md border border-zinc-800 bg-zinc-950/50">
+                {subDistricts.map((m) => {
+                  const checked = territoryIds.includes(m.id)
+                  return (
+                    <label
+                      key={m.id}
+                      className="flex cursor-pointer items-center gap-2 px-3 py-1.5 text-sm hover:bg-zinc-900"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        onChange={() => toggleTerritory(m.id)}
+                        className="h-3.5 w-3.5 accent-violet-500"
+                      />
+                      <span className={checked ? 'text-white' : 'text-zinc-400'}>
+                        {m.name}
+                      </span>
+                    </label>
+                  )
+                })}
+              </div>
+            </div>
+          )}
           <div className="space-y-1.5">
             <Label htmlFor="set-bio">Bio</Label>
             <Textarea id="set-bio" value={bio} onChange={(e) => setBio(e.target.value)} placeholder="Background info…" />

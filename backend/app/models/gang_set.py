@@ -45,6 +45,10 @@ class GangSet(SQLModel, table=True):
     bio: Optional[str] = None
     status: SetStatus = SetStatus.ACTIVE
     alliance_id: Optional[uuid.UUID] = Field(default=None, foreign_key="alliance.id")
+    # The single primary municipality this set is anchored to (top-level: Detroit,
+    # Warren, Hamtramck, …). Nullable for legacy/uncategorised sets. Sub-district
+    # claims live in the set_municipality M2M and must all be children of this id.
+    municipality_id: Optional[uuid.UUID] = Field(default=None, foreign_key="municipality.id", index=True)
     founder_id: Optional[uuid.UUID] = Field(
         default=None,
         sa_column=Column(

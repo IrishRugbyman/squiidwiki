@@ -46,6 +46,34 @@ async def _sync_set_municipalities(
         session.add(SetMunicipality(set_id=set_id, municipality_id=mid))
 
 
+async def _validate_territory_ids(
+    session: AsyncSession,
+    municipality_id: uuid.UUID | None,
+    territory_ids: list[uuid.UUID],
+) -> None:
+    """Each territory must be a child of the set's primary municipality."""
+    if not territory_ids:
+        return
+    if municipality_id is None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="territory_ids requires a municipality_id (the parent)",
+        )
+    from app.models.municipality import Municipality
+    rows = await session.execute(
+        select(Municipality.id, Municipality.parent_id).where(
+            Municipality.id.in_(territory_ids)
+        )
+    )
+    by_id = {r[0]: r[1] for r in rows}
+    bad = [str(tid) for tid in territory_ids if by_id.get(tid) != municipality_id]
+    if bad:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"territory_ids must be children of municipality_id; offending: {bad}",
+        )
+
+
 async def _sync_set_relationships(
     session: AsyncSession,
     set_id: uuid.UUID,
@@ -93,6 +121,7 @@ async def _sync_alliance_auto_allies(
 async def create_gang_set(
     session: AsyncSession, data: SetCreate, actor_id: uuid.UUID
 ) -> GangSet:
+    await _validate_territory_ids(session, data.municipality_id, data.territory_ids)
     dump = data.model_dump(exclude={"territory_ids", "friend_ids", "enemy_ids"})
     slug = await _unique_slug(session, data.universe_id, data.name)
     obj = GangSet(**dump, slug=slug, created_by_id=actor_id)
@@ -151,6 +180,9 @@ async def update_gang_set(
         obj.slug = await _unique_slug(session, obj.universe_id, obj.name, exclude_id=obj.id)
     session.add(obj)
     if data.territory_ids is not None:
+        # Validate against the post-update municipality_id (we may be updating
+        # both at the same time).
+        await _validate_territory_ids(session, obj.municipality_id, data.territory_ids)
         await _sync_set_municipalities(session, obj.id, data.territory_ids)
     if data.friend_ids is not None or data.enemy_ids is not None:
         friend_ids = data.friend_ids if data.friend_ids is not None else []

@@ -139,6 +139,7 @@ export interface SetListItem {
   status: SetStatus
   universe_id: UUID
   alliance_id: UUID | null
+  municipality_id: UUID | null
 }
 
 export interface SetRead extends SetListItem {

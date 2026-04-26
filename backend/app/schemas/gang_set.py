@@ -14,7 +14,9 @@ class SetCreate(BaseModel):
     bio: Optional[str] = None
     status: SetStatus = SetStatus.ACTIVE
     alliance_id: Optional[uuid.UUID] = None
+    municipality_id: Optional[uuid.UUID] = None
     founder_id: Optional[uuid.UUID] = None
+    # Sub-district claims; each id MUST be a child of municipality_id.
     territory_ids: list[uuid.UUID] = []
     friend_ids: list[uuid.UUID] = []
     enemy_ids: list[uuid.UUID] = []
@@ -26,6 +28,7 @@ class SetUpdate(BaseModel):
     bio: Optional[str] = None
     status: Optional[SetStatus] = None
     alliance_id: Optional[uuid.UUID] = None
+    municipality_id: Optional[uuid.UUID] = None
     founder_id: Optional[uuid.UUID] = None
     territory_ids: Optional[list[uuid.UUID]] = None
     friend_ids: Optional[list[uuid.UUID]] = None
@@ -43,6 +46,7 @@ class SetRead(BaseModel):
     bio: Optional[str]
     status: SetStatus
     alliance_id: Optional[uuid.UUID]
+    municipality_id: Optional[uuid.UUID]
     founder_id: Optional[uuid.UUID]
     created_at: datetime
 
@@ -63,6 +67,7 @@ class SetListItem(BaseModel):
     status: SetStatus
     universe_id: uuid.UUID
     alliance_id: Optional[uuid.UUID]
+    municipality_id: Optional[uuid.UUID]
 
 
 class SetRelationshipCreate(BaseModel):
