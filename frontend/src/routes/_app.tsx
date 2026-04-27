@@ -2,6 +2,7 @@ import { createFileRoute, Link, Outlet, redirect } from '@tanstack/react-router'
 import {
   AlertTriangle,
   CalendarDays,
+  Clock,
   FileText,
   Globe,
   Home,
@@ -46,6 +47,7 @@ const NAV_ITEMS = [
   { to: '/municipalities', icon: MapPin, label: 'Municipalities' },
   { to: '/map', icon: Map, label: 'Map' },
   { to: '/calendar', icon: CalendarDays, label: 'Calendar' },
+  { to: '/timeline', icon: Clock, label: 'Timeline' },
   { to: '/research', icon: NotebookText, label: 'Research' },
 ] as const
 
