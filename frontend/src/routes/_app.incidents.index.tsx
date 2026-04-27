@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
-import { CheckCircle2, Download, Pencil, Plus, ShieldAlert, Skull, Swords } from 'lucide-react'
+import { CheckCircle2, Download, Pencil, Plus, Search, ShieldAlert, Skull, Swords, User, X } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import { FuzzyDate } from '@/components/FuzzyDate'
@@ -16,7 +16,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Textarea } from '@/components/ui/textarea'
 import {
   useCreateIncident, useUpdateIncident, useIncident,
-  useIncidents, useMemberSearch, useMunicipalities, useAllMembers,
+  useIncidents, useMemberIncidents, useMemberSearch, useMunicipalities, useAllMembers,
 } from '@/lib/queries'
 import { downloadCsv } from '@/lib/download'
 import { api } from '@/lib/api'
@@ -361,11 +361,34 @@ function IncidentsPage() {
   const [editingId, setEditingId] = useState<string | null>(null)
   const [typeFilter, setTypeFilter] = useState<TypeFilter>('ALL')
   const [verifiedFilter, setVerifiedFilter] = useState<VerifiedFilter>('ALL')
+  const [participantId, setParticipantId] = useState<UUID | null>(null)
+  const [participantName, setParticipantName] = useState<string | null>(null)
+  const [participantSearch, setParticipantSearch] = useState('')
+  const debouncedParticipantSearch = useDebounce(participantSearch, 200)
 
-  const { data, isLoading } = useIncidents(universe?.id ?? null, cursor)
+  const baseQuery = useIncidents(participantId ? null : universe?.id ?? null, cursor)
+  const filteredQuery = useMemberIncidents(participantId, universe?.id ?? null)
+  const data = participantId ? filteredQuery.data : baseQuery.data
+  const isLoading = participantId ? filteredQuery.isLoading : baseQuery.isLoading
+
   const { data: munis } = useMunicipalities(universe?.id ?? null)
+  const { data: participantResults } = useMemberSearch(universe?.id ?? null, debouncedParticipantSearch)
 
   const allItems: IncidentListItem[] = data?.items ?? []
+
+  function clearParticipantFilter() {
+    setParticipantId(null)
+    setParticipantName(null)
+    setParticipantSearch('')
+    setCursor(undefined)
+  }
+
+  function selectParticipant(id: UUID, name: string) {
+    setParticipantId(id)
+    setParticipantName(name)
+    setParticipantSearch('')
+    setCursor(undefined)
+  }
 
   const items = useMemo(() => {
     let filtered = allItems
@@ -433,6 +456,45 @@ function IncidentsPage() {
             { key: 'UNVERIFIED', label: 'Unverified' },
           ]}
         />
+        {participantId ? (
+          <button
+            type="button"
+            onClick={clearParticipantFilter}
+            className="inline-flex items-center gap-1.5 rounded-md border border-violet-700/60 bg-violet-950/40 px-2.5 py-1 text-xs font-medium text-violet-300 hover:bg-violet-900/40 transition-colors"
+          >
+            <User className="h-3 w-3" />
+            <span>Participant: {participantName}</span>
+            <X className="h-3 w-3" />
+          </button>
+        ) : (
+          <div className="relative min-w-[220px]">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-zinc-500" />
+            <Input
+              className="pl-8 h-8 text-sm"
+              placeholder="Filter by participant…"
+              value={participantSearch}
+              onChange={(e) => setParticipantSearch(e.target.value)}
+            />
+            {debouncedParticipantSearch.length >= 2 && participantResults && (
+              <div className="absolute z-20 mt-1 w-full max-h-48 overflow-y-auto rounded-md border border-zinc-800 bg-zinc-950 shadow-lg">
+                {participantResults.length === 0 ? (
+                  <div className="px-3 py-2 text-sm text-zinc-500">No matching members.</div>
+                ) : (
+                  participantResults.map((m) => (
+                    <button
+                      key={m.id}
+                      type="button"
+                      onClick={() => selectParticipant(m.id, m.display_name)}
+                      className="w-full px-3 py-2 text-left text-sm text-zinc-300 hover:bg-zinc-800 transition-colors"
+                    >
+                      {m.display_name}
+                    </button>
+                  ))
+                )}
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Table */}
@@ -536,13 +598,13 @@ function IncidentsPage() {
                   <EmptyState
                     icon={ShieldAlert}
                     title={
-                      typeFilter !== 'ALL' || verifiedFilter !== 'ALL'
+                      typeFilter !== 'ALL' || verifiedFilter !== 'ALL' || participantId
                         ? 'No incidents match the current filters'
                         : 'No incidents recorded yet'
                     }
-                    description={typeFilter === 'ALL' && verifiedFilter === 'ALL' ? 'Record a shooting or murder to begin tracking.' : undefined}
+                    description={typeFilter === 'ALL' && verifiedFilter === 'ALL' && !participantId ? 'Record a shooting or murder to begin tracking.' : undefined}
                     action={
-                      typeFilter === 'ALL' && verifiedFilter === 'ALL' ? (
+                      typeFilter === 'ALL' && verifiedFilter === 'ALL' && !participantId ? (
                         <Button size="sm" onClick={() => setCreating(true)}>
                           <Plus className="mr-1.5 h-4 w-4" /> Record the first incident
                         </Button>
@@ -557,7 +619,7 @@ function IncidentsPage() {
       </div>
 
       {/* Load more */}
-      {data?.next_cursor && (
+      {!participantId && data?.next_cursor && (
         <div className="mt-4 flex justify-center">
           <Button variant="outline" size="sm" onClick={() => setCursor(data.next_cursor ?? undefined)}>
             Load more incidents

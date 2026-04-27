@@ -429,11 +429,11 @@ export const useUpdateAllianceStatus = (universeId: UUID) => {
   })
 }
 
-export const useMemberIncidents = (memberId: UUID, universeId: UUID | null) =>
+export const useMemberIncidents = (memberId: UUID | null, universeId: UUID | null) =>
   useQuery({
     queryKey: ['incidents', 'member', memberId],
     queryFn: () => api.get<CursorPage<IncidentListItem>>(`/incidents/?universe_id=${universeId}&member_id=${memberId}`),
-    enabled: !!universeId,
+    enabled: !!universeId && !!memberId,
   })
 
 // ─── Incidents ────────────────────────────────────────────────────────────────
