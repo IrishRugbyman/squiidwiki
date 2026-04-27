@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import type { QueryClient } from '@tanstack/react-query'
 import { api } from './api'
 import type {
   AllianceListItem,
@@ -155,6 +156,11 @@ export const useUpdateSet = (id: UUID) => {
   })
 }
 
+// Restore each cache to its captured pre-mutation value (per-key).
+function restoreSnapshot(qc: QueryClient, prev: ReturnType<QueryClient['getQueriesData']>) {
+  for (const [key, data] of prev) qc.setQueryData(key, data)
+}
+
 export const useDeleteSet = (universeId: UUID) => {
   const qc = useQueryClient()
   return useMutation({
@@ -167,7 +173,7 @@ export const useDeleteSet = (universeId: UUID) => {
       )
       return { prev }
     },
-    onError: (_e, _id, ctx: any) => { if (ctx?.prev) qc.setQueriesData({ queryKey: ['sets', universeId] }, ctx.prev) },
+    onError: (_e, _id, ctx: any) => { if (ctx?.prev) restoreSnapshot(qc, ctx.prev) },
     onSettled: () => { qc.invalidateQueries({ queryKey: ['sets'] }) },
   })
 }
@@ -177,7 +183,19 @@ export const useAddSetRelationship = (setId: UUID, universeId: UUID) => {
   return useMutation({
     mutationFn: (body: { target_id: UUID; type: string }) =>
       api.post(`/sets/${setId}/relationships?universe_id=${universeId}`, body),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['sets', setId] }) },
+    onMutate: async ({ target_id, type }) => {
+      await qc.cancelQueries({ queryKey: ['sets', setId] })
+      const prev = qc.getQueriesData({ queryKey: ['sets', setId] })
+      const field = type === 'FRIEND' ? 'friend_ids' : 'enemy_ids'
+      qc.setQueriesData({ queryKey: ['sets', setId] }, (old: any) => {
+        if (!old || !Array.isArray(old[field])) return old
+        if (old[field].includes(target_id)) return old
+        return { ...old, [field]: [...old[field], target_id] }
+      })
+      return { prev }
+    },
+    onError: (_e, _v, ctx: any) => { if (ctx?.prev) restoreSnapshot(qc, ctx.prev) },
+    onSettled: () => { qc.invalidateQueries({ queryKey: ['sets', setId] }) },
   })
 }
 
@@ -186,7 +204,19 @@ export const useRemoveSetRelationship = (setId: UUID, universeId: UUID) => {
   return useMutation({
     mutationFn: (targetId: UUID) =>
       api.delete(`/sets/${setId}/relationships/${targetId}?universe_id=${universeId}`),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['sets', setId] }) },
+    onMutate: async (targetId) => {
+      await qc.cancelQueries({ queryKey: ['sets', setId] })
+      const prev = qc.getQueriesData({ queryKey: ['sets', setId] })
+      qc.setQueriesData({ queryKey: ['sets', setId] }, (old: any) => {
+        if (!old) return old
+        const friend_ids = (old.friend_ids ?? []).filter((x: string) => x !== targetId)
+        const enemy_ids = (old.enemy_ids ?? []).filter((x: string) => x !== targetId)
+        return { ...old, friend_ids, enemy_ids }
+      })
+      return { prev }
+    },
+    onError: (_e, _v, ctx: any) => { if (ctx?.prev) restoreSnapshot(qc, ctx.prev) },
+    onSettled: () => { qc.invalidateQueries({ queryKey: ['sets', setId] }) },
   })
 }
 
@@ -407,7 +437,27 @@ export const useUpdateMemberStatus = (universeId: UUID) => {
   return useMutation({
     mutationFn: ({ id, status }: { id: UUID; status: string }) =>
       api.patch<MemberRead>(`/members/${id}?universe_id=${universeId}`, { status }),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['members'] }) },
+    onMutate: async ({ id, status }) => {
+      await qc.cancelQueries({ queryKey: ['members'] })
+      const prev = qc.getQueriesData({ queryKey: ['members'] })
+      qc.setQueriesData({ queryKey: ['members'] }, (old: any) => {
+        if (!old) return old
+        // Member detail (single MemberRead/MemberReadDetail)
+        if (old.id === id) return { ...old, status }
+        // CursorPage<MemberListItem> (paginated lists, by-set, by-alliance, all, by-source)
+        if (Array.isArray(old.items)) {
+          return { ...old, items: old.items.map((m: any) => (m.id === id ? { ...m, status } : m)) }
+        }
+        // Search results (raw MemberListItem[])
+        if (Array.isArray(old)) {
+          return old.map((m: any) => (m.id === id ? { ...m, status } : m))
+        }
+        return old
+      })
+      return { prev }
+    },
+    onError: (_e, _v, ctx: any) => { if (ctx?.prev) restoreSnapshot(qc, ctx.prev) },
+    onSettled: () => { qc.invalidateQueries({ queryKey: ['members'] }) },
   })
 }
 
