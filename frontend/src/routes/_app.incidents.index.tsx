@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from '@tanstack/react-router'
+import { createFileRoute, Link, useLocation, useNavigate } from '@tanstack/react-router'
 import { CheckCircle2, Download, Pencil, Plus, Search, ShieldAlert, Skull, Swords, User, X } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { toast } from 'sonner'
@@ -16,7 +16,8 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Textarea } from '@/components/ui/textarea'
 import {
   useCreateIncident, useUpdateIncident, useIncident,
-  useIncidents, useMemberIncidents, useMemberSearch, useMunicipalities, useAllMembers, useSets,
+  useIncidents, useIncidentsByMunicipality, useMemberIncidents, useMemberSearch,
+  useMunicipalities, useAllMembers, useSets,
 } from '@/lib/queries'
 import { downloadCsv } from '@/lib/download'
 import { api } from '@/lib/api'
@@ -401,6 +402,13 @@ function FilterTabs<T extends string>({ options, value, onChange }: {
 
 function IncidentsPage() {
   const universe = useUniverseStore((s) => s.activeUniverse)
+  const navigate = useNavigate()
+  const location = useLocation()
+  const municipalityIdFromUrl = useMemo(() => {
+    const params = new URLSearchParams(location.searchStr ?? '')
+    const v = params.get('municipality_id')
+    return v ? (v as UUID) : null
+  }, [location.searchStr])
   const [cursor, setCursor] = useState<string | undefined>(undefined)
   const [creating, setCreating] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
@@ -411,13 +419,29 @@ function IncidentsPage() {
   const [participantSearch, setParticipantSearch] = useState('')
   const debouncedParticipantSearch = useDebounce(participantSearch, 200)
 
-  const baseQuery = useIncidents(participantId ? null : universe?.id ?? null, cursor)
-  const filteredQuery = useMemberIncidents(participantId, universe?.id ?? null)
-  const data = participantId ? filteredQuery.data : baseQuery.data
-  const isLoading = participantId ? filteredQuery.isLoading : baseQuery.isLoading
+  // Participant filter wins over municipality filter when both are present.
+  const municipalityId = !participantId && municipalityIdFromUrl ? municipalityIdFromUrl : null
+
+  const baseQuery = useIncidents(participantId || municipalityId ? null : universe?.id ?? null, cursor)
+  const participantQuery = useMemberIncidents(participantId, universe?.id ?? null)
+  const muniQuery = useIncidentsByMunicipality(municipalityId, universe?.id ?? null)
+  const data = participantId ? participantQuery.data : municipalityId ? muniQuery.data : baseQuery.data
+  const isLoading = participantId
+    ? participantQuery.isLoading
+    : municipalityId
+      ? muniQuery.isLoading
+      : baseQuery.isLoading
 
   const { data: munis } = useMunicipalities(universe?.id ?? null)
   const { data: participantResults } = useMemberSearch(universe?.id ?? null, debouncedParticipantSearch)
+  const municipalityName = municipalityId
+    ? (munis?.items ?? []).find((m) => m.id === municipalityId)?.name ?? null
+    : null
+
+  function clearMunicipalityFilter() {
+    navigate({ to: '/incidents' })
+    setCursor(undefined)
+  }
 
   const allItems: IncidentListItem[] = data?.items ?? []
 
@@ -501,6 +525,16 @@ function IncidentsPage() {
             { key: 'UNVERIFIED', label: 'Unverified' },
           ]}
         />
+        {municipalityId && (
+          <button
+            type="button"
+            onClick={clearMunicipalityFilter}
+            className="inline-flex items-center gap-1.5 rounded-md border border-violet-700/60 bg-violet-950/40 px-2.5 py-1 text-xs font-medium text-violet-300 hover:bg-violet-900/40 transition-colors"
+          >
+            <span>Zone: {municipalityName ?? 'unknown'}</span>
+            <X className="h-3 w-3" />
+          </button>
+        )}
         {participantId ? (
           <button
             type="button"
@@ -643,13 +677,13 @@ function IncidentsPage() {
                   <EmptyState
                     icon={ShieldAlert}
                     title={
-                      typeFilter !== 'ALL' || verifiedFilter !== 'ALL' || participantId
+                      typeFilter !== 'ALL' || verifiedFilter !== 'ALL' || participantId || municipalityId
                         ? 'No incidents match the current filters'
                         : 'No incidents recorded yet'
                     }
-                    description={typeFilter === 'ALL' && verifiedFilter === 'ALL' && !participantId ? 'Record a shooting or murder to begin tracking.' : undefined}
+                    description={typeFilter === 'ALL' && verifiedFilter === 'ALL' && !participantId && !municipalityId ? 'Record a shooting or murder to begin tracking.' : undefined}
                     action={
-                      typeFilter === 'ALL' && verifiedFilter === 'ALL' && !participantId ? (
+                      typeFilter === 'ALL' && verifiedFilter === 'ALL' && !participantId && !municipalityId ? (
                         <Button size="sm" onClick={() => setCreating(true)}>
                           <Plus className="mr-1.5 h-4 w-4" /> Record the first incident
                         </Button>
@@ -664,7 +698,7 @@ function IncidentsPage() {
       </div>
 
       {/* Load more */}
-      {!participantId && data?.next_cursor && (
+      {!participantId && !municipalityId && data?.next_cursor && (
         <div className="mt-4 flex justify-center">
           <Button variant="outline" size="sm" onClick={() => setCursor(data.next_cursor ?? undefined)}>
             Load more incidents

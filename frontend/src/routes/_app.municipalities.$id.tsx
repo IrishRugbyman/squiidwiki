@@ -208,11 +208,20 @@ function MunicipalityDetailPage() {
       {/* Incidents */}
       <TooltipProvider delayDuration={250}>
         <div className="rounded-xl border border-zinc-800 bg-zinc-900/30">
-          <div className="border-b border-zinc-800 px-4 py-3 flex items-center justify-between">
+          <div className="border-b border-zinc-800 px-4 py-3 flex items-center justify-between gap-3">
             <h2 className="text-xs font-semibold uppercase tracking-wider text-zinc-500">Incidents</h2>
-            <Link to="/incidents" className="text-xs text-zinc-500 hover:text-violet-400 transition-colors">
-              All incidents →
-            </Link>
+            <div className="flex items-center gap-3">
+              <Link
+                to="/incidents"
+                search={{ municipality_id: id }}
+                className="text-xs text-violet-400 hover:text-violet-300 transition-colors"
+              >
+                Filter incidents here →
+              </Link>
+              <Link to="/incidents" className="text-xs text-zinc-500 hover:text-violet-400 transition-colors">
+                All incidents →
+              </Link>
+            </div>
           </div>
           <div className="divide-y divide-zinc-800/60">
             {incidentsLoading ? (
