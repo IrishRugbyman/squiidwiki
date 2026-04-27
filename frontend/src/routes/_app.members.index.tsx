@@ -22,6 +22,8 @@ import { downloadCsv } from '@/lib/download'
 import { useDebounce } from '@/hooks/useDebounce'
 import { MemberRowSkeleton } from '@/components/skeletons'
 import { MemberStatusToggle } from '@/components/StatusToggle'
+import { UrlPasteBanner, useUrlPasteBanner } from '@/components/UrlPasteBanner'
+import { SourceFormSheet } from './_app.sources.index'
 import type { MemberListItem, MemberRead, MemberStatus } from '@/lib/types'
 import type { FuzzyDateValue } from '@/components/FuzzyDate'
 
@@ -335,6 +337,8 @@ export function MemberFormSheet({ universeId, open, onClose, initial, defaultSet
     () => familyDictToEntries(initial?.family as Record<string, unknown> | null)
   )
   const [error, setError] = useState<string | null>(null)
+  const urlPaste = useUrlPasteBanner()
+  const [creatingSourceFromUrl, setCreatingSourceFromUrl] = useState<string | null>(null)
 
   const displayPreview = (nicknameUnknown || !nickname.trim()) ? legalName.trim() : nickname.trim()
   const identityValid = displayPreview.length > 0
@@ -518,7 +522,22 @@ export function MemberFormSheet({ universeId, open, onClose, initial, defaultSet
           <FormSection title="Biography">
             <div className="space-y-1.5">
               <Label htmlFor="m-bio" className="sr-only">Biography</Label>
-              <Textarea id="m-bio" rows={4} value={biography} onChange={(e) => setBiography(e.target.value)} placeholder="Background notes…" />
+              <Textarea
+                id="m-bio"
+                rows={4}
+                value={biography}
+                onChange={(e) => setBiography(e.target.value)}
+                onPaste={urlPaste.onPaste}
+                placeholder="Background notes…"
+              />
+              <UrlPasteBanner
+                url={urlPaste.pastedUrl}
+                onSaveAsSource={() => {
+                  if (urlPaste.pastedUrl) setCreatingSourceFromUrl(urlPaste.pastedUrl)
+                  urlPaste.dismiss()
+                }}
+                onDismiss={urlPaste.dismiss}
+              />
             </div>
           </FormSection>
 
@@ -538,6 +557,14 @@ export function MemberFormSheet({ universeId, open, onClose, initial, defaultSet
           </div>
         </form>
       </SheetContent>
+      {creatingSourceFromUrl && (
+        <SourceFormSheet
+          universeId={universeId}
+          open
+          onClose={() => setCreatingSourceFromUrl(null)}
+          defaultUrl={creatingSourceFromUrl}
+        />
+      )}
     </Sheet>
   )
 }

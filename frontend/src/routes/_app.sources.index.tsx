@@ -29,14 +29,15 @@ interface SourceFormProps {
   open: boolean
   onClose: () => void
   initial?: SourceRead
+  defaultUrl?: string
 }
 
-export function SourceFormSheet({ universeId, open, onClose, initial }: SourceFormProps) {
+export function SourceFormSheet({ universeId, open, onClose, initial, defaultUrl }: SourceFormProps) {
   const create = useCreateSource()
   const update = useUpdateSource(initial?.id ?? '', universeId)
   const isEdit = !!initial
 
-  const [url, setUrl] = useState(initial?.url ?? '')
+  const [url, setUrl] = useState(initial?.url ?? defaultUrl ?? '')
   const [title, setTitle] = useState(initial?.title ?? '')
   const [publication, setPublication] = useState(initial?.publication ?? '')
   const [reliability, setReliability] = useState<SourceReliability>(initial?.reliability ?? 'UNVERIFIED')

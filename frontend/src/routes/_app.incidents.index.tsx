@@ -11,6 +11,8 @@ import {
   DropdownMenu, DropdownMenuTrigger, DropdownMenuContent,
   DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu'
+import { UrlPasteBanner, useUrlPasteBanner } from '@/components/UrlPasteBanner'
+import { SourceFormSheet } from './_app.sources.index'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
@@ -229,6 +231,8 @@ export function IncidentFormSheet({ universeId, open, onClose, initial, defaultP
   )
   const [deathPrompts, setDeathPrompts] = useState<DeathDatePrompt[]>([])
   const [error, setError] = useState<string | null>(null)
+  const urlPaste = useUrlPasteBanner()
+  const [creatingSourceFromUrl, setCreatingSourceFromUrl] = useState<string | null>(null)
 
   // Re-resolve participant names once member map loads (edit mode only)
   useEffect(() => {
@@ -338,7 +342,22 @@ export function IncidentFormSheet({ universeId, open, onClose, initial, defaultP
           )}
           <div className="space-y-1.5">
             <Label htmlFor="inc-narrative">Narrative</Label>
-            <Textarea id="inc-narrative" rows={4} value={narrative} onChange={(e) => setNarrative(e.target.value)} placeholder="What happened…" />
+            <Textarea
+              id="inc-narrative"
+              rows={4}
+              value={narrative}
+              onChange={(e) => setNarrative(e.target.value)}
+              onPaste={urlPaste.onPaste}
+              placeholder="What happened…"
+            />
+            <UrlPasteBanner
+              url={urlPaste.pastedUrl}
+              onSaveAsSource={() => {
+                if (urlPaste.pastedUrl) setCreatingSourceFromUrl(urlPaste.pastedUrl)
+                urlPaste.dismiss()
+              }}
+              onDismiss={urlPaste.dismiss}
+            />
           </div>
           {error && <p className="text-sm text-red-400">{error}</p>}
           <div className="flex gap-2 pt-2">
@@ -351,6 +370,14 @@ export function IncidentFormSheet({ universeId, open, onClose, initial, defaultP
           </div>
         </form>
       </SheetContent>
+      {creatingSourceFromUrl && (
+        <SourceFormSheet
+          universeId={universeId}
+          open
+          onClose={() => setCreatingSourceFromUrl(null)}
+          defaultUrl={creatingSourceFromUrl}
+        />
+      )}
     </Sheet>
   )
 }
