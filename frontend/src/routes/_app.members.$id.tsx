@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
 import {
-  AlertTriangle, CheckCircle2, Copy, ExternalLink, Heart,
+  AlertTriangle, CheckCircle2, Copy, Download, ExternalLink, Heart,
   Pencil, Plus, Skull, Trash2,
 } from 'lucide-react'
 import { FacebookIcon, InstagramIcon, TwitterIcon } from '@/components/icons/SocialIcons'
@@ -23,7 +23,9 @@ import {
   useMember, useMemberStats, useSets, useAlliances,
   useDeleteMember, useMemberIncidents, useAllMembers,
 } from '@/lib/queries'
-import type { MemberListItem } from '@/lib/types'
+import type { IncidentListItem, MemberListItem, MemberRead } from '@/lib/types'
+import type { FuzzyDateValue } from '@/components/FuzzyDate'
+import { downloadText } from '@/lib/download'
 import { useUniverseStore } from '@/stores/universe'
 import { useAuthStore } from '@/stores/auth'
 import { MemberFormSheet, familyDictToEntries, ROLE_LABEL } from './_app.members.index'
@@ -185,6 +187,99 @@ function FamilyTab({ family, universeId }: { family: Record<string, unknown> | n
   )
 }
 
+// ─── Markdown export ──────────────────────────────────────────────────────────
+
+const MD_MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+
+function formatFuzzyDateText(value: FuzzyDateValue | null | undefined, fallback = 'Unknown'): string {
+  if (!value || value.precision === 'UNKNOWN') return fallback
+  const prefix = value.approx ? 'c. ' : ''
+  if (value.precision === 'YMD' && value.year && value.month && value.day)
+    return `${prefix}${MD_MONTHS[value.month - 1]} ${value.day}, ${value.year}`
+  if (value.precision === 'YM' && value.year && value.month)
+    return `${prefix}${MD_MONTHS[value.month - 1]} ${value.year}`
+  if (value.precision === 'Y' && value.year)
+    return `${prefix}${value.year}`
+  return fallback
+}
+
+function buildMemberMarkdown({
+  member, setName, allianceName, family, incidents,
+}: {
+  member: MemberRead
+  setName: string | null
+  allianceName: string | null
+  family: { role: FamilyRole; name: string }[]
+  incidents: IncidentListItem[]
+}): string {
+  const lines: string[] = []
+  lines.push(`# ${member.display_name}`)
+  if (member.legal_name && member.legal_name !== member.display_name) {
+    lines.push('')
+    lines.push(`*Legal name: ${member.legal_name}*`)
+  }
+  lines.push('')
+
+  lines.push('## Identity')
+  lines.push('')
+  lines.push(`- **Status:** ${member.status}`)
+  if (member.dob) lines.push(`- **Date of birth:** ${formatFuzzyDateText(member.dob)}`)
+  if (member.date_of_death) lines.push(`- **Date of death:** ${formatFuzzyDateText(member.date_of_death)}`)
+  if (setName) lines.push(`- **Set:** ${setName}`)
+  if (allianceName) lines.push(`- **Alliance:** ${allianceName}`)
+  if (member.aliases && member.aliases.length > 0) {
+    lines.push(`- **Aliases:** ${member.aliases.join(', ')}`)
+  }
+  lines.push('')
+
+  if (member.biography) {
+    lines.push('## Biography')
+    lines.push('')
+    lines.push(member.biography)
+    lines.push('')
+  }
+
+  if (family.length > 0) {
+    lines.push('## Family')
+    lines.push('')
+    const grouped: Record<string, string[]> = {}
+    for (const { role, name } of family) {
+      (grouped[role] ??= []).push(name)
+    }
+    for (const role of (['father', 'son', 'brother', 'cousin', 'uncle', 'nephew'] as FamilyRole[])) {
+      const names = grouped[role]
+      if (!names) continue
+      const label = ROLE_LABEL[role] + (names.length > 1 ? 's' : '')
+      lines.push(`- **${label}:** ${names.join(', ')}`)
+    }
+    lines.push('')
+  }
+
+  if (incidents.length > 0) {
+    lines.push(`## Incidents (${incidents.length})`)
+    lines.push('')
+    for (const inc of incidents) {
+      const dateStr = formatFuzzyDateText(inc.date, 'Date unknown')
+      const victims = inc.victim_names.length > 0 ? ` — Victims: ${inc.victim_names.join(', ')}` : ''
+      const verified = inc.verified ? ' [verified]' : ''
+      lines.push(`- ${dateStr} — ${inc.type}${victims}${verified}`)
+    }
+    lines.push('')
+  }
+
+  const social = member.social_media as Record<string, string> | null | undefined
+  if (social && Object.values(social).some((v) => v)) {
+    lines.push('## Social')
+    lines.push('')
+    for (const [k, v] of Object.entries(social)) {
+      if (v) lines.push(`- **${k.charAt(0).toUpperCase() + k.slice(1)}:** ${v}`)
+    }
+    lines.push('')
+  }
+
+  return lines.join('\n').trimEnd() + '\n'
+}
+
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 function MemberDetailPage() {
@@ -227,6 +322,26 @@ function MemberDetailPage() {
   }
 
   const familyCount = member?.family ? familyDictToEntries(member.family as Record<string, unknown>).length : 0
+
+  const { data: allMembers } = useAllMembers(universe?.id ?? null)
+
+  function handleExport() {
+    if (!member) return
+    const memberMap: Record<string, string> = Object.fromEntries(
+      (allMembers?.items ?? []).map((m) => [m.id, m.display_name]),
+    )
+    const familyEntries = familyDictToEntries(member.family as Record<string, unknown> | null)
+      .map((e) => ({ role: e.role, name: memberMap[e.memberId] ?? e.memberId.slice(0, 8) + '…' }))
+    const md = buildMemberMarkdown({
+      member,
+      setName: member.set_id ? setName(member.set_id) : null,
+      allianceName: member.alliance_id ? allianceName(member.alliance_id) : null,
+      family: familyEntries,
+      incidents: incidents?.items ?? [],
+    })
+    const safeName = member.display_name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'member'
+    downloadText(md, `${safeName}.md`, 'text/markdown;charset=utf-8')
+  }
 
   if (isError) return <ErrorState title="Member not found" onRetry={() => refetch()} />
 
@@ -308,6 +423,9 @@ function MemberDetailPage() {
               </Button>
               <Button size="sm" variant="outline" onClick={() => setDuplicating(true)}>
                 <Copy className="mr-1.5 h-3.5 w-3.5" />Duplicate
+              </Button>
+              <Button size="sm" variant="outline" onClick={handleExport}>
+                <Download className="mr-1.5 h-3.5 w-3.5" />Export
               </Button>
               {user?.global_role === 'ADMIN' && (
                 <Button size="sm" variant="destructive" onClick={() => setDeleting(true)}>
