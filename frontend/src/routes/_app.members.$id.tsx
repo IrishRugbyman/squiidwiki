@@ -28,6 +28,7 @@ import { useUniverseStore } from '@/stores/universe'
 import { useAuthStore } from '@/stores/auth'
 import { MemberFormSheet, familyDictToEntries, ROLE_LABEL } from './_app.members.index'
 import type { FamilyRole } from './_app.members.index'
+import { AddFamilyRelativeDialog } from '@/components/AddFamilyRelativeDialog'
 import { useRecordRecent } from '@/stores/recents'
 import { useEditShortcut } from '@/hooks/useKeymap'
 import { IncidentFormSheet } from './_app.incidents.index'
@@ -206,6 +207,7 @@ function MemberDetailPage() {
   const [duplicating, setDuplicating] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [creatingIncident, setCreatingIncident] = useState(false)
+  const [addingFamily, setAddingFamily] = useState(false)
 
   useEditShortcut(() => member && setEditing(true))
 
@@ -448,6 +450,11 @@ function MemberDetailPage() {
 
             {/* Family */}
             <TabsContent value="family" className="mt-4">
+              <div className="mb-3 flex justify-end">
+                <Button size="sm" variant="outline" onClick={() => setAddingFamily(true)}>
+                  <Plus className="mr-1.5 h-3.5 w-3.5" />Add Family Member
+                </Button>
+              </div>
               {universe && (
                 <FamilyTab family={member.family as Record<string, unknown> | null} universeId={universe.id} />
               )}
@@ -535,6 +542,15 @@ function MemberDetailPage() {
                 ...member,
                 nickname: member.nickname ? `${member.nickname} (copy)` : member.nickname,
               }}
+            />
+          )}
+
+          {universe && (
+            <AddFamilyRelativeDialog
+              member={member}
+              universeId={universe.id}
+              open={addingFamily}
+              onClose={() => setAddingFamily(false)}
             />
           )}
 
