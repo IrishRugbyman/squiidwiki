@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
-import { Archive, ExternalLink, Pencil, Trash2 } from 'lucide-react'
+import { Archive, ExternalLink, Link2, Pencil, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import { FuzzyDate } from '@/components/FuzzyDate'
 import { ReliabilityBadge } from '@/components/StatusBadge'
@@ -18,6 +18,8 @@ import { useSource, useSourceIncidents, useSourceMembers, useDeleteSource } from
 import { useUniverseStore } from '@/stores/universe'
 import { useAuthStore } from '@/stores/auth'
 import { SourceFormSheet } from './_app.sources.index'
+import { AttachIncidentsToSourceDialog } from '@/components/AttachIncidentsToSourceDialog'
+import { AttachMembersToSourceDialog } from '@/components/AttachMembersToSourceDialog'
 import { useRecordRecent } from '@/stores/recents'
 import { useEditShortcut } from '@/hooks/useKeymap'
 
@@ -39,6 +41,8 @@ function SourceDetailPage() {
 
   const [editing, setEditing] = useState(false)
   const [deleting, setDeleting] = useState(false)
+  const [attachingIncident, setAttachingIncident] = useState(false)
+  const [attachingMember, setAttachingMember] = useState(false)
 
   useEditShortcut(() => source && setEditing(true))
 
@@ -137,6 +141,11 @@ function SourceDetailPage() {
             </TabsList>
 
             <TabsContent value="incidents" className="mt-4">
+              <div className="mb-3 flex justify-end">
+                <Button size="sm" variant="outline" onClick={() => setAttachingIncident(true)}>
+                  <Link2 className="mr-1.5 h-3.5 w-3.5" />Attach to incident
+                </Button>
+              </div>
               {!incidents || incidents.items.length === 0 ? (
                 <p className="text-sm text-zinc-600">No incidents cite this source.</p>
               ) : (
@@ -168,6 +177,11 @@ function SourceDetailPage() {
             </TabsContent>
 
             <TabsContent value="members" className="mt-4">
+              <div className="mb-3 flex justify-end">
+                <Button size="sm" variant="outline" onClick={() => setAttachingMember(true)}>
+                  <Link2 className="mr-1.5 h-3.5 w-3.5" />Attach to member
+                </Button>
+              </div>
               {!members || members.items.length === 0 ? (
                 <p className="text-sm text-zinc-600">No members cite this source.</p>
               ) : (
@@ -205,6 +219,26 @@ function SourceDetailPage() {
               open={editing}
               onClose={() => setEditing(false)}
               initial={source}
+            />
+          )}
+
+          {universe && (
+            <AttachIncidentsToSourceDialog
+              sourceId={source.id}
+              universeId={universe.id}
+              attachedIncidentIds={incidents?.items.map((i) => i.id) ?? []}
+              open={attachingIncident}
+              onClose={() => setAttachingIncident(false)}
+            />
+          )}
+
+          {universe && (
+            <AttachMembersToSourceDialog
+              sourceId={source.id}
+              universeId={universe.id}
+              attachedMemberIds={members?.items.map((m) => m.id) ?? []}
+              open={attachingMember}
+              onClose={() => setAttachingMember(false)}
             />
           )}
 
