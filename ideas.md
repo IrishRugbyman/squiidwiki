@@ -57,7 +57,7 @@ Pattern: a button on entity Y's detail page that opens a picker (existing) **or*
 ## Forms & data-entry shortcuts
 
 - [x] **Inline status toggle in list tables** — flip member/set/alliance status without opening the full edit sheet (today only the bulk-action bar can change member status).
-- [ ] **Auto-suggest participants on incident create** — once location + sets are chosen, suggest members from those sets. The current participant search only matches by name.
+- [x] **Auto-suggest participants on incident create** — once location + sets are chosen, suggest members from those sets. The current participant search only matches by name.
 - [ ] **Paste-a-URL → save as Source** — when a URL is pasted into a narrative/bio textarea, prompt "Save as source linked to this entity?".
 - [x] **Duplicate entity action** (sets and members) — useful when a crew splits or you're tracking aliases.
 - [x] **Keyboard `e` to edit current entity** — action shortcut to pair with the existing `g`-prefixed navigation.

@@ -16,7 +16,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Textarea } from '@/components/ui/textarea'
 import {
   useCreateIncident, useUpdateIncident, useIncident,
-  useIncidents, useMemberIncidents, useMemberSearch, useMunicipalities, useAllMembers,
+  useIncidents, useMemberIncidents, useMemberSearch, useMunicipalities, useAllMembers, useSets,
 } from '@/lib/queries'
 import { downloadCsv } from '@/lib/download'
 import { api } from '@/lib/api'
@@ -24,7 +24,7 @@ import { useDebounce } from '@/hooks/useDebounce'
 import { EmptyState } from '@/components/EmptyState'
 import { TableRowSkeleton } from '@/components/skeletons'
 import type { FuzzyDateValue } from '@/components/FuzzyDate'
-import type { IncidentListItem, IncidentReadDetail, IncidentType, ParticipantOutcome, ParticipantRole, UUID } from '@/lib/types'
+import type { IncidentListItem, IncidentReadDetail, IncidentType, MemberListItem, ParticipantOutcome, ParticipantRole, UUID } from '@/lib/types'
 import { useUniverseStore } from '@/stores/universe'
 
 export const Route = createFileRoute('/_app/incidents/')({
@@ -64,17 +64,35 @@ interface DeathDatePrompt {
   date: FuzzyDateValue | null
 }
 
-function ParticipantBuilder({ universeId, participants, onChange, onDeathDateNeeded }: {
+function ParticipantBuilder({ universeId, participants, onChange, onDeathDateNeeded, allMembers, setNameById }: {
   universeId: string
   participants: ParticipantDraft[]
   onChange: (p: ParticipantDraft[]) => void
   onDeathDateNeeded?: (prompt: DeathDatePrompt) => void
+  allMembers: MemberListItem[]
+  setNameById: Record<string, string>
 }) {
   const [search, setSearch] = useState('')
   const [role, setRole] = useState<ParticipantRole>('VICTIM')
   const [outcome, setOutcome] = useState<ParticipantOutcome>('UNKNOWN')
   const debouncedSearch = useDebounce(search, 200)
   const { data: results } = useMemberSearch(universeId, debouncedSearch)
+
+  // Suggest members from the same set(s) as already-added participants.
+  const suggestions = useMemo(() => {
+    if (participants.length === 0 || allMembers.length === 0) return [] as MemberListItem[]
+    const memberMap = Object.fromEntries(allMembers.map((m) => [m.id, m]))
+    const addedIds = new Set(participants.map((p) => p.member_id))
+    const setIds = new Set<string>()
+    for (const p of participants) {
+      const sid = memberMap[p.member_id]?.set_id
+      if (sid) setIds.add(sid)
+    }
+    if (setIds.size === 0) return []
+    return allMembers
+      .filter((m) => m.set_id && setIds.has(m.set_id) && !addedIds.has(m.id))
+      .slice(0, 8)
+  }, [allMembers, participants])
 
   function addParticipant(memberId: UUID, memberName: string) {
     if (participants.some((p) => p.member_id === memberId)) return
@@ -121,6 +139,24 @@ function ParticipantBuilder({ universeId, participants, onChange, onDeathDateNee
           ))}
         </div>
       )}
+      {search.length < 2 && suggestions.length > 0 && (
+        <div className="space-y-1">
+          <div className="text-[11px] font-medium uppercase tracking-wider text-zinc-500">
+            Suggested from same set
+          </div>
+          <div className="max-h-40 overflow-y-auto rounded border border-zinc-800 bg-zinc-950">
+            {suggestions.map((m) => (
+              <button key={m.id} type="button" onClick={() => addParticipant(m.id, m.display_name)}
+                className="w-full px-3 py-2 text-left text-sm text-zinc-300 hover:bg-zinc-800 transition-colors flex items-center justify-between gap-2">
+                <span className="truncate">{m.display_name}</span>
+                {m.set_id && setNameById[m.set_id] && (
+                  <span className="text-[10px] text-zinc-500 shrink-0 truncate max-w-[40%]">{setNameById[m.set_id]}</span>
+                )}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
       {participants.length > 0 && (
         <div className="space-y-1.5">
           {participants.map((p) => (
@@ -156,13 +192,21 @@ export function IncidentFormSheet({ universeId, open, onClose, initial, defaultP
   const update = useUpdateIncident(initial?.id ?? '', universeId)
   const isEdit = !!initial
   const { data: munis } = useMunicipalities(universeId)
-  const { data: allMembersData } = useAllMembers(isEdit ? universeId : null)
+  const { data: allMembersData } = useAllMembers(universeId)
+  const { data: allSetsData } = useSets(universeId)
 
+  const allMembersList = useMemo(() => allMembersData?.items ?? [], [allMembersData])
   const memberNameMap = useMemo(() => {
     const map: Record<string, string> = {}
-    for (const m of allMembersData?.items ?? []) map[m.id] = m.display_name
+    for (const m of allMembersList) map[m.id] = m.display_name
     return map
-  }, [allMembersData])
+  }, [allMembersList])
+
+  const setNameById = useMemo(() => {
+    const map: Record<string, string> = {}
+    for (const s of allSetsData?.items ?? []) map[s.id] = s.name
+    return map
+  }, [allSetsData])
 
   const [type, setType] = useState<IncidentType>(initial?.type ?? 'SHOOTING')
   const [date, setDate] = useState<FuzzyDateValue | null>(initial?.date ?? null)
@@ -271,7 +315,8 @@ export function IncidentFormSheet({ universeId, open, onClose, initial, defaultP
           <div className="space-y-1.5">
             <Label>Participants</Label>
             <ParticipantBuilder universeId={universeId} participants={participants} onChange={setParticipants}
-              onDeathDateNeeded={!isEdit ? (p) => setDeathPrompts((prev) => [...prev, p]) : undefined} />
+              onDeathDateNeeded={!isEdit ? (p) => setDeathPrompts((prev) => [...prev, p]) : undefined}
+              allMembers={allMembersList} setNameById={setNameById} />
           </div>
           {deathPrompts.length > 0 && (
             <div className="space-y-3 rounded-lg border border-amber-800 bg-amber-950/30 p-3">
