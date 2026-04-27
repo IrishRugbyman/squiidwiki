@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useLocation, useNavigate } from '@tanstack/react-router'
 import { Bookmark, BookmarkPlus, CheckCircle2, Download, Pencil, Plus, Search, ShieldAlert, Skull, Swords, Trash2, User, X } from 'lucide-react'
-import { useEffect, useMemo, useState } from 'react'
+import { lazy, Suspense, useEffect, useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import { FuzzyDate } from '@/components/FuzzyDate'
 import { FuzzyDateInput } from '@/components/FuzzyDateInput'
@@ -13,6 +13,10 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { UrlPasteBanner, useUrlPasteBanner } from '@/components/UrlPasteBanner'
 import { SourceFormSheet } from './_app.sources.index'
+
+const IncidentHeatmap = lazy(() =>
+  import('@/components/charts/IncidentHeatmap').then((m) => ({ default: m.IncidentHeatmap })),
+)
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
@@ -618,6 +622,15 @@ function IncidentsPage() {
           </div>
         }
       />
+
+      {/* Calendar density */}
+      {allItems.length > 0 && (
+        <div className="mb-4">
+          <Suspense fallback={<div className="h-40 rounded-xl border border-zinc-800 bg-zinc-900/30" />}>
+            <IncidentHeatmap incidents={allItems} />
+          </Suspense>
+        </div>
+      )}
 
       {/* Toolbar */}
       <div className="mb-4 flex flex-wrap items-center gap-2">
