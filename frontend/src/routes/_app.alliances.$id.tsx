@@ -1,6 +1,11 @@
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
 import { Network, Pencil, Plus, ShieldAlert, Skull, Trash2, Users, X } from 'lucide-react'
-import { useState } from 'react'
+import { lazy, Suspense, useMemo, useState } from 'react'
+import { Skeleton } from '@/components/ui/skeleton'
+
+const AllianceRelationshipGraph = lazy(() =>
+  import('@/components/graphs/AllianceRelationshipGraph').then((m) => ({ default: m.AllianceRelationshipGraph })),
+)
 import { toast } from 'sonner'
 import { FuzzyDate } from '@/components/FuzzyDate'
 import { AllianceStatusBadge, MemberStatusBadge, SetStatusBadge } from '@/components/StatusBadge'
@@ -55,6 +60,7 @@ function AllianceDetailPage() {
   const [addingMember, setAddingMember] = useState(false)
   const [creatingMember, setCreatingMember] = useState(false)
   const [removingSetId, setRemovingSetId] = useState<string | null>(null)
+  const [setsView, setSetsView] = useState<'list' | 'graph'>('list')
 
   useEditShortcut(() => alliance && setEditing(true))
 
@@ -78,6 +84,13 @@ function AllianceDetailPage() {
   const memberItems = members?.items ?? []
   const incidentItems = incidents?.items ?? []
   const deadCount = memberItems.filter((m) => m.status === 'DEAD').length
+  const memberCountBySetId = useMemo(() => {
+    const m: Record<string, number> = {}
+    for (const x of memberItems) {
+      if (x.set_id) m[x.set_id] = (m[x.set_id] ?? 0) + 1
+    }
+    return m
+  }, [memberItems])
   const removingSet = removingSetId ? allianceSets.find((s) => s.id === removingSetId) : null
 
   return (
@@ -163,12 +176,36 @@ function AllianceDetailPage() {
 
             {/* Sets */}
             <TabsContent value="sets" className="mt-4">
-              <div className="mb-3 flex justify-end">
+              <div className="mb-3 flex items-center justify-between gap-2">
+                <div className="flex items-center gap-1 rounded-md border border-zinc-800 bg-zinc-900/60 p-1">
+                  {(['list', 'graph'] as const).map((v) => (
+                    <button
+                      key={v}
+                      type="button"
+                      onClick={() => setSetsView(v)}
+                      className={`rounded px-2.5 py-0.5 text-[11px] font-medium transition-colors ${
+                        setsView === v ? 'bg-zinc-700 text-white' : 'text-zinc-500 hover:text-zinc-300'
+                      }`}
+                    >
+                      {v === 'list' ? 'List' : 'Graph'}
+                    </button>
+                  ))}
+                </div>
                 <Button size="sm" variant="outline" onClick={() => setAddingSet(true)}>
                   <Plus className="mr-1.5 h-3.5 w-3.5" />Add Set
                 </Button>
               </div>
-              {setIds.length === 0 ? (
+              {setsView === 'graph' && setIds.length > 0 && universe && (
+                <Suspense fallback={<Skeleton className="h-[480px] w-full" />}>
+                  <AllianceRelationshipGraph
+                    allianceSets={allianceSets}
+                    allSets={allSets?.items ?? []}
+                    memberCountBySetId={memberCountBySetId}
+                    universeId={universe.id}
+                  />
+                </Suspense>
+              )}
+              {setsView === 'list' && (setIds.length === 0 ? (
                 <EmptyState
                   icon={Network}
                   title="No member sets yet"
@@ -206,7 +243,7 @@ function AllianceDetailPage() {
                     </tbody>
                   </table>
                 </div>
-              )}
+              ))}
             </TabsContent>
 
             {/* Members */}
