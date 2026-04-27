@@ -19,7 +19,7 @@ Ranked roughly by impact. None of these are committed to a timeline.
 
 ## Mobile & UX
 
-- [ ] **Mobile card view for tables** — list pages currently hide columns at narrow widths (`hidden sm:table-cell`); a true `<sm:` card layout would read better than a 2-column stub table.
+- [x] **Mobile card view for tables** — list pages currently hide columns at narrow widths (`hidden sm:table-cell`); a true `<sm:` card layout would read better than a 2-column stub table. _(Members list shipped; same pattern available for sets/incidents/sources/alliances/municipalities.)_
 - [ ] **Swipe-to-open sidebar** — vaul drawer with swipe gesture on mobile replacing hamburger-only open.
 
 ## Search & Filtering

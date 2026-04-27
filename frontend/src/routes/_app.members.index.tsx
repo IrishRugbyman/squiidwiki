@@ -753,8 +753,8 @@ function MembersPage() {
         </Button>
       </div>
 
-      {/* Table */}
-      <div className="overflow-hidden rounded-lg border border-zinc-800">
+      {/* Table — hidden on narrow viewports */}
+      <div className="hidden overflow-hidden rounded-lg border border-zinc-800 sm:block">
         <table className="w-full text-sm">
           <thead className="sticky top-0 z-10">
             <tr className="border-b border-zinc-800 bg-zinc-900/90 backdrop-blur">
@@ -861,6 +861,92 @@ function MembersPage() {
             )}
           </tbody>
         </table>
+      </div>
+
+      {/* Mobile cards — shown below sm */}
+      <div className="space-y-2 sm:hidden">
+        {listLoading ? (
+          Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-20 w-full rounded-lg" />)
+        ) : items.length === 0 ? (
+          <div className="flex flex-col items-center rounded-lg border border-zinc-800 py-12 text-center">
+            <Users className="mb-3 h-8 w-8 text-zinc-700" />
+            <p className="text-sm text-zinc-500">
+              {q ? 'No members match your search' : hasFilters ? 'No members match these filters' : 'No members yet'}
+            </p>
+            {!q && !hasFilters && (
+              <button onClick={() => setCreating(true)} className="mt-2 text-xs text-violet-400 hover:text-violet-300 transition-colors">Add the first member →</button>
+            )}
+            {hasFilters && (
+              <button onClick={() => { setStatusFilter(null); setSetFilter('') }} className="mt-2 text-xs text-violet-400 hover:text-violet-300 transition-colors">Clear filters</button>
+            )}
+          </div>
+        ) : (
+          items.map((member) => {
+            const linkId = member.slug ?? member.id
+            const setInfo = member.set_id ? setMap[member.set_id] : null
+            const isDead = member.status === 'DEAD'
+            const isSelected = selected.has(member.id)
+            return (
+              <div
+                key={member.id}
+                className={`relative rounded-lg border bg-zinc-900/30 p-3 ${
+                  isSelected ? 'border-violet-700 bg-violet-950/20' : 'border-zinc-800'
+                } ${isDead ? 'opacity-60' : ''}`}
+              >
+                <div className="flex items-start gap-3">
+                  <input
+                    type="checkbox"
+                    aria-label={`Select ${member.display_name}`}
+                    checked={isSelected}
+                    onChange={() => toggleSelect(member.id)}
+                    className="mt-1 rounded border-zinc-700 bg-zinc-900 accent-violet-600"
+                  />
+                  <MemberAvatar member={member} />
+                  <div className="min-w-0 flex-1">
+                    <Link
+                      to="/members/$id"
+                      params={{ id: linkId }}
+                      className="block"
+                    >
+                      <span className={`font-medium ${isDead ? 'text-zinc-400 line-through decoration-zinc-600' : 'text-white'}`}>
+                        {member.display_name}
+                      </span>
+                      {member.aliases && member.aliases.length > 0 && (
+                        <span className="mt-0.5 block text-[11px] text-zinc-600">
+                          {member.aliases.slice(0, 3).join(' · ')}
+                        </span>
+                      )}
+                    </Link>
+                    <div className="mt-2 flex flex-wrap items-center gap-2">
+                      <MemberStatusToggle
+                        value={member.status}
+                        pending={statusUpdate.isPending && statusUpdate.variables?.id === member.id}
+                        onChange={(s) => statusUpdate.mutate({ id: member.id, status: s })}
+                      />
+                      {setInfo && (
+                        <Link
+                          to="/sets/$id"
+                          params={{ id: setInfo.slug ?? member.set_id! }}
+                          className="inline-flex items-center rounded-full bg-zinc-800/60 px-2 py-0.5 text-xs text-zinc-400 hover:bg-zinc-800 hover:text-violet-400 transition-colors"
+                        >
+                          {setInfo.name}
+                        </Link>
+                      )}
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    aria-label={`Edit ${member.display_name}`}
+                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); setEditingMemberId(member.id) }}
+                    className="rounded p-1.5 text-zinc-600 transition-colors hover:bg-zinc-800 hover:text-violet-400"
+                  >
+                    <Pencil className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              </div>
+            )
+          })
+        )}
       </div>
 
       {/* Load more */}
