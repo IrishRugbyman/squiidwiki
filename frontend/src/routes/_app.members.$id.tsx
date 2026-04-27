@@ -31,6 +31,10 @@ import { useAuthStore } from '@/stores/auth'
 import { MemberFormSheet, familyDictToEntries, ROLE_LABEL } from './_app.members.index'
 import type { FamilyRole } from './_app.members.index'
 import { AddFamilyRelativeDialog } from '@/components/AddFamilyRelativeDialog'
+
+const MemberFamilyGraph = lazy(() =>
+  import('@/components/graphs/MemberFamilyGraph').then((m) => ({ default: m.MemberFamilyGraph })),
+)
 import { useRecordRecent } from '@/stores/recents'
 import { useEditShortcut } from '@/hooks/useKeymap'
 import { IncidentFormSheet } from './_app.incidents.index'
@@ -303,6 +307,7 @@ function MemberDetailPage() {
   const [deleting, setDeleting] = useState(false)
   const [creatingIncident, setCreatingIncident] = useState(false)
   const [addingFamily, setAddingFamily] = useState(false)
+  const [familyView, setFamilyView] = useState<'list' | 'graph'>('list')
 
   useEditShortcut(() => member && setEditing(true))
 
@@ -568,13 +573,36 @@ function MemberDetailPage() {
 
             {/* Family */}
             <TabsContent value="family" className="mt-4">
-              <div className="mb-3 flex justify-end">
+              <div className="mb-3 flex items-center justify-between gap-2">
+                <div className="flex items-center gap-1 rounded-md border border-zinc-800 bg-zinc-900/60 p-1">
+                  {(['list', 'graph'] as const).map((v) => (
+                    <button
+                      key={v}
+                      type="button"
+                      onClick={() => setFamilyView(v)}
+                      className={`rounded px-2.5 py-0.5 text-[11px] font-medium transition-colors ${
+                        familyView === v ? 'bg-zinc-700 text-white' : 'text-zinc-500 hover:text-zinc-300'
+                      }`}
+                    >
+                      {v === 'list' ? 'List' : 'Graph'}
+                    </button>
+                  ))}
+                </div>
                 <Button size="sm" variant="outline" onClick={() => setAddingFamily(true)}>
                   <Plus className="mr-1.5 h-3.5 w-3.5" />Add Family Member
                 </Button>
               </div>
-              {universe && (
+              {universe && familyView === 'list' && (
                 <FamilyTab family={member.family as Record<string, unknown> | null} universeId={universe.id} />
+              )}
+              {universe && familyView === 'graph' && (
+                <Suspense fallback={<Skeleton className="h-[480px] w-full" />}>
+                  <MemberFamilyGraph
+                    centerMember={member}
+                    universeId={universe.id}
+                    allMembers={allMembers?.items ?? []}
+                  />
+                </Suspense>
               )}
             </TabsContent>
 

@@ -7,7 +7,7 @@ Ranked roughly by impact. None of these are committed to a timeline.
 ## Data & Visualization
 
 - [ ] **Alliance relationship graph** — reactflow force-directed graph of sets within an alliance with member-count node sizing and ally/enemy edges across alliances. The set-level graph exists; this is the macro view.
-- [ ] **Member family network graph** — reactflow canvas on the member detail Family tab showing family links across multiple hops (grandparents, cousins), not just direct relations. Currently only a flat list and timeline exist.
+- [x] **Member family network graph** — reactflow canvas on the member detail Family tab showing family links across multiple hops (grandparents, cousins), not just direct relations. Currently only a flat list and timeline exist.
 - [x] **Incident heatmap / calendar density view** — overlay incident count as a heatmap on the calendar month grid. Year-view mode (12-month grid showing event density at a glance).
 - [ ] **Cross-entity timeline** — universe-level chronological feed of incidents, member status changes, and set status changes on a single horizontal axis.
 - [x] **Map click → filter incidents list** — clicking a municipality on the map currently navigates to its detail page; a "filter incidents in this zone" alternative would make the map a real exploration tool.
