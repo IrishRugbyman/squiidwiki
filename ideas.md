@@ -70,5 +70,5 @@ Pattern: a button on entity Y's detail page that opens a picker (existing) **or*
 
 - [ ] **Bulk actions for sets / incidents / sources / alliances** — the floating bulk bar exists for members; extend it (multi-select to bulk-link a source, bulk-tag, or bulk-delete with one ConfirmDialog).
 - [x] **Recently viewed entities at the top of ⌘K** — fast bounce-back during research.
-- [ ] **Map markers → side-sheet preview** — quick-look without leaving the map page.
+- [x] **Map markers → side-sheet preview** — quick-look without leaving the map page.
 - [x] **Print/export single member profile** — PDF or markdown export for offline sharing.

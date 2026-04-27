@@ -22,6 +22,9 @@ interface Props {
   fallbackCenter?: { longitude: number; latitude: number; zoom: number }
   /** Which property to colour by + show in the popup. Defaults to 'sets'. */
   metric?: MapMetric
+  /** When provided, click emits the feature id instead of navigating to the
+   *  detail page — used for in-place preview overlays. */
+  onPreview?: (id: string) => void
 }
 
 interface PopupFeature {
@@ -86,6 +89,7 @@ export default function MunicipalityMap({
   fitPadding = 40,
   fallbackCenter = { longitude: -83.0458, latitude: 42.3314, zoom: 10 },
   metric = 'sets',
+  onPreview,
 }: Props) {
   const navigate = useNavigate()
   const mapRef = useRef<MapRef | null>(null)
@@ -228,8 +232,12 @@ export default function MunicipalityMap({
   const onClick = useCallback((e: MapLayerMouseEvent) => {
     if (!e.features || e.features.length === 0) return
     const id = e.features[0].properties.id as string
-    navigate({ to: '/municipalities/$id', params: { id } })
-  }, [navigate])
+    if (onPreview) {
+      onPreview(id)
+    } else {
+      navigate({ to: '/municipalities/$id', params: { id } })
+    }
+  }, [navigate, onPreview])
 
   const resetView = useCallback(() => {
     if (mapRef.current && fullBounds) {
