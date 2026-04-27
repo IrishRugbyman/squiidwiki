@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useLocation, useNavigate } from '@tanstack/react-router'
-import { CheckCircle2, Download, Pencil, Plus, Search, ShieldAlert, Skull, Swords, User, X } from 'lucide-react'
+import { Bookmark, BookmarkPlus, CheckCircle2, Download, Pencil, Plus, Search, ShieldAlert, Skull, Swords, Trash2, User, X } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import { FuzzyDate } from '@/components/FuzzyDate'
@@ -7,6 +7,10 @@ import { FuzzyDateInput } from '@/components/FuzzyDateInput'
 import { NoUniverse } from '@/components/NoUniverse'
 import { PageHeader } from '@/components/PageHeader'
 import { Sheet, SheetContent, SheetClose } from '@/components/Sheet'
+import {
+  DropdownMenu, DropdownMenuTrigger, DropdownMenuContent,
+  DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator,
+} from '@/components/ui/dropdown-menu'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
@@ -398,6 +402,41 @@ function FilterTabs<T extends string>({ options, value, onChange }: {
   )
 }
 
+// ─── Filter presets ───────────────────────────────────────────────────────────
+
+interface FilterPreset {
+  name: string
+  type: TypeFilter
+  verified: VerifiedFilter
+  participantId: UUID | null
+  participantName: string | null
+  municipalityId: UUID | null
+  municipalityName: string | null
+}
+
+function presetsKey(universeId: string): string {
+  return `incidents-presets-${universeId}`
+}
+
+function loadPresets(universeId: string): FilterPreset[] {
+  try {
+    const raw = localStorage.getItem(presetsKey(universeId))
+    if (!raw) return []
+    const parsed = JSON.parse(raw)
+    return Array.isArray(parsed) ? parsed : []
+  } catch {
+    return []
+  }
+}
+
+function persistPresets(universeId: string, presets: FilterPreset[]) {
+  try {
+    localStorage.setItem(presetsKey(universeId), JSON.stringify(presets))
+  } catch {
+    // Storage might be unavailable (private mode); silently no-op.
+  }
+}
+
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 function IncidentsPage() {
@@ -441,6 +480,54 @@ function IncidentsPage() {
   function clearMunicipalityFilter() {
     navigate({ to: '/incidents' })
     setCursor(undefined)
+  }
+
+  // ── Filter presets ────────────────────────────────────────────────────────
+  const [presets, setPresets] = useState<FilterPreset[]>([])
+  useEffect(() => {
+    if (universe?.id) setPresets(loadPresets(universe.id))
+  }, [universe?.id])
+
+  const hasActiveFilter =
+    typeFilter !== 'ALL' || verifiedFilter !== 'ALL' || !!participantId || !!municipalityId
+
+  function applyPreset(p: FilterPreset) {
+    setTypeFilter(p.type)
+    setVerifiedFilter(p.verified)
+    setParticipantId(p.participantId)
+    setParticipantName(p.participantName)
+    setParticipantSearch('')
+    setCursor(undefined)
+    if (p.municipalityId) {
+      navigate({ to: '/incidents', search: { municipality_id: p.municipalityId } })
+    } else if (municipalityIdFromUrl) {
+      navigate({ to: '/incidents' })
+    }
+  }
+
+  function saveCurrentAsPreset() {
+    if (!universe?.id || !hasActiveFilter) return
+    const name = window.prompt('Name this filter preset:')?.trim()
+    if (!name) return
+    const next: FilterPreset = {
+      name,
+      type: typeFilter,
+      verified: verifiedFilter,
+      participantId,
+      participantName,
+      municipalityId,
+      municipalityName,
+    }
+    const updated = [...presets.filter((p) => p.name !== name), next]
+    setPresets(updated)
+    persistPresets(universe.id, updated)
+  }
+
+  function deletePreset(name: string) {
+    if (!universe?.id) return
+    const updated = presets.filter((p) => p.name !== name)
+    setPresets(updated)
+    persistPresets(universe.id, updated)
   }
 
   const allItems: IncidentListItem[] = data?.items ?? []
@@ -507,6 +594,60 @@ function IncidentsPage() {
 
       {/* Toolbar */}
       <div className="mb-4 flex flex-wrap items-center gap-2">
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" size="sm" className="h-8 gap-1.5">
+              <Bookmark className="h-3.5 w-3.5" />
+              Presets
+              {presets.length > 0 && (
+                <span className="ml-0.5 rounded-md bg-zinc-800 px-1.5 py-0 text-[10px] tabular-nums text-zinc-400">
+                  {presets.length}
+                </span>
+              )}
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start" className="w-64">
+            {presets.length === 0 ? (
+              <DropdownMenuLabel className="text-xs font-normal text-zinc-500">
+                No saved presets yet.
+              </DropdownMenuLabel>
+            ) : (
+              <>
+                <DropdownMenuLabel className="text-[10px] uppercase tracking-wider text-zinc-500">
+                  Saved
+                </DropdownMenuLabel>
+                {presets.map((p) => (
+                  <div key={p.name} className="flex items-center gap-1 px-1">
+                    <button
+                      type="button"
+                      onClick={() => applyPreset(p)}
+                      className="flex-1 truncate rounded px-2 py-1.5 text-left text-sm text-zinc-200 hover:bg-zinc-800"
+                    >
+                      {p.name}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => deletePreset(p.name)}
+                      aria-label={`Delete preset ${p.name}`}
+                      className="rounded p-1 text-zinc-600 hover:bg-zinc-800 hover:text-red-400"
+                    >
+                      <Trash2 className="h-3 w-3" />
+                    </button>
+                  </div>
+                ))}
+                <DropdownMenuSeparator />
+              </>
+            )}
+            <DropdownMenuItem
+              disabled={!hasActiveFilter}
+              onSelect={saveCurrentAsPreset}
+              className="gap-2 text-sm"
+            >
+              <BookmarkPlus className="h-3.5 w-3.5" />
+              {hasActiveFilter ? 'Save current as preset…' : 'Set a filter to save'}
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
         <FilterTabs<TypeFilter>
           value={typeFilter}
           onChange={setTypeFilter}

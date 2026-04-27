@@ -24,7 +24,7 @@ Ranked roughly by impact. None of these are committed to a timeline.
 
 ## Search & Filtering
 
-- [ ] **Saved filter presets** — name and save a filter combination (e.g., "Active shooters, 2023–2024") stored in localStorage per universe. Most useful on the incidents page.
+- [x] **Saved filter presets** — name and save a filter combination (e.g., "Active shooters, 2023–2024") stored in localStorage per universe. Most useful on the incidents page.
 - [x] **⌘K palette: extend to municipalities and sources** — palette already searches members/sets/alliances/incidents with section headers and result-type icons; municipalities and sources are missing.
 - [x] **Filter incidents by participant name** — the participant search builder works on incident create; make it a filter on the list page too.
 
