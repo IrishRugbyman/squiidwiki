@@ -19,7 +19,7 @@ Ranked roughly by impact. None of these are committed to a timeline.
 
 ## Mobile & UX
 
-- [x] **Mobile card view for tables** — list pages currently hide columns at narrow widths (`hidden sm:table-cell`); a true `<sm:` card layout would read better than a 2-column stub table. _(Members list shipped; same pattern available for sets/incidents/sources/alliances/municipalities.)_
+- [X] **Mobile card view for tables** — list pages currently hide columns at narrow widths (`hidden sm:table-cell`); a true `<sm:` card layout would read better than a 2-column stub table.
 - [ ] **Swipe-to-open sidebar** — vaul drawer with swipe gesture on mobile replacing hamburger-only open.
 
 ## Search & Filtering
@@ -31,13 +31,11 @@ Ranked roughly by impact. None of these are committed to a timeline.
 ## Content & Editing
 
 - [ ] **Inline biography editing** — replace the sheet-based biography editor with a live markdown preview split-pane (like GitHub's issue editor). `react-markdown` is already in the tree for rendering.
-- [ ] **Bulk CSV import** — drag-and-drop CSV → preview table → confirm workflow for mass-importing members or incidents.
 - [ ] **Member merge** — when duplicate records exist, a merge dialog that picks the canonical record and migrates all incident participations, family links, and source citations.
 - [x] **Member social profiles** — Facebook / Instagram / Twitter inputs in the member form (handle or URL), auto-linked on the detail page with brand glyphs.
 
 ## Admin & Ops
 
-- [ ] **Real-time audit feed** — SSE or WebSocket subscription so the audit log auto-appends new entries without a manual refresh.
 - [ ] **Universe statistics dashboard** — dedicated admin page showing per-universe entity counts, last-activity date, active users, and storage size.
 
 ## Cross-entity "Add X from related Y"
@@ -68,7 +66,13 @@ Pattern: a button on entity Y's detail page that opens a picker (existing) **or*
 
 ## Smaller polish
 
-- [ ] **Bulk actions for sets / incidents / sources / alliances** — the floating bulk bar exists for members; extend it (multi-select to bulk-link a source, bulk-tag, or bulk-delete with one ConfirmDialog).
+- [x] **Bulk actions for sets / incidents / sources / alliances** — the floating bulk bar exists for members; extend it (multi-select to bulk-link a source, bulk-tag, or bulk-delete with one ConfirmDialog). _(Bulk-delete shipped on all four; bulk-link/bulk-tag still open as follow-ups.)_
 - [x] **Recently viewed entities at the top of ⌘K** — fast bounce-back during research.
 - [x] **Map markers → side-sheet preview** — quick-look without leaving the map page.
 - [x] **Print/export single member profile** — PDF or markdown export for offline sharing.
+
+
+# NOT YET (OR LATER)
+
+- [ ] **Bulk CSV import** — drag-and-drop CSV → preview table → confirm workflow for mass-importing members or incidents.
+- [ ] **Real-time audit feed** — SSE or WebSocket subscription so the audit log auto-appends new entries without a manual refresh.

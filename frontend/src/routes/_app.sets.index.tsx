@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
-import { Download, Pencil, Plus, Search, Shield } from 'lucide-react'
+import { Download, Pencil, Plus, Search, Shield, Trash2 } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import { NoUniverse } from '@/components/NoUniverse'
@@ -12,13 +12,15 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Textarea } from '@/components/ui/textarea'
-import { useAlliances, useCreateSet, useMunicipalities, useSet, useSets, useSetSearch, useUpdateSet, useUpdateSetStatus } from '@/lib/queries'
+import { useAlliances, useCreateSet, useDeleteSet, useMunicipalities, useSet, useSets, useSetSearch, useUpdateSet, useUpdateSetStatus } from '@/lib/queries'
+import { BulkActionBar } from '@/components/BulkActionBar'
+import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { useUniverseStore } from '@/stores/universe'
 import { downloadCsv } from '@/lib/download'
 import { useDebounce } from '@/hooks/useDebounce'
 import { EmptyState } from '@/components/EmptyState'
 import { TableRowSkeleton } from '@/components/skeletons'
-import type { SetReadDetail, SetStatus } from '@/lib/types'
+import type { SetReadDetail, SetStatus, UUID } from '@/lib/types'
 
 export const Route = createFileRoute('/_app/sets/')({
   component: SetsPage,
@@ -349,10 +351,14 @@ function SetsPage() {
   const [allianceFilter, setAllianceFilter] = useState<string>('ALL')
   const [sortKey, setSortKey] = useState<SortKey | null>(null)
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc')
+  const [selected, setSelected] = useState<Set<UUID>>(new Set())
+  const [confirmingBulkDelete, setConfirmingBulkDelete] = useState(false)
+  const [bulkDeleting, setBulkDeleting] = useState(false)
   const PAGE = 20
 
   const debouncedQ = useDebounce(q, 250)
   const statusUpdate = useUpdateSetStatus(universe?.id ?? '')
+  const deleteSet = useDeleteSet(universe?.id ?? '')
   const { data, isLoading } = useSets(universe?.id ?? null, offset)
   const { data: searchResults, isLoading: searchLoading } = useSetSearch(universe?.id ?? null, debouncedQ)
   const { data: alliancesData } = useAlliances(universe?.id ?? null)
@@ -398,6 +404,31 @@ function SetsPage() {
   function toggleSort(key: SortKey) {
     if (sortKey === key) setSortDir((d) => d === 'asc' ? 'desc' : 'asc')
     else { setSortKey(key); setSortDir('asc') }
+  }
+
+  function toggleSelectSet(id: UUID) {
+    setSelected((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  async function bulkDeleteSets() {
+    if (selected.size === 0) return
+    const ids = Array.from(selected)
+    setBulkDeleting(true)
+    try {
+      await Promise.all(ids.map((id) => deleteSet.mutateAsync(id)))
+      toast.success(`Deleted ${ids.length} set${ids.length === 1 ? '' : 's'}`)
+      setSelected(new Set())
+      setConfirmingBulkDelete(false)
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Bulk delete failed')
+    } finally {
+      setBulkDeleting(false)
+    }
   }
 
   const activeCount = allItems.filter((s) => s.status === 'ACTIVE').length
@@ -475,6 +506,15 @@ function SetsPage() {
         <table className="w-full text-sm">
           <thead className="sticky top-0 z-10 bg-zinc-900/90 backdrop-blur">
             <tr className="border-b border-zinc-800">
+              <th className="w-10 px-3 py-2.5" scope="col">
+                <input
+                  type="checkbox"
+                  aria-label="Select all sets"
+                  checked={items.length > 0 && selected.size === items.length}
+                  onChange={() => setSelected(selected.size === items.length ? new Set() : new Set(items.map((s) => s.id)))}
+                  className="rounded border-zinc-700 bg-zinc-900 accent-violet-600"
+                />
+              </th>
               <SortHeader label="Set" col="name" sortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
               <th className="px-4 py-2.5 text-left text-xs font-medium text-zinc-400">Alliance</th>
               <SortHeader label="Status" col="status" sortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
@@ -483,12 +523,22 @@ function SetsPage() {
           </thead>
           <tbody className="divide-y divide-zinc-800">
             {listLoading
-              ? Array.from({ length: 5 }).map((_, i) => <TableRowSkeleton key={i} cols={4} height={56} />)
+              ? Array.from({ length: 5 }).map((_, i) => <TableRowSkeleton key={i} cols={5} height={56} />)
               : items.map((set) => {
                   const linkId = set.slug ?? set.id
                   const alliance = set.alliance_id ? allianceMap[set.alliance_id] : null
+                  const isSelected = selected.has(set.id)
                   return (
-                    <tr key={set.id} className="group hover:bg-zinc-900/50 transition-colors">
+                    <tr key={set.id} className={`group hover:bg-zinc-900/50 transition-colors ${isSelected ? 'bg-violet-950/20' : ''}`}>
+                      <td className="px-3 py-3">
+                        <input
+                          type="checkbox"
+                          aria-label={`Select ${set.name}`}
+                          checked={isSelected}
+                          onChange={() => toggleSelectSet(set.id)}
+                          className="rounded border-zinc-700 bg-zinc-900 accent-violet-600"
+                        />
+                      </td>
                       {/* Name + aliases */}
                       <td className="p-0">
                         <Link
@@ -548,7 +598,7 @@ function SetsPage() {
                 })}
             {!listLoading && items.length === 0 && (
               <tr>
-                <td colSpan={4}>
+                <td colSpan={5}>
                   <EmptyState
                     icon={Shield}
                     title={
@@ -610,6 +660,30 @@ function SetsPage() {
           onClose={() => setEditingId(null)}
         />
       )}
+
+      <BulkActionBar count={selected.size} label="set" onClear={() => setSelected(new Set())}>
+        <Button
+          size="sm"
+          variant="destructive"
+          className="h-7 text-xs"
+          onClick={() => setConfirmingBulkDelete(true)}
+          disabled={bulkDeleting}
+        >
+          <Trash2 className="mr-1 h-3 w-3" />
+          Delete
+        </Button>
+      </BulkActionBar>
+
+      <ConfirmDialog
+        open={confirmingBulkDelete}
+        title={`Delete ${selected.size} set${selected.size === 1 ? '' : 's'}?`}
+        description="This cannot be undone. Members in these sets will be unassigned, and friend/enemy edges will be removed."
+        confirmLabel="Delete"
+        destructive
+        pending={bulkDeleting}
+        onConfirm={bulkDeleteSets}
+        onCancel={() => setConfirmingBulkDelete(false)}
+      />
     </div>
   )
 }

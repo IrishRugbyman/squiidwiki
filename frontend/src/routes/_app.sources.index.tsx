@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
-import { Download, ExternalLink, FileText, HelpCircle, Plus, Search } from 'lucide-react'
+import { Download, ExternalLink, FileText, HelpCircle, Plus, Search, Trash2 } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import { NoUniverse } from '@/components/NoUniverse'
@@ -14,7 +14,10 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
-import { useCreateSource, useUpdateSource, useSources } from '@/lib/queries'
+import { useCreateSource, useUpdateSource, useSources, useDeleteSource } from '@/lib/queries'
+import { BulkActionBar } from '@/components/BulkActionBar'
+import { ConfirmDialog } from '@/components/ConfirmDialog'
+import type { UUID } from '@/lib/types'
 import { downloadCsv } from '@/lib/download'
 import { RELIABILITY_DESCRIPTION } from '@/lib/statusColors'
 import type { SourceRead, SourceReliability } from '@/lib/types'
@@ -137,9 +140,13 @@ function SourcesPage() {
   const [reliabilityFilter, setReliabilityFilter] = useState<SourceReliability | 'ALL'>('ALL')
   const [offset, setOffset] = useState(0)
   const [creating, setCreating] = useState(false)
+  const [selected, setSelected] = useState<Set<UUID>>(new Set())
+  const [confirmingDelete, setConfirmingDelete] = useState(false)
+  const [bulkDeleting, setBulkDeleting] = useState(false)
   const PAGE = 20
 
   const { data, isLoading } = useSources(universe?.id ?? null, offset)
+  const deleteSource = useDeleteSource(universe?.id ?? '')
 
   const rawItems = data?.items ?? []
 
@@ -165,6 +172,35 @@ function SourcesPage() {
       const pub = (s as unknown as { publication?: string | null }).publication
       return pub === publicationFilter
     })
+
+  function toggleSelect(id: UUID) {
+    setSelected((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  function toggleAll() {
+    setSelected(selected.size === items.length ? new Set() : new Set(items.map((s) => s.id)))
+  }
+
+  async function bulkDelete() {
+    if (selected.size === 0) return
+    const ids = Array.from(selected)
+    setBulkDeleting(true)
+    try {
+      await Promise.all(ids.map((id) => deleteSource.mutateAsync(id)))
+      toast.success(`Deleted ${ids.length} source${ids.length === 1 ? '' : 's'}`)
+      setSelected(new Set())
+      setConfirmingDelete(false)
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Bulk delete failed')
+    } finally {
+      setBulkDeleting(false)
+    }
+  }
 
   return (
     <TooltipProvider delayDuration={200}>
@@ -215,6 +251,15 @@ function SourcesPage() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-zinc-800 bg-zinc-900/50">
+                <th className="w-10 px-3 py-2.5" scope="col">
+                  <input
+                    type="checkbox"
+                    aria-label="Select all sources"
+                    checked={items.length > 0 && selected.size === items.length}
+                    onChange={toggleAll}
+                    className="rounded border-zinc-700 bg-zinc-900 accent-violet-600"
+                  />
+                </th>
                 <th className="px-4 py-2.5 text-left font-medium text-zinc-400" scope="col">Title</th>
                 <th className="px-4 py-2.5 text-left font-medium text-zinc-400" scope="col">
                   <span className="inline-flex items-center gap-1">
@@ -239,9 +284,18 @@ function SourcesPage() {
             </thead>
             <tbody className="divide-y divide-zinc-800">
               {isLoading
-                ? Array.from({ length: 5 }).map((_, i) => <TableRowSkeleton key={i} cols={3} height={52} />)
+                ? Array.from({ length: 5 }).map((_, i) => <TableRowSkeleton key={i} cols={4} height={52} />)
                 : items.map((source) => (
-                    <tr key={source.id} className="hover:bg-zinc-900/50 transition-colors">
+                    <tr key={source.id} className={`hover:bg-zinc-900/50 transition-colors ${selected.has(source.id) ? 'bg-violet-950/20' : ''}`}>
+                      <td className="px-3 py-3">
+                        <input
+                          type="checkbox"
+                          aria-label={`Select ${source.title}`}
+                          checked={selected.has(source.id)}
+                          onChange={() => toggleSelect(source.id)}
+                          className="rounded border-zinc-700 bg-zinc-900 accent-violet-600"
+                        />
+                      </td>
                       <td className="p-0">
                         <Link to="/sources/$id" params={{ id: source.id }} className="block px-4 py-3 font-medium text-white hover:text-violet-400 transition-colors">
                           {source.title}
@@ -272,7 +326,7 @@ function SourcesPage() {
                   ))}
               {!isLoading && items.length === 0 && (
                 <tr>
-                  <td colSpan={3}>
+                  <td colSpan={4}>
                     <EmptyState
                       icon={FileText}
                       title={q ? `No sources match "${q}"` : 'No sources yet'}
@@ -303,6 +357,30 @@ function SourcesPage() {
         )}
 
         <SourceFormSheet universeId={universe.id} open={creating} onClose={() => setCreating(false)} />
+
+        <BulkActionBar count={selected.size} label="source" onClear={() => setSelected(new Set())}>
+          <Button
+            size="sm"
+            variant="destructive"
+            className="h-7 text-xs"
+            onClick={() => setConfirmingDelete(true)}
+            disabled={bulkDeleting}
+          >
+            <Trash2 className="mr-1 h-3 w-3" />
+            Delete
+          </Button>
+        </BulkActionBar>
+
+        <ConfirmDialog
+          open={confirmingDelete}
+          title={`Delete ${selected.size} source${selected.size === 1 ? '' : 's'}?`}
+          description="This cannot be undone. Incidents and members citing these sources will lose the link."
+          confirmLabel="Delete"
+          destructive
+          pending={bulkDeleting}
+          onConfirm={bulkDelete}
+          onCancel={() => setConfirmingDelete(false)}
+        />
       </div>
     </TooltipProvider>
   )

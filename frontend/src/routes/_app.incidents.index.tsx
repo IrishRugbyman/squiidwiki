@@ -27,8 +27,10 @@ import { Textarea } from '@/components/ui/textarea'
 import {
   useCreateIncident, useUpdateIncident, useIncident,
   useIncidents, useIncidentsByMunicipality, useMemberIncidents, useMemberSearch,
-  useMunicipalities, useAllMembers, useSets,
+  useMunicipalities, useAllMembers, useSets, useDeleteIncident,
 } from '@/lib/queries'
+import { BulkActionBar } from '@/components/BulkActionBar'
+import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { downloadCsv } from '@/lib/download'
 import { api } from '@/lib/api'
 import { useDebounce } from '@/hooks/useDebounce'
@@ -513,6 +515,37 @@ function IncidentsPage() {
     setCursor(undefined)
   }
 
+  // ── Bulk delete ───────────────────────────────────────────────────────────
+  const [selected, setSelected] = useState<Set<UUID>>(new Set())
+  const [confirmingBulkDelete, setConfirmingBulkDelete] = useState(false)
+  const [bulkDeleting, setBulkDeleting] = useState(false)
+  const deleteIncident = useDeleteIncident(universe?.id ?? '')
+
+  function toggleSelectIncident(id: UUID) {
+    setSelected((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  async function bulkDeleteIncidents() {
+    if (selected.size === 0) return
+    const ids = Array.from(selected)
+    setBulkDeleting(true)
+    try {
+      await Promise.all(ids.map((id) => deleteIncident.mutateAsync(id)))
+      toast.success(`Deleted ${ids.length} incident${ids.length === 1 ? '' : 's'}`)
+      setSelected(new Set())
+      setConfirmingBulkDelete(false)
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Bulk delete failed')
+    } finally {
+      setBulkDeleting(false)
+    }
+  }
+
   // ── Filter presets ────────────────────────────────────────────────────────
   const [presets, setPresets] = useState<FilterPreset[]>([])
   useEffect(() => {
@@ -762,6 +795,15 @@ function IncidentsPage() {
         <table className="w-full text-sm">
           <thead className="sticky top-0 z-10 bg-zinc-900/90 backdrop-blur">
             <tr className="border-b border-zinc-800">
+              <th className="w-10 px-3 py-2.5" scope="col">
+                <input
+                  type="checkbox"
+                  aria-label="Select all incidents"
+                  checked={items.length > 0 && selected.size === items.length}
+                  onChange={() => setSelected(selected.size === items.length ? new Set() : new Set(items.map((i) => i.id)))}
+                  className="rounded border-zinc-700 bg-zinc-900 accent-violet-600"
+                />
+              </th>
               <th className="px-4 py-2.5 text-left text-xs font-medium text-zinc-400" scope="col">Type</th>
               <th className="px-4 py-2.5 text-left text-xs font-medium text-zinc-400" scope="col">Date</th>
               <th className="hidden px-4 py-2.5 text-left text-xs font-medium text-zinc-400 md:table-cell" scope="col">Location</th>
@@ -772,13 +814,23 @@ function IncidentsPage() {
           </thead>
           <tbody className="divide-y divide-zinc-800">
             {isLoading
-              ? Array.from({ length: 5 }).map((_, i) => <TableRowSkeleton key={i} cols={6} height={56} />)
+              ? Array.from({ length: 5 }).map((_, i) => <TableRowSkeleton key={i} cols={7} height={56} />)
               : items.map((incident) => {
                   const cfg = TYPE_CONFIG[incident.type]
                   const Icon = cfg?.icon ?? ShieldAlert
                   const muniName = incident.municipality_id ? muniMap[incident.municipality_id] : null
+                  const isSelected = selected.has(incident.id)
                   return (
-                    <tr key={incident.id} className="group hover:bg-zinc-900/50 transition-colors">
+                    <tr key={incident.id} className={`group hover:bg-zinc-900/50 transition-colors ${isSelected ? 'bg-violet-950/20' : ''}`}>
+                      <td className="px-3 py-3">
+                        <input
+                          type="checkbox"
+                          aria-label={`Select ${incident.type} incident`}
+                          checked={isSelected}
+                          onChange={() => toggleSelectIncident(incident.id)}
+                          className="rounded border-zinc-700 bg-zinc-900 accent-violet-600"
+                        />
+                      </td>
                       {/* Type */}
                       <td className="p-0">
                         <Link to="/incidents/$id" params={{ id: incident.id }}
@@ -854,7 +906,7 @@ function IncidentsPage() {
                 })}
             {!isLoading && items.length === 0 && (
               <tr>
-                <td colSpan={6}>
+                <td colSpan={7}>
                   <EmptyState
                     icon={ShieldAlert}
                     title={
@@ -896,6 +948,30 @@ function IncidentsPage() {
           onClose={() => setEditingId(null)}
         />
       )}
+
+      <BulkActionBar count={selected.size} label="incident" onClear={() => setSelected(new Set())}>
+        <Button
+          size="sm"
+          variant="destructive"
+          className="h-7 text-xs"
+          onClick={() => setConfirmingBulkDelete(true)}
+          disabled={bulkDeleting}
+        >
+          <Trash2 className="mr-1 h-3 w-3" />
+          Delete
+        </Button>
+      </BulkActionBar>
+
+      <ConfirmDialog
+        open={confirmingBulkDelete}
+        title={`Delete ${selected.size} incident${selected.size === 1 ? '' : 's'}?`}
+        description="This cannot be undone. Participants will lose these incidents from their timeline."
+        confirmLabel="Delete"
+        destructive
+        pending={bulkDeleting}
+        onConfirm={bulkDeleteIncidents}
+        onCancel={() => setConfirmingBulkDelete(false)}
+      />
     </div>
   )
 }
