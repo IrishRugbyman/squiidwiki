@@ -467,7 +467,10 @@ export const useCreateIncident = () => {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: (body: Record<string, unknown>) => api.post<IncidentRead>('/incidents/', body),
-    onSuccess: (data) => { qc.invalidateQueries({ queryKey: ['incidents', data.universe_id] }) },
+    onSuccess: (data) => {
+      qc.invalidateQueries({ queryKey: ['incidents', data.universe_id] })
+      qc.invalidateQueries({ queryKey: ['incidents', 'municipality'] })
+    },
   })
 }
 

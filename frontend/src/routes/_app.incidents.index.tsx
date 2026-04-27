@@ -148,9 +148,10 @@ interface IncidentFormProps {
   onClose: () => void
   initial?: IncidentReadDetail
   defaultParticipants?: ParticipantDraft[]
+  defaultMunicipalityId?: string
 }
 
-export function IncidentFormSheet({ universeId, open, onClose, initial, defaultParticipants }: IncidentFormProps) {
+export function IncidentFormSheet({ universeId, open, onClose, initial, defaultParticipants, defaultMunicipalityId }: IncidentFormProps) {
   const create = useCreateIncident()
   const update = useUpdateIncident(initial?.id ?? '', universeId)
   const isEdit = !!initial
@@ -166,7 +167,7 @@ export function IncidentFormSheet({ universeId, open, onClose, initial, defaultP
   const [type, setType] = useState<IncidentType>(initial?.type ?? 'SHOOTING')
   const [date, setDate] = useState<FuzzyDateValue | null>(initial?.date ?? null)
   const [locationText, setLocationText] = useState(initial?.location_text ?? '')
-  const [municipalityId, setMunicipalityId] = useState<string>(initial?.municipality_id ?? '')
+  const [municipalityId, setMunicipalityId] = useState<string>(initial?.municipality_id ?? defaultMunicipalityId ?? '')
   const [narrative, setNarrative] = useState(initial?.narrative ?? '')
   const [verified, setVerified] = useState(initial?.verified ?? false)
   const [participants, setParticipants] = useState<ParticipantDraft[]>(() =>

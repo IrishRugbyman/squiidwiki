@@ -61,13 +61,14 @@ interface SetFormProps {
   initial?: SetReadDetail
   onSaved?: (data: SetReadDetail) => void
   defaultAllianceId?: string
+  defaultMunicipalityId?: string
   copyFrom?: SetReadDetail
 }
 
 const ALLIANCE_NONE = '__none__'
 const MUNI_NONE = '__none__'
 
-export function SetFormSheet({ universeId, open, onClose, initial, onSaved, defaultAllianceId, copyFrom }: SetFormProps) {
+export function SetFormSheet({ universeId, open, onClose, initial, onSaved, defaultAllianceId, defaultMunicipalityId, copyFrom }: SetFormProps) {
   const create = useCreateSet()
   const update = useUpdateSet(initial?.id ?? '')
   const { data: alliancesData } = useAlliances(universeId)
@@ -79,7 +80,7 @@ export function SetFormSheet({ universeId, open, onClose, initial, onSaved, defa
   const [bio, setBio] = useState(initial?.bio ?? copyFrom?.bio ?? '')
   const [status, setStatus] = useState<SetStatus>(initial?.status ?? copyFrom?.status ?? 'ACTIVE')
   const [allianceId, setAllianceId] = useState<string>(initial?.alliance_id ?? copyFrom?.alliance_id ?? defaultAllianceId ?? ALLIANCE_NONE)
-  const [municipalityId, setMunicipalityId] = useState<string>(initial?.municipality_id ?? copyFrom?.municipality_id ?? MUNI_NONE)
+  const [municipalityId, setMunicipalityId] = useState<string>(initial?.municipality_id ?? copyFrom?.municipality_id ?? defaultMunicipalityId ?? MUNI_NONE)
   const [territoryIds, setTerritoryIds] = useState<string[]>(initial?.territory_ids ?? copyFrom?.territory_ids ?? [])
   const [error, setError] = useState<string | null>(null)
 

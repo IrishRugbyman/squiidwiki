@@ -52,7 +52,7 @@ Pattern: a button on entity Y's detail page that opens a picker (existing) **or*
 - [x] **Member detail → Add Incident** — incidents tab is read-only; new incident prefilled with this member as a participant.
 - [ ] **Member detail → Add Family relative** — family tab is view-only; mirror the set-relationship dialog.
 - [ ] **Source detail → Attach to incident/member** — reverse-direction linker (sources are only referenced from elsewhere today).
-- [ ] **Municipality detail → Create Set/Incident here** — location prefilled with this municipality.
+- [x] **Municipality detail → Create Set/Incident here** — location prefilled with this municipality.
 
 ## Forms & data-entry shortcuts
 

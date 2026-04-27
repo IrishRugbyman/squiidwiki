@@ -16,6 +16,8 @@ import {
 import { useUniverseStore } from '@/stores/universe'
 import { useAuthStore } from '@/stores/auth'
 import { MunicipalityFormSheet } from './_app.municipalities.index'
+import { SetFormSheet } from './_app.sets.index'
+import { IncidentFormSheet } from './_app.incidents.index'
 import type { MunicipalityListItem } from '@/lib/types'
 import { useRecordRecent } from '@/stores/recents'
 import { useEditShortcut } from '@/hooks/useKeymap'
@@ -59,6 +61,8 @@ function MunicipalityDetailPage() {
   )
 
   const [creatingChild, setCreatingChild] = useState(false)
+  const [creatingSet, setCreatingSet] = useState(false)
+  const [creatingIncident, setCreatingIncident] = useState(false)
 
   async function handleDelete() {
     if (!municipality) return
@@ -116,6 +120,12 @@ function MunicipalityDetailPage() {
             )}
             <Button size="sm" variant="outline" onClick={() => setCreatingChild(true)}>
               <Plus className="mr-1.5 h-3.5 w-3.5" />Add sub-district
+            </Button>
+            <Button size="sm" variant="outline" onClick={() => setCreatingSet(true)}>
+              <Plus className="mr-1.5 h-3.5 w-3.5" />Create Set
+            </Button>
+            <Button size="sm" variant="outline" onClick={() => setCreatingIncident(true)}>
+              <Plus className="mr-1.5 h-3.5 w-3.5" />Create Incident
             </Button>
             <Button size="sm" variant="outline" onClick={() => setEditing(true)}>
               <Pencil className="mr-1.5 h-3.5 w-3.5" />Edit
@@ -260,6 +270,24 @@ function MunicipalityDetailPage() {
           onClose={() => setCreatingChild(false)}
           defaultParentId={id}
           allMunicipalities={allItems as MunicipalityListItem[]}
+        />
+      )}
+
+      {universe && (
+        <SetFormSheet
+          universeId={universe.id}
+          open={creatingSet}
+          onClose={() => setCreatingSet(false)}
+          defaultMunicipalityId={id}
+        />
+      )}
+
+      {universe && (
+        <IncidentFormSheet
+          universeId={universe.id}
+          open={creatingIncident}
+          onClose={() => setCreatingIncident(false)}
+          defaultMunicipalityId={id}
         />
       )}
 
