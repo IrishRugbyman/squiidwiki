@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
-import { CheckCircle2, MapPin, Pencil, Plus, Trash2, User } from 'lucide-react'
+import { CheckCircle2, ExternalLink, MapPin, Pencil, Plus, Trash2, User } from 'lucide-react'
 import { useState } from 'react'
 import { FuzzyDate } from '@/components/FuzzyDate'
 import { ErrorState } from '@/components/ErrorState'
@@ -10,12 +10,15 @@ import { DetailHeaderSkeleton } from '@/components/skeletons'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { useIncident, useAllMembers, useDeleteIncident, useMunicipality } from '@/lib/queries'
+import { ReliabilityBadge } from '@/components/StatusBadge'
+import { useIncident, useAllMembers, useAllSources, useDeleteIncident, useMunicipality } from '@/lib/queries'
 import { useUniverseStore } from '@/stores/universe'
 import { useAuthStore } from '@/stores/auth'
 import { IncidentFormSheet } from './_app.incidents.index'
 import { MemberFormSheet } from './_app.members.index'
+import { SourceFormSheet } from './_app.sources.index'
 import { AddParticipantToIncidentDialog } from '@/components/AddParticipantToIncidentDialog'
+import { AddSourceToIncidentDialog } from '@/components/AddSourceToIncidentDialog'
 import { INCIDENT_TYPE_CHIP, ROLE_CHIP, OUTCOME_CHIP, OUTCOME_LABEL, ROLE_LABEL } from '@/lib/incidentColors'
 import { useRecordRecent } from '@/stores/recents'
 import { useEditShortcut } from '@/hooks/useKeymap'
@@ -31,6 +34,7 @@ function IncidentDetailPage() {
   const navigate = useNavigate()
   const { data: incident, isLoading, isError, refetch } = useIncident(id, universe?.id ?? null)
   const { data: allMembers } = useAllMembers(universe?.id ?? null)
+  const { data: allSources } = useAllSources(universe?.id ?? null)
   const { data: municipality } = useMunicipality(
     incident?.municipality_id ?? '',
     incident?.municipality_id ? (universe?.id ?? null) : null,
@@ -52,12 +56,16 @@ function IncidentDetailPage() {
   const [deleting, setDeleting] = useState(false)
   const [addingParticipant, setAddingParticipant] = useState(false)
   const [creatingMember, setCreatingMember] = useState(false)
+  const [addingSource, setAddingSource] = useState(false)
+  const [creatingSource, setCreatingSource] = useState(false)
 
   useEditShortcut(() => incident && setEditing(true))
 
   const memberMap = Object.fromEntries((allMembers?.items ?? []).map((m) => [m.id, m]))
   const memberName = (mid: string) => memberMap[mid]?.display_name ?? null
   const memberSlug = (mid: string) => memberMap[mid]?.slug ?? mid
+
+  const sourceMap = Object.fromEntries((allSources?.items ?? []).map((s) => [s.id, s]))
 
   // Pick the most common set among current participants for the "Create new" prefill.
   const defaultSetIdForNewMember = (() => {
@@ -151,6 +159,12 @@ function IncidentDetailPage() {
                 )}
               </TabsTrigger>
               <TabsTrigger value="narrative">Narrative</TabsTrigger>
+              <TabsTrigger value="sources">
+                Sources
+                {incident.source_ids.length > 0 && (
+                  <Badge variant="secondary" className="ml-1.5 text-xs px-1.5 py-0">{incident.source_ids.length}</Badge>
+                )}
+              </TabsTrigger>
             </TabsList>
 
             <TabsContent value="participants">
@@ -206,6 +220,58 @@ function IncidentDetailPage() {
                 <p className="py-6 text-sm text-zinc-600">No narrative recorded.</p>
               )}
             </TabsContent>
+
+            <TabsContent value="sources">
+              <div className="mb-3 flex justify-end">
+                <Button size="sm" variant="outline" onClick={() => setAddingSource(true)}>
+                  <Plus className="mr-1.5 h-3.5 w-3.5" />Add Source
+                </Button>
+              </div>
+              {incident.source_ids.length === 0 ? (
+                <p className="text-sm text-zinc-600">No sources cited.</p>
+              ) : (
+                <div className="space-y-2">
+                  {incident.source_ids.map((sid) => {
+                    const source = sourceMap[sid]
+                    return (
+                      <div
+                        key={sid}
+                        className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-zinc-800 bg-zinc-900/30 px-4 py-3"
+                      >
+                        {source ? (
+                          <Link
+                            to="/sources/$id"
+                            params={{ id: source.id }}
+                            className="truncate text-sm font-medium text-white hover:text-violet-400 transition-colors"
+                          >
+                            {source.title}
+                          </Link>
+                        ) : (
+                          <span className="inline-flex items-center gap-2 text-sm font-medium text-zinc-500">
+                            Unknown source
+                            <span className="font-mono text-xs text-zinc-600">({sid.slice(0, 8)}…)</span>
+                          </span>
+                        )}
+                        <div className="flex items-center gap-2">
+                          {source && <ReliabilityBadge reliability={source.reliability} />}
+                          {source?.url && (
+                            <a
+                              href={source.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              aria-label="Open source in new tab"
+                              className="rounded p-1 text-zinc-500 hover:text-violet-400 transition-colors"
+                            >
+                              <ExternalLink className="h-3.5 w-3.5" />
+                            </a>
+                          )}
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+            </TabsContent>
           </Tabs>
 
           {universe && (
@@ -233,6 +299,24 @@ function IncidentDetailPage() {
               open={creatingMember}
               onClose={() => setCreatingMember(false)}
               defaultSetId={defaultSetIdForNewMember}
+            />
+          )}
+
+          {universe && (
+            <AddSourceToIncidentDialog
+              incident={incident}
+              universeId={universe.id}
+              open={addingSource}
+              onClose={() => setAddingSource(false)}
+              onCreateNew={() => { setAddingSource(false); setCreatingSource(true) }}
+            />
+          )}
+
+          {universe && (
+            <SourceFormSheet
+              universeId={universe.id}
+              open={creatingSource}
+              onClose={() => setCreatingSource(false)}
             />
           )}
 

@@ -500,6 +500,14 @@ export const useSources = (universeId: UUID | null, offset = 0) =>
     enabled: !!universeId,
   })
 
+export const useAllSources = (universeId: UUID | null) =>
+  useQuery({
+    queryKey: ['sources', 'all', universeId],
+    queryFn: () => api.get<OffsetPage<SourceListItem>>(`/sources/?universe_id=${universeId}&limit=200`),
+    enabled: !!universeId,
+    staleTime: 30_000,
+  })
+
 export const useSource = (id: UUID, universeId: UUID | null) =>
   useQuery({
     queryKey: ['sources', id],
