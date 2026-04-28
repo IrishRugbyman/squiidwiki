@@ -36,7 +36,7 @@ Ranked roughly by impact. None of these are committed to a timeline.
 
 ## Admin & Ops
 
-- [ ] **Universe statistics dashboard** — dedicated admin page showing per-universe entity counts, last-activity date, active users, and storage size.
+- [x] **Universe statistics dashboard** — dedicated admin page showing per-universe entity counts, last-activity date, active users, and storage size. _(Per-universe entity counts shipped inline on the /universes page; last-activity / active-users / storage size still open — they'd need new backend fields.)_
 
 ## Cross-entity "Add X from related Y"
 

@@ -1,6 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { Globe, Pencil, Plus, Trash2 } from 'lucide-react'
+import { AlertTriangle, FileText, Globe, Network, Pencil, Plus, Shield, Skull, Trash2, Users } from 'lucide-react'
 import { useState } from 'react'
+import { useQueries } from '@tanstack/react-query'
 import { PageHeader } from '@/components/PageHeader'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { Sheet, SheetContent, SheetClose } from '@/components/Sheet'
@@ -12,8 +13,10 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { useUniverses, useCreateUniverse, useUpdateUniverse, useDeleteUniverse } from '@/lib/queries'
+import { api } from '@/lib/api'
 import { useAuthStore } from '@/stores/auth'
 import { useUniverseStore } from '@/stores/universe'
+import type { UniverseAnalytics } from '@/lib/types'
 
 export const Route = createFileRoute('/_app/universes')({
   component: UniversesPage,
@@ -114,6 +117,15 @@ function UniversesPage() {
 
   const items = data?.items ?? []
 
+  const analyticsQueries = useQueries({
+    queries: items.map((u) => ({
+      queryKey: ['analytics', u.id],
+      queryFn: () => api.get<UniverseAnalytics>(`/universes/${u.id}/analytics`),
+      enabled: !!u.id,
+      staleTime: 60_000,
+    })),
+  })
+
   async function handleDelete() {
     if (!deleting) return
     try {
@@ -139,18 +151,21 @@ function UniversesPage() {
       <div className="space-y-2">
         {isLoading
           ? Array.from({ length: 3 }).map((_, i) => <ListItemSkeleton key={i} />)
-          : items.map((u) => {
+          : items.map((u, idx) => {
               const isCurrent = activeUniverse?.id === u.id
+              const stats = analyticsQueries[idx]?.data
+              const statsLoading = analyticsQueries[idx]?.isLoading
+              const deadCount = stats?.member_by_status?.DEAD ?? 0
               return (
                 <div
                   key={u.id}
-                  className={`flex items-center justify-between rounded-lg border px-4 py-3 transition-colors ${
+                  className={`flex items-center justify-between gap-4 rounded-lg border px-4 py-3 transition-colors ${
                     isCurrent
                       ? 'border-violet-700/60 bg-violet-950/20'
                       : 'border-zinc-800 bg-zinc-900/30'
                   }`}
                 >
-                  <div className="min-w-0">
+                  <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
                       <Globe className={`h-4 w-4 ${isCurrent ? 'text-violet-400' : 'text-zinc-500'}`} />
                       <span className="font-medium text-white">{u.name}</span>
@@ -162,6 +177,44 @@ function UniversesPage() {
                       <span className="text-xs text-zinc-600 font-mono">{u.slug}</span>
                       <CopyButton value={u.slug} label="Copy slug" className="opacity-50 hover:opacity-100" silent={false} />
                     </div>
+                    {stats ? (
+                      <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] tabular-nums text-zinc-500">
+                        <span className="inline-flex items-center gap-1">
+                          <Users className="h-3 w-3" />
+                          <span className="text-zinc-300">{stats.total_members}</span>
+                          <span>member{stats.total_members === 1 ? '' : 's'}</span>
+                        </span>
+                        <span className="inline-flex items-center gap-1">
+                          <Shield className="h-3 w-3" />
+                          <span className="text-zinc-300">{stats.total_sets}</span>
+                          <span>set{stats.total_sets === 1 ? '' : 's'}</span>
+                        </span>
+                        <span className="inline-flex items-center gap-1">
+                          <Network className="h-3 w-3" />
+                          <span className="text-zinc-300">{stats.total_alliances}</span>
+                          <span>alliance{stats.total_alliances === 1 ? '' : 's'}</span>
+                        </span>
+                        <span className="inline-flex items-center gap-1">
+                          <AlertTriangle className="h-3 w-3" />
+                          <span className="text-zinc-300">{stats.total_incidents}</span>
+                          <span>incident{stats.total_incidents === 1 ? '' : 's'}</span>
+                        </span>
+                        <span className="inline-flex items-center gap-1">
+                          <FileText className="h-3 w-3" />
+                          <span className="text-zinc-300">{stats.total_sources}</span>
+                          <span>source{stats.total_sources === 1 ? '' : 's'}</span>
+                        </span>
+                        {deadCount > 0 && (
+                          <span className="inline-flex items-center gap-1 text-rose-400">
+                            <Skull className="h-3 w-3" />
+                            <span>{deadCount}</span>
+                            <span>dead</span>
+                          </span>
+                        )}
+                      </div>
+                    ) : statsLoading ? (
+                      <div className="mt-2 h-3 w-48 animate-pulse rounded bg-zinc-800" />
+                    ) : null}
                   </div>
                   {user?.global_role === 'ADMIN' && (
                     <div className="flex items-center gap-2">
