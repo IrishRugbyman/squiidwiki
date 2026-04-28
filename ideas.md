@@ -14,7 +14,7 @@ Ranked roughly by impact. None of these are committed to a timeline.
 
 ## Performance & Scale
 
-- [ ] **List virtualization** — `@tanstack/react-virtual` for members and incidents tables when result count > 50. Without it, loading 500 members renders all DOM nodes at once.
+- [x] **List virtualization** — `@tanstack/react-virtual` for members and incidents tables when result count > 50. Without it, loading 500 members renders all DOM nodes at once. _(Members table virtualized; incidents table follows same pattern as a follow-up.)_
 - [x] **Optimistic updates** — extend the pattern beyond `useDeleteSet` (the only mutation with `onMutate`/rollback today): member status change, set relationship add/remove, and source archive/unarchive should update the cache immediately and roll back on error.
 
 ## Mobile & UX

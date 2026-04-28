@@ -1,7 +1,8 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
 import { Download, Pencil, Plus, Search, UserPlus, Users, X } from 'lucide-react'
 import { FacebookIcon, InstagramIcon, TwitterIcon } from '@/components/icons/SocialIcons'
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
+import { useVirtualizer } from '@tanstack/react-virtual'
 import { toast } from 'sonner'
 import { NoUniverse } from '@/components/NoUniverse'
 import { Button } from '@/components/ui/button'
@@ -641,6 +642,21 @@ function MembersPage() {
     })
   }, [baseItems, statusFilter, setFilter, sortKey, sortDir])
 
+  // Virtualize the desktop table tbody when the list grows past 50 rows.
+  const tableScrollRef = useRef<HTMLDivElement | null>(null)
+  const isVirtualized = items.length > 50
+  const rowVirtualizer = useVirtualizer({
+    count: items.length,
+    getScrollElement: () => tableScrollRef.current,
+    estimateSize: () => 56,
+    overscan: 8,
+  })
+  const virtualRows = isVirtualized ? rowVirtualizer.getVirtualItems() : []
+  const virtualPaddingTop = virtualRows[0]?.start ?? 0
+  const virtualPaddingBottom = isVirtualized
+    ? rowVirtualizer.getTotalSize() - (virtualRows[virtualRows.length - 1]?.end ?? 0)
+    : 0
+
   if (!universe) return <NoUniverse />
 
   const total = data?.total
@@ -754,7 +770,13 @@ function MembersPage() {
       </div>
 
       {/* Table — hidden on narrow viewports */}
-      <div className="hidden overflow-hidden rounded-lg border border-zinc-800 sm:block">
+      <div
+        ref={tableScrollRef}
+        className="hidden rounded-lg border border-zinc-800 sm:block"
+        style={isVirtualized
+          ? { maxHeight: 'calc(100vh - 18rem)', overflowY: 'auto' }
+          : { overflow: 'hidden' }}
+      >
         <table className="w-full text-sm">
           <thead className="sticky top-0 z-10">
             <tr className="border-b border-zinc-800 bg-zinc-900/90 backdrop-blur">
@@ -788,12 +810,17 @@ function MembersPage() {
           <tbody className="divide-y divide-zinc-800/60">
             {listLoading
               ? Array.from({ length: 8 }).map((_, i) => <MemberRowSkeleton key={i} />)
-              : items.map((member) => {
+              : isVirtualized && virtualPaddingTop > 0
+                ? <tr aria-hidden><td colSpan={6} style={{ height: virtualPaddingTop }} /></tr>
+                : null}
+            {!listLoading && (isVirtualized ? virtualRows.map((vRow) => items[vRow.index]) : items).map((member, idx) => {
                   const linkId = member.slug ?? member.id
                   const setInfo = member.set_id ? setMap[member.set_id] : null
                   const isDead = member.status === 'DEAD'
+                  const measureRef = isVirtualized ? rowVirtualizer.measureElement : undefined
+                  const dataIndex = isVirtualized ? virtualRows[idx]?.index : undefined
                   return (
-                    <tr key={member.id} className={`group transition-colors hover:bg-zinc-900/40 ${selected.has(member.id) ? 'bg-violet-950/20' : ''} ${isDead ? 'opacity-60' : ''}`}>
+                    <tr key={member.id} ref={measureRef} data-index={dataIndex} className={`group transition-colors hover:bg-zinc-900/40 ${selected.has(member.id) ? 'bg-violet-950/20' : ''} ${isDead ? 'opacity-60' : ''}`}>
                       <td className="px-3 py-3">
                         <input
                           type="checkbox"
@@ -841,6 +868,9 @@ function MembersPage() {
                     </tr>
                   )
                 })}
+            {!listLoading && isVirtualized && virtualPaddingBottom > 0 && (
+              <tr aria-hidden><td colSpan={6} style={{ height: virtualPaddingBottom }} /></tr>
+            )}
             {!isLoading && items.length === 0 && (
               <tr>
                 <td colSpan={6}>
