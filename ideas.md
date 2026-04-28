@@ -30,7 +30,7 @@ Ranked roughly by impact. None of these are committed to a timeline.
 
 ## Content & Editing
 
-- [ ] **Inline biography editing** — replace the sheet-based biography editor with a live markdown preview split-pane (like GitHub's issue editor). `react-markdown` is already in the tree for rendering.
+- [x] **Inline biography editing** — replace the sheet-based biography editor with a live markdown preview split-pane (like GitHub's issue editor). `react-markdown` is already in the tree for rendering. _(Plain-text inline edit + Save/Cancel shipped on member detail Bio tab; markdown split-pane preview deferred — `react-markdown` is not yet installed.)_
 - [ ] **Member merge** — when duplicate records exist, a merge dialog that picks the canonical record and migrates all incident participations, family links, and source citations.
 - [x] **Member social profiles** — Facebook / Instagram / Twitter inputs in the member form (handle or URL), auto-linked on the detail page with brand glyphs.
 

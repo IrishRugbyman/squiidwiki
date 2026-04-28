@@ -16,12 +16,13 @@ import { CopyButton } from '@/components/CopyButton'
 import { DetailHeaderSkeleton } from '@/components/skeletons'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Textarea } from '@/components/ui/textarea'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import {
   useMember, useMemberStats, useSets, useAlliances,
-  useDeleteMember, useMemberIncidents, useAllMembers,
+  useDeleteMember, useMemberIncidents, useAllMembers, useUpdateMember,
 } from '@/lib/queries'
 import type { IncidentListItem, MemberListItem, MemberRead } from '@/lib/types'
 import type { FuzzyDateValue } from '@/components/FuzzyDate'
@@ -301,6 +302,7 @@ function MemberDetailPage() {
   useRecordRecent(member ? { type: 'member', id: member.id, slug: member.slug, label: member.display_name } : null)
 
   const deleteMember = useDeleteMember(universe?.id ?? '')
+  const updateMember = useUpdateMember(id, universe?.id ?? '')
 
   const [editing, setEditing] = useState(false)
   const [duplicating, setDuplicating] = useState(false)
@@ -308,6 +310,23 @@ function MemberDetailPage() {
   const [creatingIncident, setCreatingIncident] = useState(false)
   const [addingFamily, setAddingFamily] = useState(false)
   const [familyView, setFamilyView] = useState<'list' | 'graph'>('list')
+  const [editingBio, setEditingBio] = useState(false)
+  const [bioDraft, setBioDraft] = useState('')
+
+  function startBioEdit() {
+    setBioDraft(member?.biography ?? '')
+    setEditingBio(true)
+  }
+
+  async function saveBio() {
+    try {
+      await updateMember.mutateAsync({ biography: bioDraft })
+      toast.success('Biography updated')
+      setEditingBio(false)
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to save biography')
+    }
+  }
 
   useEditShortcut(() => member && setEditing(true))
 
@@ -562,12 +581,52 @@ function MemberDetailPage() {
 
             {/* Biography */}
             <TabsContent value="biography" className="mt-4">
-              {member.biography ? (
-                <div className="rounded-xl border border-zinc-800 bg-zinc-900/30 p-4">
+              {editingBio ? (
+                <div className="space-y-2">
+                  <Textarea
+                    rows={10}
+                    value={bioDraft}
+                    onChange={(e) => setBioDraft(e.target.value)}
+                    placeholder="Background notes…"
+                    autoFocus
+                  />
+                  <div className="flex justify-end gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setEditingBio(false)}
+                      disabled={updateMember.isPending}
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      size="sm"
+                      onClick={saveBio}
+                      disabled={updateMember.isPending}
+                    >
+                      {updateMember.isPending ? 'Saving…' : 'Save'}
+                    </Button>
+                  </div>
+                </div>
+              ) : member.biography ? (
+                <div className="group relative rounded-xl border border-zinc-800 bg-zinc-900/30 p-4">
                   <p className="text-sm leading-relaxed text-zinc-300 whitespace-pre-wrap">{member.biography}</p>
+                  <button
+                    type="button"
+                    onClick={startBioEdit}
+                    aria-label="Edit biography"
+                    className="absolute right-2 top-2 rounded p-1.5 text-zinc-500 opacity-0 transition-opacity hover:bg-zinc-800 hover:text-zinc-200 focus-visible:opacity-100 group-hover:opacity-100"
+                  >
+                    <Pencil className="h-3.5 w-3.5" />
+                  </button>
                 </div>
               ) : (
-                <p className="py-6 text-sm text-zinc-600">No biography recorded.</p>
+                <div className="flex items-center justify-between gap-3 py-6">
+                  <p className="text-sm text-zinc-600">No biography recorded.</p>
+                  <Button size="sm" variant="outline" onClick={startBioEdit}>
+                    <Pencil className="mr-1.5 h-3.5 w-3.5" />Add biography
+                  </Button>
+                </div>
               )}
             </TabsContent>
 
