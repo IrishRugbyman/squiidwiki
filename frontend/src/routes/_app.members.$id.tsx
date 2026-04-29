@@ -33,6 +33,9 @@ import { useAuthStore } from '@/stores/auth'
 import { MemberFormSheet, familyDictToEntries, ROLE_LABEL } from './_app.members.index'
 import type { FamilyRole } from './_app.members.index'
 import { AddFamilyRelativeDialog } from '@/components/AddFamilyRelativeDialog'
+const PhotoGallery = lazy(() =>
+  import('@/components/media/PhotoGallery').then((m) => ({ default: m.PhotoGallery })),
+)
 
 const MemberFamilyGraph = lazy(() =>
   import('@/components/graphs/MemberFamilyGraph').then((m) => ({ default: m.MemberFamilyGraph })),
@@ -543,6 +546,7 @@ function MemberDetailPage() {
                   <Badge variant="secondary" className="ml-1.5 px-1.5 py-0 text-xs">{incidents.items.length}</Badge>
                 )}
               </TabsTrigger>
+              <TabsTrigger value="photos">Photos</TabsTrigger>
               {incidents && incidents.items.length > 0 && (
                 <TabsTrigger value="timeline">Timeline</TabsTrigger>
               )}
@@ -768,6 +772,14 @@ function MemberDetailPage() {
                     </tbody>
                   </table>
                 </div>
+              )}
+            </TabsContent>
+
+            <TabsContent value="photos" className="mt-4">
+              {universe && (
+                <Suspense fallback={<Skeleton className="h-40 w-full" />}>
+                  <PhotoGallery entityType="member" entityId={member.id} universeId={universe.id} />
+                </Suspense>
               )}
             </TabsContent>
 

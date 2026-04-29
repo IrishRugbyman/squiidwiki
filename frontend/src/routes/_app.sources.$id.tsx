@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
 import { Archive, ExternalLink, Link2, Pencil, Trash2 } from 'lucide-react'
-import { useState } from 'react'
+import { lazy, Suspense, useState } from 'react'
 import { FuzzyDate } from '@/components/FuzzyDate'
 import { ReliabilityBadge } from '@/components/StatusBadge'
 import { MemberStatusBadge } from '@/components/StatusBadge'
@@ -18,6 +18,11 @@ import { useSource, useSourceIncidents, useSourceMembers, useDeleteSource } from
 import { useUniverseStore } from '@/stores/universe'
 import { useAuthStore } from '@/stores/auth'
 import { SourceFormSheet } from './_app.sources.index'
+import { Skeleton } from '@/components/ui/skeleton'
+
+const PhotoGallery = lazy(() =>
+  import('@/components/media/PhotoGallery').then((m) => ({ default: m.PhotoGallery })),
+)
 import { AttachIncidentsToSourceDialog } from '@/components/AttachIncidentsToSourceDialog'
 import { AttachMembersToSourceDialog } from '@/components/AttachMembersToSourceDialog'
 import { useRecordRecent } from '@/stores/recents'
@@ -138,6 +143,7 @@ function SourceDetailPage() {
                   <Badge variant="secondary" className="ml-1.5 text-xs px-1.5 py-0">{members.items.length}</Badge>
                 )}
               </TabsTrigger>
+              <TabsTrigger value="photos">Photos</TabsTrigger>
             </TabsList>
 
             <TabsContent value="incidents" className="mt-4">
@@ -209,6 +215,14 @@ function SourceDetailPage() {
                     </tbody>
                   </table>
                 </div>
+              )}
+            </TabsContent>
+
+            <TabsContent value="photos" className="mt-4">
+              {universe && (
+                <Suspense fallback={<Skeleton className="h-40 w-full" />}>
+                  <PhotoGallery entityType="source" entityId={source.id} universeId={universe.id} />
+                </Suspense>
               )}
             </TabsContent>
           </Tabs>

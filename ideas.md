@@ -37,7 +37,7 @@ Ranked roughly by impact. None of these are committed to a timeline.
 
 ## Media & Storage
 
-- [ ] **Image hosting for members & incidents** — currently no first-class image storage; mugshots, incident photos, and source screenshots have nowhere to live. Proposed approach:
+- [x] **Image hosting for members & incidents** — currently no first-class image storage; mugshots, incident photos, and source screenshots have nowhere to live. Proposed approach:
   - **Provider: Cloudflare R2** — 10 GB free, **zero egress fees**, S3-compatible (any S3 SDK works from FastAPI), no surprise bandwidth bills. Runner-up: Cloudinary (25 GB + 25 GB bandwidth + on-the-fly transforms, but credit system meters transforms+bandwidth together — a popular page can burn through it fast). Avoid imgur/ImgBB (TOS issues for this content, hotlink rot). Supabase Storage (1 GB) is too small.
   - **Backend model: `media` table** keyed by `(entity_type, entity_id)` so a single member/incident/source can hold multiple images. Columns: `id`, `universe_id`, `entity_type`, `entity_id`, `r2_key`, `original_filename`, `content_type`, `size_bytes`, `width`, `height`, `caption`, `uploaded_by_user_id`, `uploaded_at`. Indexed on `(entity_type, entity_id)`.
   - **Access control: signed URLs via JWT-gated endpoint** — frontend never gets raw R2 URLs. `GET /api/v1/media/{id}` checks auth + universe scoping, then returns a short-lived presigned URL (or proxies the bytes for small images). Upload via `POST /api/v1/media` returning a presigned PUT, or direct multipart through FastAPI for simplicity in v1.

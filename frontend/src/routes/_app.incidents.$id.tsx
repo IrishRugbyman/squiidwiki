@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
 import { CheckCircle2, ExternalLink, MapPin, Pencil, Plus, Trash2, User } from 'lucide-react'
-import { useState } from 'react'
+import { lazy, Suspense, useState } from 'react'
 import { FuzzyDate } from '@/components/FuzzyDate'
 import { ErrorState } from '@/components/ErrorState'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
@@ -18,6 +18,11 @@ import { IncidentFormSheet } from './_app.incidents.index'
 import { MemberFormSheet } from './_app.members.index'
 import { SourceFormSheet } from './_app.sources.index'
 import { AddParticipantToIncidentDialog } from '@/components/AddParticipantToIncidentDialog'
+import { Skeleton } from '@/components/ui/skeleton'
+
+const PhotoGallery = lazy(() =>
+  import('@/components/media/PhotoGallery').then((m) => ({ default: m.PhotoGallery })),
+)
 import { AddSourceToIncidentDialog } from '@/components/AddSourceToIncidentDialog'
 import { INCIDENT_TYPE_CHIP, ROLE_CHIP, OUTCOME_CHIP, OUTCOME_LABEL, ROLE_LABEL } from '@/lib/incidentColors'
 import { useRecordRecent } from '@/stores/recents'
@@ -165,6 +170,7 @@ function IncidentDetailPage() {
                   <Badge variant="secondary" className="ml-1.5 text-xs px-1.5 py-0">{incident.source_ids.length}</Badge>
                 )}
               </TabsTrigger>
+              <TabsTrigger value="photos">Photos</TabsTrigger>
             </TabsList>
 
             <TabsContent value="participants">
@@ -270,6 +276,14 @@ function IncidentDetailPage() {
                     )
                   })}
                 </div>
+              )}
+            </TabsContent>
+
+            <TabsContent value="photos">
+              {universe && (
+                <Suspense fallback={<Skeleton className="h-40 w-full" />}>
+                  <PhotoGallery entityType="incident" entityId={incident.id} universeId={universe.id} />
+                </Suspense>
               )}
             </TabsContent>
           </Tabs>
