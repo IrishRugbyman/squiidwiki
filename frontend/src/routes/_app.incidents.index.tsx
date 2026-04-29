@@ -1,6 +1,7 @@
 import { createFileRoute, Link, useLocation, useNavigate } from '@tanstack/react-router'
 import { Bookmark, BookmarkPlus, CheckCircle2, Download, Pencil, Plus, Search, ShieldAlert, Skull, Swords, Trash2, User, X } from 'lucide-react'
-import { lazy, Suspense, useEffect, useMemo, useState } from 'react'
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react'
+import { useVirtualizer } from '@tanstack/react-virtual'
 import { toast } from 'sonner'
 import { FuzzyDate } from '@/components/FuzzyDate'
 import { FuzzyDateInput } from '@/components/FuzzyDateInput'
@@ -618,6 +619,21 @@ function IncidentsPage() {
     return filtered
   }, [allItems, typeFilter, verifiedFilter])
 
+  // Virtualize the table tbody when the list grows past 50 rows.
+  const tableScrollRef = useRef<HTMLDivElement | null>(null)
+  const isVirtualized = items.length > 50
+  const rowVirtualizer = useVirtualizer({
+    count: items.length,
+    getScrollElement: () => tableScrollRef.current,
+    estimateSize: () => 56,
+    overscan: 8,
+  })
+  const virtualRows = isVirtualized ? rowVirtualizer.getVirtualItems() : []
+  const virtualPaddingTop = virtualRows[0]?.start ?? 0
+  const virtualPaddingBottom = isVirtualized
+    ? rowVirtualizer.getTotalSize() - (virtualRows[virtualRows.length - 1]?.end ?? 0)
+    : 0
+
   if (!universe) return <NoUniverse />
 
   const muniMap: Record<string, string> = {}
@@ -791,7 +807,13 @@ function IncidentsPage() {
       </div>
 
       {/* Table */}
-      <div className="overflow-hidden rounded-lg border border-zinc-800">
+      <div
+        ref={tableScrollRef}
+        className="rounded-lg border border-zinc-800"
+        style={isVirtualized
+          ? { maxHeight: 'calc(100vh - 22rem)', overflowY: 'auto' }
+          : { overflow: 'hidden' }}
+      >
         <table className="w-full text-sm">
           <thead className="sticky top-0 z-10 bg-zinc-900/90 backdrop-blur">
             <tr className="border-b border-zinc-800">
@@ -815,13 +837,18 @@ function IncidentsPage() {
           <tbody className="divide-y divide-zinc-800">
             {isLoading
               ? Array.from({ length: 5 }).map((_, i) => <TableRowSkeleton key={i} cols={7} height={56} />)
-              : items.map((incident) => {
+              : isVirtualized && virtualPaddingTop > 0
+                ? <tr aria-hidden><td colSpan={7} style={{ height: virtualPaddingTop }} /></tr>
+                : null}
+            {!isLoading && (isVirtualized ? virtualRows.map((vRow) => items[vRow.index]) : items).map((incident, idx) => {
                   const cfg = TYPE_CONFIG[incident.type]
                   const Icon = cfg?.icon ?? ShieldAlert
                   const muniName = incident.municipality_id ? muniMap[incident.municipality_id] : null
                   const isSelected = selected.has(incident.id)
+                  const measureRef = isVirtualized ? rowVirtualizer.measureElement : undefined
+                  const dataIndex = isVirtualized ? virtualRows[idx]?.index : undefined
                   return (
-                    <tr key={incident.id} className={`group hover:bg-zinc-900/50 transition-colors ${isSelected ? 'bg-violet-950/20' : ''}`}>
+                    <tr key={incident.id} ref={measureRef} data-index={dataIndex} className={`group hover:bg-zinc-900/50 transition-colors ${isSelected ? 'bg-violet-950/20' : ''}`}>
                       <td className="px-3 py-3">
                         <input
                           type="checkbox"
@@ -904,6 +931,9 @@ function IncidentsPage() {
                     </tr>
                   )
                 })}
+            {!isLoading && isVirtualized && virtualPaddingBottom > 0 && (
+              <tr aria-hidden><td colSpan={7} style={{ height: virtualPaddingBottom }} /></tr>
+            )}
             {!isLoading && items.length === 0 && (
               <tr>
                 <td colSpan={7}>
