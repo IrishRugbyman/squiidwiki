@@ -76,6 +76,7 @@ from app.routers.gang_set import router as gang_set_router  # noqa: E402
 from app.routers.incident import router as incident_router  # noqa: E402
 from app.routers.member import router as member_router  # noqa: E402
 from app.routers.municipality import router as municipality_router  # noqa: E402
+from app.routers.media import router as media_router  # noqa: E402
 from app.routers.research_note import router as research_note_router  # noqa: E402
 from app.routers.source import router as source_router  # noqa: E402
 from app.routers.universe import router as universe_router  # noqa: E402
@@ -91,3 +92,4 @@ app.include_router(incident_router, prefix="/api/v1")
 app.include_router(audit_router, prefix="/api/v1")
 app.include_router(admin_router, prefix="/api/v1")
 app.include_router(research_note_router, prefix="/api/v1")
+app.include_router(media_router, prefix="/api/v1")

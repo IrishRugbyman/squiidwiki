@@ -29,7 +29,6 @@ class Member(SQLModel, table=True):
     aliases: Optional[list] = Field(default=None, sa_column=Column(JSONB))
 
     biography: str = ""
-    photo_url: Optional[str] = None
 
     set_id: Optional[uuid.UUID] = Field(default=None, foreign_key="sets.id", index=True)
     alliance_id: Optional[uuid.UUID] = Field(default=None, foreign_key="alliance.id", index=True)

@@ -119,4 +119,5 @@ async def list_source_members(
     if obj is None:
         raise HTTPException(404)
     items = await member_crud.list_members_by_source(session, id, universe_id)
+    await member_crud.attach_primary_photos(session, items)
     return CursorPage(items=items, next_cursor=None, total=None)

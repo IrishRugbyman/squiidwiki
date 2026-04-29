@@ -15,7 +15,6 @@ class MemberCreate(BaseModel):
     nickname_unknown: bool = False
     aliases: Optional[list[str]] = None
     biography: str = ""
-    photo_url: Optional[str] = None
     set_id: Optional[uuid.UUID] = None
     alliance_id: Optional[uuid.UUID] = None
     status: MemberStatus = MemberStatus.UNKNOWN
@@ -35,7 +34,6 @@ class MemberUpdate(BaseModel):
     nickname_unknown: Optional[bool] = None
     aliases: Optional[list[str]] = None
     biography: Optional[str] = None
-    photo_url: Optional[str] = None
     set_id: Optional[uuid.UUID] = None
     alliance_id: Optional[uuid.UUID] = None
     status: Optional[MemberStatus] = None
@@ -59,7 +57,6 @@ class MemberRead(BaseModel):
     nickname_unknown: bool
     aliases: Optional[list[str]]
     biography: str
-    photo_url: Optional[str]
     set_id: Optional[uuid.UUID]
     alliance_id: Optional[uuid.UUID]
     status: MemberStatus
@@ -73,6 +70,8 @@ class MemberRead(BaseModel):
     created_at: datetime
     updated_at: datetime
     display_name: str
+    primary_photo_url: Optional[str] = None
+    primary_photo_thumb_url: Optional[str] = None
 
 
 class MemberReadDetail(MemberRead):
@@ -89,7 +88,8 @@ class MemberListItem(BaseModel):
     alliance_id: Optional[uuid.UUID] = None
     universe_id: uuid.UUID
     slug: Optional[str] = None
-    photo_url: Optional[str] = None
+    primary_photo_url: Optional[str] = None
+    primary_photo_thumb_url: Optional[str] = None
     aliases: Optional[list[str]] = None
     date_of_death: FuzzyDateField = None
 

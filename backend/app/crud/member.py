@@ -7,9 +7,12 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select
 
+from app.core import storage
+from app.core.enums import MediaKind
 from app.models.member import Member, MemberSource
 from app.models.incident import IncidentParticipant
 from app.models.gang_set import GangSet
+from app.models.media import Media
 from app.schemas.common import make_cursor, parse_cursor
 from app.schemas.member import MemberCreate, MemberUpdate
 
@@ -101,6 +104,43 @@ async def _unique_slug(
         if (await session.execute(q)).scalar_one_or_none() is None:
             return slug
         slug, n = f"{base}-{n}", n + 1
+
+
+async def attach_primary_photos(session: AsyncSession, members: list[Member]) -> None:
+    """Populate member.primary_photo_url + primary_photo_thumb_url for serialization.
+
+    Single batched query fetches the is_primary media row per member; signed
+    URLs are generated for R2-kind rows, external_url passes through for
+    backfilled photo_url rows. Attributes are set on the ORM instance so
+    Pydantic from_attributes picks them up.
+    """
+    if not members:
+        return
+    member_ids = [m.id for m in members]
+    result = await session.execute(
+        select(Media).where(
+            Media.member_id.in_(member_ids),
+            Media.is_primary == True,  # noqa: E712
+        )
+    )
+    by_member: dict[uuid.UUID, Media] = {m.member_id: m for m in result.scalars().all()}
+    for m in members:
+        primary = by_member.get(m.id)
+        if primary is None:
+            m.primary_photo_url = None
+            m.primary_photo_thumb_url = None
+        elif primary.kind == MediaKind.EXTERNAL_URL:
+            m.primary_photo_url = primary.external_url
+            m.primary_photo_thumb_url = primary.external_url
+        else:  # R2
+            m.primary_photo_url = (
+                await storage.signed_get_url(primary.r2_key) if primary.r2_key else None
+            )
+            m.primary_photo_thumb_url = (
+                await storage.signed_get_url(primary.thumb_r2_key)
+                if primary.thumb_r2_key
+                else m.primary_photo_url
+            )
 
 
 async def _sync_member_sources(

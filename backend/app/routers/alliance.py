@@ -122,6 +122,7 @@ async def list_alliance_members(
     items, next_cursor = await member_crud.list_members(
         session, universe_id, limit=limit, cursor=cursor, alliance_id=id
     )
+    await member_crud.attach_primary_photos(session, items)
     return CursorPage(items=items, next_cursor=next_cursor, total=None)
 
 

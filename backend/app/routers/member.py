@@ -40,6 +40,7 @@ async def list_members(
     items, next_cursor = await crud.list_members(
         session, universe_id, limit=limit, cursor=cursor, set_id=set_id, alliance_id=alliance_id
     )
+    await crud.attach_primary_photos(session, items)
     return CursorPage(items=items, next_cursor=next_cursor, total=None)
 
 
@@ -49,7 +50,9 @@ async def create_member(
     current_user: CurrentUser,
     session: Annotated[AsyncSession, Depends(get_session)],
 ):
-    return await crud.create_member(session, data, current_user.id)
+    obj = await crud.create_member(session, data, current_user.id)
+    await crud.attach_primary_photos(session, [obj])
+    return obj
 
 
 @router.post("/bulk-status", response_model=dict)
@@ -71,7 +74,9 @@ async def search_members(
     _: CurrentUser,
     session: Annotated[AsyncSession, Depends(get_session)],
 ):
-    return await crud.search_members(session, universe_id, q)
+    items = await crud.search_members(session, universe_id, q)
+    await crud.attach_primary_photos(session, items)
+    return items
 
 
 @router.get("/{id_or_slug}", response_model=MemberReadDetail)
@@ -88,6 +93,7 @@ async def get_member(
         obj = await crud.get_member_by_slug(session, id_or_slug, universe_id)
     if obj is None:
         raise HTTPException(404)
+    await crud.attach_primary_photos(session, [obj])
     source_ids = await crud.list_member_source_ids(session, obj.id)
     base = MemberRead.model_validate(obj)
     return MemberReadDetail(**base.model_dump(), source_ids=source_ids)
@@ -104,6 +110,7 @@ async def update_member(
     obj = await crud.update_member(session, id, universe_id, data)
     if obj is None:
         raise HTTPException(404)
+    await crud.attach_primary_photos(session, [obj])
     return obj
 
 
