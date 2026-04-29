@@ -35,6 +35,16 @@ Ranked roughly by impact. None of these are committed to a timeline.
 - [ ] **Member merge** — when duplicate records exist, a merge dialog that picks the canonical record and migrates all incident participations, family links, and source citations.
 - [x] **Member social profiles** — Facebook / Instagram / Twitter inputs in the member form (handle or URL), auto-linked on the detail page with brand glyphs.
 
+## Media & Storage
+
+- [ ] **Image hosting for members & incidents** — currently no first-class image storage; mugshots, incident photos, and source screenshots have nowhere to live. Proposed approach:
+  - **Provider: Cloudflare R2** — 10 GB free, **zero egress fees**, S3-compatible (any S3 SDK works from FastAPI), no surprise bandwidth bills. Runner-up: Cloudinary (25 GB + 25 GB bandwidth + on-the-fly transforms, but credit system meters transforms+bandwidth together — a popular page can burn through it fast). Avoid imgur/ImgBB (TOS issues for this content, hotlink rot). Supabase Storage (1 GB) is too small.
+  - **Backend model: `media` table** keyed by `(entity_type, entity_id)` so a single member/incident/source can hold multiple images. Columns: `id`, `universe_id`, `entity_type`, `entity_id`, `r2_key`, `original_filename`, `content_type`, `size_bytes`, `width`, `height`, `caption`, `uploaded_by_user_id`, `uploaded_at`. Indexed on `(entity_type, entity_id)`.
+  - **Access control: signed URLs via JWT-gated endpoint** — frontend never gets raw R2 URLs. `GET /api/v1/media/{id}` checks auth + universe scoping, then returns a short-lived presigned URL (or proxies the bytes for small images). Upload via `POST /api/v1/media` returning a presigned PUT, or direct multipart through FastAPI for simplicity in v1.
+  - **Frontend: image gallery component** on member detail (mugshot prominence + gallery), incident detail (scene/aftermath photos), source detail (screenshot of the article/post). Drag-and-drop upload, paste-from-clipboard, client-side resize before upload to cap storage.
+  - **Audit:** every upload + delete writes to the existing audit log (entity_type=`media`).
+  - **Open questions before implementing:** (1) image size cap & whether to generate thumbnails server-side or rely on CSS sizing; (2) whether mugshot is a first-class `member.primary_photo_id` FK or just "the first media row"; (3) prod vs test DB — R2 bucket per environment or shared bucket with `env/` prefix.
+
 ## Admin & Ops
 
 - [x] **Universe statistics dashboard** — dedicated admin page showing per-universe entity counts, last-activity date, active users, and storage size. _(Per-universe entity counts shipped inline on the /universes page; last-activity / active-users / storage size still open — they'd need new backend fields.)_

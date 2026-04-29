@@ -74,3 +74,8 @@ class AuditAction(str, Enum):
 class SetRelationshipType(str, Enum):
     FRIEND = "FRIEND"
     ENEMY = "ENEMY"
+
+
+class MediaKind(str, Enum):
+    R2 = "R2"
+    EXTERNAL_URL = "EXTERNAL_URL"

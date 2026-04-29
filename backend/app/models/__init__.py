@@ -8,6 +8,7 @@ from app.models.gang_set import GangSet, SetMunicipality, SetRelationship
 from app.models.member import Member, MemberSource
 from app.models.incident import Incident, IncidentParticipant, IncidentSource
 from app.models.research_note import ResearchNote
+from app.models.media import Media
 
 __all__ = [
     "User",
@@ -28,4 +29,5 @@ __all__ = [
     "IncidentParticipant",
     "IncidentSource",
     "ResearchNote",
+    "Media",
 ]

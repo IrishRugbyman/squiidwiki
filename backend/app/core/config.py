@@ -13,5 +13,13 @@ class Settings(BaseSettings):
     cors_origins: list[str] = ["http://localhost:5173"]
     environment: str = "development"
 
+    # Cloudflare R2 (S3-compatible) — empty defaults so dev runs without uploads configured.
+    r2_endpoint_url: str = ""
+    r2_access_key_id: str = ""
+    r2_secret_access_key: str = ""
+    r2_bucket_prod: str = ""
+    r2_bucket_test: str = ""
+    r2_signed_url_ttl_seconds: int = 3600
+
 
 settings = Settings()

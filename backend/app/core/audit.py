@@ -16,7 +16,7 @@ current_user_id: ContextVar[Optional[uuid.UUID]] = ContextVar("current_user_id",
 
 _AUDITED_TABLES = {
     "universe", "municipality", "alliance", "sets",
-    "member", "incident", "source",
+    "member", "incident", "source", "media",
 }
 
 
@@ -69,6 +69,7 @@ def attach_audit_listeners() -> None:
     import app.models.member  # noqa: F401
     import app.models.incident  # noqa: F401
     import app.models.source  # noqa: F401
+    import app.models.media  # noqa: F401
 
     from sqlalchemy.orm import mapperlib
 
