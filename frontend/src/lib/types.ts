@@ -22,6 +22,8 @@ export type ParticipantRole = 'SHOOTER' | 'ASSISTED' | 'BYSTANDER' | 'VICTIM'
 export type ParticipantOutcome = 'KILLED' | 'INJURED' | 'UNHARMED' | 'UNKNOWN'
 export type SourceReliability = 'HIGH' | 'MEDIUM' | 'LOW' | 'UNVERIFIED'
 export type SetRelationshipType = 'FRIEND' | 'ENEMY'
+export type MediaKind = 'R2' | 'EXTERNAL_URL'
+export type MediaEntityType = 'member' | 'incident' | 'source'
 
 // Universe
 export interface UniverseListItem {
@@ -172,7 +174,8 @@ export interface MemberListItem {
   alliance_id: UUID | null
   universe_id: UUID
   slug: string | null
-  photo_url: string | null
+  primary_photo_url: string | null
+  primary_photo_thumb_url: string | null
   aliases: string[] | null
   date_of_death: FuzzyDateValue | null
 }
@@ -183,7 +186,6 @@ export interface MemberRead extends MemberListItem {
   nickname_unknown: boolean
   aliases: string[] | null
   biography: string
-  photo_url: string | null
   alliance_id: UUID | null
   dob: FuzzyDateValue | null
   date_of_death: FuzzyDateValue | null
@@ -264,6 +266,29 @@ export interface UniverseAnalytics {
   incidents_by_month: Array<{ month: string; count: number }>
   source_by_reliability: Record<string, number>
   top_members_by_incidents: Array<{ id: string; display_name: string; incident_count: number }>
+}
+
+// Media
+export interface MediaWithUrls {
+  id: UUID
+  universe_id: UUID
+  member_id: UUID | null
+  incident_id: UUID | null
+  source_id: UUID | null
+  kind: MediaKind
+  r2_key: string | null
+  thumb_r2_key: string | null
+  external_url: string | null
+  original_filename: string | null
+  content_type: string | null
+  size_bytes: number | null
+  width: number | null
+  height: number | null
+  caption: string | null
+  is_primary: boolean
+  created_at: string
+  url: string | null
+  thumb_url: string | null
 }
 
 // Users

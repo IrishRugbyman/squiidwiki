@@ -28,8 +28,11 @@ async function parseError(res: Response): Promise<ApiError> {
 
 async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   const token = localStorage.getItem('access_token')
+  const isFormData = typeof FormData !== 'undefined' && init.body instanceof FormData
+  // Browser sets Content-Type (with multipart boundary) automatically for FormData;
+  // setting it manually breaks the upload.
   const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
+    ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
     ...(init.headers as Record<string, string>),
   }
   if (token) headers['Authorization'] = `Bearer ${token}`
@@ -68,6 +71,8 @@ export const api = {
   get: <T>(path: string) => request<T>(path),
   post: <T>(path: string, body?: unknown) =>
     request<T>(path, { method: 'POST', body: body !== undefined ? JSON.stringify(body) : undefined }),
+  postFormData: <T>(path: string, body: FormData) =>
+    request<T>(path, { method: 'POST', body }),
   patch: <T>(path: string, body?: unknown) =>
     request<T>(path, { method: 'PATCH', body: body !== undefined ? JSON.stringify(body) : undefined }),
   delete: <T>(path: string) => request<T>(path, { method: 'DELETE' }),

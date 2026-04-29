@@ -128,10 +128,10 @@ function FormSection({ title, hint, children }: { title: string; hint?: string; 
 
 export function MemberAvatar({ member }: { member: MemberListItem }) {
   const [imgError, setImgError] = useState(false)
-  if (member.photo_url && !imgError) {
+  if (member.primary_photo_thumb_url && !imgError) {
     return (
       <img
-        src={member.photo_url}
+        src={member.primary_photo_thumb_url}
         alt={member.display_name}
         loading="lazy"
         decoding="async"
@@ -319,7 +319,6 @@ export function MemberFormSheet({ universeId, open, onClose, initial, defaultSet
   const [setId, setSetId] = useState<string>(initial?.set_id ?? copyFrom?.set_id ?? defaultSetId ?? '')
   const [allianceId, setAllianceId] = useState<string>(initial?.alliance_id ?? copyFrom?.alliance_id ?? defaultAllianceId ?? '')
   const [biography, setBiography] = useState(initial?.biography ?? copyFrom?.biography ?? '')
-  const [photoUrl, setPhotoUrl] = useState(initial?.photo_url ?? copyFrom?.photo_url ?? '')
   const [aliases, setAliases] = useState(initial?.aliases?.join(', ') ?? copyFrom?.aliases?.join(', ') ?? '')
   const seedSocial = (key: 'facebook' | 'instagram' | 'twitter'): string => {
     const sm = (initial?.social_media ?? copyFrom?.social_media) as Record<string, string> | null | undefined
@@ -367,7 +366,6 @@ export function MemberFormSheet({ universeId, open, onClose, initial, defaultSet
       set_id: setId || null,
       alliance_id: allianceId || null,
       biography,
-      photo_url: photoUrl || null,
       aliases: aliasList.length > 0 ? aliasList : null,
       dob: dob ?? null,
       date_of_death: status === 'DEAD' ? dateOfDeath : null,
@@ -426,15 +424,10 @@ export function MemberFormSheet({ universeId, open, onClose, initial, defaultSet
                 ? <span className="font-medium text-zinc-200">{displayPreview}</span>
                 : <span className="italic text-zinc-600">— need a nickname or legal name —</span>}
             </p>
-            <div className="grid gap-3 sm:grid-cols-2">
-              <div className="space-y-1.5">
-                <Label htmlFor="m-aliases">Aliases <span className="text-zinc-600">(comma-separated)</span></Label>
-                <Input id="m-aliases" value={aliases} onChange={(e) => setAliases(e.target.value)} placeholder="e.g. Big L, Lucky" />
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="m-photo">Photo URL</Label>
-                <Input id="m-photo" type="url" value={photoUrl} onChange={(e) => setPhotoUrl(e.target.value)} placeholder="https://…" />
-              </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="m-aliases">Aliases <span className="text-zinc-600">(comma-separated)</span></Label>
+              <Input id="m-aliases" value={aliases} onChange={(e) => setAliases(e.target.value)} placeholder="e.g. Big L, Lucky" />
+              <p className="text-xs text-zinc-500">Photos are managed in the member's Photos tab after creation.</p>
             </div>
           </FormSection>
 

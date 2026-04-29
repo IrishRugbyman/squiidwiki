@@ -117,8 +117,8 @@ function FamilyMemberLink({ memberId, member }: { memberId: string; member: Memb
       params={{ id: member.slug ?? member.id }}
       className="group inline-flex items-center gap-2 rounded-lg border border-zinc-800 bg-zinc-900/40 px-3 py-2 transition-colors hover:border-zinc-700 hover:bg-zinc-900"
     >
-      {member.photo_url ? (
-        <img src={member.photo_url} alt={member.display_name} loading="lazy" decoding="async" className="h-6 w-6 rounded-full object-cover ring-1 ring-zinc-700" />
+      {member.primary_photo_thumb_url ? (
+        <img src={member.primary_photo_thumb_url} alt={member.display_name} loading="lazy" decoding="async" className="h-6 w-6 rounded-full object-cover ring-1 ring-zinc-700" />
       ) : (
         <div className="flex h-6 w-6 items-center justify-center rounded-full bg-zinc-800 text-[9px] font-bold text-zinc-400">
           {member.display_name.slice(0, 2).toUpperCase()}
@@ -409,9 +409,9 @@ function MemberDetailPage() {
           <div className="flex items-start justify-between gap-4">
             <div className="flex items-start gap-4">
               <div className="shrink-0">
-                {member.photo_url ? (
+                {member.primary_photo_url ? (
                   <img
-                    src={member.photo_url}
+                    src={member.primary_photo_url}
                     alt={`Photo of ${member.display_name}`}
                     loading="lazy"
                     decoding="async"

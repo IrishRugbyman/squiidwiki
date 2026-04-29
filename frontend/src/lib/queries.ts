@@ -12,6 +12,8 @@ import type {
   UniverseAnalytics,
   IncidentRead,
   IncidentReadDetail,
+  MediaEntityType,
+  MediaWithUrls,
   MemberListItem,
   MemberRead,
   MemberReadDetail,
@@ -812,3 +814,124 @@ export const useUniverseAnalytics = (universeId: UUID | null) =>
     enabled: !!universeId,
     staleTime: 60_000,
   })
+
+// ─── Media ────────────────────────────────────────────────────────────────────
+
+const mediaQueryKey = (entityType: MediaEntityType, entityId: UUID) =>
+  ['media', entityType, entityId] as const
+
+const mediaEntityField = (entityType: MediaEntityType): 'member_id' | 'incident_id' | 'source_id' =>
+  entityType === 'member' ? 'member_id' : entityType === 'incident' ? 'incident_id' : 'source_id'
+
+export const useMedia = (
+  entityType: MediaEntityType,
+  entityId: UUID | null,
+  universeId: UUID | null,
+) =>
+  useQuery({
+    queryKey: ['media', entityType, entityId],
+    queryFn: () => {
+      const field = mediaEntityField(entityType)
+      return api.get<MediaWithUrls[]>(
+        `/media/?universe_id=${universeId}&${field}=${entityId}`,
+      )
+    },
+    enabled: !!universeId && !!entityId,
+    // Signed URLs expire — refetch before they go stale.
+    staleTime: 30 * 60_000,
+  })
+
+export const useUploadMedia = (
+  entityType: MediaEntityType,
+  entityId: UUID,
+  universeId: UUID,
+) => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (input: { file: File; caption?: string }) => {
+      const fd = new FormData()
+      fd.append('file', input.file)
+      fd.append('universe_id', universeId)
+      fd.append(mediaEntityField(entityType), entityId)
+      if (input.caption) fd.append('caption', input.caption)
+      return api.postFormData<MediaWithUrls>('/media/', fd)
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: mediaQueryKey(entityType, entityId) })
+      // Invalidate the parent so list-row avatars / detail headers refresh.
+      qc.invalidateQueries({ queryKey: [`${entityType}s`] })
+    },
+  })
+}
+
+export const useUpdateMedia = (
+  entityType: MediaEntityType,
+  entityId: UUID,
+  universeId: UUID,
+) => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, ...body }: { id: UUID; caption?: string | null; is_primary?: boolean }) =>
+      api.patch<MediaWithUrls>(`/media/${id}?universe_id=${universeId}`, body),
+    onMutate: async (vars) => {
+      const key = mediaQueryKey(entityType, entityId)
+      await qc.cancelQueries({ queryKey: key })
+      const prev = qc.getQueriesData({ queryKey: key })
+      // Optimistic: when toggling is_primary, demote other rows in this gallery.
+      qc.setQueriesData({ queryKey: key }, (old: MediaWithUrls[] | undefined) => {
+        if (!Array.isArray(old)) return old
+        return old.map((m) => {
+          if (m.id === vars.id) {
+            return {
+              ...m,
+              caption: vars.caption !== undefined ? vars.caption : m.caption,
+              is_primary: vars.is_primary !== undefined ? vars.is_primary : m.is_primary,
+            }
+          }
+          if (vars.is_primary === true) return { ...m, is_primary: false }
+          return m
+        })
+      })
+      return { prev }
+    },
+    onError: (_e, _v, ctx: any) => { if (ctx?.prev) restoreSnapshot(qc, ctx.prev) },
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: mediaQueryKey(entityType, entityId) })
+      qc.invalidateQueries({ queryKey: [`${entityType}s`] })
+    },
+  })
+}
+
+export const useDeleteMedia = (
+  entityType: MediaEntityType,
+  entityId: UUID,
+  universeId: UUID,
+) => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (id: UUID) => api.delete(`/media/${id}?universe_id=${universeId}`),
+    onMutate: async (id) => {
+      const key = mediaQueryKey(entityType, entityId)
+      await qc.cancelQueries({ queryKey: key })
+      const prev = qc.getQueriesData({ queryKey: key })
+      qc.setQueriesData({ queryKey: key }, (old: MediaWithUrls[] | undefined) => {
+        if (!Array.isArray(old)) return old
+        const filtered = old.filter((m) => m.id !== id)
+        const removedPrimary = old.find((m) => m.id === id)?.is_primary
+        // If the deleted row was primary and others remain, optimistically promote
+        // the most recent (matches the backend's auto-promote on delete).
+        if (removedPrimary && filtered.length > 0 && !filtered.some((m) => m.is_primary)) {
+          const sorted = [...filtered].sort((a, b) => b.created_at.localeCompare(a.created_at))
+          return filtered.map((m) => (m.id === sorted[0].id ? { ...m, is_primary: true } : m))
+        }
+        return filtered
+      })
+      return { prev }
+    },
+    onError: (_e, _id, ctx: any) => { if (ctx?.prev) restoreSnapshot(qc, ctx.prev) },
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: mediaQueryKey(entityType, entityId) })
+      qc.invalidateQueries({ queryKey: [`${entityType}s`] })
+    },
+  })
+}
