@@ -99,7 +99,7 @@ Universe → Municipality
 - **Municipality** — geographic entity (cities, districts) within a Universe — see DB toggle exception below
 - **Sets** — gang crews; allies/enemies are bilateral (normalized `set_a_id < set_b_id`)
 - **Alliances** — organizations of Sets
-- **Members** — nickname-first identity; `display_name` property always used (nickname default, legal name when `nickname_unknown=True`); `social_media` JSONB stores `{facebook?, instagram?, twitter?}` handles or URLs
+- **Members** — nickname-first identity; `display_name` property always used (nickname default, legal name when `nickname_unknown=True`); `social_media` JSONB stores `{facebook?, instagram?, twitter?}` handles or URLs; `death_incident_id` FK auto-populated when a participant in any incident has `outcome=KILLED` (see "Incident-driven death sync" below)
 - **Incidents** — events with a typed participant table (`incident_participants`: member_id + role + outcome); no shooter/killer dict
 - **Sources** — citations with reliability rating; M2M with Members and Incidents
 - **ResearchNote** — per-universe freeform note (title + content); URLs auto-link in display
@@ -109,6 +109,7 @@ Universe → Municipality
 - **FuzzyDate** — JSONB `{year, month?, day?, precision: Y|YM|YMD|UNKNOWN, approx: bool}`. Custom SQLAlchemy TypeDecorator. Never use a plain `DATE` column for event/biography dates.
 - **Bilateral relationships** — stored once as `(set_a_id < set_b_id)` with a Postgres trigger enforcing the ordering. Application CRUD always normalizes pairs before insert.
 - **Incident participants** — `incident_participants` join table with `role ∈ {SHOOTER, ASSISTED, BYSTANDER, VICTIM}` and `outcome ∈ {KILLED, INJURED, UNHARMED, UNKNOWN}`. Do not use dict-of-lists.
+- **Incident-driven death sync** — saving an incident with a participant `outcome=KILLED` runs `_sync_killed_participants` in `app/crud/incident.py` after `_sync_participants`. For each killed member it sets `status=DEAD`, copies `incident.date` to `member.date_of_death` (only when the incident date has at least year precision), and assigns `member.death_incident_id=incident.id` (first death wins; never overrides an existing link to a *different* incident). Fires on both create and update. Audit listeners on `member` capture the changes for free. Reverting (un-kill) is **never automatic** — clear status manually on the member to undo. The FK uses `ON DELETE SET NULL`, so deleting an incident unlinks but does not change the member's status.
 - **Computed stats** — materialized views `member_stats` and `set_stats`; refreshed every 5 min via APScheduler + manual admin endpoint. Stats can lag the underlying tables by up to 5 minutes.
 - **Universe scoping** — all CRUD functions take `universe_id`; no cross-universe queries from API handlers.
 
