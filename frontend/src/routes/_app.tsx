@@ -209,7 +209,7 @@ function AppLayout() {
         <Link
           to="/"
           onClick={() => setSidebarOpen(false)}
-          className="flex items-center rounded-md outline-none transition-colors hover:text-violet-300 focus-visible:ring-2 focus-visible:ring-violet-500/50"
+          className="flex items-center rounded-md outline-none focus-visible:ring-2 focus-visible:ring-violet-500/50"
           aria-label="Go to dashboard"
         >
           <Skull className="mr-2 h-5 w-5 text-violet-500" />
