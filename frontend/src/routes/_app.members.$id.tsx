@@ -23,6 +23,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import {
   useMember, useMemberStats, useSets, useAlliances,
   useDeleteMember, useMemberIncidents, useAllMembers, useUpdateMember,
+  useIncident, useMunicipality,
 } from '@/lib/queries'
 import type { IncidentListItem, MemberListItem, MemberRead } from '@/lib/types'
 import type { FuzzyDateValue } from '@/components/FuzzyDate'
@@ -209,13 +210,14 @@ function formatFuzzyDateText(value: FuzzyDateValue | null | undefined, fallback 
 }
 
 function buildMemberMarkdown({
-  member, setName, allianceName, family, incidents,
+  member, setName, allianceName, family, incidents, killedIn,
 }: {
   member: MemberRead
   setName: string | null
   allianceName: string | null
   family: { role: FamilyRole; name: string }[]
   incidents: IncidentListItem[]
+  killedIn: { type: string; date: FuzzyDateValue | null } | null
 }): string {
   const lines: string[] = []
   lines.push(`# ${member.display_name}`)
@@ -230,6 +232,10 @@ function buildMemberMarkdown({
   lines.push(`- **Status:** ${member.status}`)
   if (member.dob) lines.push(`- **Date of birth:** ${formatFuzzyDateText(member.dob)}`)
   if (member.date_of_death) lines.push(`- **Date of death:** ${formatFuzzyDateText(member.date_of_death)}`)
+  if (killedIn) {
+    const dateStr = killedIn.date ? formatFuzzyDateText(killedIn.date) : 'date unknown'
+    lines.push(`- **Killed in:** ${killedIn.type} (${dateStr})`)
+  }
   if (setName) lines.push(`- **Set:** ${setName}`)
   if (allianceName) lines.push(`- **Alliance:** ${allianceName}`)
   if (member.aliases && member.aliases.length > 0) {
@@ -298,6 +304,14 @@ function MemberDetailPage() {
   const { data: allSets } = useSets(universe?.id ?? null)
   const { data: allAlliances } = useAlliances(universe?.id ?? null)
   const { data: incidents } = useMemberIncidents(id, universe?.id ?? null)
+  const { data: killingIncident } = useIncident(
+    member?.death_incident_id ?? '',
+    member?.death_incident_id ? (universe?.id ?? null) : null,
+  )
+  const { data: killingMuni } = useMunicipality(
+    killingIncident?.municipality_id ?? '',
+    killingIncident?.municipality_id ? (universe?.id ?? null) : null,
+  )
 
   useRecordRecent(member ? { type: 'member', id: member.id, slug: member.slug, label: member.display_name } : null)
 
@@ -362,6 +376,9 @@ function MemberDetailPage() {
       allianceName: member.alliance_id ? allianceName(member.alliance_id) : null,
       family: familyEntries,
       incidents: incidents?.items ?? [],
+      killedIn: killingIncident
+        ? { type: killingIncident.type, date: killingIncident.date }
+        : null,
     })
     const safeName = member.display_name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'member'
     downloadText(md, `${safeName}.md`, 'text/markdown;charset=utf-8')
@@ -458,6 +475,38 @@ function MemberDetailPage() {
               )}
             </div>
           </div>
+
+          {/* Killed-in card — auto-populated when an incident participant outcome=KILLED */}
+          {member.status === 'DEAD' && member.death_incident_id && (
+            <Link
+              to="/incidents/$id"
+              params={{ id: member.death_incident_id }}
+              className="group flex items-center gap-3 rounded-xl border border-rose-900/60 bg-rose-950/30 px-4 py-3 transition-colors hover:border-rose-700 hover:bg-rose-950/50"
+            >
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-rose-950/80">
+                <Skull className="h-4 w-4 text-rose-400" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-xs uppercase tracking-wider text-rose-400">Killed in incident</p>
+                <p className="mt-0.5 text-sm text-zinc-200">
+                  {killingIncident ? (
+                    <>
+                      <span className="font-medium">{killingIncident.type}</span>
+                      {killingIncident.date && (
+                        <span className="text-zinc-400"> · <FuzzyDate value={killingIncident.date} /></span>
+                      )}
+                      {killingMuni && (
+                        <span className="text-zinc-400"> · {killingMuni.name}</span>
+                      )}
+                    </>
+                  ) : (
+                    <span className="text-zinc-500">Loading incident…</span>
+                  )}
+                </p>
+              </div>
+              <span className="text-xs text-rose-400 opacity-0 transition-opacity group-hover:opacity-100">View →</span>
+            </Link>
+          )}
 
           {/* Stats row */}
           {stats && (() => {

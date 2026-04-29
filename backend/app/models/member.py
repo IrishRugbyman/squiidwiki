@@ -2,8 +2,8 @@ import uuid
 from datetime import date, datetime
 from typing import Optional
 
-from sqlalchemy import Column
-from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy import Column, ForeignKey
+from sqlalchemy.dialects.postgresql import JSONB, UUID as PG_UUID
 from sqlmodel import Field, SQLModel
 
 from app.core.enums import MemberStatus
@@ -43,6 +43,18 @@ class Member(SQLModel, table=True):
 
     family: Optional[dict] = Field(default=None, sa_column=Column(JSONB))
     social_media: Optional[dict] = Field(default=None, sa_column=Column(JSONB))
+
+    # Auto-populated by the incident CRUD when this member is a participant with
+    # outcome=KILLED. ON DELETE SET NULL so deleting an incident gracefully unlinks.
+    death_incident_id: Optional[uuid.UUID] = Field(
+        default=None,
+        sa_column=Column(
+            PG_UUID(as_uuid=True),
+            ForeignKey("incident.id", ondelete="SET NULL"),
+            nullable=True,
+            index=True,
+        ),
+    )
 
     slug: Optional[str] = Field(default=None, index=True)
     created_at: datetime = Field(default_factory=datetime.utcnow)

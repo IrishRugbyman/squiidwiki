@@ -1,9 +1,11 @@
 import uuid
+from datetime import datetime
 
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select
 
+from app.core.enums import MemberStatus, ParticipantOutcome
 from app.models.incident import Incident, IncidentParticipant, IncidentSource
 from app.models.member import Member, MemberSource
 from app.models.gang_set import GangSet
@@ -47,6 +49,42 @@ async def _sync_incident_sources(
         session.add(IncidentSource(incident_id=incident_id, source_id=sid))
 
 
+async def _sync_killed_participants(
+    session: AsyncSession, incident: Incident, participants: list[ParticipantCreate]
+) -> None:
+    """
+    Propagate KILLED-participant outcomes onto the member record:
+      - status -> DEAD if not already
+      - death_incident_id -> this incident (first death wins; never override an
+        existing link to a different incident)
+      - date_of_death -> incident.date when this is the linking incident and the
+        incident has at least year-precision
+
+    Never reverts; un-kill is a manual member edit. Audit listeners on `member`
+    pick these mutations up automatically.
+    """
+    killed_ids = [p.member_id for p in participants if p.outcome == ParticipantOutcome.KILLED]
+    if not killed_ids:
+        return
+
+    result = await session.execute(select(Member).where(Member.id.in_(killed_ids)))
+    members = result.scalars().all()
+
+    incident_date = incident.date
+    incident_has_date = bool(incident_date and incident_date.get("year"))
+
+    now = datetime.utcnow()
+    for m in members:
+        if m.status != MemberStatus.DEAD:
+            m.status = MemberStatus.DEAD
+        if m.death_incident_id is None:
+            m.death_incident_id = incident.id
+        if m.death_incident_id == incident.id and incident_has_date:
+            m.date_of_death = incident_date
+        m.updated_at = now
+        session.add(m)
+
+
 async def create_incident(
     session: AsyncSession, data: IncidentCreate, actor_id: uuid.UUID
 ) -> Incident:
@@ -66,6 +104,7 @@ async def create_incident(
     await session.flush()
     await _sync_participants(session, obj.id, data.participants)
     await _sync_incident_sources(session, obj.id, data.source_ids)
+    await _sync_killed_participants(session, obj, data.participants)
     await session.commit()
     await session.refresh(obj)
     return obj
@@ -132,6 +171,7 @@ async def update_incident(
     session.add(obj)
     if data.participants is not None:
         await _sync_participants(session, obj.id, data.participants)
+        await _sync_killed_participants(session, obj, data.participants)
     if data.source_ids is not None:
         await _sync_incident_sources(session, obj.id, data.source_ids)
     await session.commit()

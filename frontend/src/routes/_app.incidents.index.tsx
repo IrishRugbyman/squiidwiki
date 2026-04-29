@@ -33,7 +33,6 @@ import {
 import { BulkActionBar } from '@/components/BulkActionBar'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { downloadCsv } from '@/lib/download'
-import { api } from '@/lib/api'
 import { useDebounce } from '@/hooks/useDebounce'
 import { EmptyState } from '@/components/EmptyState'
 import { TableRowSkeleton } from '@/components/skeletons'
@@ -72,17 +71,10 @@ export interface ParticipantDraft {
   outcome: ParticipantOutcome
 }
 
-interface DeathDatePrompt {
-  memberId: UUID
-  memberName: string
-  date: FuzzyDateValue | null
-}
-
-function ParticipantBuilder({ universeId, participants, onChange, onDeathDateNeeded, allMembers, setNameById }: {
+function ParticipantBuilder({ universeId, participants, onChange, allMembers, setNameById }: {
   universeId: string
   participants: ParticipantDraft[]
   onChange: (p: ParticipantDraft[]) => void
-  onDeathDateNeeded?: (prompt: DeathDatePrompt) => void
   allMembers: MemberListItem[]
   setNameById: Record<string, string>
 }) {
@@ -112,8 +104,6 @@ function ParticipantBuilder({ universeId, participants, onChange, onDeathDateNee
     if (participants.some((p) => p.member_id === memberId)) return
     onChange([...participants, { member_id: memberId, member_name: memberName, role, outcome }])
     setSearch('')
-    if (role === 'VICTIM' && outcome === 'KILLED' && onDeathDateNeeded)
-      onDeathDateNeeded({ memberId, memberName, date: null })
   }
 
   return (
@@ -236,7 +226,6 @@ export function IncidentFormSheet({ universeId, open, onClose, initial, defaultP
       outcome: p.outcome,
     })) ?? defaultParticipants ?? []
   )
-  const [deathPrompts, setDeathPrompts] = useState<DeathDatePrompt[]>([])
   const [error, setError] = useState<string | null>(null)
   const urlPaste = useUrlPasteBanner()
   const [creatingSourceFromUrl, setCreatingSourceFromUrl] = useState<string | null>(null)
@@ -272,15 +261,9 @@ export function IncidentFormSheet({ universeId, open, onClose, initial, defaultP
         toast.success(`Updated ${type.toLowerCase()} incident`)
       } else {
         await create.mutateAsync(body)
-        // Apply death dates for KILLED participants
-        for (const prompt of deathPrompts) {
-          if (prompt.date) {
-            await api.patch(`/members/${prompt.memberId}?universe_id=${universeId}`, { date_of_death: prompt.date })
-          }
-        }
         toast.success(`Recorded ${type.toLowerCase()} incident`)
         setType('SHOOTING'); setDate(null); setLocationText(''); setMunicipalityId('')
-        setNarrative(''); setVerified(false); setParticipants([]); setDeathPrompts([])
+        setNarrative(''); setVerified(false); setParticipants([])
       }
       onClose()
     } catch (err) {
@@ -331,22 +314,11 @@ export function IncidentFormSheet({ universeId, open, onClose, initial, defaultP
           <div className="space-y-1.5">
             <Label>Participants</Label>
             <ParticipantBuilder universeId={universeId} participants={participants} onChange={setParticipants}
-              onDeathDateNeeded={!isEdit ? (p) => setDeathPrompts((prev) => [...prev, p]) : undefined}
               allMembers={allMembersList} setNameById={setNameById} />
+            <p className="text-[11px] text-zinc-500">
+              Marking a participant <span className="font-medium text-zinc-400">KILLED</span> will set their member status to DEAD and link them to this incident on save.
+            </p>
           </div>
-          {deathPrompts.length > 0 && (
-            <div className="space-y-3 rounded-lg border border-amber-800 bg-amber-950/30 p-3">
-              <p className="text-xs font-semibold text-amber-400">Killed participant(s) — set date of death?</p>
-              {deathPrompts.map((prompt) => (
-                <div key={prompt.memberId}>
-                  <p className="mb-1 text-xs text-zinc-300">{prompt.memberName}</p>
-                  <FuzzyDateInput value={prompt.date}
-                    onChange={(v) => setDeathPrompts((prev) => prev.map((p) => p.memberId === prompt.memberId ? { ...p, date: v } : p))}
-                    idPrefix={`dod-${prompt.memberId}`} />
-                </div>
-              ))}
-            </div>
-          )}
           <div className="space-y-1.5">
             <Label htmlFor="inc-narrative">Narrative</Label>
             <Textarea

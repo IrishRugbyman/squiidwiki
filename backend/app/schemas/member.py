@@ -25,6 +25,7 @@ class MemberCreate(BaseModel):
     life_sentence: bool = False
     family: Optional[dict[str, Any]] = None
     social_media: Optional[dict[str, Any]] = None
+    death_incident_id: Optional[uuid.UUID] = None
     source_ids: list[uuid.UUID] = []
 
 
@@ -44,6 +45,7 @@ class MemberUpdate(BaseModel):
     life_sentence: Optional[bool] = None
     family: Optional[dict[str, Any]] = None
     social_media: Optional[dict[str, Any]] = None
+    death_incident_id: Optional[uuid.UUID] = None
     source_ids: Optional[list[uuid.UUID]] = None
 
 
@@ -67,6 +69,7 @@ class MemberRead(BaseModel):
     life_sentence: bool
     family: Optional[dict[str, Any]]
     social_media: Optional[dict[str, Any]]
+    death_incident_id: Optional[uuid.UUID]
     created_at: datetime
     updated_at: datetime
     display_name: str

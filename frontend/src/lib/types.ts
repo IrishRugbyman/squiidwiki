@@ -191,6 +191,7 @@ export interface MemberRead extends MemberListItem {
   life_sentence: boolean
   family: Record<string, string> | null
   social_media: Record<string, string> | null
+  death_incident_id: UUID | null
   created_at: string
   updated_at: string
 }

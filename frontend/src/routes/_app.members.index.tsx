@@ -473,6 +473,11 @@ export function MemberFormSheet({ universeId, open, onClose, initial, defaultSet
             {status === 'DEAD' && (
               <div className="rounded-lg border border-zinc-800 bg-zinc-900/50 p-3">
                 <FuzzyDateInput value={dateOfDeath} onChange={setDateOfDeath} label="Date of death" idPrefix="dod" />
+                {initial?.death_incident_id && (
+                  <p className="mt-2 text-[11px] text-rose-400">
+                    Linked to a killing incident — manage the link from the incident page.
+                  </p>
+                )}
               </div>
             )}
             {status === 'LOCKED' && (
