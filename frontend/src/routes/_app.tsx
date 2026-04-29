@@ -19,6 +19,7 @@ import {
   X,
 } from 'lucide-react'
 import { useEffect, useState } from 'react'
+import { Drawer } from 'vaul'
 import { UniverseSwitcher } from '@/components/UniverseSwitcher'
 import { GlobalCommandPalette } from '@/components/GlobalCommandPalette'
 import { useAuthStore, type AuthState, type AuthUser } from '@/stores/auth'
@@ -166,6 +167,36 @@ function AppLayout() {
     return () => window.removeEventListener('keydown', onKey)
   }, [])
 
+  // Edge swipe to open the mobile sidebar — detects a touch starting in the
+  // leftmost ~20px and ending >50px to the right, mostly horizontal.
+  useEffect(() => {
+    let startX: number | null = null
+    let startY: number | null = null
+    function onTouchStart(e: TouchEvent) {
+      if (window.innerWidth >= 1024) return
+      const t = e.touches[0]
+      if (t.clientX < 20) {
+        startX = t.clientX
+        startY = t.clientY
+      }
+    }
+    function onTouchEnd(e: TouchEvent) {
+      if (startX === null || startY === null) return
+      const t = e.changedTouches[0]
+      const dx = t.clientX - startX
+      const dy = t.clientY - startY
+      if (dx > 50 && Math.abs(dy) < 80) setSidebarOpen(true)
+      startX = null
+      startY = null
+    }
+    window.addEventListener('touchstart', onTouchStart, { passive: true })
+    window.addEventListener('touchend', onTouchEnd, { passive: true })
+    return () => {
+      window.removeEventListener('touchstart', onTouchStart)
+      window.removeEventListener('touchend', onTouchEnd)
+    }
+  }, [])
+
   async function handleLogout() {
     await fetch('/api/v1/auth/logout', { method: 'POST', credentials: 'include' })
     clearAuth()
@@ -234,13 +265,19 @@ function AppLayout() {
       {/* Desktop sidebar */}
       <div className="hidden lg:flex">{sidebar}</div>
 
-      {/* Mobile sidebar overlay */}
-      {sidebarOpen && (
-        <div className="fixed inset-0 z-50 flex lg:hidden">
-          <div className="absolute inset-0 bg-black/60" onClick={() => setSidebarOpen(false)} aria-hidden />
-          <div className="relative z-10 flex" role="dialog" aria-label="Main navigation">{sidebar}</div>
-        </div>
-      )}
+      {/* Mobile sidebar drawer (vaul) — swipe right from the left edge to open, swipe left to close */}
+      <Drawer.Root open={sidebarOpen} onOpenChange={setSidebarOpen} direction="left">
+        <Drawer.Portal>
+          <Drawer.Overlay className="fixed inset-0 z-40 bg-black/60 lg:hidden" />
+          <Drawer.Content
+            className="fixed inset-y-0 left-0 z-50 flex outline-none lg:hidden"
+            aria-describedby={undefined}
+          >
+            <Drawer.Title className="sr-only">Main navigation</Drawer.Title>
+            {sidebar}
+          </Drawer.Content>
+        </Drawer.Portal>
+      </Drawer.Root>
 
       <div className="flex flex-1 flex-col overflow-hidden">
         {/* Mobile top bar */}
