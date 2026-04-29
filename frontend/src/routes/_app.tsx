@@ -206,10 +206,15 @@ function AppLayout() {
   const sidebar = (
     <aside className="flex w-56 shrink-0 flex-col border-r border-zinc-800 bg-zinc-950">
       <div className="flex h-14 items-center justify-between border-b border-zinc-800 px-4">
-        <div className="flex items-center">
+        <Link
+          to="/"
+          onClick={() => setSidebarOpen(false)}
+          className="flex items-center rounded-md outline-none transition-colors hover:text-violet-300 focus-visible:ring-2 focus-visible:ring-violet-500/50"
+          aria-label="Go to dashboard"
+        >
           <Skull className="mr-2 h-5 w-5 text-violet-500" />
           <span className="font-bold tracking-tight text-white">SquiidWiki</span>
-        </div>
+        </Link>
         <button
           onClick={() => setSidebarOpen(false)}
           aria-label="Close navigation menu"
