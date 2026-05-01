@@ -37,11 +37,13 @@ def _validate_attach_query(
     member_id: Optional[uuid.UUID],
     incident_id: Optional[uuid.UUID],
     source_id: Optional[uuid.UUID],
+    set_id: Optional[uuid.UUID],
+    alliance_id: Optional[uuid.UUID],
 ) -> None:
-    set_count = sum(x is not None for x in (member_id, incident_id, source_id))
+    set_count = sum(x is not None for x in (member_id, incident_id, source_id, set_id, alliance_id))
     if set_count != 1:
         raise HTTPException(
-            400, "Exactly one of member_id, incident_id, source_id must be provided"
+            400, "Exactly one of member_id, incident_id, source_id, set_id, alliance_id must be provided"
         )
 
 
@@ -54,9 +56,11 @@ async def upload_media(
     member_id: Optional[uuid.UUID] = Form(None),
     incident_id: Optional[uuid.UUID] = Form(None),
     source_id: Optional[uuid.UUID] = Form(None),
+    set_id: Optional[uuid.UUID] = Form(None),
+    alliance_id: Optional[uuid.UUID] = Form(None),
     caption: Optional[str] = Form(None),
 ):
-    _validate_attach_query(member_id, incident_id, source_id)
+    _validate_attach_query(member_id, incident_id, source_id, set_id, alliance_id)
 
     if file.content_type not in ALLOWED_CONTENT_TYPES:
         raise HTTPException(
@@ -76,6 +80,8 @@ async def upload_media(
         member_id=member_id,
         incident_id=incident_id,
         source_id=source_id,
+        set_id=set_id,
+        alliance_id=alliance_id,
         file_bytes=file_bytes,
         original_filename=file.filename,
         content_type=file.content_type,
@@ -93,14 +99,18 @@ async def list_media(
     member_id: Optional[uuid.UUID] = Query(None),
     incident_id: Optional[uuid.UUID] = Query(None),
     source_id: Optional[uuid.UUID] = Query(None),
+    set_id: Optional[uuid.UUID] = Query(None),
+    alliance_id: Optional[uuid.UUID] = Query(None),
 ):
-    _validate_attach_query(member_id, incident_id, source_id)
+    _validate_attach_query(member_id, incident_id, source_id, set_id, alliance_id)
     items = await crud.list_media(
         session,
         universe_id,
         member_id=member_id,
         incident_id=incident_id,
         source_id=source_id,
+        set_id=set_id,
+        alliance_id=alliance_id,
     )
     return [await _attach_signed_urls(m) for m in items]
 

@@ -2,7 +2,7 @@ import uuid
 from datetime import datetime
 from typing import Optional
 
-from sqlalchemy import Column, ForeignKey
+from sqlalchemy import Column, ForeignKey, String
 from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from sqlmodel import Field, SQLModel
 
@@ -16,7 +16,7 @@ class Media(SQLModel, table=True):
     universe_id: uuid.UUID = Field(foreign_key="universe.id", index=True)
 
     # Exactly one of these is non-null — enforced by a CHECK constraint at the
-    # DB level (see migration) and by `_attach_validation` in app/crud/media.py.
+    # DB level (see migration) and by `_ensure_exactly_one` in app/crud/media.py.
     member_id: Optional[uuid.UUID] = Field(
         default=None,
         sa_column=Column(
@@ -44,8 +44,26 @@ class Media(SQLModel, table=True):
             index=True,
         ),
     )
+    set_id: Optional[uuid.UUID] = Field(
+        default=None,
+        sa_column=Column(
+            PG_UUID(as_uuid=True),
+            ForeignKey("sets.id", ondelete="CASCADE"),
+            nullable=True,
+            index=True,
+        ),
+    )
+    alliance_id: Optional[uuid.UUID] = Field(
+        default=None,
+        sa_column=Column(
+            PG_UUID(as_uuid=True),
+            ForeignKey("alliance.id", ondelete="CASCADE"),
+            nullable=True,
+            index=True,
+        ),
+    )
 
-    kind: MediaKind = MediaKind.R2
+    kind: MediaKind = Field(default=MediaKind.R2, sa_column=Column(String, nullable=False, server_default='R2'))
     r2_key: Optional[str] = None
     thumb_r2_key: Optional[str] = None
     external_url: Optional[str] = None

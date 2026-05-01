@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
 import { Copy, MapPin, Pencil, Plus, Search, ShieldAlert, Swords, Trash2, Users, X } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { useMemo, useState, lazy, Suspense } from 'react'
 import { toast } from 'sonner'
 import {
   useSet, useSetStats, useSets, useDeleteSet,
@@ -20,7 +20,6 @@ import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { EmptyState } from '@/components/EmptyState'
 import { ErrorState } from '@/components/ErrorState'
 import { FuzzyDate, type FuzzyDateValue } from '@/components/FuzzyDate'
-import { lazy, Suspense } from 'react'
 import { Breadcrumbs } from '@/components/Breadcrumbs'
 import { CopyButton } from '@/components/CopyButton'
 import { DetailHeaderSkeleton } from '@/components/skeletons'
@@ -35,6 +34,9 @@ import type { IncidentListItem, MemberListItem } from '@/lib/types'
 
 const SetRelationshipGraph = lazy(() =>
   import('@/components/graphs/SetRelationshipGraph').then((m) => ({ default: m.SetRelationshipGraph })),
+)
+const PhotoGallery = lazy(() =>
+  import('@/components/media/PhotoGallery').then((m) => ({ default: m.PhotoGallery })),
 )
 
 export const Route = createFileRoute('/_app/sets/$id')({
@@ -426,6 +428,7 @@ function SetDetailPage() {
                   </Badge>
                 )}
               </TabsTrigger>
+              <TabsTrigger value="photos">Photos</TabsTrigger>
             </TabsList>
 
             <TabsContent value="members" className="mt-4">
@@ -674,6 +677,14 @@ function SetDetailPage() {
                     </p>
                   </div>
                 </div>
+              )}
+            </TabsContent>
+
+            <TabsContent value="photos" className="mt-4">
+              {universe && (
+                <Suspense fallback={<Skeleton className="h-40 w-full" />}>
+                  <PhotoGallery entityType="set" entityId={set.id} universeId={universe.id} />
+                </Suspense>
               )}
             </TabsContent>
           </Tabs>

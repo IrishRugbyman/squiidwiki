@@ -23,7 +23,7 @@ export type ParticipantOutcome = 'KILLED' | 'INJURED' | 'UNHARMED' | 'UNKNOWN'
 export type SourceReliability = 'HIGH' | 'MEDIUM' | 'LOW' | 'UNVERIFIED'
 export type SetRelationshipType = 'FRIEND' | 'ENEMY'
 export type MediaKind = 'R2' | 'EXTERNAL_URL'
-export type MediaEntityType = 'member' | 'incident' | 'source'
+export type MediaEntityType = 'member' | 'incident' | 'source' | 'set' | 'alliance'
 
 // Universe
 export interface UniverseListItem {
@@ -275,6 +275,8 @@ export interface MediaWithUrls {
   member_id: UUID | null
   incident_id: UUID | null
   source_id: UUID | null
+  set_id: UUID | null
+  alliance_id: UUID | null
   kind: MediaKind
   r2_key: string | null
   thumb_r2_key: string | null

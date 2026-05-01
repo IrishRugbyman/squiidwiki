@@ -17,24 +17,36 @@ THUMB_MAX_WIDTH = 400
 THUMB_QUALITY = 85
 
 
-def _ensure_exactly_one(member_id, incident_id, source_id) -> str:
-    set_count = sum(x is not None for x in (member_id, incident_id, source_id))
+def _ensure_exactly_one(member_id, incident_id, source_id, set_id, alliance_id) -> str:
+    set_count = sum(x is not None for x in (member_id, incident_id, source_id, set_id, alliance_id))
     if set_count != 1:
-        raise ValueError("Exactly one of member_id, incident_id, source_id must be set")
+        raise ValueError("Exactly one of member_id, incident_id, source_id, set_id, alliance_id must be set")
     if member_id is not None:
         return "member"
     if incident_id is not None:
         return "incident"
-    return "source"
+    if source_id is not None:
+        return "source"
+    if set_id is not None:
+        return "set"
+    return "alliance"
 
 
 def _entity_id(media: Media) -> uuid.UUID:
-    return media.member_id or media.incident_id or media.source_id  # type: ignore[return-value]
+    return media.member_id or media.incident_id or media.source_id or media.set_id or media.alliance_id  # type: ignore[return-value]
+
+
+_ENTITY_COL = {
+    "member": Media.member_id,
+    "incident": Media.incident_id,
+    "source": Media.source_id,
+    "set": Media.set_id,
+    "alliance": Media.alliance_id,
+}
 
 
 def _entity_filter(entity_type: str, entity_id: uuid.UUID):
-    col = {"member": Media.member_id, "incident": Media.incident_id, "source": Media.source_id}[entity_type]
-    return col == entity_id
+    return _ENTITY_COL[entity_type] == entity_id
 
 
 def _entity_type_for(media: Media) -> str:
@@ -42,7 +54,11 @@ def _entity_type_for(media: Media) -> str:
         return "member"
     if media.incident_id is not None:
         return "incident"
-    return "source"
+    if media.source_id is not None:
+        return "source"
+    if media.set_id is not None:
+        return "set"
+    return "alliance"
 
 
 def _make_thumb(file_bytes: bytes) -> bytes:
@@ -92,14 +108,16 @@ async def create_media(
     member_id: Optional[uuid.UUID] = None,
     incident_id: Optional[uuid.UUID] = None,
     source_id: Optional[uuid.UUID] = None,
+    set_id: Optional[uuid.UUID] = None,
+    alliance_id: Optional[uuid.UUID] = None,
     file_bytes: bytes,
     original_filename: Optional[str],
     content_type: str,
     caption: Optional[str],
     actor_id: uuid.UUID,
 ) -> Media:
-    entity_type = _ensure_exactly_one(member_id, incident_id, source_id)
-    entity_id = member_id or incident_id or source_id
+    entity_type = _ensure_exactly_one(member_id, incident_id, source_id, set_id, alliance_id)
+    entity_id = member_id or incident_id or source_id or set_id or alliance_id
 
     width, height = _image_dimensions(file_bytes)
     thumb_bytes = _make_thumb(file_bytes)
@@ -121,6 +139,8 @@ async def create_media(
         member_id=member_id,
         incident_id=incident_id,
         source_id=source_id,
+        set_id=set_id,
+        alliance_id=alliance_id,
         kind=MediaKind.R2,
         r2_key=r2_key,
         thumb_r2_key=thumb_r2_key,
@@ -155,9 +175,11 @@ async def list_media(
     member_id: Optional[uuid.UUID] = None,
     incident_id: Optional[uuid.UUID] = None,
     source_id: Optional[uuid.UUID] = None,
+    set_id: Optional[uuid.UUID] = None,
+    alliance_id: Optional[uuid.UUID] = None,
 ) -> list[Media]:
-    entity_type = _ensure_exactly_one(member_id, incident_id, source_id)
-    entity_id = member_id or incident_id or source_id
+    entity_type = _ensure_exactly_one(member_id, incident_id, source_id, set_id, alliance_id)
+    entity_id = member_id or incident_id or source_id or set_id or alliance_id
     result = await session.execute(
         select(Media)
         .where(Media.universe_id == universe_id, _entity_filter(entity_type, entity_id))

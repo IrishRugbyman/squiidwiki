@@ -820,8 +820,13 @@ export const useUniverseAnalytics = (universeId: UUID | null) =>
 const mediaQueryKey = (entityType: MediaEntityType, entityId: UUID) =>
   ['media', entityType, entityId] as const
 
-const mediaEntityField = (entityType: MediaEntityType): 'member_id' | 'incident_id' | 'source_id' =>
-  entityType === 'member' ? 'member_id' : entityType === 'incident' ? 'incident_id' : 'source_id'
+const mediaEntityField = (entityType: MediaEntityType): string => {
+  if (entityType === 'member') return 'member_id'
+  if (entityType === 'incident') return 'incident_id'
+  if (entityType === 'source') return 'source_id'
+  if (entityType === 'set') return 'set_id'
+  return 'alliance_id'
+}
 
 export const useMedia = (
   entityType: MediaEntityType,

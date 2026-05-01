@@ -6,6 +6,9 @@ import { Skeleton } from '@/components/ui/skeleton'
 const AllianceRelationshipGraph = lazy(() =>
   import('@/components/graphs/AllianceRelationshipGraph').then((m) => ({ default: m.AllianceRelationshipGraph })),
 )
+const PhotoGallery = lazy(() =>
+  import('@/components/media/PhotoGallery').then((m) => ({ default: m.PhotoGallery })),
+)
 import { toast } from 'sonner'
 import { FuzzyDate } from '@/components/FuzzyDate'
 import { AllianceStatusBadge, MemberStatusBadge, SetStatusBadge } from '@/components/StatusBadge'
@@ -172,6 +175,7 @@ function AllianceDetailPage() {
                   <Badge variant="secondary" className="ml-1.5 text-xs px-1.5 py-0">{incidentItems.length}</Badge>
                 )}
               </TabsTrigger>
+              <TabsTrigger value="photos">Photos</TabsTrigger>
             </TabsList>
 
             {/* Sets */}
@@ -388,6 +392,14 @@ function AllianceDetailPage() {
                     </tbody>
                   </table>
                 </div>
+              )}
+            </TabsContent>
+
+            <TabsContent value="photos" className="mt-4">
+              {universe && (
+                <Suspense fallback={<Skeleton className="h-40 w-full" />}>
+                  <PhotoGallery entityType="alliance" entityId={alliance.id} universeId={universe.id} />
+                </Suspense>
               )}
             </TabsContent>
           </Tabs>

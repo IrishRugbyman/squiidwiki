@@ -20,6 +20,8 @@ class MediaRead(BaseModel):
     member_id: Optional[uuid.UUID]
     incident_id: Optional[uuid.UUID]
     source_id: Optional[uuid.UUID]
+    set_id: Optional[uuid.UUID]
+    alliance_id: Optional[uuid.UUID]
     kind: MediaKind
     r2_key: Optional[str]
     thumb_r2_key: Optional[str]

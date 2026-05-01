@@ -13,6 +13,15 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - Do not move to the next task until the user confirms the fix works in the browser
 - After implementing something from `ideas.md`, check it off (`- [ ]` → `- [x]`).
 
+## Cloudflare R2 (media storage)
+
+- Bucket: `squiidwiki-prod` (single bucket; both `R2_BUCKET_PROD` and `R2_BUCKET_TEST` point to it)
+- Endpoint: `https://2274e774b94707d729b8ca16df8c5fec.r2.cloudflarestorage.com`
+- Credentials live in `.env` (`R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`). Without them the upload endpoint throws 500 immediately.
+- Photos are supported on **members, sets, and alliances** — the `media` table has `member_id`, `set_id`, `alliance_id` (plus `incident_id`/`source_id` for schema completeness, but no UI for those).
+- The `media.kind` column is plain `VARCHAR` in the DB (not a Postgres ENUM). The SQLModel field must use `sa_column=Column(String, ...)` — do **not** let SQLModel infer the type from `MediaKind`, or asyncpg will cast as `::mediakind` and blow up on INSERT.
+- `attach_primary_photos()` sets transient attributes (`primary_photo_url`, `primary_photo_thumb_url`) on `Member` ORM instances. Pydantic v2 rejects unknown field assignment via `__setattr__`, so use `object.__setattr__(m, 'primary_photo_url', url)`.
+
 ## Hard rules
 
 - **NEVER MODIFY DATA IN PROD DB** without explicit instruction. The exception currently baked in is municipalities (see Architecture → DB toggle).
@@ -51,6 +60,7 @@ SquiidWiki is a gang research database wiki that tracks social networks, inciden
 **Infrastructure**
 - PostgreSQL — primary database (native Postgres on Windows; not Docker for local dev)
 - Redis — stat cache + (future) task queue
+- Cloudflare R2 — image/media storage (S3-compatible); credentials in `.env` (see R2 section below)
 - docker-compose for service orchestration
 
 **Auth:** JWT access tokens + rotating refresh tokens. `GlobalRole` is `'ADMIN' | 'USER'`. Admins can view audit logs, manage universes, change user roles, and delete entities. Audit log on all writes.

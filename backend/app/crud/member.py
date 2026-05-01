@@ -127,20 +127,20 @@ async def attach_primary_photos(session: AsyncSession, members: list[Member]) ->
     for m in members:
         primary = by_member.get(m.id)
         if primary is None:
-            m.primary_photo_url = None
-            m.primary_photo_thumb_url = None
+            url = None
+            thumb = None
         elif primary.kind == MediaKind.EXTERNAL_URL:
-            m.primary_photo_url = primary.external_url
-            m.primary_photo_thumb_url = primary.external_url
+            url = primary.external_url
+            thumb = primary.external_url
         else:  # R2
-            m.primary_photo_url = (
-                await storage.signed_get_url(primary.r2_key) if primary.r2_key else None
-            )
-            m.primary_photo_thumb_url = (
+            url = await storage.signed_get_url(primary.r2_key) if primary.r2_key else None
+            thumb = (
                 await storage.signed_get_url(primary.thumb_r2_key)
                 if primary.thumb_r2_key
-                else m.primary_photo_url
+                else url
             )
+        object.__setattr__(m, 'primary_photo_url', url)
+        object.__setattr__(m, 'primary_photo_thumb_url', thumb)
 
 
 async def _sync_member_sources(
