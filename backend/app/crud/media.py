@@ -259,6 +259,44 @@ async def delete_media(
     return True
 
 
+async def _attach_photos_generic(
+    session: AsyncSession,
+    items: list,
+    id_col,
+    item_id_attr: str,
+) -> None:
+    if not items:
+        return
+    ids = [getattr(item, item_id_attr) for item in items]
+    result = await session.execute(
+        select(Media).where(id_col.in_(ids), Media.is_primary == True)  # noqa: E712
+    )
+    by_id: dict[uuid.UUID, Media] = {getattr(m, id_col.key): m for m in result.scalars().all()}
+    for item in items:
+        primary = by_id.get(getattr(item, item_id_attr))
+        if primary is None:
+            url = thumb = None
+        elif primary.kind == MediaKind.EXTERNAL_URL:
+            url = thumb = primary.external_url
+        else:
+            url = await storage.signed_get_url(primary.r2_key) if primary.r2_key else None
+            thumb = (
+                await storage.signed_get_url(primary.thumb_r2_key)
+                if primary.thumb_r2_key
+                else url
+            )
+        object.__setattr__(item, "primary_photo_url", url)
+        object.__setattr__(item, "primary_photo_thumb_url", thumb)
+
+
+async def attach_primary_photos_sets(session: AsyncSession, items: list) -> None:
+    await _attach_photos_generic(session, items, Media.set_id, "id")
+
+
+async def attach_primary_photos_alliances(session: AsyncSession, items: list) -> None:
+    await _attach_photos_generic(session, items, Media.alliance_id, "id")
+
+
 async def get_primary_media_for_members(
     session: AsyncSession, member_ids: list[uuid.UUID]
 ) -> dict[uuid.UUID, Media]:

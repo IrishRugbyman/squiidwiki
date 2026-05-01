@@ -11,6 +11,7 @@ from app.core.enums import GlobalRole
 from app.core.csv_export import to_csv_response
 from app.crud import alliance as crud
 from app.crud import member as member_crud
+from app.crud.media import attach_primary_photos_alliances
 from app.crud import incident as incident_crud
 from app.schemas.alliance import (
     AllianceCreate,
@@ -39,6 +40,7 @@ async def list_alliances(
         items, _ = await crud.list_alliances(session, universe_id, offset=0, limit=1000)
         return to_csv_response(items, "alliances.csv")
     items, total = await crud.list_alliances(session, universe_id, offset=offset, limit=limit)
+    await attach_primary_photos_alliances(session, items)
     return OffsetPage(items=items, total=total)
 
 

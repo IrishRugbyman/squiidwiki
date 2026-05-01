@@ -336,7 +336,7 @@ function SetDetailPage() {
         <>
           <div className="mb-4 flex items-start justify-between gap-4">
             <div className="flex items-start gap-4">
-              <SetAvatar name={set.name} size="md" />
+              <SetAvatar name={set.name} thumbUrl={set.primary_photo_thumb_url} size="md" />
               <div>
                 <div className="flex items-center gap-1.5">
                   <h1 className="text-2xl font-bold text-white">{set.name}</h1>

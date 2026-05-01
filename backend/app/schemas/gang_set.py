@@ -68,6 +68,8 @@ class SetListItem(BaseModel):
     universe_id: uuid.UUID
     alliance_id: Optional[uuid.UUID]
     municipality_id: Optional[uuid.UUID]
+    primary_photo_url: Optional[str] = None
+    primary_photo_thumb_url: Optional[str] = None
 
 
 class SetRelationshipCreate(BaseModel):

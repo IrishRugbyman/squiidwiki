@@ -9,6 +9,7 @@ from app.auth.dependencies import CurrentUser, require_global_role
 from app.core.database import get_session
 from app.core.enums import GlobalRole
 from app.crud import gang_set as crud
+from app.crud.media import attach_primary_photos_sets
 from app.crud.gang_set import get_gang_set_by_slug
 from app.core.csv_export import to_csv_response
 from app.crud.incident import get_set_stats
@@ -39,6 +40,7 @@ async def list_sets(
         items, _ = await crud.list_gang_sets(session, universe_id, offset=0, limit=1000)
         return to_csv_response(items, "sets.csv")
     items, total = await crud.list_gang_sets(session, universe_id, offset=offset, limit=limit)
+    await attach_primary_photos_sets(session, items)
     return OffsetPage(items=items, total=total)
 
 
@@ -58,7 +60,9 @@ async def search_sets(
     _: CurrentUser,
     session: Annotated[AsyncSession, Depends(get_session)],
 ):
-    return await crud.search_gang_sets(session, universe_id, q)
+    items = await crud.search_gang_sets(session, universe_id, q)
+    await attach_primary_photos_sets(session, items)
+    return items
 
 
 @router.get("/{id_or_slug}", response_model=SetReadDetail)

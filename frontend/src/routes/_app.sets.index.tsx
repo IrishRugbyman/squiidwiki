@@ -41,8 +41,21 @@ function setColorStyle(name: string): React.CSSProperties {
   }
 }
 
-export function SetAvatar({ name, size = 'md' }: { name: string; size?: 'sm' | 'md' }) {
+export function SetAvatar({ name, thumbUrl, size = 'md' }: { name: string; thumbUrl?: string | null; size?: 'sm' | 'md' }) {
+  const [imgError, setImgError] = useState(false)
   const sz = size === 'sm' ? 'h-7 w-7 text-xs' : 'h-8 w-8 text-sm'
+  if (thumbUrl && !imgError) {
+    return (
+      <img
+        src={thumbUrl}
+        alt={name}
+        loading="lazy"
+        decoding="async"
+        className={`${sz} shrink-0 rounded-md object-cover ring-1 ring-zinc-700`}
+        onError={() => setImgError(true)}
+      />
+    )
+  }
   return (
     <div
       className={`${sz} shrink-0 rounded-md border flex items-center justify-center font-bold`}
@@ -546,7 +559,7 @@ function SetsPage() {
                           params={{ id: linkId }}
                           className="flex items-center gap-3 px-4 py-3"
                         >
-                          <SetAvatar name={set.name} />
+                          <SetAvatar name={set.name} thumbUrl={set.primary_photo_thumb_url} />
                           <div>
                             <p className="font-medium text-white group-hover:text-violet-400 transition-colors">
                               {set.name}

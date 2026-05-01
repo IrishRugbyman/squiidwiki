@@ -119,6 +119,8 @@ export interface AllianceListItem {
   status: AllianceStatus
   universe_id: UUID
   slug: string | null
+  primary_photo_url: string | null
+  primary_photo_thumb_url: string | null
 }
 
 export interface AllianceRead extends AllianceListItem {
@@ -142,6 +144,8 @@ export interface SetListItem {
   universe_id: UUID
   alliance_id: UUID | null
   municipality_id: UUID | null
+  primary_photo_url: string | null
+  primary_photo_thumb_url: string | null
 }
 
 export interface SetRead extends SetListItem {

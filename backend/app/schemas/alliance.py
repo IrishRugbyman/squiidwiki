@@ -57,3 +57,5 @@ class AllianceListItem(BaseModel):
     status: AllianceStatus
     universe_id: uuid.UUID
     slug: Optional[str] = None
+    primary_photo_url: Optional[str] = None
+    primary_photo_thumb_url: Optional[str] = None
