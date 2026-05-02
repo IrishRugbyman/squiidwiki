@@ -624,7 +624,7 @@ function MembersPage() {
   const [bulkStatus, setBulkStatus] = useState<MemberStatus>('FREE')
   const [statusFilter, setStatusFilter] = useState<MemberStatus | null>(null)
   const [setFilter, setSetFilter] = useState<string>('')
-  const [sortKey, setSortKey] = useState<'display_name' | 'status' | null>(null)
+  const [sortKey, setSortKey] = useState<'display_name' | 'status' | null>('display_name')
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc')
   const bulkUpdate = useBulkMemberStatus(universe?.id ?? '')
   const statusUpdate = useUpdateMemberStatus(universe?.id ?? '')
