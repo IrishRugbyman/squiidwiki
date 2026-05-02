@@ -1,0 +1,150 @@
+import uuid
+from datetime import datetime
+from typing import Any, Optional
+
+from pydantic import BaseModel, computed_field
+
+from app.core.enums import MemberStatus
+from app.schemas.common import FuzzyDateField
+
+
+class MemberCreate(BaseModel):
+    universe_id: uuid.UUID
+    nickname: Optional[str] = None
+    legal_name: Optional[str] = None
+    nickname_unknown: bool = False
+    aliases: Optional[list[str]] = None
+    biography: str = ""
+    set_id: Optional[uuid.UUID] = None
+    alliance_id: Optional[uuid.UUID] = None
+    status: MemberStatus = MemberStatus.UNKNOWN
+    dob: FuzzyDateField = None
+    date_of_death: FuzzyDateField = None
+    release_date: FuzzyDateField = None
+    life_sentence: bool = False
+    family: Optional[dict[str, Any]] = None
+    social_media: Optional[dict[str, Any]] = None
+    death_incident_id: Optional[uuid.UUID] = None
+    source_ids: list[uuid.UUID] = []
+
+
+class MemberUpdate(BaseModel):
+    nickname: Optional[str] = None
+    legal_name: Optional[str] = None
+    nickname_unknown: Optional[bool] = None
+    aliases: Optional[list[str]] = None
+    biography: Optional[str] = None
+    set_id: Optional[uuid.UUID] = None
+    alliance_id: Optional[uuid.UUID] = None
+    status: Optional[MemberStatus] = None
+    dob: FuzzyDateField = None
+    date_of_death: FuzzyDateField = None
+    release_date: FuzzyDateField = None
+    life_sentence: Optional[bool] = None
+    family: Optional[dict[str, Any]] = None
+    social_media: Optional[dict[str, Any]] = None
+    death_incident_id: Optional[uuid.UUID] = None
+    source_ids: Optional[list[uuid.UUID]] = None
+
+
+class MemberRead(BaseModel):
+    model_config = {"from_attributes": True}
+
+    id: uuid.UUID
+    universe_id: uuid.UUID
+    nickname: Optional[str]
+    legal_name: Optional[str]
+    nickname_unknown: bool
+    aliases: Optional[list[str]]
+    biography: str
+    set_id: Optional[uuid.UUID]
+    alliance_id: Optional[uuid.UUID]
+    status: MemberStatus
+    dob: FuzzyDateField
+    date_of_death: FuzzyDateField
+    release_date: FuzzyDateField
+    life_sentence: bool
+    family: Optional[dict[str, Any]]
+    social_media: Optional[dict[str, Any]]
+    death_incident_id: Optional[uuid.UUID]
+    created_at: datetime
+    updated_at: datetime
+    display_name: str
+    primary_photo_url: Optional[str] = None
+    primary_photo_thumb_url: Optional[str] = None
+
+
+class MemberReadDetail(MemberRead):
+    source_ids: list[uuid.UUID]
+
+
+class MemberListItem(BaseModel):
+    model_config = {"from_attributes": True}
+
+    id: uuid.UUID
+    display_name: str
+    status: MemberStatus
+    set_id: Optional[uuid.UUID]
+    alliance_id: Optional[uuid.UUID] = None
+    universe_id: uuid.UUID
+    slug: Optional[str] = None
+    primary_photo_url: Optional[str] = None
+    primary_photo_thumb_url: Optional[str] = None
+    aliases: Optional[list[str]] = None
+    date_of_death: FuzzyDateField = None
+
+
+class MemberIncarcerationCreate(BaseModel):
+    from_date: FuzzyDateField = None
+    to_date: FuzzyDateField = None
+    facility: Optional[str] = None
+    case_id: Optional[str] = None
+    notes: Optional[str] = None
+
+
+class MemberIncarcerationUpdate(BaseModel):
+    from_date: FuzzyDateField = None
+    to_date: FuzzyDateField = None
+    facility: Optional[str] = None
+    case_id: Optional[str] = None
+    notes: Optional[str] = None
+
+
+class MemberIncarcerationRead(BaseModel):
+    model_config = {"from_attributes": True}
+
+    id: uuid.UUID
+    member_id: uuid.UUID
+    from_date: FuzzyDateField
+    to_date: FuzzyDateField
+    facility: Optional[str]
+    case_id: Optional[str]
+    notes: Optional[str]
+    created_at: datetime
+
+
+class MemberAliasCreate(BaseModel):
+    alias: str
+    from_date: FuzzyDateField = None
+    until_date: FuzzyDateField = None
+    source_id: Optional[uuid.UUID] = None
+
+
+class MemberAliasRead(BaseModel):
+    model_config = {"from_attributes": True}
+
+    id: uuid.UUID
+    member_id: uuid.UUID
+    alias: str
+    from_date: FuzzyDateField
+    until_date: FuzzyDateField
+    source_id: Optional[uuid.UUID]
+    created_at: datetime
+
+
+class MemberStats(BaseModel):
+    member_id: uuid.UUID
+    shootings: int
+    assists: int
+    kills: int
+    times_shot_survived: int
