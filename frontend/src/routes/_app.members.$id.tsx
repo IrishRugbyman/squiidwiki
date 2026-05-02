@@ -339,6 +339,7 @@ function MemberDetailPage() {
   const [creatingIncident, setCreatingIncident] = useState(false)
   const [addingFamily, setAddingFamily] = useState(false)
   const [familyView, setFamilyView] = useState<'list' | 'graph'>('list')
+  const [incidentsView, setIncidentsView] = useState<'list' | 'timeline'>('list')
   const [editingBio, setEditingBio] = useState(false)
   const [bioDraft, setBioDraft] = useState('')
 
@@ -530,29 +531,20 @@ function MemberDetailPage() {
             </Link>
           )}
 
-          {/* Stats row */}
-          {stats && (() => {
-            const hasAny = stats.shootings || stats.assists || stats.kills || stats.times_shot_survived
-            return (
-              <div>
-                <div className="grid grid-cols-4 gap-2">
-                  <StatPill label="Shootings" value={stats.shootings} accent="text-amber-400" />
-                  <StatPill label="Assists" value={stats.assists} accent="text-violet-400" />
-                  <StatPill label="Kills" value={stats.kills} accent="text-rose-400" />
-                  <StatPill label="Survived" value={stats.times_shot_survived} accent="text-emerald-400" />
-                </div>
-                {!hasAny && (
-                  <p className="mt-2 text-center text-xs text-zinc-600">No recorded incidents yet.</p>
-                )}
-              </div>
-            )
-          })()}
+          {/* Stats row — only shown when member has recorded activity */}
+          {stats && !!(stats.shootings || stats.assists || stats.kills || stats.times_shot_survived) && (
+            <div className="grid grid-cols-4 gap-2">
+              <StatPill label="Shootings" value={stats.shootings} accent="text-amber-400" />
+              <StatPill label="Assists" value={stats.assists} accent="text-violet-400" />
+              <StatPill label="Kills" value={stats.kills} accent="text-rose-400" />
+              <StatPill label="Survived" value={stats.times_shot_survived} accent="text-emerald-400" />
+            </div>
+          )}
 
           {/* Tabs */}
           <Tabs defaultValue="overview">
             <TabsList>
               <TabsTrigger value="overview">Overview</TabsTrigger>
-              <TabsTrigger value="biography">Bio</TabsTrigger>
               <TabsTrigger value="family">
                 Family
                 {familyCount > 0 && (
@@ -566,9 +558,6 @@ function MemberDetailPage() {
                 )}
               </TabsTrigger>
               <TabsTrigger value="photos">Photos</TabsTrigger>
-              {incidents && incidents.items.length > 0 && (
-                <TabsTrigger value="timeline">Timeline</TabsTrigger>
-              )}
             </TabsList>
 
             {/* Overview */}
@@ -759,12 +748,10 @@ function MemberDetailPage() {
               </div>
                 )
               })()}
-            </TabsContent>
 
-            {/* Biography */}
-            <TabsContent value="biography" className="mt-4">
+              {/* Biography — inline section, no dedicated tab */}
               {editingBio ? (
-                <div className="space-y-2">
+                <div className="mt-4 space-y-2">
                   <Textarea
                     rows={10}
                     value={bioDraft}
@@ -773,42 +760,25 @@ function MemberDetailPage() {
                     autoFocus
                   />
                   <div className="flex justify-end gap-2">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => setEditingBio(false)}
-                      disabled={updateMember.isPending}
-                    >
-                      Cancel
-                    </Button>
-                    <Button
-                      size="sm"
-                      onClick={saveBio}
-                      disabled={updateMember.isPending}
-                    >
+                    <Button size="sm" variant="outline" onClick={() => setEditingBio(false)} disabled={updateMember.isPending}>Cancel</Button>
+                    <Button size="sm" onClick={saveBio} disabled={updateMember.isPending}>
                       {updateMember.isPending ? 'Saving…' : 'Save'}
                     </Button>
                   </div>
                 </div>
               ) : member.biography ? (
-                <div className="group relative rounded-xl border border-zinc-800 bg-zinc-900/30 p-4">
+                <div className="group relative mt-4 rounded-xl border border-zinc-800 bg-zinc-900/30 p-4">
                   <p className="text-sm leading-relaxed text-zinc-300 whitespace-pre-wrap">{member.biography}</p>
-                  <button
-                    type="button"
-                    onClick={startBioEdit}
-                    aria-label="Edit biography"
-                    className="absolute right-2 top-2 rounded p-1.5 text-zinc-500 opacity-0 transition-opacity hover:bg-zinc-800 hover:text-zinc-200 focus-visible:opacity-100 group-hover:opacity-100"
-                  >
+                  <button type="button" onClick={startBioEdit} aria-label="Edit biography"
+                    className="absolute right-2 top-2 rounded p-1.5 text-zinc-500 opacity-0 transition-opacity hover:bg-zinc-800 hover:text-zinc-200 focus-visible:opacity-100 group-hover:opacity-100">
                     <Pencil className="h-3.5 w-3.5" />
                   </button>
                 </div>
               ) : (
-                <div className="flex items-center justify-between gap-3 py-6">
-                  <p className="text-sm text-zinc-600">No biography recorded.</p>
-                  <Button size="sm" variant="outline" onClick={startBioEdit}>
-                    <Pencil className="mr-1.5 h-3.5 w-3.5" />Add biography
-                  </Button>
-                </div>
+                <button type="button" onClick={startBioEdit}
+                  className="mt-4 flex w-full items-center gap-2 rounded-xl border border-dashed border-zinc-800 px-4 py-3 text-xs text-zinc-600 hover:border-zinc-700 hover:text-zinc-400 transition-colors">
+                  <Pencil className="h-3 w-3" />Add biography
+                </button>
               )}
             </TabsContent>
 
@@ -847,15 +817,29 @@ function MemberDetailPage() {
               )}
             </TabsContent>
 
-            {/* Incidents */}
+            {/* Incidents — with List / Timeline toggle */}
             <TabsContent value="incidents" className="mt-4">
-              <div className="mb-3 flex justify-end">
+              <div className="mb-3 flex items-center justify-between gap-2">
+                {incidents && incidents.items.length > 0 ? (
+                  <div className="flex items-center gap-1 rounded-md border border-zinc-800 bg-zinc-900/60 p-1">
+                    {(['list', 'timeline'] as const).map((v) => (
+                      <button key={v} type="button" onClick={() => setIncidentsView(v)}
+                        className={`rounded px-2.5 py-0.5 text-[11px] font-medium transition-colors ${incidentsView === v ? 'bg-zinc-700 text-white' : 'text-zinc-500 hover:text-zinc-300'}`}>
+                        {v === 'list' ? 'List' : 'Timeline'}
+                      </button>
+                    ))}
+                  </div>
+                ) : <span />}
                 <Button size="sm" variant="outline" onClick={() => setCreatingIncident(true)}>
                   <Plus className="mr-1.5 h-3.5 w-3.5" />Add Incident
                 </Button>
               </div>
               {!incidents || incidents.items.length === 0 ? (
                 <p className="py-6 text-sm text-zinc-600">No incidents recorded.</p>
+              ) : incidentsView === 'timeline' ? (
+                <Suspense fallback={<Skeleton className="h-40 w-full" />}>
+                  <MemberTimeline incidents={incidents.items} dob={member.dob} dateOfDeath={member.date_of_death} />
+                </Suspense>
               ) : (
                 <div className="overflow-hidden rounded-xl border border-zinc-800">
                   <table className="w-full text-sm">
@@ -876,10 +860,7 @@ function MemberDetailPage() {
                             </Link>
                           </td>
                           <td className="px-4 py-3">
-                            <Badge
-                              variant="outline"
-                              className={`text-xs ${inc.type === 'MURDER' ? 'border-rose-800 text-rose-400' : 'border-amber-800 text-amber-400'}`}
-                            >
+                            <Badge variant="outline" className={`text-xs ${inc.type === 'MURDER' ? 'border-rose-800 text-rose-400' : 'border-amber-800 text-amber-400'}`}>
                               {inc.type}
                             </Badge>
                           </td>
@@ -889,9 +870,7 @@ function MemberDetailPage() {
                           <td className="px-4 py-3">
                             {inc.verified ? (
                               <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
-                                </TooltipTrigger>
+                                <TooltipTrigger asChild><CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" /></TooltipTrigger>
                                 <TooltipContent side="left">Verified incident</TooltipContent>
                               </Tooltip>
                             ) : <span className="text-zinc-600 text-xs">—</span>}
@@ -910,17 +889,6 @@ function MemberDetailPage() {
                   <PhotoGallery entityType="member" entityId={member.id} universeId={universe.id} />
                 </Suspense>
               )}
-            </TabsContent>
-
-            <TabsContent value="timeline" className="mt-4">
-              <Suspense fallback={<Skeleton className="h-40 w-full" />}>
-                <MemberTimeline
-                  incidents={incidents?.items ?? []}
-                  dob={member.dob}
-                  dateOfDeath={member.date_of_death}
-                />
-              </Suspense>
-              <p className="mt-2 text-center text-[11px] text-zinc-600">Hover a dot for details, click to open the incident.</p>
             </TabsContent>
           </Tabs>
 

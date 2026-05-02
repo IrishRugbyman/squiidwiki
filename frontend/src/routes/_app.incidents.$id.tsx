@@ -162,6 +162,20 @@ function IncidentDetailPage() {
             </div>
           </div>
 
+          {incident.narrative ? (
+            <div className="group relative mb-5 rounded-xl border border-zinc-800 bg-zinc-900/30 p-4">
+              <p className="text-sm leading-relaxed text-zinc-300 whitespace-pre-wrap">{incident.narrative}</p>
+              <button
+                type="button"
+                onClick={() => setEditing(true)}
+                className="absolute right-2 top-2 rounded p-1.5 text-zinc-500 opacity-0 group-hover:opacity-100 hover:bg-zinc-800 hover:text-zinc-300 transition-all"
+                aria-label="Edit narrative"
+              >
+                <Pencil className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          ) : null}
+
           <Tabs defaultValue="participants">
             <TabsList>
               <TabsTrigger value="participants">
@@ -170,7 +184,6 @@ function IncidentDetailPage() {
                   <Badge variant="secondary" className="ml-1.5 text-xs px-1.5 py-0">{incident.participants.length + incident.set_participants.length}</Badge>
                 )}
               </TabsTrigger>
-              <TabsTrigger value="narrative">Narrative</TabsTrigger>
               <TabsTrigger value="sources">
                 Sources
                 {incident.source_ids.length > 0 && (
@@ -252,16 +265,6 @@ function IncidentDetailPage() {
                     )
                   })}
                 </div>
-              )}
-            </TabsContent>
-
-            <TabsContent value="narrative">
-              {incident.narrative ? (
-                <div className="rounded-lg border border-zinc-800 bg-zinc-900/30 p-4">
-                  <p className="text-sm text-zinc-300 leading-relaxed whitespace-pre-wrap">{incident.narrative}</p>
-                </div>
-              ) : (
-                <p className="py-6 text-sm text-zinc-600">No narrative recorded.</p>
               )}
             </TabsContent>
 
