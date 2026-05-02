@@ -1,89 +1,172 @@
-# SquiidWiki — Ideas & Improvements
+# SquiidWiki — Backlog
 
-Ranked roughly by impact. None of these are committed to a timeline.
+Open items only. Implemented ideas are in git history.
 
 ---
 
-## Data & Visualization
+## Data model foundations
 
-- [x] **Alliance relationship graph** — reactflow force-directed graph of sets within an alliance with member-count node sizing and ally/enemy edges across alliances. The set-level graph exists; this is the macro view.
-- [x] **Member family network graph** — reactflow canvas on the member detail Family tab showing family links across multiple hops (grandparents, cousins), not just direct relations. Currently only a flat list and timeline exist.
-- [x] **Incident heatmap / calendar density view** — overlay incident count as a heatmap on the calendar month grid. Year-view mode (12-month grid showing event density at a glance).
-- [x] **Cross-entity timeline** — universe-level chronological feed of incidents, member status changes, and set status changes on a single horizontal axis.
-- [x] **Map click → filter incidents list** — clicking a municipality on the map currently navigates to its detail page; a "filter incidents in this zone" alternative would make the map a real exploration tool.
+*Schema changes that unlock multiple downstream features.*
 
-## Performance & Scale
+- [ ] **Street-level incident location** — `incidents.lat` / `incidents.lng` in addition to municipality FK. Municipality is too coarse for cluster analysis, heatmaps, or "all shootings within 200 m of X."
+- [ ] **Member aliases / AKA history** — `member_aliases` table (alias text + optional `from`/`until` FuzzyDate + `source_id`). Nicknames change after pinches, beefs, or gang switches. Search should hit aliases too.
+- [ ] **Incarceration spells** — `member_incarceration` table (`from`, `to` FuzzyDates, `facility`, `case_id?`). Gives a real timeline rather than the boolean-ish `LOCKED` status and powers an "active in [year]" filter.
+- [ ] **Set rank / role on membership** — promote `set_members` from a plain join to a row carrying `role ∈ {leader, OG, member, prospect, affiliate}` plus a date range. Audit log captures movement.
+- [ ] **Set lineage / splinter relationships** — directional edge type on the existing set-relationship table (`SPLINTERED_FROM`, `MERGED_INTO`, `RENAMED_TO`). Sets are not static; the macro alliance graph misses this dimension.
+- [ ] **Conflict / beef entity** — a `Conflict` row (set_a, set_b, started_on, ended_on?, summary) that incidents can link to. Lets you tell the story rather than scroll an incident list.
+- [ ] **Court case entity** — links one or more incidents to charges, verdicts, sentence length. Many incidents map to one case (co-defendants); one incident can spawn many cases.
+- [ ] **Funeral / memorial events** — sub-type of incident. Frequent retaliation triggers and often the only public photo of a network in one place at one time.
+- [ ] **Set territory polygon** — optional GeoJSON polygon on `sets`, rendered on the map alongside the municipality choropleth. Hand-drawn or derived from K-means over incident lat/lng.
+- [ ] **Member-to-member direct links (non-family)** — generic `MemberRelationship` (e.g., "co-defendants", "childhood friends", "direct rivals") that the reactflow graph can render independent of set boundaries.
+- [ ] **Gang affiliation field** — new `Gang` entity (name + aliases) referenced by sets, alliances, and members. Alliances and sets can be `None` or any single gang; members cannot be `Mixed`. Needs a gang admin page and pickers on the set/alliance/member forms. Chicago-centric seed values to start (Black Disciples, Gangster Disciples, Bloods, etc.) but the model is generic.
+- [ ] **Reserved pseudo-sets: Civilian and Police** — two universe-scoped, undeletable set records seeded on universe create (`is_reserved=True`). Lets incidents tag civilian victims or police-involved shootings without fabricating a real crew.
+- [ ] **Set-level participant on incidents** — when the individual shooter is unknown, allow tagging a set (not a specific member) as the aggressor. Parallel to the existing `member_id` participant row but with `set_id`; role + outcome still apply.
 
-- [x] **List virtualization** — `@tanstack/react-virtual` for members and incidents tables when result count > 50. Without it, loading 500 members renders all DOM nodes at once.
-- [x] **Optimistic updates** — extend the pattern beyond `useDeleteSet` (the only mutation with `onMutate`/rollback today): member status change, set relationship add/remove, and source archive/unarchive should update the cache immediately and roll back on error.
+---
+
+## Analytics & intelligence
+
+- [ ] **Set rivalry / beef intensity score** — dynamic score based on incident frequency and severity between two sets; displayed as a heat indicator on the set relationship graph. Extends the existing Redis computed-stats pattern.
+- [ ] **Retaliation pattern view** — for each killing, show the set's response window: next incident by that set, time-to-retaliation distribution. The most "research-y" view the product can offer.
+- [ ] **Network centrality dashboard** — degree, betweenness, and eigenvector centrality computed over the member-incident graph. Surfaces connectors that aren't obvious from raw kill counts. NetworkX in a nightly job; cache to Redis.
+- [ ] **Co-offending analysis** — flag members who repeatedly appear together in incidents, with frequency heatmaps.
+- [ ] **Survival curves by set** — Kaplan-Meier-style curves for time-to-incarceration and time-to-death per set. Visually striking with the stats infra already in place.
+- [ ] **Source contradiction detector** — when two sources cite the same fact (e.g., shooter identity) with conflicting claims, flag it on the incident page. Requires per-fact citations (see Content section).
+- [ ] **Animated incident heatmap over time** — scrub a year slider to redraw the choropleth. Map page already has the choropleth pieces; adding lat/lng to incidents (above) makes this trivial.
+- [ ] **Temporal hotspot detection** — auto-identify time windows (e.g., "Fridays 2–4 AM") with abnormally high incident rates.
+- [ ] **Location clustering** — group incidents by proximity (DBSCAN or grid-based) to reveal territorial boundaries; depends on lat/lng on incidents.
+- [ ] **Member risk assessment** — composite score from incident participation, associations, and recent activity.
+- [ ] **Community detection** — auto-group sets into larger coalitions using modularity optimization over the alliance/rivalry graph.
+- [ ] **Incident correlation matrix** — heatmap table showing which sets/members co-occur in incidents most often.
+- [ ] **Set lifecycle visualization** — chart set activity (incidents/month) over time with trend lines and key events overlaid.
+
+---
+
+## Content & editing
+
+- [ ] **Per-fact citations** — let a sentence in a biography or incident narrative reference a specific source. Inline `[[source:123]]` markers rendered as superscript footnotes. Entity-scoped citations are fine for "this member exists" but useless for "this member fired the gun."
+- [ ] **Member merge** — when duplicate records exist, a merge dialog picks the canonical record and migrates all incident participations, family links, and source citations.
+- [ ] **Web Archive snapshot on source create** — when a `Source` URL is saved, fire a request to `web.archive.org/save/<url>` and store the resulting archived URL alongside. News links rot fast.
+- [ ] **Auto-fetch source metadata** — when a URL is pasted into the source form, fetch title / byline / publish date / og-image and prefill the fields. Removes the most tedious part of citing.
+- [ ] **Version history / diff view on biographies** — audit log on writes is already captured; expose it on the entity page as a "History" tab with red/green diffs.
+- [ ] **"Stale data" indicators** — `last_verified_at` timestamp on Members and Sets with a subtle UI indicator if a profile hasn't been updated or involved in a new incident in over 18 months.
+- [ ] **Data anomaly dashboard** — admin view flagging logical impossibilities: member linked to an incident before their birth year, member `outcome=KILLED` in 2021 but attached to a later incident in 2023, set `EXTINCT` but has recent incidents, etc.
+- [ ] **Wiki-style internal links in bios** — `[[member:slug]]` / `[[set:slug]]` syntax expanded by the markdown renderer into typed links. Pairs with the inline bio editor.
+- [ ] **AI-assisted bio draft from source URL** — paste a news article, get a structured proposal: name, DOB, sets, incidents to link, draft bio. User reviews before insert. Admin-only endpoint to control token spend.
+- [ ] **Inline biography markdown split-pane** *(partial)* — plain-text inline edit shipped. Remaining: live markdown preview split-pane (GitHub issue-editor style); requires installing `react-markdown`.
+
+---
+
+## Search & discovery
+
+- [ ] **Full-text search across biographies and source narratives** — Postgres `tsvector` + GIN index. ⌘K only matches names today; this lets you find "the kid mentioned in that 2022 article."
+- [ ] **Fuzzy nickname matching (`pg_trgm`)** — trigram similarity search on `display_name` and aliases so ⌘K and participant search capture misspellings and phonetic variations ("Lil Tony" vs. "Lil Tone").
+- [ ] **Radial geographic filtering** — "drop pin + radius" filter on the incidents list. Instead of hard municipality boundaries, filter by "everything within 2 miles of [coordinates/intersection]."
+- [ ] **Saved search alerts** — saved filter presets already exist; add a "notify me when a new entity matches this filter" toggle, surfaced as a feed badge. SSE or polled.
+- [ ] **Favorites / star entities** — quick access to frequently used entities via a sidebar section or ⌘K, separate from the recents list.
+
+---
+
+## Map & geo
+
+- [ ] **Cluster markers** — when zoomed out, collapse nearby incident dots into cluster bubbles. Current "every incident as its own dot" doesn't scale past a few hundred points.
+- [ ] **Geospatial incident playback** — time-slider on the map that animates incidents over a selected date range, showing how conflicts migrate geographically over months or years.
+- [ ] **Territory mapping** — draw polygons on the map to define gang territories with overlap detection; complement or replace the set territory polygon derived from incident clustering.
+- [ ] **Address autofill** — integrate geocoding API (Nominatim / Google) to auto-populate lat/lng from a street address when creating or editing an incident.
+- [ ] **Pinned route between linked incidents** — when an incident links to a retaliation, draw the directional path between them on the map. Visual storytelling once lat/lng exists.
+- [ ] **Geofenced alerts** — notify when new incidents or members are added within a custom geographic boundary.
+- [ ] **Municipality boundary overlay** — shapefile import of official city/district borders displayed on the map.
+
+---
+
+## Admin & governance
+
+- [ ] **Soft-delete with restore** — recycle bin for the last N days of deletes (admin-only). Prevents the "I just nuked the wrong member" situation.
+- [ ] **Per-universe role assignment** — `UserUniverseRole` join table so a researcher can be admin in Detroit but viewer in Chicago. Today it's global `ADMIN`/`USER`.
+- [ ] **Full universe export** — admin endpoint dumps a universe as JSON or SQL for backup, offline analysis, or cloning to test. Pairs with import.
+- [ ] **Data completeness dashboard** — per-universe report showing % of entities missing key fields (e.g., "30% of members lack DOB").
+- [ ] **Orphaned entity cleanup** — flag members with no incidents/sets, incidents with no participants, sources not linked to anything, etc.
+- [ ] **Media orphan cleanup** — cross-reference the `media` table against the R2 bucket to find and purge files in R2 with no DB record and DB records pointing to deleted R2 objects.
+- [ ] **Data freezing / entity lock** — lock an entity from further edits (e.g., for legal cases) with a note in the audit trail.
+- [ ] **Read audit on flagged entities** — for sensitive members/sources, log read events too, not just writes.
+- [ ] **Webhook on entity changes** — outbound POST on create/update/delete for downstream pipelines. Smaller scope than SSE and composable with external tools.
+- [ ] **Universe statistics: last-activity / active-users / storage** *(partial)* — entity counts are shown on `/universes`. Remaining: last-activity date, active user count, storage size.
+
+---
+
+## Collaboration & workflow
+
+- [ ] **Case / operation management** — group members, incidents, sets, and sources into named investigations with status (`OPEN` / `CLOSED` / `ARCHIVED`).
+- [ ] **Draft / approval workflow** — non-admin users propose edits; admins approve or reject with comments. Like Wikipedia pending changes. Useful if the wiki expands to less-trusted roles.
+- [ ] **Per-fact data confidence levels** — extend source reliability to entity fields: "Date of birth: VERIFIED | ALLEGED | RUMORED." Pairs with per-fact citations.
+- [ ] **Threaded discussions** — per-entity comment threads (e.g., "Why was Member Y marked as DEAD?").
+- [ ] **Task assignment** — create research tasks (e.g., "Verify Member X's alias") assignable to users with due dates.
+- [ ] **Team activity feed** — real-time view of what other researchers are editing/viewing (opt-in).
+
+---
+
+## Security & access control
+
+- [ ] **Per-entity visibility level** — `public | members | admin` flag on members, sources, and incidents. Some research is too sensitive for general accounts but should still live in the database.
+- [ ] **Field-level permissions** — hide sensitive fields (e.g., addresses, phone numbers) from non-admin users.
+- [ ] **Real-name redaction on export** — when exporting (PDF, CSV, universe dump), an option to replace legal names with nicknames-only.
+- [ ] **Universe isolation** — restrict users to specific universes (currently all users see all universes); superseded by per-universe roles above but useful as a simpler toggle.
+- [ ] **Custom validation rules** — admin-defined rules (e.g., "Members in Set A cannot have status=FREE") enforced on save.
+- [ ] **Session timeout** — auto-logout after inactivity (configurable per user/role).
+- [ ] **Brute-force protection** — rate-limiting on login endpoints.
+- [ ] **IP allowlisting** — limit backend access to specific IPs/ranges for law enforcement deployments.
+
+---
 
 ## Mobile & UX
 
-- [X] **Mobile card view for tables** — list pages currently hide columns at narrow widths (`hidden sm:table-cell`); a true `<sm:` card layout would read better than a 2-column stub table.
-- [x] **Swipe-to-open sidebar** — vaul drawer with swipe gesture on mobile replacing hamburger-only open.
+- [ ] **Quick-capture mobile form** — strip the member create form to 3 essential fields (nickname, set, status) with a "more details" expand. Field research won't happen on the full sheet.
+- [ ] **PWA / offline mode** — installable shell, cached universe data, queued mutations replayed on reconnect. The JSON API surface is clean enough for a service worker.
+- [ ] **Keyboard shortcut help overlay** — `?` opens a modal listing every shortcut. Enough have accumulated (`g`-prefix nav, `e` to edit, ⌘K) that they need a discoverability surface.
+- [ ] **Entity comparison view** — side-by-side diff of two members or incidents to spot discrepancies.
+- [ ] **Column visibility presets** — save which columns are visible in tables (e.g., "Minimal" vs. "Detailed").
+- [ ] **Customizable dashboards** — drag-and-drop widgets (recent incidents, member stats, map) per user.
+- [ ] **Quick filter chips** — persistent filter pills at the top of list pages (e.g., "Status: DEAD") that survive navigation.
+- [ ] **Bulk CSV import** — drag-and-drop CSV → preview table → confirm workflow for mass-importing members or incidents, with pre-configured templates and validation.
 
-## Search & Filtering
+---
 
-- [x] **Saved filter presets** — name and save a filter combination (e.g., "Active shooters, 2023–2024") stored in localStorage per universe. Most useful on the incidents page.
-- [x] **⌘K palette: extend to municipalities and sources** — palette already searches members/sets/alliances/incidents with section headers and result-type icons; municipalities and sources are missing.
-- [x] **Filter incidents by participant name** — the participant search builder works on incident create; make it a filter on the list page too.
+## Import / export & integration
 
-## Content & Editing
-
-- [x] **Inline biography editing** — replace the sheet-based biography editor with a live markdown preview split-pane (like GitHub's issue editor). `react-markdown` is already in the tree for rendering. _(Plain-text inline edit + Save/Cancel shipped on member detail Bio tab; markdown split-pane preview deferred — `react-markdown` is not yet installed.)_
-- [x] **Incident-driven member death workflow** — saving an incident with a participant `outcome=KILLED` auto-sets `member.status=DEAD`, copies `incident.date` to `member.date_of_death`, and stores a `member.death_incident_id` FK. Member detail page shows a prominent "Killed in incident" card linking back. First-death-wins (no override on the second incident); no auto-revert on un-kill (manual member edit handles undo). FK is `ON DELETE SET NULL` so deleting an incident gracefully unlinks. Replaces the old create-only `deathPrompts` flow.
-- [ ] **Member merge** — when duplicate records exist, a merge dialog that picks the canonical record and migrates all incident participations, family links, and source citations.
-- [x] **Member social profiles** — Facebook / Instagram / Twitter inputs in the member form (handle or URL), auto-linked on the detail page with brand glyphs.
-
-## Media & Storage
-
-- [x] **Image hosting for members & incidents** — currently no first-class image storage; mugshots, incident photos, and source screenshots have nowhere to live. Proposed approach:
-  - **Provider: Cloudflare R2** — 10 GB free, **zero egress fees**, S3-compatible (any S3 SDK works from FastAPI), no surprise bandwidth bills. Runner-up: Cloudinary (25 GB + 25 GB bandwidth + on-the-fly transforms, but credit system meters transforms+bandwidth together — a popular page can burn through it fast). Avoid imgur/ImgBB (TOS issues for this content, hotlink rot). Supabase Storage (1 GB) is too small.
-  - **Backend model: `media` table** keyed by `(entity_type, entity_id)` so a single member/incident/source can hold multiple images. Columns: `id`, `universe_id`, `entity_type`, `entity_id`, `r2_key`, `original_filename`, `content_type`, `size_bytes`, `width`, `height`, `caption`, `uploaded_by_user_id`, `uploaded_at`. Indexed on `(entity_type, entity_id)`.
-  - **Access control: signed URLs via JWT-gated endpoint** — frontend never gets raw R2 URLs. `GET /api/v1/media/{id}` checks auth + universe scoping, then returns a short-lived presigned URL (or proxies the bytes for small images). Upload via `POST /api/v1/media` returning a presigned PUT, or direct multipart through FastAPI for simplicity in v1.
-  - **Frontend: image gallery component** on member detail (mugshot prominence + gallery), incident detail (scene/aftermath photos), source detail (screenshot of the article/post). Drag-and-drop upload, paste-from-clipboard, client-side resize before upload to cap storage.
-  - **Audit:** every upload + delete writes to the existing audit log (entity_type=`media`).
-  - **Open questions before implementing:** (1) image size cap & whether to generate thumbnails server-side or rely on CSS sizing; (2) whether mugshot is a first-class `member.primary_photo_id` FK or just "the first media row"; (3) prod vs test DB — R2 bucket per environment or shared bucket with `env/` prefix.
-
-## Admin & Ops
-
-- [x] **Universe statistics dashboard** — dedicated admin page showing per-universe entity counts, last-activity date, active users, and storage size. _(Per-universe entity counts shipped inline on the /universes page; last-activity / active-users / storage size still open — they'd need new backend fields.)_
-
-## Cross-entity "Add X from related Y"
-
-Pattern: a button on entity Y's detail page that opens a picker (existing) **or** a prefilled create form (new), so the relationship is wired up automatically.
-
-- [x] **Set detail → Add Member** — picker of existing members + "Create new" that prefills `set_ids` with this set.
-- [x] **Alliance detail → Add Set** — sets tab has no add. Picker of universe sets not yet in this alliance + create-new option.
-- [x] **Alliance detail → Add Member** — same picker/create pattern on the members tab.
-- [x] **Incident detail → Add Participant** — inline picker for member + role + outcome; create-new fallback prefills the sets seen in the incident.
-- [x] **Incident detail → Add Source** — no sources tab on incident detail today; add the tab with attach-existing / create-new.
-- [x] **Member detail → Add Incident** — incidents tab is read-only; new incident prefilled with this member as a participant.
-- [x] **Member detail → Add Family relative** — family tab is view-only; mirror the set-relationship dialog.
-- [x] **Source detail → Attach to incident/member** — reverse-direction linker (sources are only referenced from elsewhere today).
-- [x] **Municipality detail → Create Set/Incident here** — location prefilled with this municipality.
-
-## Forms & data-entry shortcuts
-
-- [x] **Inline status toggle in list tables** — flip member/set/alliance status without opening the full edit sheet (today only the bulk-action bar can change member status).
-- [x] **Auto-suggest participants on incident create** — once location + sets are chosen, suggest members from those sets. The current participant search only matches by name.
-- [x] **Paste-a-URL → save as Source** — when a URL is pasted into a narrative/bio textarea, prompt "Save as source linked to this entity?".
-- [x] **Duplicate entity action** (sets and members) — useful when a crew splits or you're tracking aliases.
-- [x] **Keyboard `e` to edit current entity** — action shortcut to pair with the existing `g`-prefixed navigation.
-
-## Research / notebook
-
-- [x] **Research notebook** — sidebar tab + per-universe notes (title + freeform text, URLs auto-link). Plain-text MVP; markdown editor is a future upgrade.
-
-## Smaller polish
-
-- [x] **Bulk actions for sets / incidents / sources / alliances** — the floating bulk bar exists for members; extend it (multi-select to bulk-link a source, bulk-tag, or bulk-delete with one ConfirmDialog). _(Bulk-delete shipped on all four; bulk-link/bulk-tag still open as follow-ups.)_
-- [x] **Recently viewed entities at the top of ⌘K** — fast bounce-back during research.
-- [x] **Map markers → side-sheet preview** — quick-look without leaving the map page.
-- [x] **Print/export single member profile** — PDF or markdown export for offline sharing.
-
-
-# NOT YET (OR LATER)
-
-- [ ] **Bulk CSV import** — drag-and-drop CSV → preview table → confirm workflow for mass-importing members or incidents.
 - [ ] **Real-time audit feed** — SSE or WebSocket subscription so the audit log auto-appends new entries without a manual refresh.
+- [ ] **PDF report generator** — customizable templates for printing entity profiles or incident summaries.
+- [ ] **Scheduled reports** — auto-generate and email PDF/CSV reports (e.g., "Weekly Incident Summary").
+- [ ] **Export to GIS formats** — Shapefiles/KML for use in external mapping tools.
+- [ ] **External ID mapping** — link entities to records in other databases (e.g., "FBI ID: 12345").
+- [ ] **Background job queue** — for long-running tasks (OCR, image processing, report generation) that currently block the request thread.
+- [ ] **JSON-LD export** — semantic web-compatible exports for interoperability.
+- [ ] **Health check endpoint** — `/health` verifying Postgres, Redis, and R2 connectivity for monitoring/uptime tools.
+
+---
+
+## AI-assisted
+
+- [ ] **OCR for sources** — extract text from uploaded images/PDFs (e.g., news articles) into searchable fields.
+- [ ] **Automated tagging** — NLP over biographies and incident descriptions to suggest keywords (e.g., "drive-by", "retaliation").
+- [ ] **Entity linking suggestions** — "Member X was in an incident with Member Y; did you mean to add them to the same set?"
+- [ ] **Face matching** — compare uploaded member photos against a gallery to detect duplicates (client-side ONNX or via external API).
+- [ ] **Alias generation** — suggest possible aliases based on known nickname (e.g., "Robert" → "Bobby", "Rob").
+
+---
+
+## Quick wins *(low effort, high value)*
+
+- [ ] **Copy entity URL** — button to copy a direct link to an entity for sharing in chat or notes.
+- [ ] **Last edited timestamp** — show when and by whom each entity was last modified in list views and detail pages.
+- [ ] **Entity references in text** — auto-link `@MemberName` or `#SetName` in biographies and notes to their pages.
+- [ ] **Breadcrumbs** — navigate back through the hierarchy (Universe → Set → Member).
+- [ ] **Age calculation display** — auto-compute and display member age from `date_of_birth` with FuzzyDate support.
+- [ ] **Empty state guidance** — helpful tips when tables are empty (e.g., "Add your first member with the + button").
+- [ ] **Recent edits feed** — dashboard widget showing the latest changes across the universe.
+
+---
+
+## Partial — open tails
+
+- [ ] **Bulk link / bulk tag** — bulk-delete shipped on all entity types. Remaining: bulk-link a source to multiple entities and bulk-tag (e.g., bulk-assign gang affiliation once that field exists).
+- [ ] **Universe statistics: last-activity / active-users / storage** — listed above under Admin & governance.

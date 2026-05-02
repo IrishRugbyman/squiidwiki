@@ -379,10 +379,31 @@ export function MemberFormSheet({ universeId, open, onClose, initial, defaultSet
       if (isEdit) await update.mutateAsync(body)
       else await create.mutateAsync(body)
       toast.success(`${isEdit ? 'Updated' : 'Created'} ${label}`)
+      if (!isEdit) resetForm()
       onClose()
     } catch (err) {
       setError(err instanceof Error ? err.message : `Failed to ${isEdit ? 'update' : 'create'} member`)
     }
+  }
+
+  function resetForm() {
+    setNickname('')
+    setLegalName('')
+    setNicknameUnknown(false)
+    setStatus('UNKNOWN')
+    setSetId(defaultSetId ?? '')
+    setAllianceId(defaultAllianceId ?? '')
+    setBiography('')
+    setAliases('')
+    setFacebook('')
+    setInstagram('')
+    setTwitter('')
+    setDob(null)
+    setDateOfDeath(null)
+    setReleaseDate(null)
+    setLifeSentence(false)
+    setFamilyEntries([])
+    setError(null)
   }
 
   const isPending = isEdit ? update.isPending : create.isPending

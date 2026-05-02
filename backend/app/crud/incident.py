@@ -6,11 +6,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select
 
 from app.core.enums import MemberStatus, ParticipantOutcome
-from app.models.incident import Incident, IncidentParticipant, IncidentSource
+from app.models.incident import Incident, IncidentParticipant, IncidentSetParticipant, IncidentSource
 from app.models.member import Member, MemberSource
 from app.models.gang_set import GangSet
 from app.schemas.common import make_cursor, parse_cursor
-from app.schemas.incident import IncidentCreate, IncidentUpdate, ParticipantCreate
+from app.schemas.incident import IncidentCreate, IncidentUpdate, ParticipantCreate, SetParticipantCreate
 
 
 def _fuzzy_to_dict(fd) -> dict | None:
@@ -32,6 +32,26 @@ async def _sync_participants(
             IncidentParticipant(
                 incident_id=incident_id,
                 member_id=p.member_id,
+                role=p.role,
+                outcome=p.outcome,
+                notes=p.notes,
+            )
+        )
+
+
+async def _sync_set_participants(
+    session: AsyncSession, incident_id: uuid.UUID, set_participants: list[SetParticipantCreate]
+) -> None:
+    await session.execute(
+        IncidentSetParticipant.__table__.delete().where(
+            IncidentSetParticipant.incident_id == incident_id
+        )
+    )
+    for p in set_participants:
+        session.add(
+            IncidentSetParticipant(
+                incident_id=incident_id,
+                set_id=p.set_id,
                 role=p.role,
                 outcome=p.outcome,
                 notes=p.notes,
@@ -96,13 +116,14 @@ async def create_incident(
             from datetime import datetime
             sortable = datetime(sd.year, sd.month, sd.day)
 
-    dump = data.model_dump(exclude={"date", "participants", "source_ids"})
+    dump = data.model_dump(exclude={"date", "participants", "set_participants", "source_ids"})
     dump["date"] = _fuzzy_to_dict(fd)
     dump["sortable_date"] = sortable
     obj = Incident(**dump, created_by_id=actor_id)
     session.add(obj)
     await session.flush()
     await _sync_participants(session, obj.id, data.participants)
+    await _sync_set_participants(session, obj.id, data.set_participants)
     await _sync_incident_sources(session, obj.id, data.source_ids)
     await _sync_killed_participants(session, obj, data.participants)
     await session.commit()
@@ -153,7 +174,7 @@ async def update_incident(
     obj = await get_incident(session, id, universe_id)
     if obj is None:
         return None
-    dump = data.model_dump(exclude_unset=True, exclude={"date", "participants", "source_ids"})
+    dump = data.model_dump(exclude_unset=True, exclude={"date", "participants", "set_participants", "source_ids"})
     if "date" in data.model_fields_set:
         fd = data.date
         dump["date"] = _fuzzy_to_dict(fd)
@@ -172,6 +193,8 @@ async def update_incident(
     if data.participants is not None:
         await _sync_participants(session, obj.id, data.participants)
         await _sync_killed_participants(session, obj, data.participants)
+    if data.set_participants is not None:
+        await _sync_set_participants(session, obj.id, data.set_participants)
     if data.source_ids is not None:
         await _sync_incident_sources(session, obj.id, data.source_ids)
     await session.commit()
@@ -195,6 +218,15 @@ async def list_incident_participants(
 ) -> list[IncidentParticipant]:
     result = await session.execute(
         select(IncidentParticipant).where(IncidentParticipant.incident_id == incident_id)
+    )
+    return result.scalars().all()
+
+
+async def list_incident_set_participants(
+    session: AsyncSession, incident_id: uuid.UUID
+) -> list[IncidentSetParticipant]:
+    result = await session.execute(
+        select(IncidentSetParticipant).where(IncidentSetParticipant.incident_id == incident_id)
     )
     return result.scalars().all()
 

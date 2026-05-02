@@ -24,6 +24,22 @@ class ParticipantRead(BaseModel):
     notes: Optional[str]
 
 
+class SetParticipantCreate(BaseModel):
+    set_id: uuid.UUID
+    role: ParticipantRole
+    outcome: ParticipantOutcome = ParticipantOutcome.UNKNOWN
+    notes: Optional[str] = None
+
+
+class SetParticipantRead(BaseModel):
+    model_config = {"from_attributes": True}
+
+    set_id: uuid.UUID
+    role: ParticipantRole
+    outcome: ParticipantOutcome
+    notes: Optional[str]
+
+
 class IncidentCreate(BaseModel):
     universe_id: uuid.UUID
     type: IncidentType
@@ -33,6 +49,7 @@ class IncidentCreate(BaseModel):
     narrative: Optional[str] = None
     verified: bool = False
     participants: list[ParticipantCreate] = []
+    set_participants: list[SetParticipantCreate] = []
     source_ids: list[uuid.UUID] = []
 
 
@@ -44,6 +61,7 @@ class IncidentUpdate(BaseModel):
     narrative: Optional[str] = None
     verified: Optional[bool] = None
     participants: Optional[list[ParticipantCreate]] = None
+    set_participants: Optional[list[SetParticipantCreate]] = None
     source_ids: Optional[list[uuid.UUID]] = None
 
 
@@ -63,6 +81,7 @@ class IncidentRead(BaseModel):
 
 class IncidentReadDetail(IncidentRead):
     participants: list[ParticipantRead]
+    set_participants: list[SetParticipantRead]
     source_ids: list[uuid.UUID]
 
 

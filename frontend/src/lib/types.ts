@@ -222,6 +222,13 @@ export interface ParticipantRead {
   notes: string | null
 }
 
+export interface SetParticipantRead {
+  set_id: UUID
+  role: ParticipantRole
+  outcome: ParticipantOutcome
+  notes: string | null
+}
+
 export interface IncidentListItem {
   id: UUID
   type: IncidentType
@@ -240,6 +247,7 @@ export interface IncidentRead extends IncidentListItem {
 
 export interface IncidentReadDetail extends IncidentRead {
   participants: ParticipantRead[]
+  set_participants: SetParticipantRead[]
   source_ids: UUID[]
 }
 

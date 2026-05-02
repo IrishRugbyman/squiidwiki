@@ -37,7 +37,7 @@ import { useDebounce } from '@/hooks/useDebounce'
 import { EmptyState } from '@/components/EmptyState'
 import { TableRowSkeleton } from '@/components/skeletons'
 import type { FuzzyDateValue } from '@/components/FuzzyDate'
-import type { IncidentListItem, IncidentReadDetail, IncidentType, MemberListItem, ParticipantOutcome, ParticipantRole, UUID } from '@/lib/types'
+import type { IncidentListItem, IncidentReadDetail, IncidentType, MemberListItem, ParticipantOutcome, ParticipantRole, SetListItem, UUID } from '@/lib/types'
 import { useUniverseStore } from '@/stores/universe'
 
 export const Route = createFileRoute('/_app/incidents/')({
@@ -67,6 +67,13 @@ function TypeChip({ type }: { type: IncidentType }) {
 export interface ParticipantDraft {
   member_id: UUID
   member_name: string
+  role: ParticipantRole
+  outcome: ParticipantOutcome
+}
+
+export interface SetParticipantDraft {
+  set_id: UUID
+  set_name: string
   role: ParticipantRole
   outcome: ParticipantOutcome
 }
@@ -180,6 +187,84 @@ function ParticipantBuilder({ universeId, participants, onChange, allMembers, se
   )
 }
 
+// ─── Set participant builder ──────────────────────────────────────────────────
+
+function SetParticipantBuilder({ setParticipants, onChange, allSets }: {
+  setParticipants: SetParticipantDraft[]
+  onChange: (p: SetParticipantDraft[]) => void
+  allSets: SetListItem[]
+}) {
+  const [search, setSearch] = useState('')
+  const [role, setRole] = useState<ParticipantRole>('SHOOTER')
+  const [outcome, setOutcome] = useState<ParticipantOutcome>('UNKNOWN')
+
+  const addedIds = new Set(setParticipants.map((p) => p.set_id))
+  const filtered = search.length >= 1
+    ? allSets.filter((s) => s.name.toLowerCase().includes(search.toLowerCase()) && !addedIds.has(s.id)).slice(0, 8)
+    : []
+
+  function add(s: SetListItem) {
+    if (addedIds.has(s.id)) return
+    onChange([...setParticipants, { set_id: s.id, set_name: s.name, role, outcome }])
+    setSearch('')
+  }
+
+  return (
+    <div className="space-y-2">
+      <div className="grid grid-cols-2 gap-2">
+        <div className="space-y-1">
+          <Label>Role</Label>
+          <Select value={role} onValueChange={(v) => setRole(v as ParticipantRole)}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              {(['SHOOTER', 'ASSISTED', 'BYSTANDER', 'VICTIM'] as ParticipantRole[]).map((r) => (
+                <SelectItem key={r} value={r}>{r}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="space-y-1">
+          <Label>Outcome</Label>
+          <Select value={outcome} onValueChange={(v) => setOutcome(v as ParticipantOutcome)}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              {(['KILLED', 'INJURED', 'UNHARMED', 'UNKNOWN'] as ParticipantOutcome[]).map((o) => (
+                <SelectItem key={o} value={o}>{o}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+      <Input placeholder="Search set to add…" value={search} onChange={(e) => setSearch(e.target.value)} />
+      {filtered.length > 0 && (
+        <div className="max-h-32 overflow-y-auto rounded border border-zinc-800 bg-zinc-950">
+          {filtered.map((s) => (
+            <button key={s.id} type="button" onClick={() => add(s)}
+              className="w-full px-3 py-2 text-left text-sm text-zinc-300 hover:bg-zinc-800 transition-colors">
+              {s.name}
+            </button>
+          ))}
+        </div>
+      )}
+      {setParticipants.length > 0 && (
+        <div className="space-y-1.5">
+          {setParticipants.map((p) => (
+            <div key={p.set_id} className="flex items-center justify-between rounded border border-zinc-800 px-3 py-1.5 text-sm">
+              <span className="text-zinc-200">{p.set_name}</span>
+              <div className="flex items-center gap-2">
+                <Badge variant="secondary" className="text-xs">{p.role}</Badge>
+                <Badge variant="outline" className="text-xs">{p.outcome}</Badge>
+                <button type="button" onClick={() => onChange(setParticipants.filter((x) => x.set_id !== p.set_id))}
+                  className="text-zinc-600 hover:text-red-400 transition-colors text-xs">✕</button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ─── Incident form sheet ──────────────────────────────────────────────────────
 
 interface IncidentFormProps {
@@ -226,6 +311,14 @@ export function IncidentFormSheet({ universeId, open, onClose, initial, defaultP
       outcome: p.outcome,
     })) ?? defaultParticipants ?? []
   )
+  const [setLevelParticipants, updateSetLevelParticipants] = useState<SetParticipantDraft[]>(() =>
+    initial?.set_participants?.map((p) => ({
+      set_id: p.set_id,
+      set_name: setNameById[p.set_id] ?? p.set_id,
+      role: p.role,
+      outcome: p.outcome,
+    })) ?? []
+  )
   const [error, setError] = useState<string | null>(null)
   const urlPaste = useUrlPasteBanner()
   const [creatingSourceFromUrl, setCreatingSourceFromUrl] = useState<string | null>(null)
@@ -239,9 +332,19 @@ export function IncidentFormSheet({ universeId, open, onClose, initial, defaultP
         member_name: memberNameMap[p.member_id] ?? p.member_name,
       }))
     )
-  // Only re-run when the name map finishes loading
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [memberNameMap])
+
+  useEffect(() => {
+    if (!isEdit || Object.keys(setNameById).length === 0) return
+    updateSetLevelParticipants((prev) =>
+      prev.map((p) => ({
+        ...p,
+        set_name: setNameById[p.set_id] ?? p.set_name,
+      }))
+    )
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [setNameById])
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -255,6 +358,7 @@ export function IncidentFormSheet({ universeId, open, onClose, initial, defaultP
         narrative: narrative || null,
         verified,
         participants: participants.map(({ member_id, role, outcome }) => ({ member_id, role, outcome })),
+        set_participants: setLevelParticipants.map(({ set_id, role, outcome }) => ({ set_id, role, outcome })),
       }
       if (isEdit) {
         await update.mutateAsync(body)
@@ -263,7 +367,7 @@ export function IncidentFormSheet({ universeId, open, onClose, initial, defaultP
         await create.mutateAsync(body)
         toast.success(`Recorded ${type.toLowerCase()} incident`)
         setType('SHOOTING'); setDate(null); setLocationText(''); setMunicipalityId('')
-        setNarrative(''); setVerified(false); setParticipants([])
+        setNarrative(''); setVerified(false); setParticipants([]); updateSetLevelParticipants([])
       }
       onClose()
     } catch (err) {
@@ -312,12 +416,21 @@ export function IncidentFormSheet({ universeId, open, onClose, initial, defaultP
             <label htmlFor="inc-verified" className="text-sm text-zinc-300">Verified</label>
           </div>
           <div className="space-y-1.5">
-            <Label>Participants</Label>
+            <Label>Member Participants</Label>
             <ParticipantBuilder universeId={universeId} participants={participants} onChange={setParticipants}
               allMembers={allMembersList} setNameById={setNameById} />
             <p className="text-[11px] text-zinc-500">
               Marking a participant <span className="font-medium text-zinc-400">KILLED</span> will set their member status to DEAD and link them to this incident on save.
             </p>
+          </div>
+          <div className="space-y-1.5">
+            <Label>Set-Level Participants</Label>
+            <p className="text-[11px] text-zinc-500 -mt-1">Use when the individual shooter is unknown — tag the set instead.</p>
+            <SetParticipantBuilder
+              setParticipants={setLevelParticipants}
+              onChange={updateSetLevelParticipants}
+              allSets={allSetsData?.items ?? []}
+            />
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="inc-narrative">Narrative</Label>

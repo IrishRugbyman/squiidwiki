@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
-import { CheckCircle2, ExternalLink, MapPin, Pencil, Plus, Trash2, User } from 'lucide-react'
+import { CheckCircle2, ExternalLink, MapPin, Pencil, Plus, Trash2, User, Users } from 'lucide-react'
 import { lazy, Suspense, useState } from 'react'
 import { FuzzyDate } from '@/components/FuzzyDate'
 import { ErrorState } from '@/components/ErrorState'
@@ -11,7 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { ReliabilityBadge } from '@/components/StatusBadge'
-import { useIncident, useAllMembers, useAllSources, useDeleteIncident, useMunicipality } from '@/lib/queries'
+import { useIncident, useAllMembers, useAllSources, useDeleteIncident, useMunicipality, useSets } from '@/lib/queries'
 import { useUniverseStore } from '@/stores/universe'
 import { useAuthStore } from '@/stores/auth'
 import { IncidentFormSheet } from './_app.incidents.index'
@@ -40,6 +40,7 @@ function IncidentDetailPage() {
   const { data: incident, isLoading, isError, refetch } = useIncident(id, universe?.id ?? null)
   const { data: allMembers } = useAllMembers(universe?.id ?? null)
   const { data: allSources } = useAllSources(universe?.id ?? null)
+  const { data: allSets } = useSets(universe?.id ?? null)
   const { data: municipality } = useMunicipality(
     incident?.municipality_id ?? '',
     incident?.municipality_id ? (universe?.id ?? null) : null,
@@ -71,6 +72,7 @@ function IncidentDetailPage() {
   const memberSlug = (mid: string) => memberMap[mid]?.slug ?? mid
 
   const sourceMap = Object.fromEntries((allSources?.items ?? []).map((s) => [s.id, s]))
+  const setMap = Object.fromEntries((allSets?.items ?? []).map((s) => [s.id, s]))
 
   // Pick the most common set among current participants for the "Create new" prefill.
   const defaultSetIdForNewMember = (() => {
@@ -159,8 +161,8 @@ function IncidentDetailPage() {
             <TabsList>
               <TabsTrigger value="participants">
                 Participants
-                {incident.participants.length > 0 && (
-                  <Badge variant="secondary" className="ml-1.5 text-xs px-1.5 py-0">{incident.participants.length}</Badge>
+                {(incident.participants.length + incident.set_participants.length) > 0 && (
+                  <Badge variant="secondary" className="ml-1.5 text-xs px-1.5 py-0">{incident.participants.length + incident.set_participants.length}</Badge>
                 )}
               </TabsTrigger>
               <TabsTrigger value="narrative">Narrative</TabsTrigger>
@@ -179,7 +181,7 @@ function IncidentDetailPage() {
                   <Plus className="mr-1.5 h-3.5 w-3.5" />Add Participant
                 </Button>
               </div>
-              {incident.participants.length === 0 ? (
+              {incident.participants.length === 0 && incident.set_participants.length === 0 ? (
                 <p className="text-sm text-zinc-600">No participants recorded.</p>
               ) : (
                 <div className="space-y-2">
@@ -207,6 +209,37 @@ function IncidentDetailPage() {
                           </span>
                         )}
                         <div className="flex items-center gap-2">
+                          <Badge className={`border ${ROLE_CHIP[p.role]}`}>{ROLE_LABEL[p.role]}</Badge>
+                          <Badge className={`border ${OUTCOME_CHIP[p.outcome]}`}>{OUTCOME_LABEL[p.outcome]}</Badge>
+                        </div>
+                      </div>
+                    )
+                  })}
+                  {incident.set_participants.map((p) => {
+                    const set = setMap[p.set_id]
+                    return (
+                      <div
+                        key={p.set_id}
+                        className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-zinc-700/60 bg-zinc-900/20 px-4 py-3"
+                      >
+                        {set ? (
+                          <Link
+                            to="/sets/$id"
+                            params={{ id: set.slug ?? set.id }}
+                            className="inline-flex items-center gap-2 text-sm font-medium text-white hover:text-violet-400 transition-colors"
+                          >
+                            <Users className="h-3.5 w-3.5 text-zinc-500" />
+                            {set.name}
+                          </Link>
+                        ) : (
+                          <span className="inline-flex items-center gap-2 text-sm font-medium text-zinc-500">
+                            <Users className="h-3.5 w-3.5" />
+                            Unknown set
+                            <span className="font-mono text-xs text-zinc-600">({p.set_id.slice(0, 8)}…)</span>
+                          </span>
+                        )}
+                        <div className="flex items-center gap-2">
+                          <Badge variant="outline" className="text-[10px] text-zinc-500 border-zinc-700">set</Badge>
                           <Badge className={`border ${ROLE_CHIP[p.role]}`}>{ROLE_LABEL[p.role]}</Badge>
                           <Badge className={`border ${OUTCOME_CHIP[p.outcome]}`}>{OUTCOME_LABEL[p.outcome]}</Badge>
                         </div>

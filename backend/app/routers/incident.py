@@ -21,6 +21,7 @@ from app.schemas.incident import (
     IncidentReadDetail,
     IncidentUpdate,
     ParticipantRead,
+    SetParticipantRead,
 )
 
 router = APIRouter(prefix="/incidents", tags=["incidents"])
@@ -111,10 +112,17 @@ async def get_incident(
     if obj is None:
         raise HTTPException(404)
     participants = await crud.list_incident_participants(session, id)
+    set_participants = await crud.list_incident_set_participants(session, id)
     source_ids = await crud.list_incident_source_ids(session, id)
     participant_reads = [ParticipantRead.model_validate(p) for p in participants]
+    set_participant_reads = [SetParticipantRead.model_validate(p) for p in set_participants]
     base = IncidentRead.model_validate(obj)
-    return IncidentReadDetail(**base.model_dump(), participants=participant_reads, source_ids=source_ids)
+    return IncidentReadDetail(
+        **base.model_dump(),
+        participants=participant_reads,
+        set_participants=set_participant_reads,
+        source_ids=source_ids,
+    )
 
 
 @router.patch("/{id}", response_model=IncidentRead)

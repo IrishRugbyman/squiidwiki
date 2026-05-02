@@ -30,6 +30,17 @@ class IncidentParticipant(SQLModel, table=True):
     notes: Optional[str] = None
 
 
+class IncidentSetParticipant(SQLModel, table=True):
+    """Set-level participant — used when the individual shooter is unknown."""
+    __tablename__ = "incident_set_participant"
+
+    incident_id: uuid.UUID = Field(foreign_key="incident.id", primary_key=True)
+    set_id: uuid.UUID = Field(foreign_key="sets.id", primary_key=True)
+    role: ParticipantRole
+    outcome: ParticipantOutcome = ParticipantOutcome.UNKNOWN
+    notes: Optional[str] = None
+
+
 class Incident(SQLModel, table=True):
     __tablename__ = "incident"
 
