@@ -9,12 +9,12 @@ from sqlmodel import select
 
 from app.core import storage
 from app.core.enums import MediaKind
-from app.models.member import Member, MemberSource
+from app.models.member import Member, MemberAlias, MemberSource
 from app.models.incident import IncidentParticipant
 from app.models.gang_set import GangSet
 from app.models.media import Media
 from app.schemas.common import make_cursor, parse_cursor
-from app.schemas.member import MemberCreate, MemberUpdate
+from app.schemas.member import MemberAliasCreate, MemberCreate, MemberUpdate
 
 
 INVERSE_REL: dict[str, str] = {
@@ -337,15 +337,61 @@ async def search_members(
     session: AsyncSession, universe_id: uuid.UUID, q: str
 ) -> list[Member]:
     pattern = f"%{q}%"
+    alias_match = select(MemberAlias.member_id).where(MemberAlias.alias.ilike(pattern))
     result = await session.execute(
         select(Member).where(
             Member.universe_id == universe_id,
             Member.nickname.ilike(pattern)
             | Member.legal_name.ilike(pattern)
-            | sa.cast(Member.aliases, sa.Text).ilike(pattern),
-        )
+            | sa.cast(Member.aliases, sa.Text).ilike(pattern)
+            | Member.id.in_(alias_match),
+        ).distinct()
     )
     return result.scalars().all()
+
+
+async def list_member_aliases(
+    session: AsyncSession, member_id: uuid.UUID
+) -> list[MemberAlias]:
+    result = await session.execute(
+        select(MemberAlias)
+        .where(MemberAlias.member_id == member_id)
+        .order_by(MemberAlias.created_at)
+    )
+    return result.scalars().all()
+
+
+async def create_member_alias(
+    session: AsyncSession, member_id: uuid.UUID, data: MemberAliasCreate
+) -> MemberAlias:
+    obj = MemberAlias(
+        member_id=member_id,
+        alias=data.alias,
+        from_date=_fuzzy_to_dict(data.from_date),
+        until_date=_fuzzy_to_dict(data.until_date),
+        source_id=data.source_id,
+    )
+    session.add(obj)
+    await session.commit()
+    await session.refresh(obj)
+    return obj
+
+
+async def delete_member_alias(
+    session: AsyncSession, alias_id: uuid.UUID, member_id: uuid.UUID
+) -> bool:
+    result = await session.execute(
+        select(MemberAlias).where(
+            MemberAlias.id == alias_id,
+            MemberAlias.member_id == member_id,
+        )
+    )
+    obj = result.scalar_one_or_none()
+    if obj is None:
+        return False
+    await session.delete(obj)
+    await session.commit()
+    return True
 
 
 async def get_member_stats(session: AsyncSession, member_id: uuid.UUID) -> dict | None:

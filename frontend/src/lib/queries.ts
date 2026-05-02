@@ -14,6 +14,7 @@ import type {
   IncidentReadDetail,
   MediaEntityType,
   MediaWithUrls,
+  MemberAliasRead,
   MemberListItem,
   MemberRead,
   MemberReadDetail,
@@ -419,6 +420,31 @@ export const useDeleteMember = (universeId: UUID) => {
   return useMutation({
     mutationFn: (id: UUID) => api.delete(`/members/${id}?universe_id=${universeId}`),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['members'] }) },
+  })
+}
+
+export const useMemberAliases = (memberId: UUID | null, universeId: UUID | null) =>
+  useQuery({
+    queryKey: ['members', memberId, 'aliases'],
+    queryFn: () => api.get<MemberAliasRead[]>(`/members/${memberId}/aliases?universe_id=${universeId}`),
+    enabled: !!memberId && !!universeId,
+  })
+
+export const useCreateMemberAlias = (memberId: UUID, universeId: UUID) => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (data: { alias: string; from_date?: unknown; until_date?: unknown; source_id?: string | null }) =>
+      api.post<MemberAliasRead>(`/members/${memberId}/aliases?universe_id=${universeId}`, data),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['members', memberId, 'aliases'] }) },
+  })
+}
+
+export const useDeleteMemberAlias = (memberId: UUID, universeId: UUID) => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (aliasId: UUID) =>
+      api.delete(`/members/${memberId}/aliases/${aliasId}?universe_id=${universeId}`),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['members', memberId, 'aliases'] }) },
   })
 }
 

@@ -20,13 +20,16 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Textarea } from '@/components/ui/textarea'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import {
   useMember, useMemberStats, useSets, useAlliances,
   useDeleteMember, useMemberIncidents, useAllMembers, useUpdateMember,
   useIncident, useMunicipality,
+  useMemberAliases, useCreateMemberAlias, useDeleteMemberAlias,
 } from '@/lib/queries'
-import type { IncidentListItem, MemberListItem, MemberRead } from '@/lib/types'
+import type { IncidentListItem, MemberAliasRead, MemberListItem, MemberRead } from '@/lib/types'
 import type { FuzzyDateValue } from '@/components/FuzzyDate'
 import { downloadText } from '@/lib/download'
 import { useUniverseStore } from '@/stores/universe'
@@ -308,6 +311,9 @@ function MemberDetailPage() {
   const { data: allSets } = useSets(universe?.id ?? null)
   const { data: allAlliances } = useAlliances(universe?.id ?? null)
   const { data: incidents } = useMemberIncidents(id, universe?.id ?? null)
+  const { data: aliases } = useMemberAliases(id, universe?.id ?? null)
+  const createAlias = useCreateMemberAlias(id, universe?.id ?? '')
+  const deleteAlias = useDeleteMemberAlias(id, universe?.id ?? '')
   const { data: killingIncident } = useIncident(
     member?.death_incident_id ?? '',
     member?.death_incident_id ? (universe?.id ?? null) : null,
@@ -324,6 +330,8 @@ function MemberDetailPage() {
 
   const [editing, setEditing] = useState(false)
   const [duplicating, setDuplicating] = useState(false)
+  const [addingAlias, setAddingAlias] = useState(false)
+  const [aliasText, setAliasText] = useState('')
   const [deleting, setDeleting] = useState(false)
   const [creatingIncident, setCreatingIncident] = useState(false)
   const [addingFamily, setAddingFamily] = useState(false)
@@ -590,6 +598,71 @@ function MemberDetailPage() {
                   ) : <span className="text-zinc-600">—</span>}
                 </DetailRow>
               </div>
+
+              {/* AKA history */}
+              {((aliases && aliases.length > 0) || user?.global_role === 'ADMIN') && (
+                <div className="rounded-xl border border-zinc-800 bg-zinc-900/30 px-4 py-3 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-medium uppercase tracking-wider text-zinc-500">AKA History</span>
+                    {user?.global_role === 'ADMIN' && (
+                      <button type="button" onClick={() => setAddingAlias((v) => !v)}
+                        className="inline-flex items-center gap-1 text-xs text-zinc-500 hover:text-violet-400 transition-colors">
+                        <Plus className="h-3 w-3" />{addingAlias ? 'Cancel' : 'Add'}
+                      </button>
+                    )}
+                  </div>
+                  {addingAlias && (
+                    <form
+                      onSubmit={async (e) => {
+                        e.preventDefault()
+                        if (!aliasText.trim()) return
+                        await createAlias.mutateAsync({ alias: aliasText.trim() })
+                        setAliasText('')
+                        setAddingAlias(false)
+                      }}
+                      className="flex gap-2"
+                    >
+                      <Input
+                        value={aliasText}
+                        onChange={(e) => setAliasText(e.target.value)}
+                        placeholder="Alias / street name…"
+                        className="h-7 text-sm flex-1"
+                        autoFocus
+                      />
+                      <Button type="submit" size="sm" className="h-7 px-3" disabled={createAlias.isPending}>
+                        Save
+                      </Button>
+                    </form>
+                  )}
+                  {aliases && aliases.length > 0 ? (
+                    <div className="space-y-1">
+                      {aliases.map((a: MemberAliasRead) => (
+                        <div key={a.id} className="flex items-center justify-between py-0.5">
+                          <span className="text-sm text-zinc-200">{a.alias}</span>
+                          <div className="flex items-center gap-2">
+                            {(a.from_date || a.until_date) && (
+                              <span className="text-[11px] text-zinc-500">
+                                {a.from_date && <FuzzyDate value={a.from_date} />}
+                                {a.from_date && a.until_date && ' – '}
+                                {a.until_date && <FuzzyDate value={a.until_date} />}
+                              </span>
+                            )}
+                            {user?.global_role === 'ADMIN' && (
+                              <button type="button"
+                                onClick={() => deleteAlias.mutate(a.id)}
+                                className="text-zinc-700 hover:text-red-400 transition-colors">
+                                <Trash2 className="h-3 w-3" />
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    !addingAlias && <p className="text-xs text-zinc-600">No aliases recorded.</p>
+                  )}
+                </div>
+              )}
 
               {/* Social media */}
               {member.social_media && Object.keys(member.social_media).length > 0 && (

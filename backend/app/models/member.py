@@ -16,6 +16,18 @@ class MemberSource(SQLModel, table=True):
     source_id: uuid.UUID = Field(foreign_key="source.id", primary_key=True)
 
 
+class MemberAlias(SQLModel, table=True):
+    __tablename__ = "member_alias"
+
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    member_id: uuid.UUID = Field(foreign_key="member.id", index=True)
+    alias: str
+    from_date: Optional[dict] = Field(default=None, sa_column=Column(JSONB))
+    until_date: Optional[dict] = Field(default=None, sa_column=Column(JSONB))
+    source_id: Optional[uuid.UUID] = Field(default=None, foreign_key="source.id")
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+
 class Member(SQLModel, table=True):
     __tablename__ = "member"
 

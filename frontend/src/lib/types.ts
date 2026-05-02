@@ -187,6 +187,16 @@ export interface MemberListItem {
   date_of_death: FuzzyDateValue | null
 }
 
+export interface MemberAliasRead {
+  id: UUID
+  member_id: UUID
+  alias: string
+  from_date: FuzzyDateValue | null
+  until_date: FuzzyDateValue | null
+  source_id: UUID | null
+  created_at: string
+}
+
 export interface MemberRead extends MemberListItem {
   nickname: string | null
   legal_name: string | null

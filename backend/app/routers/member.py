@@ -12,6 +12,8 @@ from app.core.csv_export import to_csv_response
 from app.crud import member as crud
 from app.schemas.common import CursorPage
 from app.schemas.member import (
+    MemberAliasCreate,
+    MemberAliasRead,
     MemberCreate,
     MemberListItem,
     MemberRead,
@@ -138,3 +140,43 @@ async def get_member_stats(
         raise HTTPException(404)
     stats = await crud.get_member_stats(session, id)
     return MemberStats(**stats)
+
+
+@router.get("/{id}/aliases", response_model=list[MemberAliasRead])
+async def list_member_aliases(
+    id: uuid.UUID,
+    universe_id: uuid.UUID,
+    _: CurrentUser,
+    session: Annotated[AsyncSession, Depends(get_session)],
+):
+    obj = await crud.get_member(session, id, universe_id)
+    if obj is None:
+        raise HTTPException(404)
+    return await crud.list_member_aliases(session, id)
+
+
+@router.post("/{id}/aliases", response_model=MemberAliasRead, status_code=201)
+async def create_member_alias(
+    id: uuid.UUID,
+    universe_id: uuid.UUID,
+    data: MemberAliasCreate,
+    current_user: CurrentUser,
+    session: Annotated[AsyncSession, Depends(get_session)],
+):
+    obj = await crud.get_member(session, id, universe_id)
+    if obj is None:
+        raise HTTPException(404)
+    return await crud.create_member_alias(session, id, data)
+
+
+@router.delete("/{id}/aliases/{alias_id}", status_code=204)
+async def delete_member_alias(
+    id: uuid.UUID,
+    alias_id: uuid.UUID,
+    universe_id: uuid.UUID,
+    _: Annotated[None, require_global_role(GlobalRole.ADMIN)],
+    session: Annotated[AsyncSession, Depends(get_session)],
+):
+    ok = await crud.delete_member_alias(session, alias_id, id)
+    if not ok:
+        raise HTTPException(404)

@@ -94,6 +94,25 @@ class MemberListItem(BaseModel):
     date_of_death: FuzzyDateField = None
 
 
+class MemberAliasCreate(BaseModel):
+    alias: str
+    from_date: FuzzyDateField = None
+    until_date: FuzzyDateField = None
+    source_id: Optional[uuid.UUID] = None
+
+
+class MemberAliasRead(BaseModel):
+    model_config = {"from_attributes": True}
+
+    id: uuid.UUID
+    member_id: uuid.UUID
+    alias: str
+    from_date: FuzzyDateField
+    until_date: FuzzyDateField
+    source_id: Optional[uuid.UUID]
+    created_at: datetime
+
+
 class MemberStats(BaseModel):
     member_id: uuid.UUID
     shootings: int

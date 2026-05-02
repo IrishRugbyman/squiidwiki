@@ -5,7 +5,7 @@ from app.models.municipality import Municipality
 from app.models.source import Source
 from app.models.alliance import Alliance, AllianceMunicipality, AllianceSet
 from app.models.gang_set import GangSet, SetMunicipality, SetRelationship
-from app.models.member import Member, MemberSource
+from app.models.member import Member, MemberAlias, MemberSource
 from app.models.incident import Incident, IncidentParticipant, IncidentSetParticipant, IncidentSource
 from app.models.research_note import ResearchNote
 from app.models.media import Media
@@ -24,6 +24,7 @@ __all__ = [
     "SetMunicipality",
     "SetRelationship",
     "Member",
+    "MemberAlias",
     "MemberSource",
     "Incident",
     "IncidentParticipant",

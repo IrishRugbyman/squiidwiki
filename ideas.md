@@ -9,7 +9,7 @@ Open items only. Implemented ideas are in git history.
 *Schema changes that unlock multiple downstream features.*
 
 - [ ] **Street-level incident location** — `incidents.lat` / `incidents.lng` in addition to municipality FK. Municipality is too coarse for cluster analysis, heatmaps, or "all shootings within 200 m of X."
-- [ ] **Member aliases / AKA history** — `member_aliases` table (alias text + optional `from`/`until` FuzzyDate + `source_id`). Nicknames change after pinches, beefs, or gang switches. Search should hit aliases too.
+- [x] **Member aliases / AKA history** — `member_aliases` table (alias text + optional `from`/`until` FuzzyDate + `source_id`). Nicknames change after pinches, beefs, or gang switches. Search should hit aliases too.
 - [ ] **Incarceration spells** — `member_incarceration` table (`from`, `to` FuzzyDates, `facility`, `case_id?`). Gives a real timeline rather than the boolean-ish `LOCKED` status and powers an "active in [year]" filter.
 - [ ] **Set rank / role on membership** — promote `set_members` from a plain join to a row carrying `role ∈ {leader, OG, member, prospect, affiliate}` plus a date range. Audit log captures movement.
 - [ ] **Set lineage / splinter relationships** — directional edge type on the existing set-relationship table (`SPLINTERED_FROM`, `MERGED_INTO`, `RENAMED_TO`). Sets are not static; the macro alliance graph misses this dimension.
