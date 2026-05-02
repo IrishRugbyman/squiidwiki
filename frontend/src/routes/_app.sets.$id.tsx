@@ -413,7 +413,7 @@ function SetDetailPage() {
             </div>
           )}
 
-          {!set.is_reserved && stats && (
+          {stats && (
             <div className="mb-6 grid grid-cols-5 gap-2">
               <StatPill label="Members" value={stats.member_count} />
               <StatPill label="Dead" value={stats.dead_members} accent="text-zinc-400" />
@@ -423,16 +423,14 @@ function SetDetailPage() {
             </div>
           )}
 
-          <Tabs defaultValue={set.is_reserved ? 'incidents' : 'members'}>
+          <Tabs defaultValue="members">
             <TabsList>
-              {!set.is_reserved && (
-                <TabsTrigger value="members">
-                  Members
-                  {membersData && membersData.items.length > 0 && (
-                    <Badge variant="secondary" className="ml-1.5 text-xs px-1.5 py-0">{membersData.items.length}</Badge>
-                  )}
-                </TabsTrigger>
-              )}
+              <TabsTrigger value="members">
+                Members
+                {membersData && membersData.items.length > 0 && (
+                  <Badge variant="secondary" className="ml-1.5 text-xs px-1.5 py-0">{membersData.items.length}</Badge>
+                )}
+              </TabsTrigger>
               <TabsTrigger value="incidents">
                 Incidents
                 {incidentsData && incidentsData.items.length > 0 && (
@@ -452,7 +450,7 @@ function SetDetailPage() {
               {!set.is_reserved && <TabsTrigger value="photos">Photos</TabsTrigger>}
             </TabsList>
 
-            {!set.is_reserved && <TabsContent value="members" className="mt-4">
+            <TabsContent value="members" className="mt-4">
               <div className="mb-3 flex flex-wrap items-center gap-2">
                 {memberItems.length > 5 && (
                   <div className="relative max-w-xs flex-1">
@@ -552,7 +550,7 @@ function SetDetailPage() {
                   </table>
                 </div>
               )}
-            </TabsContent>}
+            </TabsContent>
 
             <TabsContent value="incidents" className="mt-4">
               {incidentItems.length === 0 ? (
@@ -763,7 +761,7 @@ function SetDetailPage() {
             />
           )}
 
-          {!set.is_reserved && universe && (
+          {universe && (
             <AddMemberToSetDialog
               setId={set.id}
               setName={set.name}
@@ -774,7 +772,7 @@ function SetDetailPage() {
             />
           )}
 
-          {!set.is_reserved && universe && (
+          {universe && (
             <MemberFormSheet
               universeId={universe.id}
               open={creatingMember}

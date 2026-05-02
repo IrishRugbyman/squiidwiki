@@ -396,7 +396,7 @@ function SetsPage() {
   const [editingId, setEditingId] = useState<string | null>(null)
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('ALL')
   const [allianceFilter, setAllianceFilter] = useState<string>('ALL')
-  const [sortKey, setSortKey] = useState<SortKey | null>(null)
+  const [sortKey, setSortKey] = useState<SortKey | null>('name')
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc')
   const [selected, setSelected] = useState<Set<UUID>>(new Set())
   const [confirmingBulkDelete, setConfirmingBulkDelete] = useState(false)

@@ -9,9 +9,6 @@ Open items only. Implemented ideas are in git history.
 *Schema changes that unlock multiple downstream features.*
 
 - [ ] **Street-level incident location** — `incidents.lat` / `incidents.lng` in addition to municipality FK. Municipality is too coarse for cluster analysis, heatmaps, or "all shootings within 200 m of X."
-- [x] **Member aliases / AKA history** — `member_aliases` table (alias text + optional `from`/`until` FuzzyDate + `source_id`). Nicknames change after pinches, beefs, or gang switches. Search should hit aliases too.
-- [x] **Incarceration spells** — `member_incarceration` table (`from`, `to` FuzzyDates, `facility`, `case_id?`). Gives a real timeline rather than the boolean-ish `LOCKED` status and powers an "active in [year]" filter.
-- [ ] **Set rank / role on membership** — promote `set_members` from a plain join to a row carrying `role ∈ {leader, OG, member, prospect, affiliate}` plus a date range. Audit log captures movement.
 - [ ] **Set lineage / splinter relationships** — directional edge type on the existing set-relationship table (`SPLINTERED_FROM`, `MERGED_INTO`, `RENAMED_TO`). Sets are not static; the macro alliance graph misses this dimension.
 - [ ] **Conflict / beef entity** — a `Conflict` row (set_a, set_b, started_on, ended_on?, summary) that incidents can link to. Lets you tell the story rather than scroll an incident list.
 - [ ] **Court case entity** — links one or more incidents to charges, verdicts, sentence length. Many incidents map to one case (co-defendants); one incident can spawn many cases.
@@ -19,8 +16,6 @@ Open items only. Implemented ideas are in git history.
 - [ ] **Set territory polygon** — optional GeoJSON polygon on `sets`, rendered on the map alongside the municipality choropleth. Hand-drawn or derived from K-means over incident lat/lng.
 - [ ] **Member-to-member direct links (non-family)** — generic `MemberRelationship` (e.g., "co-defendants", "childhood friends", "direct rivals") that the reactflow graph can render independent of set boundaries.
 - [ ] **Gang affiliation field** — new `Gang` entity (name + aliases) referenced by sets, alliances, and members. Alliances and sets can be `None` or any single gang; members cannot be `Mixed`. Needs a gang admin page and pickers on the set/alliance/member forms. Chicago-centric seed values to start (Black Disciples, Gangster Disciples, Bloods, etc.) but the model is generic.
-- [x] **Reserved pseudo-sets: Civilian and Police** — two universe-scoped, undeletable set records seeded on universe create (`is_reserved=True`). Lets incidents tag civilian victims or police-involved shootings without fabricating a real crew.
-- [ ] **Set-level participant on incidents** — when the individual shooter is unknown, allow tagging a set (not a specific member) as the aggressor. Parallel to the existing `member_id` participant row but with `set_id`; role + outcome still apply.
 
 ---
 
@@ -160,12 +155,7 @@ Open items only. Implemented ideas are in git history.
 
 ## Quick wins *(low effort, high value)*
 
-- [x] **Copy entity URL** — button to copy a direct link to an entity for sharing in chat or notes.
-- [x] **Last edited timestamp** — show when and by whom each entity was last modified in list views and detail pages.
 - [ ] **Entity references in text** — auto-link `@MemberName` or `#SetName` in biographies and notes to their pages.
-- [x] **Breadcrumbs** — navigate back through the hierarchy (Universe → Set → Member).
-- [x] **Age calculation display** — auto-compute and display member age from `date_of_birth` with FuzzyDate support.
-- [x] **Empty state guidance** — helpful tips when tables are empty (e.g., "Add your first member with the + button").
 - [ ] **Recent edits feed** — dashboard widget showing the latest changes across the universe.
 
 ---

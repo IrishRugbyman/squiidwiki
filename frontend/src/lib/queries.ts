@@ -839,6 +839,15 @@ export const useUsers = (offset = 0) =>
     staleTime: 30_000,
   })
 
+export const useCreateUser = () => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (body: { email: string; password: string; global_role: GlobalRole }) =>
+      api.post<UserListItem>('/auth/register', body),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['users'] }) },
+  })
+}
+
 export const useUpdateUserRole = () => {
   const qc = useQueryClient()
   return useMutation({

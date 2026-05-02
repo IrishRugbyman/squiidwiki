@@ -1,5 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { Search, Shield, User as UserIcon } from 'lucide-react'
+import { Plus, Search, Shield, User as UserIcon } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import { PageHeader } from '@/components/PageHeader'
@@ -7,8 +7,10 @@ import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { TableRowSkeleton } from '@/components/skeletons'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { useUsers, useUpdateUserRole } from '@/lib/queries'
+import { Sheet, SheetContent, SheetClose } from '@/components/Sheet'
+import { useUsers, useUpdateUserRole, useCreateUser } from '@/lib/queries'
 import { useAuthStore } from '@/stores/auth'
 import type { GlobalRole, UserListItem } from '@/lib/types'
 
@@ -33,12 +35,85 @@ function relativeTime(iso: string | null): string {
   return `${Math.round(months / 12)}y ago`
 }
 
+function AddUserSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const createUser = useCreateUser()
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [role, setRole] = useState<GlobalRole>('USER')
+  const [error, setError] = useState<string | null>(null)
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    setError(null)
+    try {
+      await createUser.mutateAsync({ email, password, global_role: role })
+      toast.success(`Created account for ${email}`)
+      setEmail(''); setPassword(''); setRole('USER')
+      onClose()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to create user')
+    }
+  }
+
+  return (
+    <Sheet open={open} onOpenChange={(v) => !v && onClose()}>
+      <SheetContent title="Add User" description="Create a new account and assign a role.">
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-1.5">
+            <Label htmlFor="new-email">Email *</Label>
+            <Input
+              id="new-email"
+              type="email"
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="user@example.com"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="new-password">Password *</Label>
+            <Input
+              id="new-password"
+              type="password"
+              required
+              minLength={8}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Min. 8 characters"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label>Role</Label>
+            <Select value={role} onValueChange={(v) => setRole(v as GlobalRole)}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="USER">USER — standard access</SelectItem>
+                <SelectItem value="ADMIN">ADMIN — full access</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          {error && <p className="text-sm text-red-400">{error}</p>}
+          <div className="flex gap-2 pt-2">
+            <Button type="submit" disabled={createUser.isPending} className="flex-1">
+              {createUser.isPending ? 'Creating…' : 'Create Account'}
+            </Button>
+            <SheetClose asChild>
+              <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
+            </SheetClose>
+          </div>
+        </form>
+      </SheetContent>
+    </Sheet>
+  )
+}
+
 function AdminUsersPage() {
   const user = useAuthStore((s) => s.user)
   const [offset, setOffset] = useState(0)
   const [q, setQ] = useState('')
   const [roleFilter, setRoleFilter] = useState<GlobalRole | 'ALL'>('ALL')
   const [pendingChange, setPendingChange] = useState<{ target: UserListItem; newRole: GlobalRole } | null>(null)
+  const [addingUser, setAddingUser] = useState(false)
 
   const { data, isLoading } = useUsers(offset)
   const updateRole = useUpdateUserRole()
@@ -79,7 +154,15 @@ function AdminUsersPage() {
 
   return (
     <div>
-      <PageHeader title="Users" description={`${total} total`} />
+      <PageHeader
+        title="Users"
+        description={`${total} total`}
+        action={
+          <Button size="sm" onClick={() => setAddingUser(true)}>
+            <Plus className="mr-1.5 h-3.5 w-3.5" />Add User
+          </Button>
+        }
+      />
 
       <div className="mb-4 flex flex-wrap items-center gap-2">
         <div className="relative flex-1 min-w-48 max-w-sm">
@@ -169,6 +252,8 @@ function AdminUsersPage() {
           </div>
         </nav>
       )}
+
+      <AddUserSheet open={addingUser} onClose={() => setAddingUser(false)} />
 
       {pendingChange && (
         <ConfirmDialog
