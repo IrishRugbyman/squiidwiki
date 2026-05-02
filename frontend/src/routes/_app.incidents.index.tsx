@@ -62,7 +62,7 @@ function TypeChip({ type }: { type: IncidentType }) {
   )
 }
 
-// ─── Participant builder ──────────────────────────────────────────────────────
+// ─── Participant types ────────────────────────────────────────────────────────
 
 export interface ParticipantDraft {
   member_id: UUID
@@ -78,188 +78,182 @@ export interface SetParticipantDraft {
   outcome: ParticipantOutcome
 }
 
-function ParticipantBuilder({ universeId, participants, onChange, allMembers, setNameById }: {
+// ─── Unified participants section ─────────────────────────────────────────────
+
+const ROLES: ParticipantRole[] = ['SHOOTER', 'ASSISTED', 'BYSTANDER', 'VICTIM']
+const OUTCOMES: ParticipantOutcome[] = ['KILLED', 'INJURED', 'UNHARMED', 'UNKNOWN']
+
+function ParticipantsSection({ universeId, participants, onChangeParticipants, setParticipants, onChangeSetParticipants, allMembers, allSets, setNameById }: {
   universeId: string
   participants: ParticipantDraft[]
-  onChange: (p: ParticipantDraft[]) => void
+  onChangeParticipants: (p: ParticipantDraft[]) => void
+  setParticipants: SetParticipantDraft[]
+  onChangeSetParticipants: (p: SetParticipantDraft[]) => void
   allMembers: MemberListItem[]
+  allSets: SetListItem[]
   setNameById: Record<string, string>
 }) {
-  const [search, setSearch] = useState('')
-  const [role, setRole] = useState<ParticipantRole>('VICTIM')
-  const [outcome, setOutcome] = useState<ParticipantOutcome>('UNKNOWN')
-  const debouncedSearch = useDebounce(search, 200)
-  const { data: results } = useMemberSearch(universeId, debouncedSearch)
+  const [mode, setMode] = useState<'member' | 'set'>('member')
 
-  // Suggest members from the same set(s) as already-added participants.
+  // Member add state
+  const [memberSearch, setMemberSearch] = useState('')
+  const [memberRole, setMemberRole] = useState<ParticipantRole>('VICTIM')
+  const [memberOutcome, setMemberOutcome] = useState<ParticipantOutcome>('UNKNOWN')
+  const debouncedMemberSearch = useDebounce(memberSearch, 200)
+  const { data: memberResults } = useMemberSearch(universeId, debouncedMemberSearch)
+
+  // Set add state
+  const [setSearch, setSetSearch] = useState('')
+  const [setRole, setSetRole] = useState<ParticipantRole>('SHOOTER')
+  const [setOutcome, setSetOutcome] = useState<ParticipantOutcome>('UNKNOWN')
+
+  const addedMemberIds = new Set(participants.map((p) => p.member_id))
+  const addedSetIds = new Set(setParticipants.map((p) => p.set_id))
+
   const suggestions = useMemo(() => {
     if (participants.length === 0 || allMembers.length === 0) return [] as MemberListItem[]
     const memberMap = Object.fromEntries(allMembers.map((m) => [m.id, m]))
-    const addedIds = new Set(participants.map((p) => p.member_id))
     const setIds = new Set<string>()
     for (const p of participants) {
       const sid = memberMap[p.member_id]?.set_id
       if (sid) setIds.add(sid)
     }
     if (setIds.size === 0) return []
-    return allMembers
-      .filter((m) => m.set_id && setIds.has(m.set_id) && !addedIds.has(m.id))
-      .slice(0, 8)
-  }, [allMembers, participants])
+    return allMembers.filter((m) => m.set_id && setIds.has(m.set_id) && !addedMemberIds.has(m.id)).slice(0, 8)
+  }, [allMembers, participants, addedMemberIds])
 
-  function addParticipant(memberId: UUID, memberName: string) {
-    if (participants.some((p) => p.member_id === memberId)) return
-    onChange([...participants, { member_id: memberId, member_name: memberName, role, outcome }])
-    setSearch('')
-  }
-
-  return (
-    <div className="space-y-3">
-      <div className="grid grid-cols-2 gap-2">
-        <div className="space-y-1">
-          <Label>Role</Label>
-          <Select value={role} onValueChange={(v) => setRole(v as ParticipantRole)}>
-            <SelectTrigger><SelectValue /></SelectTrigger>
-            <SelectContent>
-              {(['SHOOTER', 'ASSISTED', 'BYSTANDER', 'VICTIM'] as ParticipantRole[]).map((r) => (
-                <SelectItem key={r} value={r}>{r}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-        <div className="space-y-1">
-          <Label>Outcome</Label>
-          <Select value={outcome} onValueChange={(v) => setOutcome(v as ParticipantOutcome)}>
-            <SelectTrigger><SelectValue /></SelectTrigger>
-            <SelectContent>
-              {(['KILLED', 'INJURED', 'UNHARMED', 'UNKNOWN'] as ParticipantOutcome[]).map((o) => (
-                <SelectItem key={o} value={o}>{o}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
-      <Input placeholder="Search member to add…" value={search} onChange={(e) => setSearch(e.target.value)} />
-      {results && results.length > 0 && search.length >= 2 && (
-        <div className="max-h-32 overflow-y-auto rounded border border-zinc-800 bg-zinc-950">
-          {results.map((m) => (
-            <button key={m.id} type="button" onClick={() => addParticipant(m.id, m.display_name)}
-              className="w-full px-3 py-2 text-left text-sm text-zinc-300 hover:bg-zinc-800 transition-colors">
-              {m.display_name}
-            </button>
-          ))}
-        </div>
-      )}
-      {search.length < 2 && suggestions.length > 0 && (
-        <div className="space-y-1">
-          <div className="text-[11px] font-medium uppercase tracking-wider text-zinc-500">
-            Suggested from same set
-          </div>
-          <div className="max-h-40 overflow-y-auto rounded border border-zinc-800 bg-zinc-950">
-            {suggestions.map((m) => (
-              <button key={m.id} type="button" onClick={() => addParticipant(m.id, m.display_name)}
-                className="w-full px-3 py-2 text-left text-sm text-zinc-300 hover:bg-zinc-800 transition-colors flex items-center justify-between gap-2">
-                <span className="truncate">{m.display_name}</span>
-                {m.set_id && setNameById[m.set_id] && (
-                  <span className="text-[10px] text-zinc-500 shrink-0 truncate max-w-[40%]">{setNameById[m.set_id]}</span>
-                )}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-      {participants.length > 0 && (
-        <div className="space-y-1.5">
-          {participants.map((p) => (
-            <div key={p.member_id} className="flex items-center justify-between rounded border border-zinc-800 px-3 py-1.5 text-sm">
-              <span className="text-zinc-200">{p.member_name}</span>
-              <div className="flex items-center gap-2">
-                <Badge variant="secondary" className="text-xs">{p.role}</Badge>
-                <Badge variant="outline" className="text-xs">{p.outcome}</Badge>
-                <button type="button" onClick={() => onChange(participants.filter((x) => x.member_id !== p.member_id))}
-                  className="text-zinc-600 hover:text-red-400 transition-colors text-xs">✕</button>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  )
-}
-
-// ─── Set participant builder ──────────────────────────────────────────────────
-
-function SetParticipantBuilder({ setParticipants, onChange, allSets }: {
-  setParticipants: SetParticipantDraft[]
-  onChange: (p: SetParticipantDraft[]) => void
-  allSets: SetListItem[]
-}) {
-  const [search, setSearch] = useState('')
-  const [role, setRole] = useState<ParticipantRole>('SHOOTER')
-  const [outcome, setOutcome] = useState<ParticipantOutcome>('UNKNOWN')
-
-  const addedIds = new Set(setParticipants.map((p) => p.set_id))
-  const filtered = search.length >= 1
-    ? allSets.filter((s) => s.name.toLowerCase().includes(search.toLowerCase()) && !addedIds.has(s.id)).slice(0, 8)
+  const filteredSets = setSearch.length >= 1
+    ? allSets.filter((s) => s.name.toLowerCase().includes(setSearch.toLowerCase()) && !addedSetIds.has(s.id)).slice(0, 8)
     : []
 
-  function add(s: SetListItem) {
-    if (addedIds.has(s.id)) return
-    onChange([...setParticipants, { set_id: s.id, set_name: s.name, role, outcome }])
-    setSearch('')
+  function addMember(id: UUID, name: string) {
+    if (addedMemberIds.has(id)) return
+    onChangeParticipants([...participants, { member_id: id, member_name: name, role: memberRole, outcome: memberOutcome }])
+    setMemberSearch('')
   }
 
+  function addSet(s: SetListItem) {
+    if (addedSetIds.has(s.id)) return
+    onChangeSetParticipants([...setParticipants, { set_id: s.id, set_name: s.name, role: setRole, outcome: setOutcome }])
+    setSetSearch('')
+  }
+
+  const total = participants.length + setParticipants.length
+
   return (
-    <div className="space-y-2">
-      <div className="grid grid-cols-2 gap-2">
-        <div className="space-y-1">
-          <Label>Role</Label>
-          <Select value={role} onValueChange={(v) => setRole(v as ParticipantRole)}>
-            <SelectTrigger><SelectValue /></SelectTrigger>
-            <SelectContent>
-              {(['SHOOTER', 'ASSISTED', 'BYSTANDER', 'VICTIM'] as ParticipantRole[]).map((r) => (
-                <SelectItem key={r} value={r}>{r}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-        <div className="space-y-1">
-          <Label>Outcome</Label>
-          <Select value={outcome} onValueChange={(v) => setOutcome(v as ParticipantOutcome)}>
-            <SelectTrigger><SelectValue /></SelectTrigger>
-            <SelectContent>
-              {(['KILLED', 'INJURED', 'UNHARMED', 'UNKNOWN'] as ParticipantOutcome[]).map((o) => (
-                <SelectItem key={o} value={o}>{o}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+    <div className="rounded-lg border border-zinc-800 bg-zinc-900/50 p-3 space-y-3">
+      <div className="flex items-center justify-between">
+        <span className="text-xs font-medium uppercase tracking-wider text-zinc-400">
+          Participants{total > 0 && <span className="ml-1.5 text-zinc-500">({total})</span>}
+        </span>
+        <div className="flex rounded border border-zinc-700 overflow-hidden text-xs">
+          <button type="button"
+            onClick={() => setMode('member')}
+            className={`px-2.5 py-1 transition-colors ${mode === 'member' ? 'bg-zinc-700 text-white' : 'text-zinc-400 hover:bg-zinc-800'}`}>
+            Member
+          </button>
+          <button type="button"
+            onClick={() => setMode('set')}
+            className={`px-2.5 py-1 transition-colors ${mode === 'set' ? 'bg-zinc-700 text-white' : 'text-zinc-400 hover:bg-zinc-800'}`}>
+            Set
+          </button>
         </div>
       </div>
-      <Input placeholder="Search set to add…" value={search} onChange={(e) => setSearch(e.target.value)} />
-      {filtered.length > 0 && (
-        <div className="max-h-32 overflow-y-auto rounded border border-zinc-800 bg-zinc-950">
-          {filtered.map((s) => (
-            <button key={s.id} type="button" onClick={() => add(s)}
-              className="w-full px-3 py-2 text-left text-sm text-zinc-300 hover:bg-zinc-800 transition-colors">
-              {s.name}
-            </button>
-          ))}
-        </div>
+
+      <div className="grid grid-cols-2 gap-2">
+        <Select value={mode === 'member' ? memberRole : setRole} onValueChange={(v) => mode === 'member' ? setMemberRole(v as ParticipantRole) : setSetRole(v as ParticipantRole)}>
+          <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Role" /></SelectTrigger>
+          <SelectContent>
+            {ROLES.map((r) => <SelectItem key={r} value={r} className="text-xs">{r}</SelectItem>)}
+          </SelectContent>
+        </Select>
+        <Select value={mode === 'member' ? memberOutcome : setOutcome} onValueChange={(v) => mode === 'member' ? setMemberOutcome(v as ParticipantOutcome) : setSetOutcome(v as ParticipantOutcome)}>
+          <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Outcome" /></SelectTrigger>
+          <SelectContent>
+            {OUTCOMES.map((o) => <SelectItem key={o} value={o} className="text-xs">{o}</SelectItem>)}
+          </SelectContent>
+        </Select>
+      </div>
+
+      {mode === 'member' ? (
+        <>
+          <Input className="h-8 text-sm" placeholder="Search member…" value={memberSearch} onChange={(e) => setMemberSearch(e.target.value)} />
+          {memberResults && memberResults.length > 0 && memberSearch.length >= 2 && (
+            <div className="max-h-32 overflow-y-auto rounded border border-zinc-800 bg-zinc-950">
+              {memberResults.map((m) => (
+                <button key={m.id} type="button" onClick={() => addMember(m.id, m.display_name)}
+                  className="w-full px-3 py-2 text-left text-sm text-zinc-300 hover:bg-zinc-800 transition-colors">
+                  {m.display_name}
+                </button>
+              ))}
+            </div>
+          )}
+          {memberSearch.length < 2 && suggestions.length > 0 && (
+            <div className="space-y-1">
+              <p className="text-[10px] font-medium uppercase tracking-wider text-zinc-500">Suggested · same set</p>
+              <div className="max-h-32 overflow-y-auto rounded border border-zinc-800 bg-zinc-950">
+                {suggestions.map((m) => (
+                  <button key={m.id} type="button" onClick={() => addMember(m.id, m.display_name)}
+                    className="w-full px-3 py-2 text-left text-sm text-zinc-300 hover:bg-zinc-800 transition-colors flex items-center justify-between gap-2">
+                    <span className="truncate">{m.display_name}</span>
+                    {m.set_id && setNameById[m.set_id] && (
+                      <span className="text-[10px] text-zinc-500 shrink-0 truncate max-w-[40%]">{setNameById[m.set_id]}</span>
+                    )}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+        </>
+      ) : (
+        <>
+          <Input className="h-8 text-sm" placeholder="Search set…" value={setSearch} onChange={(e) => setSetSearch(e.target.value)} />
+          {filteredSets.length > 0 && (
+            <div className="max-h-32 overflow-y-auto rounded border border-zinc-800 bg-zinc-950">
+              {filteredSets.map((s) => (
+                <button key={s.id} type="button" onClick={() => addSet(s)}
+                  className="w-full px-3 py-2 text-left text-sm text-zinc-300 hover:bg-zinc-800 transition-colors">
+                  {s.name}
+                </button>
+              ))}
+            </div>
+          )}
+          <p className="text-[11px] text-zinc-600">Use when the individual shooter is unknown.</p>
+        </>
       )}
-      {setParticipants.length > 0 && (
-        <div className="space-y-1.5">
+
+      {total > 0 && (
+        <div className="space-y-1 pt-1 border-t border-zinc-800">
+          {participants.map((p) => (
+            <div key={p.member_id} className="flex items-center justify-between rounded border border-zinc-800 px-2.5 py-1.5 text-sm">
+              <span className="text-zinc-200 truncate">{p.member_name}</span>
+              <div className="flex items-center gap-1.5 shrink-0">
+                <Badge variant="secondary" className="text-[10px] px-1.5">{p.role}</Badge>
+                <Badge variant="outline" className="text-[10px] px-1.5">{p.outcome}</Badge>
+                <button type="button" onClick={() => onChangeParticipants(participants.filter((x) => x.member_id !== p.member_id))}
+                  className="text-zinc-600 hover:text-red-400 transition-colors">✕</button>
+              </div>
+            </div>
+          ))}
           {setParticipants.map((p) => (
-            <div key={p.set_id} className="flex items-center justify-between rounded border border-zinc-800 px-3 py-1.5 text-sm">
-              <span className="text-zinc-200">{p.set_name}</span>
-              <div className="flex items-center gap-2">
-                <Badge variant="secondary" className="text-xs">{p.role}</Badge>
-                <Badge variant="outline" className="text-xs">{p.outcome}</Badge>
-                <button type="button" onClick={() => onChange(setParticipants.filter((x) => x.set_id !== p.set_id))}
-                  className="text-zinc-600 hover:text-red-400 transition-colors text-xs">✕</button>
+            <div key={p.set_id} className="flex items-center justify-between rounded border border-zinc-800 px-2.5 py-1.5 text-sm">
+              <span className="text-zinc-200 truncate">{p.set_name}</span>
+              <div className="flex items-center gap-1.5 shrink-0">
+                <Badge variant="outline" className="text-[10px] px-1.5 text-zinc-500 border-zinc-700">set</Badge>
+                <Badge variant="secondary" className="text-[10px] px-1.5">{p.role}</Badge>
+                <Badge variant="outline" className="text-[10px] px-1.5">{p.outcome}</Badge>
+                <button type="button" onClick={() => onChangeSetParticipants(setParticipants.filter((x) => x.set_id !== p.set_id))}
+                  className="text-zinc-600 hover:text-red-400 transition-colors">✕</button>
               </div>
             </div>
           ))}
         </div>
+      )}
+
+      {participants.some((p) => p.outcome === 'KILLED') && (
+        <p className="text-[11px] text-zinc-500">
+          <span className="font-medium text-zinc-400">KILLED</span> participants will be marked DEAD on save.
+        </p>
       )}
     </div>
   )
@@ -297,12 +291,19 @@ export function IncidentFormSheet({ universeId, open, onClose, initial, defaultP
     return map
   }, [allSetsData])
 
+  const allMunis = munis?.items ?? []
+  const topLevelMunis = useMemo(
+    () => allMunis.filter((m) => !m.parent_id).sort((a, b) => a.name.localeCompare(b.name)),
+    [allMunis],
+  )
+
   const [type, setType] = useState<IncidentType>(initial?.type ?? 'SHOOTING')
   const [date, setDate] = useState<FuzzyDateValue | null>(initial?.date ?? null)
   const [locationText, setLocationText] = useState(initial?.location_text ?? '')
   const [lat, setLat] = useState<string>(initial?.lat != null ? String(initial.lat) : '')
   const [lng, setLng] = useState<string>(initial?.lng != null ? String(initial.lng) : '')
-  const [municipalityId, setMunicipalityId] = useState<string>(initial?.municipality_id ?? defaultMunicipalityId ?? '')
+  const [cityId, setCityId] = useState<string>('')
+  const [subDistrictId, setSubDistrictId] = useState<string>('')
   const [narrative, setNarrative] = useState(initial?.narrative ?? '')
   const [verified, setVerified] = useState(initial?.verified ?? false)
   const [participants, setParticipants] = useState<ParticipantDraft[]>(() =>
@@ -348,6 +349,30 @@ export function IncidentFormSheet({ universeId, open, onClose, initial, defaultP
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [setNameById])
 
+  // Resolve municipality_id into city + sub-district once muni list loads
+  useEffect(() => {
+    if (allMunis.length === 0) return
+    const initialId = initial?.municipality_id ?? defaultMunicipalityId ?? ''
+    if (!initialId) return
+    const muni = allMunis.find((m) => m.id === initialId)
+    if (!muni) return
+    if (muni.parent_id) {
+      setCityId(muni.parent_id)
+      setSubDistrictId(muni.id)
+    } else {
+      setCityId(muni.id)
+      setSubDistrictId('')
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [allMunis.length])
+
+  const subDistricts = useMemo(
+    () => allMunis.filter((m) => m.parent_id === cityId).sort((a, b) => a.name.localeCompare(b.name)),
+    [allMunis, cityId],
+  )
+
+  const effectiveMunicipalityId = subDistrictId || cityId || null
+
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     setError(null)
@@ -358,7 +383,7 @@ export function IncidentFormSheet({ universeId, open, onClose, initial, defaultP
         location_text: locationText || null,
         lat: lat !== '' ? parseFloat(lat) : null,
         lng: lng !== '' ? parseFloat(lng) : null,
-        municipality_id: municipalityId || null,
+        municipality_id: effectiveMunicipalityId,
         narrative: narrative || null,
         verified,
         participants: participants.map(({ member_id, role, outcome }) => ({ member_id, role, outcome })),
@@ -370,7 +395,7 @@ export function IncidentFormSheet({ universeId, open, onClose, initial, defaultP
       } else {
         await create.mutateAsync(body)
         toast.success(`Recorded ${type.toLowerCase()} incident`)
-        setType('SHOOTING'); setDate(null); setLocationText(''); setLat(''); setLng(''); setMunicipalityId('')
+        setType('SHOOTING'); setDate(null); setLocationText(''); setLat(''); setLng(''); setCityId(''); setSubDistrictId('')
         setNarrative(''); setVerified(false); setParticipants([]); updateSetLevelParticipants([])
       }
       onClose()
@@ -385,67 +410,79 @@ export function IncidentFormSheet({ universeId, open, onClose, initial, defaultP
     <Sheet open={open} onOpenChange={(v) => !v && onClose()}>
       <SheetContent title={isEdit ? 'Edit Incident' : 'Add Incident'} description={isEdit ? 'Update this incident' : 'Record a new incident'}>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-1.5">
-            <Label>Type</Label>
-            <Select value={type} onValueChange={(v) => setType(v as IncidentType)}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="SHOOTING">Shooting</SelectItem>
-                <SelectItem value="MURDER">Murder</SelectItem>
-              </SelectContent>
-            </Select>
+          <div className="flex items-end gap-3">
+            <div className="flex-1 space-y-1.5">
+              <Label>Type</Label>
+              <Select value={type} onValueChange={(v) => setType(v as IncidentType)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="SHOOTING">Shooting</SelectItem>
+                  <SelectItem value="MURDER">Murder</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex items-center gap-2 pb-2">
+              <input id="inc-verified" type="checkbox" checked={verified} onChange={(e) => setVerified(e.target.checked)}
+                className="rounded border-zinc-700 bg-zinc-900 accent-violet-600" />
+              <label htmlFor="inc-verified" className="text-sm text-zinc-300">Verified</label>
+            </div>
           </div>
           <div className="rounded-lg border border-zinc-800 bg-zinc-900/50 p-3">
             <FuzzyDateInput value={date} onChange={setDate} label="Date" idPrefix="inc-date" />
           </div>
-          <div className="space-y-1.5">
-            <Label>Municipality</Label>
-            <Select value={municipalityId || 'none'} onValueChange={(v) => setMunicipalityId(v === 'none' ? '' : v)}>
-              <SelectTrigger><SelectValue placeholder="None" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">— None —</SelectItem>
-                {(munis?.items ?? []).map((m) => (
-                  <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="inc-loc">Location</Label>
-            <Input id="inc-loc" value={locationText} onChange={(e) => setLocationText(e.target.value)} placeholder="Street address or area" />
-          </div>
-          <div className="grid grid-cols-2 gap-2">
+          <div className="rounded-lg border border-zinc-800 bg-zinc-900/50 p-3 space-y-3">
+            <p className="text-xs font-medium uppercase tracking-wider text-zinc-400">Location</p>
             <div className="space-y-1.5">
-              <Label htmlFor="inc-lat">Latitude</Label>
-              <Input id="inc-lat" type="number" step="any" value={lat} onChange={(e) => setLat(e.target.value)} placeholder="41.8781" />
+              <Label className="text-zinc-300">City</Label>
+              <Select value={cityId || 'none'} onValueChange={(v) => { setCityId(v === 'none' ? '' : v); setSubDistrictId('') }}>
+                <SelectTrigger><SelectValue placeholder="None" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">— None —</SelectItem>
+                  {topLevelMunis.map((m) => (
+                    <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
+            {cityId && subDistricts.length > 0 && (
+              <div className="space-y-1.5">
+                <Label className="text-zinc-300">Sub-district</Label>
+                <Select value={subDistrictId || 'none'} onValueChange={(v) => setSubDistrictId(v === 'none' ? '' : v)}>
+                  <SelectTrigger><SelectValue placeholder="City level" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">— City level —</SelectItem>
+                    {subDistricts.map((m) => (
+                      <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
             <div className="space-y-1.5">
-              <Label htmlFor="inc-lng">Longitude</Label>
-              <Input id="inc-lng" type="number" step="any" value={lng} onChange={(e) => setLng(e.target.value)} placeholder="-87.6298" />
+              <Label htmlFor="inc-loc" className="text-zinc-300">Address / Area</Label>
+              <Input id="inc-loc" value={locationText} onChange={(e) => setLocationText(e.target.value)} placeholder="Street address or intersection" />
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div className="space-y-1.5">
+                <Label htmlFor="inc-lat" className="text-xs text-zinc-500">Latitude</Label>
+                <Input id="inc-lat" type="number" step="any" value={lat} onChange={(e) => setLat(e.target.value)} placeholder="41.8781" className="h-8 text-sm" />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="inc-lng" className="text-xs text-zinc-500">Longitude</Label>
+                <Input id="inc-lng" type="number" step="any" value={lng} onChange={(e) => setLng(e.target.value)} placeholder="-87.6298" className="h-8 text-sm" />
+              </div>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <input id="inc-verified" type="checkbox" checked={verified} onChange={(e) => setVerified(e.target.checked)}
-              className="rounded border-zinc-700 bg-zinc-900 accent-violet-600" />
-            <label htmlFor="inc-verified" className="text-sm text-zinc-300">Verified</label>
-          </div>
-          <div className="space-y-1.5">
-            <Label>Member Participants</Label>
-            <ParticipantBuilder universeId={universeId} participants={participants} onChange={setParticipants}
-              allMembers={allMembersList} setNameById={setNameById} />
-            <p className="text-[11px] text-zinc-500">
-              Marking a participant <span className="font-medium text-zinc-400">KILLED</span> will set their member status to DEAD and link them to this incident on save.
-            </p>
-          </div>
-          <div className="space-y-1.5">
-            <Label>Set-Level Participants</Label>
-            <p className="text-[11px] text-zinc-500 -mt-1">Use when the individual shooter is unknown — tag the set instead.</p>
-            <SetParticipantBuilder
-              setParticipants={setLevelParticipants}
-              onChange={updateSetLevelParticipants}
-              allSets={allSetsData?.items ?? []}
-            />
-          </div>
+          <ParticipantsSection
+            universeId={universeId}
+            participants={participants}
+            onChangeParticipants={setParticipants}
+            setParticipants={setLevelParticipants}
+            onChangeSetParticipants={updateSetLevelParticipants}
+            allMembers={allMembersList}
+            allSets={allSetsData?.items ?? []}
+            setNameById={setNameById}
+          />
           <div className="space-y-1.5">
             <Label htmlFor="inc-narrative">Narrative</Label>
             <Textarea
