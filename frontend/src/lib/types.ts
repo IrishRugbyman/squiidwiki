@@ -146,6 +146,7 @@ export interface SetListItem {
   universe_id: UUID
   alliance_id: UUID | null
   municipality_id: UUID | null
+  is_reserved: boolean
   primary_photo_url: string | null
   primary_photo_thumb_url: string | null
 }
@@ -257,12 +258,14 @@ export interface IncidentListItem {
   id: UUID
   type: IncidentType
   date: FuzzyDateValue | null
+  location_text: string | null
   municipality_id: UUID | null
   lat: number | null
   lng: number | null
   verified: boolean
   universe_id: UUID
   victim_names: string[]
+  shooter_names: string[]
 }
 
 export interface IncidentRead extends IncidentListItem {

@@ -44,6 +44,24 @@ async def get_current_user(
 CurrentUser = Annotated[User, Depends(get_current_user)]
 
 
+async def get_current_user_optional(
+    token: Annotated[str | None, Depends(OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login/form", auto_error=False))],
+    session: Annotated[AsyncSession, Depends(get_prod_session)],
+) -> User | None:
+    """Like get_current_user but returns None instead of 401 when unauthenticated."""
+    if not token:
+        return None
+    try:
+        payload = decode_token(token)
+        if payload.get("type") != "access":
+            return None
+        user_id = uuid.UUID(payload["sub"])
+    except Exception:
+        return None
+    from app.auth.crud import get_user_by_id
+    return await get_user_by_id(session, user_id)
+
+
 def require_global_role(min_role: GlobalRole):
     role_order = {GlobalRole.USER: 0, GlobalRole.ADMIN: 1}
 

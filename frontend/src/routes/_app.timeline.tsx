@@ -52,31 +52,47 @@ function TimelinePage() {
   const events = useMemo<TimelineEvent[]>(() => {
     const out: TimelineEvent[] = []
 
+    // Map of "name|year-month-day" → true for every victim already described in an incident row.
+    // Used below to suppress redundant "Member died" entries.
+    const incidentVictimKeys = new Set<string>()
+
     for (const inc of incidentsData?.items ?? []) {
       if (!inc.date?.year) continue
+      const shooters = inc.shooter_names ?? []
+      const victims = inc.victim_names ?? []
+      const verb = inc.type === 'MURDER' ? 'killed' : 'shot'
+      const fmt = (names: string[], max = 3) =>
+        names.slice(0, max).join(', ') + (names.length > max ? ` +${names.length - max}` : '')
+      const secondary =
+        shooters.length > 0 && victims.length > 0 ? `${fmt(shooters)} ${verb} ${fmt(victims)}`
+        : victims.length > 0 ? `Victim${victims.length === 1 ? '' : 's'}: ${fmt(victims)}`
+        : shooters.length > 0 ? `Shooter${shooters.length === 1 ? '' : 's'}: ${fmt(shooters)}`
+        : undefined
       out.push({
         kind: inc.type === 'MURDER' ? 'MURDER' : 'SHOOTING',
         date: inc.date,
         id: inc.id,
         slug: inc.id,
         primary: inc.type === 'MURDER' ? 'Murder' : 'Shooting',
-        secondary: inc.victim_names.length > 0
-          ? `Victim${inc.victim_names.length === 1 ? '' : 's'}: ${inc.victim_names.slice(0, 3).join(', ')}${inc.victim_names.length > 3 ? ` +${inc.victim_names.length - 3}` : ''}`
-          : undefined,
+        secondary,
       })
+      const dateKey = `${inc.date.year}-${inc.date.month ?? 0}-${inc.date.day ?? 0}`
+      for (const name of victims) incidentVictimKeys.add(`${name}|${dateKey}`)
     }
 
     for (const m of membersData?.items ?? []) {
-      if (m.date_of_death?.year) {
-        out.push({
-          kind: 'DEATH',
-          date: m.date_of_death,
-          id: m.id,
-          slug: m.slug ?? m.id,
-          primary: m.display_name,
-          secondary: 'died',
-        })
-      }
+      if (!m.date_of_death?.year) continue
+      const dateKey = `${m.date_of_death.year}-${m.date_of_death.month ?? 0}-${m.date_of_death.day ?? 0}`
+      // Skip if this death is already described by an incident victim row on the same date.
+      if (incidentVictimKeys.has(`${m.display_name}|${dateKey}`)) continue
+      out.push({
+        kind: 'DEATH',
+        date: m.date_of_death,
+        id: m.id,
+        slug: m.slug ?? m.id,
+        primary: m.display_name,
+        secondary: 'died',
+      })
     }
 
     out.sort((x, y) => sortableKey(y.date) - sortableKey(x.date))

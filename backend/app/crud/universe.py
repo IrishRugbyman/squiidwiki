@@ -3,8 +3,10 @@ import uuid
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import func, select
 
+from app.models.auth import UserUniverseAccess
 from app.models.universe import Universe
 from app.schemas.universe import UniverseCreate, UniverseUpdate
+from app.crud.gang_set import seed_reserved_sets
 
 
 async def create_universe(
@@ -14,6 +16,7 @@ async def create_universe(
     session.add(obj)
     await session.commit()
     await session.refresh(obj)
+    await seed_reserved_sets(session, obj.id)
     return obj
 
 
@@ -28,6 +31,32 @@ async def list_universes(
     total = count_result.scalar_one()
     result = await session.execute(select(Universe).offset(offset).limit(limit))
     return result.scalars().all(), total
+
+
+async def list_universes_for_user(
+    session: AsyncSession, user_id: uuid.UUID, offset: int = 0, limit: int = 50
+) -> tuple[list[Universe], int]:
+    stmt = (
+        select(Universe)
+        .join(UserUniverseAccess, UserUniverseAccess.universe_id == Universe.id)
+        .where(UserUniverseAccess.user_id == user_id)
+    )
+    count_result = await session.execute(select(func.count()).select_from(stmt.subquery()))
+    total = count_result.scalar_one()
+    result = await session.execute(stmt.offset(offset).limit(limit))
+    return result.scalars().all(), total
+
+
+async def user_has_universe_access(
+    session: AsyncSession, user_id: uuid.UUID, universe_id: uuid.UUID
+) -> bool:
+    row = await session.execute(
+        select(UserUniverseAccess).where(
+            UserUniverseAccess.user_id == user_id,
+            UserUniverseAccess.universe_id == universe_id,
+        )
+    )
+    return row.scalar_one_or_none() is not None
 
 
 async def update_universe(

@@ -17,9 +17,10 @@ from app.auth.crud import (
     revoke_refresh_token,
     set_last_login,
 )
-from app.auth.dependencies import CurrentUser, require_global_role
+from app.auth.dependencies import CurrentUser, get_current_user, get_current_user_optional, require_global_role
 from app.auth.schemas import CreateUserRequest, LoginRequest, TokenResponse, UserRead
 from app.auth.security import create_access_token, create_refresh_token, decode_token, hash_password
+from app.core.config import settings
 from app.core.database import get_prod_session as get_session
 from app.core.enums import GlobalRole
 from app.models.auth import User
@@ -28,7 +29,7 @@ from app.schemas.common import OffsetPage
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 REFRESH_COOKIE = "refresh_token"
-COOKIE_OPTS = dict(httponly=True, samesite="lax", secure=False)  # secure=True in prod
+COOKIE_OPTS = dict(httponly=True, samesite="lax", secure=settings.environment != "development")
 
 
 def _set_refresh_cookie(response: Response, token: str) -> None:
@@ -132,13 +133,22 @@ async def me(current_user: CurrentUser) -> UserRead:
 async def register(
     body: CreateUserRequest,
     session: Annotated[AsyncSession, Depends(get_session)],
+    current_user: Annotated[User | None, Depends(get_current_user_optional)],
 ) -> UserRead:
-    """Admin bootstrap only — lock this down with require_global_role in production."""
+    """Create a user. Open only when the DB has no users (bootstrap); otherwise requires ADMIN."""
     from app.auth.crud import get_user_by_email
+    from sqlmodel import func as _func
+
+    user_count = (await session.execute(select(_func.count()).select_from(User))).scalar_one()
+    if user_count > 0:
+        if current_user is None or current_user.global_role != GlobalRole.ADMIN:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin required")
     existing = await get_user_by_email(session, body.email)
     if existing:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Email already registered")
-    user = await create_user(session, body.email, body.password, body.global_role)
+    # Bootstrap first user is always ADMIN; subsequent users respect the requested role.
+    role = body.global_role if user_count > 0 else GlobalRole.ADMIN
+    user = await create_user(session, body.email, body.password, role)
     return UserRead.model_validate(user)
 
 

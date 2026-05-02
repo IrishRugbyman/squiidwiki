@@ -15,10 +15,10 @@ scheduler = AsyncIOScheduler()
 
 
 async def refresh_stats() -> None:
-    from app.core.database import AsyncSessionLocal
+    from app.core.database import _session_factories
     from app.crud.stats import refresh_materialized_views
 
-    async with AsyncSessionLocal() as session:
+    async with _session_factories["prod"]() as session:
         await refresh_materialized_views(session)
 
 

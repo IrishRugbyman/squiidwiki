@@ -337,7 +337,7 @@ function SetDetailPage() {
         <>
           <div className="mb-4 flex items-start justify-between gap-4">
             <div className="flex items-start gap-4">
-              <SetAvatar name={set.name} thumbUrl={set.primary_photo_thumb_url} size="md" />
+              <SetAvatar name={set.name} thumbUrl={set.primary_photo_thumb_url} size="md" isReserved={set.is_reserved} />
               <div>
                 <div className="flex items-center gap-1.5">
                   <h1 className="text-2xl font-bold text-white">{set.name}</h1>
@@ -348,7 +348,12 @@ function SetDetailPage() {
                 )}
                 <div className="mt-2 flex flex-wrap items-center gap-2">
                   <SetStatusBadge status={set.status} />
-                  {alliance && (
+                  {set.is_reserved && (
+                    <span className="inline-flex items-center rounded-full border border-zinc-700 bg-zinc-800/60 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-zinc-400">
+                      System
+                    </span>
+                  )}
+                  {!set.is_reserved && alliance && (
                     <Link
                       to="/alliances/$id"
                       params={{ id: alliance.slug ?? alliance.id }}
@@ -357,7 +362,7 @@ function SetDetailPage() {
                       {alliance.name}
                     </Link>
                   )}
-                  {muni && set.municipality_id && (
+                  {!set.is_reserved && muni && set.municipality_id && (
                     <Link
                       to="/municipalities/$id"
                       params={{ id: set.municipality_id }}
@@ -367,7 +372,7 @@ function SetDetailPage() {
                       {muni.name}
                     </Link>
                   )}
-                  {territoryNames.length > 0 && (
+                  {!set.is_reserved && territoryNames.length > 0 && (
                     <span
                       className="inline-flex items-center gap-1 rounded-full border border-zinc-800 bg-zinc-900/50 px-2 py-0.5 text-xs text-zinc-500"
                       title={territoryNames.join(', ')}
@@ -383,10 +388,12 @@ function SetDetailPage() {
               <Button size="sm" variant="outline" onClick={() => setEditing(true)}>
                 <Pencil className="mr-1.5 h-3.5 w-3.5" />Edit
               </Button>
-              <Button size="sm" variant="outline" onClick={() => setDuplicating(true)}>
-                <Copy className="mr-1.5 h-3.5 w-3.5" />Duplicate
-              </Button>
-              {user?.global_role === 'ADMIN' && (
+              {!set.is_reserved && (
+                <Button size="sm" variant="outline" onClick={() => setDuplicating(true)}>
+                  <Copy className="mr-1.5 h-3.5 w-3.5" />Duplicate
+                </Button>
+              )}
+              {user?.global_role === 'ADMIN' && !set.is_reserved && (
                 <Button size="sm" variant="destructive" onClick={() => setDeleting(true)}>
                   <Trash2 className="mr-1.5 h-3.5 w-3.5" />Delete
                 </Button>
@@ -398,7 +405,15 @@ function SetDetailPage() {
             <p className="mb-4 text-sm text-zinc-400 leading-relaxed max-w-2xl">{set.bio}</p>
           )}
 
-          {stats && (
+          {set.is_reserved && (
+            <div className="mb-4 rounded-lg border border-zinc-700 bg-zinc-900/50 px-4 py-3 text-sm text-zinc-400">
+              <span className="font-medium text-zinc-300">System set.</span>{' '}
+              Used for incident attribution when the actor is a {set.name.toLowerCase()} (not a real crew).
+              Only the bio can be edited; this set cannot be renamed, reassigned, or deleted.
+            </div>
+          )}
+
+          {!set.is_reserved && stats && (
             <div className="mb-6 grid grid-cols-5 gap-2">
               <StatPill label="Members" value={stats.member_count} />
               <StatPill label="Dead" value={stats.dead_members} accent="text-zinc-400" />
@@ -408,32 +423,36 @@ function SetDetailPage() {
             </div>
           )}
 
-          <Tabs defaultValue="members">
+          <Tabs defaultValue={set.is_reserved ? 'incidents' : 'members'}>
             <TabsList>
-              <TabsTrigger value="members">
-                Members
-                {membersData && membersData.items.length > 0 && (
-                  <Badge variant="secondary" className="ml-1.5 text-xs px-1.5 py-0">{membersData.items.length}</Badge>
-                )}
-              </TabsTrigger>
+              {!set.is_reserved && (
+                <TabsTrigger value="members">
+                  Members
+                  {membersData && membersData.items.length > 0 && (
+                    <Badge variant="secondary" className="ml-1.5 text-xs px-1.5 py-0">{membersData.items.length}</Badge>
+                  )}
+                </TabsTrigger>
+              )}
               <TabsTrigger value="incidents">
                 Incidents
                 {incidentsData && incidentsData.items.length > 0 && (
                   <Badge variant="secondary" className="ml-1.5 text-xs px-1.5 py-0">{incidentsData.items.length}</Badge>
                 )}
               </TabsTrigger>
-              <TabsTrigger value="relationships">
-                Relationships
-                {hasRelationships && (
-                  <Badge variant="secondary" className="ml-1.5 text-xs px-1.5 py-0">
-                    {set.friend_ids.length + set.enemy_ids.length}
-                  </Badge>
-                )}
-              </TabsTrigger>
-              <TabsTrigger value="photos">Photos</TabsTrigger>
+              {!set.is_reserved && (
+                <TabsTrigger value="relationships">
+                  Relationships
+                  {hasRelationships && (
+                    <Badge variant="secondary" className="ml-1.5 text-xs px-1.5 py-0">
+                      {set.friend_ids.length + set.enemy_ids.length}
+                    </Badge>
+                  )}
+                </TabsTrigger>
+              )}
+              {!set.is_reserved && <TabsTrigger value="photos">Photos</TabsTrigger>}
             </TabsList>
 
-            <TabsContent value="members" className="mt-4">
+            {!set.is_reserved && <TabsContent value="members" className="mt-4">
               <div className="mb-3 flex flex-wrap items-center gap-2">
                 {memberItems.length > 5 && (
                   <div className="relative max-w-xs flex-1">
@@ -533,7 +552,7 @@ function SetDetailPage() {
                   </table>
                 </div>
               )}
-            </TabsContent>
+            </TabsContent>}
 
             <TabsContent value="incidents" className="mt-4">
               {incidentItems.length === 0 ? (
@@ -602,7 +621,7 @@ function SetDetailPage() {
               )}
             </TabsContent>
 
-            <TabsContent value="relationships" className="mt-4">
+            {!set.is_reserved && <TabsContent value="relationships" className="mt-4">
               <div className="mb-3 flex justify-end">
                 <Button size="sm" variant="outline" onClick={() => setAddingRel(true)}>
                   <Plus className="mr-1.5 h-3.5 w-3.5" />Add Relationship
@@ -680,15 +699,17 @@ function SetDetailPage() {
                   </div>
                 </div>
               )}
-            </TabsContent>
+            </TabsContent>}
 
-            <TabsContent value="photos" className="mt-4">
-              {universe && (
-                <Suspense fallback={<Skeleton className="h-40 w-full" />}>
-                  <PhotoGallery entityType="set" entityId={set.id} universeId={universe.id} />
-                </Suspense>
-              )}
-            </TabsContent>
+            {!set.is_reserved && (
+              <TabsContent value="photos" className="mt-4">
+                {universe && (
+                  <Suspense fallback={<Skeleton className="h-40 w-full" />}>
+                    <PhotoGallery entityType="set" entityId={set.id} universeId={universe.id} />
+                  </Suspense>
+                )}
+              </TabsContent>
+            )}
           </Tabs>
 
           {universe && (
@@ -732,7 +753,7 @@ function SetDetailPage() {
             onCancel={() => setDeleting(false)}
           />
 
-          {universe && (
+          {!set.is_reserved && universe && (
             <AddRelationshipDialog
               setId={set.id}
               universeId={universe.id}
@@ -742,7 +763,7 @@ function SetDetailPage() {
             />
           )}
 
-          {universe && (
+          {!set.is_reserved && universe && (
             <AddMemberToSetDialog
               setId={set.id}
               setName={set.name}
@@ -753,7 +774,7 @@ function SetDetailPage() {
             />
           )}
 
-          {universe && (
+          {!set.is_reserved && universe && (
             <MemberFormSheet
               universeId={universe.id}
               open={creatingMember}

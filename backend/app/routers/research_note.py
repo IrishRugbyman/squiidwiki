@@ -4,8 +4,9 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.auth.dependencies import CurrentUser
+from app.auth.dependencies import CurrentUser, require_global_role
 from app.core.database import get_session
+from app.core.enums import GlobalRole
 from app.crud import research_note as crud
 from app.schemas.common import OffsetPage
 from app.schemas.research_note import (
@@ -46,6 +47,8 @@ async def search_notes(
     _: CurrentUser,
     session: Annotated[AsyncSession, Depends(get_session)],
 ):
+    if len(q.strip()) < 2:
+        return []
     return await crud.search_notes(session, universe_id, q)
 
 
@@ -82,6 +85,7 @@ async def delete_note(
     universe_id: uuid.UUID,
     _: CurrentUser,
     session: Annotated[AsyncSession, Depends(get_session)],
+    __: Annotated[None, require_global_role(GlobalRole.ADMIN)],
 ):
     ok = await crud.delete_note(session, id, universe_id)
     if not ok:

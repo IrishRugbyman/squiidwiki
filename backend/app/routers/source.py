@@ -52,6 +52,8 @@ async def search_sources(
     _: CurrentUser,
     session: Annotated[AsyncSession, Depends(get_session)],
 ):
+    if len(q.strip()) < 2:
+        return []
     return await crud.search_sources(session, universe_id, q)
 
 

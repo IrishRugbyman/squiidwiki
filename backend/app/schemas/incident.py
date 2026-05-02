@@ -98,9 +98,11 @@ class IncidentListItem(BaseModel):
     id: uuid.UUID
     type: IncidentType
     date: FuzzyDateField
+    location_text: Optional[str] = None
     municipality_id: Optional[uuid.UUID]
     lat: Optional[float]
     lng: Optional[float]
     verified: bool
     universe_id: uuid.UUID
     victim_names: list[str] = []
+    shooter_names: list[str] = []

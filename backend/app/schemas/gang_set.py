@@ -48,6 +48,7 @@ class SetRead(BaseModel):
     alliance_id: Optional[uuid.UUID]
     municipality_id: Optional[uuid.UUID]
     founder_id: Optional[uuid.UUID]
+    is_reserved: bool = False
     created_at: datetime
     updated_at: datetime
 
@@ -69,6 +70,7 @@ class SetListItem(BaseModel):
     universe_id: uuid.UUID
     alliance_id: Optional[uuid.UUID]
     municipality_id: Optional[uuid.UUID]
+    is_reserved: bool = False
     primary_photo_url: Optional[str] = None
     primary_photo_thumb_url: Optional[str] = None
 

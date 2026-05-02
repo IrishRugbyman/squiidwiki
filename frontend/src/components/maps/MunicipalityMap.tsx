@@ -6,6 +6,20 @@ import { Home } from 'lucide-react'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import type { GeoJSONGeometry, MunicipalityGeoJSON } from '@/lib/types'
 
+export interface IncidentPoint {
+  id: string
+  type: 'SHOOTING' | 'MURDER'
+  lat: number
+  lng: number
+}
+
+export interface SetPoint {
+  id: string
+  status: 'ACTIVE' | 'EXTINCT'
+  lat: number
+  lng: number
+}
+
 const TILE_STYLE = 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json'
 
 type LngLatBounds = [[number, number], [number, number]]
@@ -25,6 +39,10 @@ interface Props {
   /** When provided, click emits the feature id instead of navigating to the
    *  detail page — used for in-place preview overlays. */
   onPreview?: (id: string) => void
+  /** Incident points to overlay as coloured dots (MURDER = rose, SHOOTING = amber). */
+  incidentPoints?: IncidentPoint[]
+  /** Set points to overlay as coloured dots (ACTIVE = violet, EXTINCT = zinc). */
+  setPoints?: SetPoint[]
 }
 
 interface PopupFeature {
@@ -90,6 +108,8 @@ export default function MunicipalityMap({
   fallbackCenter = { longitude: -83.0458, latitude: 42.3314, zoom: 10 },
   metric = 'sets',
   onPreview,
+  incidentPoints,
+  setPoints,
 }: Props) {
   const navigate = useNavigate()
   const mapRef = useRef<MapRef | null>(null)
@@ -97,6 +117,30 @@ export default function MunicipalityMap({
 
   const metricKey = metric === 'sets' ? 'set_count' : 'incident_count'
   const metricLabel = metric === 'sets' ? 'Sets' : 'Incidents'
+
+  const incidentGeoJSON = useMemo(() => {
+    if (!incidentPoints?.length) return null
+    return {
+      type: 'FeatureCollection' as const,
+      features: incidentPoints.map((p) => ({
+        type: 'Feature' as const,
+        geometry: { type: 'Point' as const, coordinates: [p.lng, p.lat] },
+        properties: { id: p.id, incidentType: p.type },
+      })),
+    }
+  }, [incidentPoints])
+
+  const setGeoJSON = useMemo(() => {
+    if (!setPoints?.length) return null
+    return {
+      type: 'FeatureCollection' as const,
+      features: setPoints.map((p) => ({
+        type: 'Feature' as const,
+        geometry: { type: 'Point' as const, coordinates: [p.lng, p.lat] },
+        properties: { id: p.id, setStatus: p.status },
+      })),
+    }
+  }, [setPoints])
 
   const maxCount = useMemo(
     () => Math.max(1, ...geojson.features.map((f) => f.properties[metricKey])),
@@ -267,6 +311,48 @@ export default function MunicipalityMap({
           <Layer {...fillLayer} />
           <Layer {...lineLayer} />
         </Source>
+
+        {setGeoJSON && (
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          <Source id="set-points" type="geojson" data={setGeoJSON as any}>
+            <Layer
+              id="set-points-layer"
+              type="circle"
+              paint={{
+                'circle-radius': 5,
+                'circle-color': [
+                  'match', ['get', 'setStatus'],
+                  'ACTIVE', '#7c3aed',
+                  '#52525b',
+                ] as unknown as string,
+                'circle-stroke-width': 1.5,
+                'circle-stroke-color': '#18181b',
+                'circle-opacity': 0.9,
+              }}
+            />
+          </Source>
+        )}
+
+        {incidentGeoJSON && (
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          <Source id="incident-points" type="geojson" data={incidentGeoJSON as any}>
+            <Layer
+              id="incident-points-layer"
+              type="circle"
+              paint={{
+                'circle-radius': 6,
+                'circle-color': [
+                  'match', ['get', 'incidentType'],
+                  'MURDER', '#fb7185',
+                  '#fbbf24',
+                ] as unknown as string,
+                'circle-stroke-width': 1.5,
+                'circle-stroke-color': '#18181b',
+                'circle-opacity': 0.85,
+              }}
+            />
+          </Source>
+        )}
 
         {hovered && (
           <Popup

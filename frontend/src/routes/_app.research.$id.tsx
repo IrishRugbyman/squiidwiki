@@ -22,14 +22,15 @@ export const Route = createFileRoute('/_app/research/$id')({
   component: ResearchDetailPage,
 })
 
-const URL_RE = /(https?:\/\/[^\s)]+)/g
+const URL_SPLIT_RE = /(https?:\/\/[^\s)]+)/g
+const URL_TEST_RE = /^https?:\/\/[^\s)]+$/
 
 function renderContent(text: string): React.ReactNode[] {
   if (!text) return []
   const out: React.ReactNode[] = []
-  const parts = text.split(URL_RE)
+  const parts = text.split(URL_SPLIT_RE)
   parts.forEach((part, i) => {
-    if (URL_RE.test(part)) {
+    if (URL_TEST_RE.test(part)) {
       out.push(
         <a
           key={i}

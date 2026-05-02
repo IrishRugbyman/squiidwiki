@@ -28,7 +28,7 @@ import { Textarea } from '@/components/ui/textarea'
 import {
   useCreateIncident, useUpdateIncident, useIncident,
   useIncidents, useIncidentsByMunicipality, useMemberIncidents, useMemberSearch,
-  useMunicipalities, useAllMembers, useSets, useDeleteIncident,
+  useMunicipalities, useAllMembers, useAllSets, useDeleteIncident,
 } from '@/lib/queries'
 import { BulkActionBar } from '@/components/BulkActionBar'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
@@ -122,9 +122,18 @@ function ParticipantsSection({ universeId, participants, onChangeParticipants, s
     return allMembers.filter((m) => m.set_id && setIds.has(m.set_id) && !addedMemberIds.has(m.id)).slice(0, 8)
   }, [allMembers, participants, addedMemberIds])
 
-  const filteredSets = setSearch.length >= 1
-    ? allSets.filter((s) => s.name.toLowerCase().includes(setSearch.toLowerCase()) && !addedSetIds.has(s.id)).slice(0, 8)
-    : []
+  const filteredSets = useMemo(() => {
+    const q = setSearch.toLowerCase()
+    const available = allSets.filter((s) => !addedSetIds.has(s.id))
+    if (q.length >= 1) {
+      return available
+        .filter((s) => s.name.toLowerCase().includes(q))
+        .sort((a, b) => (a.is_reserved === b.is_reserved ? 0 : a.is_reserved ? -1 : 1))
+        .slice(0, 8)
+    }
+    // No search — show reserved sets pinned so they're always one click away
+    return available.filter((s) => s.is_reserved)
+  }, [allSets, setSearch, addedSetIds])
 
   function addMember(id: UUID, name: string) {
     if (addedMemberIds.has(id)) return
@@ -212,8 +221,9 @@ function ParticipantsSection({ universeId, participants, onChangeParticipants, s
             <div className="max-h-32 overflow-y-auto rounded border border-zinc-800 bg-zinc-950">
               {filteredSets.map((s) => (
                 <button key={s.id} type="button" onClick={() => addSet(s)}
-                  className="w-full px-3 py-2 text-left text-sm text-zinc-300 hover:bg-zinc-800 transition-colors">
-                  {s.name}
+                  className="w-full px-3 py-2 text-left text-sm text-zinc-300 hover:bg-zinc-800 transition-colors flex items-center justify-between gap-2">
+                  <span className="truncate">{s.name}</span>
+                  {s.is_reserved && <span className="text-[10px] text-zinc-500 shrink-0">system</span>}
                 </button>
               ))}
             </div>
@@ -276,7 +286,7 @@ export function IncidentFormSheet({ universeId, open, onClose, initial, defaultP
   const isEdit = !!initial
   const { data: munis } = useMunicipalities(universeId)
   const { data: allMembersData } = useAllMembers(universeId)
-  const { data: allSetsData } = useSets(universeId)
+  const { data: allSetsData } = useAllSets(universeId)
 
   const allMembersList = useMemo(() => allMembersData?.items ?? [], [allMembersData])
   const memberNameMap = useMemo(() => {
@@ -325,6 +335,61 @@ export function IncidentFormSheet({ universeId, open, onClose, initial, defaultP
   const [error, setError] = useState<string | null>(null)
   const urlPaste = useUrlPasteBanner()
   const [creatingSourceFromUrl, setCreatingSourceFromUrl] = useState<string | null>(null)
+
+  // Address geocode autocomplete (Nominatim / OSM)
+  const [geoSearchTerm, setGeoSearchTerm] = useState('')
+  const debouncedGeo = useDebounce(geoSearchTerm, 350)
+  const [geoResults, setGeoResults] = useState<Array<{ display_name: string; lat: string; lon: string; address: Record<string, string> }>>([])
+  const [showGeoDropdown, setShowGeoDropdown] = useState(false)
+
+  useEffect(() => {
+    if (debouncedGeo.length < 3) { setGeoResults([]); setShowGeoDropdown(false); return }
+    const ctrl = new AbortController()
+    fetch(
+      `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(debouncedGeo)}&format=json&addressdetails=1&limit=6&accept-language=en`,
+      { signal: ctrl.signal, headers: { 'Accept-Language': 'en' } }
+    )
+      .then((r) => r.json())
+      .then((data) => { setGeoResults(data); setShowGeoDropdown(true) })
+      .catch(() => {})
+    return () => ctrl.abort()
+  }, [debouncedGeo])
+
+  function selectGeoResult(r: { display_name: string; lat: string; lon: string; address: Record<string, string> }) {
+    const parts = [r.address.house_number, r.address.road].filter(Boolean)
+    const street = parts.length > 0 ? parts.join(' ') : r.display_name.split(',')[0]
+    setLocationText(street)
+    setLat(parseFloat(r.lat).toFixed(6))
+    setLng(parseFloat(r.lon).toFixed(6))
+
+    // Auto-match city → sub-district from Nominatim address fields
+    const a = r.address
+    const cityCandidates = [a.city, a.town, a.village, a.county].filter(Boolean)
+    const matchedCity = topLevelMunis.find((m) =>
+      cityCandidates.some((n) => n?.toLowerCase() === m.name.toLowerCase()),
+    )
+    if (matchedCity) {
+      setCityId(matchedCity.id)
+      const subCandidates = [a.suburb, a.neighbourhood, a.quarter, a.postcode].filter(Boolean)
+      const children = allMunis.filter((m) => m.parent_id === matchedCity.id)
+      const matchedSub = children.find((m) =>
+        subCandidates.some((n) => n?.toLowerCase() === m.name.toLowerCase()),
+      )
+      setSubDistrictId(matchedSub?.id ?? '')
+    }
+
+    setGeoSearchTerm('')
+    setGeoResults([])
+    setShowGeoDropdown(false)
+  }
+
+  function formatGeoLabel(r: { display_name: string; address: Record<string, string> }): string {
+    const a = r.address
+    const street = [a.house_number, a.road].filter(Boolean).join(' ')
+    const city = a.city ?? a.town ?? a.village ?? a.county ?? ''
+    const state = a.state ?? ''
+    return [street, city, state].filter(Boolean).join(', ') || r.display_name
+  }
 
   // Re-resolve participant names once member map loads (edit mode only)
   useEffect(() => {
@@ -460,7 +525,34 @@ export function IncidentFormSheet({ universeId, open, onClose, initial, defaultP
             )}
             <div className="space-y-1.5">
               <Label htmlFor="inc-loc" className="text-zinc-300">Address / Area</Label>
-              <Input id="inc-loc" value={locationText} onChange={(e) => setLocationText(e.target.value)} placeholder="Street address or intersection" />
+              <div className="relative">
+                <Input
+                  id="inc-loc"
+                  value={geoSearchTerm || locationText}
+                  onChange={(e) => {
+                    setLocationText(e.target.value)
+                    setGeoSearchTerm(e.target.value)
+                  }}
+                  onBlur={() => setTimeout(() => setShowGeoDropdown(false), 150)}
+                  onFocus={() => geoResults.length > 0 && setShowGeoDropdown(true)}
+                  placeholder="Street address or intersection"
+                  autoComplete="off"
+                />
+                {showGeoDropdown && geoResults.length > 0 && (
+                  <div className="absolute z-30 mt-1 w-full rounded-md border border-zinc-700 bg-zinc-950 shadow-xl">
+                    {geoResults.map((r, i) => (
+                      <button
+                        key={i}
+                        type="button"
+                        onMouseDown={() => selectGeoResult(r)}
+                        className="w-full px-3 py-2 text-left text-sm text-zinc-200 hover:bg-zinc-800 transition-colors first:rounded-t-md last:rounded-b-md"
+                      >
+                        {formatGeoLabel(r)}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
             <div className="grid grid-cols-2 gap-2">
               <div className="space-y-1.5">
@@ -962,30 +1054,37 @@ function IncidentsPage() {
                   className="rounded border-zinc-700 bg-zinc-900 accent-violet-600"
                 />
               </th>
-              <th className="px-4 py-2.5 text-left text-xs font-medium text-zinc-400" scope="col">Type</th>
-              <th className="px-4 py-2.5 text-left text-xs font-medium text-zinc-400" scope="col">Date</th>
-              <th className="hidden px-4 py-2.5 text-left text-xs font-medium text-zinc-400 md:table-cell" scope="col">Location</th>
-              <th className="hidden px-4 py-2.5 text-left text-xs font-medium text-zinc-400 lg:table-cell" scope="col">Victims</th>
-              <th className="px-4 py-2.5 text-left text-xs font-medium text-zinc-400" scope="col">Status</th>
+              <th className="w-12 py-2.5" scope="col" aria-label="Type" />
+              <th className="px-4 py-2.5 text-left text-xs font-medium text-zinc-400" scope="col">Incident</th>
               <th className="w-8" scope="col" aria-label="Actions" />
             </tr>
           </thead>
           <tbody className="divide-y divide-zinc-800">
             {isLoading
-              ? Array.from({ length: 5 }).map((_, i) => <TableRowSkeleton key={i} cols={7} height={56} />)
+              ? Array.from({ length: 5 }).map((_, i) => <TableRowSkeleton key={i} cols={4} height={64} />)
               : isVirtualized && virtualPaddingTop > 0
-                ? <tr aria-hidden><td colSpan={7} style={{ height: virtualPaddingTop }} /></tr>
+                ? <tr aria-hidden><td colSpan={4} style={{ height: virtualPaddingTop }} /></tr>
                 : null}
             {!isLoading && (isVirtualized ? virtualRows.map((vRow) => items[vRow.index]) : items).map((incident, idx) => {
                   const cfg = TYPE_CONFIG[incident.type]
                   const Icon = cfg?.icon ?? ShieldAlert
                   const muniName = incident.municipality_id ? muniMap[incident.municipality_id] : null
+                  const locationLabel = incident.location_text
+                    ? muniName ? `${muniName} · ${incident.location_text}` : incident.location_text
+                    : muniName
                   const isSelected = selected.has(incident.id)
                   const measureRef = isVirtualized ? rowVirtualizer.measureElement : undefined
                   const dataIndex = isVirtualized ? virtualRows[idx]?.index : undefined
+
+                  const victimNames = incident.victim_names ?? []
+                  const shooterNames = incident.shooter_names ?? []
+                  const hasVictims = victimNames.length > 0
+                  const hasShooters = shooterNames.length > 0
+                  const hasParticipants = hasVictims || hasShooters
+
                   return (
                     <tr key={incident.id} ref={measureRef} data-index={dataIndex} className={`group hover:bg-zinc-900/50 transition-colors ${isSelected ? 'bg-violet-950/20' : ''}`}>
-                      <td className="px-3 py-3">
+                      <td className="px-3">
                         <input
                           type="checkbox"
                           aria-label={`Select ${incident.type} incident`}
@@ -994,72 +1093,90 @@ function IncidentsPage() {
                           className="rounded border-zinc-700 bg-zinc-900 accent-violet-600"
                         />
                       </td>
-                      {/* Type */}
-                      <td className="p-0">
-                        <Link to="/incidents/$id" params={{ id: incident.id }}
-                          className="flex items-center gap-3 px-4 py-3">
-                          <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-md ${
+
+                      {/* Type icon */}
+                      <td className="py-3 pl-3 pr-1">
+                        <Link to="/incidents/$id" params={{ id: incident.id }} tabIndex={-1} aria-hidden>
+                          <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-md ${
                             incident.type === 'MURDER'
                               ? 'bg-rose-950/60 text-rose-400'
                               : 'bg-amber-950/60 text-amber-400'
                           }`}>
                             <Icon className="h-4 w-4" />
                           </div>
-                          <TypeChip type={incident.type} />
                         </Link>
                       </td>
 
-                      {/* Date */}
+                      {/* Main info */}
                       <td className="p-0">
                         <Link to="/incidents/$id" params={{ id: incident.id }}
-                          className="block px-4 py-3 font-mono text-xs text-zinc-400 tabular-nums" tabIndex={-1}>
-                          {incident.date
-                            ? <FuzzyDate value={incident.date} />
-                            : <span className="text-zinc-700">Unknown date</span>}
-                        </Link>
-                      </td>
-
-                      {/* Location */}
-                      <td className="hidden p-0 md:table-cell">
-                        <Link to="/incidents/$id" params={{ id: incident.id }}
-                          className="block px-4 py-3 text-xs text-zinc-500" tabIndex={-1}>
-                          {muniName ?? <span className="text-zinc-700">—</span>}
-                        </Link>
-                      </td>
-
-                      {/* Victims */}
-                      <td className="hidden p-0 lg:table-cell">
-                        <Link to="/incidents/$id" params={{ id: incident.id }}
-                          className="block px-4 py-3 text-xs text-zinc-400" tabIndex={-1}>
-                          {incident.victim_names.length > 0 ? (
-                            <span className="truncate max-w-xs inline-block align-bottom">
-                              {incident.victim_names.slice(0, 3).join(', ')}
-                              {incident.victim_names.length > 3 && ` +${incident.victim_names.length - 3}`}
+                          className="block px-4 py-2.5">
+                          {/* Meta line: type · date · location · verified */}
+                          <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+                            <TypeChip type={incident.type} />
+                            <span className="text-zinc-700">·</span>
+                            <span className="font-mono text-xs text-zinc-400 tabular-nums">
+                              {incident.date
+                                ? <FuzzyDate value={incident.date} />
+                                : <span className="text-zinc-600">Unknown date</span>}
                             </span>
-                          ) : (
-                            <span className="text-zinc-700">—</span>
-                          )}
-                        </Link>
-                      </td>
+                            {locationLabel && (
+                              <>
+                                <span className="text-zinc-700">·</span>
+                                <span className="text-xs text-zinc-500">{locationLabel}</span>
+                              </>
+                            )}
+                            {incident.verified && (
+                              <>
+                                <span className="text-zinc-700">·</span>
+                                <span className="inline-flex items-center gap-0.5 text-xs font-medium text-emerald-400">
+                                  <CheckCircle2 className="h-3 w-3" />Verified
+                                </span>
+                              </>
+                            )}
+                          </div>
 
-                      {/* Verified */}
-                      <td className="px-4 py-3">
-                        {incident.verified ? (
-                          <span className="inline-flex items-center gap-1 text-xs font-medium text-emerald-400">
-                            <CheckCircle2 className="h-3.5 w-3.5" />
-                            Verified
-                          </span>
-                        ) : (
-                          <span className="text-xs text-zinc-600">Unverified</span>
-                        )}
+                          {/* Participants line */}
+                          <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 min-h-[1.25rem]">
+                            {hasVictims && (
+                              <span className="flex items-center gap-1.5">
+                                <span className="text-[10px] font-medium uppercase tracking-wider text-zinc-600">
+                                  {victimNames.length === 1 ? 'Victim' : 'Victims'}
+                                </span>
+                                <span className="text-xs text-rose-300">
+                                  {victimNames.slice(0, 3).join(', ')}
+                                  {victimNames.length > 3 && (
+                                    <span className="text-zinc-500"> +{victimNames.length - 3}</span>
+                                  )}
+                                </span>
+                              </span>
+                            )}
+                            {hasShooters && (
+                              <span className="flex items-center gap-1.5">
+                                <span className="text-[10px] font-medium uppercase tracking-wider text-zinc-600">
+                                  {shooterNames.length === 1 ? 'Shooter' : 'Shooters'}
+                                </span>
+                                <span className="text-xs text-amber-300">
+                                  {shooterNames.slice(0, 3).join(', ')}
+                                  {shooterNames.length > 3 && (
+                                    <span className="text-zinc-500"> +{shooterNames.length - 3}</span>
+                                  )}
+                                </span>
+                              </span>
+                            )}
+                            {!hasParticipants && (
+                              <span className="text-xs text-zinc-700">No participants recorded</span>
+                            )}
+                          </div>
+                        </Link>
                       </td>
 
                       {/* Quick edit */}
-                      <td className="pr-3 py-3">
+                      <td className="pr-3">
                         <button
                           onClick={() => setEditingId(incident.id)}
                           aria-label="Edit incident"
-                          className="rounded p-1.5 text-zinc-600 hover:bg-zinc-800 hover:text-zinc-300 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/50 lg:opacity-0 lg:group-hover:opacity-100 lg:group-focus-within:opacity-100"
+                          className="rounded p-1.5 text-zinc-600 hover:bg-zinc-800 hover:text-zinc-300 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/50 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100"
                         >
                           <Pencil className="h-3.5 w-3.5" />
                         </button>
@@ -1068,11 +1185,11 @@ function IncidentsPage() {
                   )
                 })}
             {!isLoading && isVirtualized && virtualPaddingBottom > 0 && (
-              <tr aria-hidden><td colSpan={7} style={{ height: virtualPaddingBottom }} /></tr>
+              <tr aria-hidden><td colSpan={4} style={{ height: virtualPaddingBottom }} /></tr>
             )}
             {!isLoading && items.length === 0 && (
               <tr>
-                <td colSpan={7}>
+                <td colSpan={4}>
                   <EmptyState
                     icon={ShieldAlert}
                     title={

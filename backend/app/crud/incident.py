@@ -69,6 +69,30 @@ async def _sync_incident_sources(
         session.add(IncidentSource(incident_id=incident_id, source_id=sid))
 
 
+async def _unsync_killed_participants(
+    session: AsyncSession, incident: Incident, new_participants: list[ParticipantCreate]
+) -> None:
+    """On incident update, clear death linkage for members who are no longer KILLED."""
+    new_killed_ids = {p.member_id for p in new_participants if p.outcome == ParticipantOutcome.KILLED}
+
+    result = await session.execute(
+        select(Member).where(
+            Member.death_incident_id == incident.id,
+            Member.universe_id == incident.universe_id,
+        )
+    )
+    prev_linked = result.scalars().all()
+
+    now = datetime.utcnow()
+    for m in prev_linked:
+        if m.id not in new_killed_ids:
+            m.death_incident_id = None
+            m.date_of_death = None
+            m.status = MemberStatus.UNKNOWN
+            m.updated_at = now
+            session.add(m)
+
+
 async def _sync_killed_participants(
     session: AsyncSession, incident: Incident, participants: list[ParticipantCreate]
 ) -> None:
@@ -87,7 +111,11 @@ async def _sync_killed_participants(
     if not killed_ids:
         return
 
-    result = await session.execute(select(Member).where(Member.id.in_(killed_ids)))
+    result = await session.execute(
+        select(Member).where(
+            Member.id.in_(killed_ids), Member.universe_id == incident.universe_id
+        )
+    )
     members = result.scalars().all()
 
     incident_date = incident.date
@@ -193,6 +221,7 @@ async def update_incident(
     obj.updated_at = _dt.utcnow()
     session.add(obj)
     if data.participants is not None:
+        await _unsync_killed_participants(session, obj, data.participants)
         await _sync_participants(session, obj.id, data.participants)
         await _sync_killed_participants(session, obj, data.participants)
     if data.set_participants is not None:

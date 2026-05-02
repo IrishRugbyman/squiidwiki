@@ -4,10 +4,10 @@ from typing import Annotated, Optional
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.auth.dependencies import CurrentUser
+from app.auth.dependencies import CurrentUser, require_global_role
 from app.core import storage
 from app.core.database import get_session
-from app.core.enums import MediaKind
+from app.core.enums import GlobalRole, MediaKind
 from app.crud import media as crud
 from app.models.media import Media
 from app.schemas.media import MediaRead, MediaReadWithUrls, MediaUpdate
@@ -148,6 +148,7 @@ async def delete_media(
     universe_id: uuid.UUID,
     _: CurrentUser,
     session: Annotated[AsyncSession, Depends(get_session)],
+    __: Annotated[None, require_global_role(GlobalRole.ADMIN)],
 ):
     ok = await crud.delete_media(session, id, universe_id)
     if not ok:

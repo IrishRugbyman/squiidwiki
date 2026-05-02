@@ -40,6 +40,7 @@ from app.models import (
     UserUniverseAccess,
 )
 from app.auth.security import hash_password
+from app.crud.gang_set import seed_reserved_sets
 
 PROD_URL = "postgresql+asyncpg://postgres:quentin20@localhost:5432/squiidwiki_db"
 TEST_URL = "postgresql+asyncpg://postgres:quentin20@localhost:5432/squiidwiki_test"
@@ -107,6 +108,7 @@ async def seed(session: AsyncSession, is_test: bool) -> None:
     )
     session.add(universe)
     await session.flush()
+    await seed_reserved_sets(session, universe.id)
 
     session.add(UserUniverseAccess(
         user_id=admin_id,

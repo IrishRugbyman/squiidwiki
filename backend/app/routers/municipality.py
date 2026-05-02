@@ -102,6 +102,8 @@ async def search_municipalities(
     session: Annotated[AsyncSession, Depends(get_session)],
     prod_session: Annotated[AsyncSession, Depends(get_prod_session)],
 ):
+    if len(q.strip()) < 2:
+        return []
     prod_uid = await _prod_uid(universe_id, session, prod_session)
     return await crud.search_municipalities(prod_session, prod_uid, q)
 

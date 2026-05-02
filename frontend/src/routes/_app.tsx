@@ -1,4 +1,4 @@
-import { createFileRoute, Link, Outlet, redirect } from '@tanstack/react-router'
+import { createFileRoute, Link, Outlet, redirect, useNavigate } from '@tanstack/react-router'
 import {
   AlertTriangle,
   CalendarDays,
@@ -25,6 +25,7 @@ import { GlobalCommandPalette } from '@/components/GlobalCommandPalette'
 import { useAuthStore, type AuthState, type AuthUser } from '@/stores/auth'
 import { useUniverseStore } from '@/stores/universe'
 import { useDbMode, useSetDbMode } from '@/lib/queries'
+import { useQueryClient } from '@tanstack/react-query'
 import { api, ApiError } from '@/lib/api'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { Toaster } from '@/components/ui/sonner'
@@ -136,6 +137,8 @@ function AppLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [helpOpen, setHelpOpen] = useState(false)
   const [commandOpen, setCommandOpen] = useState(false)
+  const navigate = useNavigate()
+  const queryClient = useQueryClient()
   useGoToNavigation()
 
   useEffect(() => {
@@ -198,9 +201,10 @@ function AppLayout() {
   }, [])
 
   async function handleLogout() {
-    await fetch('/api/v1/auth/logout', { method: 'POST', credentials: 'include' })
+    try { await api.post('/auth/logout') } catch { /* ignore */ }
+    queryClient.clear()
     clearAuth()
-    window.location.href = '/login'
+    navigate({ to: '/login' })
   }
 
   const sidebar = (

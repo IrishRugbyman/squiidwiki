@@ -119,9 +119,17 @@ async def _sync_alliance_auto_allies(
             ))
 
 
+_RESERVED_NAMES = {"civilian", "police"}
+
+
 async def create_gang_set(
     session: AsyncSession, data: SetCreate, actor_id: uuid.UUID
 ) -> GangSet:
+    if data.name.strip().lower() in _RESERVED_NAMES:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"'{data.name}' is a reserved system set name and cannot be used.",
+        )
     await _validate_territory_ids(session, data.municipality_id, data.territory_ids)
     dump = data.model_dump(exclude={"territory_ids", "friend_ids", "enemy_ids"})
     slug = await _unique_slug(session, data.universe_id, data.name)
@@ -174,6 +182,21 @@ async def update_gang_set(
     obj = await get_gang_set(session, id, universe_id)
     if obj is None:
         return None
+    if obj.is_reserved:
+        dump = data.model_dump(exclude_unset=True)
+        forbidden = set(dump) - {"bio"}
+        if forbidden:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=f"Reserved sets only accept bio updates; rejected fields: {sorted(forbidden)}",
+            )
+        if "bio" in dump:
+            obj.bio = dump["bio"]
+            obj.updated_at = datetime.utcnow()
+            session.add(obj)
+            await session.commit()
+            await session.refresh(obj)
+        return obj
     dump = data.model_dump(exclude_unset=True, exclude={"territory_ids", "friend_ids", "enemy_ids"})
     for k, v in dump.items():
         setattr(obj, k, v)
@@ -203,9 +226,24 @@ async def delete_gang_set(
     obj = await get_gang_set(session, id, universe_id)
     if obj is None:
         return False
+    if obj.is_reserved:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Reserved sets (Civilian, Police) cannot be deleted.",
+        )
     await session.delete(obj)
     await session.commit()
     return True
+
+
+_RESERVED_SETS = [("Civilian", "civilian"), ("Police", "police")]
+
+
+async def seed_reserved_sets(session: AsyncSession, universe_id: uuid.UUID) -> None:
+    for name, slug in _RESERVED_SETS:
+        obj = GangSet(universe_id=universe_id, name=name, slug=slug, is_reserved=True)
+        session.add(obj)
+    await session.commit()
 
 
 async def list_set_territory_ids(

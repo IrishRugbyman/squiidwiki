@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
-import { Download, Pencil, Plus, Search, Shield, Trash2 } from 'lucide-react'
+import { Download, Pencil, Plus, Search, Shield, Trash2, User } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import { NoUniverse } from '@/components/NoUniverse'
@@ -41,9 +41,21 @@ function setColorStyle(name: string): React.CSSProperties {
   }
 }
 
-export function SetAvatar({ name, thumbUrl, size = 'md' }: { name: string; thumbUrl?: string | null; size?: 'sm' | 'md' }) {
+export function SetAvatar({ name, thumbUrl, size = 'md', isReserved = false }: { name: string; thumbUrl?: string | null; size?: 'sm' | 'md'; isReserved?: boolean }) {
   const [imgError, setImgError] = useState(false)
   const sz = size === 'sm' ? 'h-7 w-7 text-xs' : 'h-8 w-8 text-sm'
+  const iconSz = size === 'sm' ? 'h-3.5 w-3.5' : 'h-4 w-4'
+  if (isReserved) {
+    const Icon = name === 'Police' ? Shield : User
+    return (
+      <div
+        className={`${sz} shrink-0 rounded-md border border-zinc-700 bg-zinc-800/60 flex items-center justify-center`}
+        aria-hidden
+      >
+        <Icon className={`${iconSz} text-zinc-400`} />
+      </div>
+    )
+  }
   if (thumbUrl && !imgError) {
     return (
       <img
@@ -164,6 +176,7 @@ export function SetFormSheet({ universeId, open, onClose, initial, onSaved, defa
   }
 
   const isPending = isEdit ? update.isPending : create.isPending
+  const isReserved = !!initial?.is_reserved
 
   return (
     <Sheet open={open} onOpenChange={(v) => !v && onClose()}>
@@ -172,54 +185,75 @@ export function SetFormSheet({ universeId, open, onClose, initial, onSaved, defa
         description={isEdit ? 'Update this gang set' : 'Create a new gang set in this universe'}
       >
         <form onSubmit={handleSubmit} className="space-y-4">
+          {isReserved && (
+            <div className="rounded border border-zinc-700 bg-zinc-900/50 px-3 py-2 text-xs text-zinc-400">
+              System set — only the bio is editable. All other fields are locked.
+            </div>
+          )}
           <div className="space-y-1.5">
             <Label htmlFor="set-name">Name *</Label>
-            <Input id="set-name" required value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Terror Town" />
+            <Input
+              id="set-name"
+              required
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="e.g. Terror Town"
+              readOnly={isReserved}
+              disabled={isReserved}
+            />
           </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="set-aliases">Aliases <span className="text-zinc-600">(comma-separated)</span></Label>
-            <Input id="set-aliases" value={aliases} onChange={(e) => setAliases(e.target.value)} placeholder="e.g. GG, Ghost" />
-          </div>
-          <div className="space-y-1.5">
-            <Label>Status</Label>
-            <Select value={status} onValueChange={(v) => setStatus(v as SetStatus)}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="ACTIVE">Active</SelectItem>
-                <SelectItem value="EXTINCT">Extinct</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-1.5">
-            <Label>Alliance</Label>
-            <Select value={allianceId} onValueChange={setAllianceId}>
-              <SelectTrigger><SelectValue placeholder="No alliance" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value={ALLIANCE_NONE}>No alliance</SelectItem>
-                {(alliancesData?.items ?? []).map((a) => (
-                  <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-1.5">
-            <Label>Municipality</Label>
-            <Select value={municipalityId} onValueChange={handleMunicipalityChange}>
-              <SelectTrigger><SelectValue placeholder="No municipality" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value={MUNI_NONE}>— None —</SelectItem>
-                {topLevelMunis.map((m) => (
-                  <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {municipalityId !== MUNI_NONE && subDistricts.length === 0 && (
-              <p className="text-[11px] text-zinc-600">
-                This municipality has no sub-districts.
-              </p>
-            )}
-          </div>
-          {municipalityId !== MUNI_NONE && subDistricts.length > 0 && (
+          {!isReserved && (
+            <div className="space-y-1.5">
+              <Label htmlFor="set-aliases">Aliases <span className="text-zinc-600">(comma-separated)</span></Label>
+              <Input id="set-aliases" value={aliases} onChange={(e) => setAliases(e.target.value)} placeholder="e.g. GG, Ghost" />
+            </div>
+          )}
+          {!isReserved && (
+            <div className="space-y-1.5">
+              <Label>Status</Label>
+              <Select value={status} onValueChange={(v) => setStatus(v as SetStatus)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ACTIVE">Active</SelectItem>
+                  <SelectItem value="EXTINCT">Extinct</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+          {!isReserved && (
+            <div className="space-y-1.5">
+              <Label>Alliance</Label>
+              <Select value={allianceId} onValueChange={setAllianceId}>
+                <SelectTrigger><SelectValue placeholder="No alliance" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={ALLIANCE_NONE}>No alliance</SelectItem>
+                  {(alliancesData?.items ?? []).map((a) => (
+                    <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+          {!isReserved && (
+            <div className="space-y-1.5">
+              <Label>Municipality</Label>
+              <Select value={municipalityId} onValueChange={handleMunicipalityChange}>
+                <SelectTrigger><SelectValue placeholder="No municipality" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={MUNI_NONE}>— None —</SelectItem>
+                  {topLevelMunis.map((m) => (
+                    <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {municipalityId !== MUNI_NONE && subDistricts.length === 0 && (
+                <p className="text-[11px] text-zinc-600">
+                  This municipality has no sub-districts.
+                </p>
+              )}
+            </div>
+          )}
+          {!isReserved && municipalityId !== MUNI_NONE && subDistricts.length > 0 && (
             <div className="space-y-1.5">
               <div className="flex items-center justify-between">
                 <Label>Sub-districts</Label>
@@ -378,9 +412,11 @@ function SetsPage() {
 
   const isSearching = debouncedQ.length >= 2
   const rawItems = isSearching ? (searchResults ?? []) : (data?.items ?? [])
+  const reservedSets = useMemo(() => rawItems.filter((s) => s.is_reserved), [rawItems])
+  const regularItems = useMemo(() => rawItems.filter((s) => !s.is_reserved), [rawItems])
 
   const items = useMemo(() => {
-    let filtered = rawItems
+    let filtered = regularItems
     if (statusFilter !== 'ALL') filtered = filtered.filter((s) => s.status === statusFilter)
     if (allianceFilter !== 'ALL') filtered = filtered.filter((s) =>
       allianceFilter === 'NONE' ? !s.alliance_id : s.alliance_id === allianceFilter
@@ -391,7 +427,7 @@ function SetsPage() {
       const bv = String(b[sortKey] ?? '')
       return sortDir === 'asc' ? av.localeCompare(bv) : bv.localeCompare(av)
     })
-  }, [rawItems, statusFilter, allianceFilter, sortKey, sortDir])
+  }, [regularItems, statusFilter, allianceFilter, sortKey, sortDir])
 
   if (!universe) return <NoUniverse />
 
@@ -401,8 +437,8 @@ function SetsPage() {
   const total = data?.total ?? 0
   const listLoading = isSearching ? searchLoading : isLoading
 
-  // Status counts over all loaded items (not filtered)
-  const allItems = data?.items ?? []
+  // Status counts over regular (non-reserved) items only
+  const allItems = regularItems
   const statusCounts: Record<StatusFilter, number> = {
     ALL: allItems.length,
     ACTIVE: allItems.filter((s) => s.status === 'ACTIVE').length,
@@ -514,6 +550,24 @@ function SetsPage() {
         </Button>
       </div>
 
+      {/* System sets (reserved — shown separately, never in the main table) */}
+      {reservedSets.length > 0 && !isSearching && (
+        <div className="mb-4 flex items-center gap-2">
+          <span className="text-[11px] font-medium uppercase tracking-wider text-zinc-600">System</span>
+          {reservedSets.map((s) => (
+            <Link
+              key={s.id}
+              to="/sets/$id"
+              params={{ id: s.slug ?? s.id }}
+              className="inline-flex items-center gap-1.5 rounded-full border border-zinc-700 bg-zinc-900/50 px-3 py-1 text-xs text-zinc-400 hover:border-zinc-500 hover:text-zinc-200 transition-colors"
+            >
+              <SetAvatar name={s.name} thumbUrl={s.primary_photo_thumb_url} size="sm" isReserved={s.is_reserved} />
+              {s.name}
+            </Link>
+          ))}
+        </div>
+      )}
+
       {/* Table */}
       <div className="overflow-hidden rounded-lg border border-zinc-800">
         <table className="w-full text-sm">
@@ -523,8 +577,8 @@ function SetsPage() {
                 <input
                   type="checkbox"
                   aria-label="Select all sets"
-                  checked={items.length > 0 && selected.size === items.length}
-                  onChange={() => setSelected(selected.size === items.length ? new Set() : new Set(items.map((s) => s.id)))}
+                  checked={items.filter((s) => !s.is_reserved).length > 0 && selected.size === items.filter((s) => !s.is_reserved).length}
+                  onChange={() => { const selectableIds = items.filter((s) => !s.is_reserved).map((s) => s.id); setSelected(selected.size === selectableIds.length ? new Set() : new Set(selectableIds)) }}
                   className="rounded border-zinc-700 bg-zinc-900 accent-violet-600"
                 />
               </th>
@@ -548,8 +602,9 @@ function SetsPage() {
                           type="checkbox"
                           aria-label={`Select ${set.name}`}
                           checked={isSelected}
+                          disabled={set.is_reserved}
                           onChange={() => toggleSelectSet(set.id)}
-                          className="rounded border-zinc-700 bg-zinc-900 accent-violet-600"
+                          className="rounded border-zinc-700 bg-zinc-900 accent-violet-600 disabled:opacity-30 disabled:cursor-not-allowed"
                         />
                       </td>
                       {/* Name + aliases */}
@@ -559,11 +614,18 @@ function SetsPage() {
                           params={{ id: linkId }}
                           className="flex items-center gap-3 px-4 py-3"
                         >
-                          <SetAvatar name={set.name} thumbUrl={set.primary_photo_thumb_url} />
+                          <SetAvatar name={set.name} thumbUrl={set.primary_photo_thumb_url} isReserved={set.is_reserved} />
                           <div>
-                            <p className="font-medium text-white group-hover:text-violet-400 transition-colors">
-                              {set.name}
-                            </p>
+                            <div className="flex items-center gap-2">
+                              <p className="font-medium text-white group-hover:text-violet-400 transition-colors">
+                                {set.name}
+                              </p>
+                              {set.is_reserved && (
+                                <span className="rounded border border-zinc-700 bg-zinc-800/60 px-1.5 py-px text-[9px] font-medium uppercase tracking-wider text-zinc-500">
+                                  System
+                                </span>
+                              )}
+                            </div>
                             {set.aliases && set.aliases.length > 0 && (
                               <p className="text-xs text-zinc-500">{set.aliases.join(' · ')}</p>
                             )}

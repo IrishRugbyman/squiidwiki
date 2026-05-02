@@ -60,6 +60,8 @@ async def search_alliances(
     _: CurrentUser,
     session: Annotated[AsyncSession, Depends(get_session)],
 ):
+    if len(q.strip()) < 2:
+        return []
     return await crud.search_alliances(session, universe_id, q)
 
 

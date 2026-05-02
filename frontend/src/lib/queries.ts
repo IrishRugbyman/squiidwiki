@@ -603,7 +603,9 @@ export const useDeleteIncident = (universeId: UUID) => {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: (id: UUID) => api.delete(`/incidents/${id}?universe_id=${universeId}`),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['incidents'] }) },
+    onSuccess: () => {
+      qc.invalidateQueries({ predicate: (q) => q.queryKey[0] === 'incidents' })
+    },
   })
 }
 

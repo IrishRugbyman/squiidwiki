@@ -33,12 +33,15 @@ router = APIRouter(prefix="/universes", tags=["universes"])
 
 @router.get("/", response_model=OffsetPage[UniverseListItem])
 async def list_universes(
-    _: CurrentUser,
+    current_user: CurrentUser,
     session: Annotated[AsyncSession, Depends(get_session)],
     offset: int = Query(0, ge=0),
     limit: int = Query(50, ge=1, le=200),
 ):
-    items, total = await crud.list_universes(session, offset=offset, limit=limit)
+    if current_user.global_role == GlobalRole.ADMIN:
+        items, total = await crud.list_universes(session, offset=offset, limit=limit)
+    else:
+        items, total = await crud.list_universes_for_user(session, current_user.id, offset=offset, limit=limit)
     return OffsetPage(items=items, total=total)
 
 
@@ -55,12 +58,16 @@ async def create_universe(
 @router.get("/{id}", response_model=UniverseRead)
 async def get_universe(
     id: uuid.UUID,
-    _: CurrentUser,
+    current_user: CurrentUser,
     session: Annotated[AsyncSession, Depends(get_session)],
 ):
     obj = await crud.get_universe(session, id)
     if obj is None:
         raise HTTPException(404)
+    if current_user.global_role != GlobalRole.ADMIN:
+        accessible = await crud.user_has_universe_access(session, current_user.id, id)
+        if not accessible:
+            raise HTTPException(404)
     return obj
 
 

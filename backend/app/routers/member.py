@@ -79,6 +79,8 @@ async def search_members(
     _: CurrentUser,
     session: Annotated[AsyncSession, Depends(get_session)],
 ):
+    if len(q.strip()) < 2:
+        return []
     items = await crud.search_members(session, universe_id, q)
     await crud.attach_primary_photos(session, items)
     return items

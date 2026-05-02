@@ -1,11 +1,11 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
-import { MapPin, AlertTriangle, ChevronRight, ListFilter, X } from 'lucide-react'
-import { Suspense, lazy, useState } from 'react'
+import { MapPin, AlertTriangle, ChevronRight, ListFilter, X, Crosshair, Users } from 'lucide-react'
+import { Suspense, lazy, useMemo, useState } from 'react'
 import { NoUniverse } from '@/components/NoUniverse'
 import { useUniverseStore } from '@/stores/universe'
-import { useMunicipalities, useMunicipalityGeoJSON } from '@/lib/queries'
+import { useMunicipalities, useMunicipalityGeoJSON, useAllIncidents, useAllSets } from '@/lib/queries'
 import type { MunicipalityListItem, UUID } from '@/lib/types'
-import type { MapMetric } from '@/components/maps/MunicipalityMap'
+import type { MapMetric, IncidentPoint, SetPoint } from '@/components/maps/MunicipalityMap'
 
 const MunicipalityMap = lazy(() => import('@/components/maps/MunicipalityMap'))
 
@@ -44,9 +44,58 @@ function MapPage() {
   const { focus } = Route.useSearch()
   const universeId = useUniverseStore((s) => s.activeUniverse?.id ?? null)
   const [metric, setMetric] = useState<MapMetric>('sets')
+  const [showIncidents, setShowIncidents] = useState(false)
+  const [showSets, setShowSets] = useState(false)
   const [previewId, setPreviewId] = useState<UUID | null>(null)
   const { data: listData, isLoading: listLoading } = useMunicipalities(universeId)
   const { data: geojson, isLoading: geoLoading } = useMunicipalityGeoJSON(universeId, 'top')
+  const { data: incidentsData } = useAllIncidents(showIncidents ? universeId : null)
+  const { data: setsData } = useAllSets(showSets ? universeId : null)
+
+  const incidentPoints: IncidentPoint[] = showIncidents
+    ? (incidentsData?.items ?? []).flatMap((inc) =>
+        inc.lat != null && inc.lng != null
+          ? [{ id: inc.id, type: inc.type, lat: inc.lat, lng: inc.lng }]
+          : [],
+      )
+    : []
+
+  // Compute per-municipality bounding-box centroids from the GeoJSON so sets
+  // (which have municipality_id but no coordinates) can be plotted on the map.
+  const municipalityCentroids = useMemo<Record<string, [number, number]>>(() => {
+    if (!geojson) return {}
+    const result: Record<string, [number, number]> = {}
+    for (const f of geojson.features) {
+      if (!f.geometry) continue
+      let minLng = Infinity, minLat = Infinity, maxLng = -Infinity, maxLat = -Infinity
+      const walk = (coords: number[] | number[][] | number[][][] | number[][][][]) => {
+        if (typeof coords[0] === 'number') {
+          const [lng, lat] = coords as number[]
+          if (lng < minLng) minLng = lng
+          if (lat < minLat) minLat = lat
+          if (lng > maxLng) maxLng = lng
+          if (lat > maxLat) maxLat = lat
+        } else {
+          for (const c of coords as number[][]) walk(c)
+        }
+      }
+      walk(f.geometry.coordinates as number[][])
+      if (minLng !== Infinity) {
+        result[f.id as string] = [(minLng + maxLng) / 2, (minLat + maxLat) / 2]
+      }
+    }
+    return result
+  }, [geojson])
+
+  const setPoints: SetPoint[] = useMemo(() => {
+    if (!showSets) return []
+    return (setsData?.items ?? []).flatMap((s) => {
+      if (!s.municipality_id) return []
+      const center = municipalityCentroids[s.municipality_id]
+      if (!center) return []
+      return [{ id: s.id, status: s.status, lng: center[0], lat: center[1] }]
+    })
+  }, [showSets, setsData, municipalityCentroids])
 
   if (!universeId) return <NoUniverse />
 
@@ -72,6 +121,34 @@ function MapPage() {
         </div>
         <div className="flex items-center gap-2">
           <MetricToggle value={metric} onChange={setMetric} />
+          <button
+            type="button"
+            onClick={() => setShowSets((v) => !v)}
+            aria-pressed={showSets}
+            title="Toggle set markers"
+            className={`inline-flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-xs font-medium transition-colors ${
+              showSets
+                ? 'border-violet-700 bg-violet-950/60 text-violet-300 hover:bg-violet-900/60'
+                : 'border-zinc-700 text-zinc-500 hover:border-zinc-500 hover:text-zinc-300'
+            }`}
+          >
+            <Users className="h-3.5 w-3.5" />
+            Sets
+          </button>
+          <button
+            type="button"
+            onClick={() => setShowIncidents((v) => !v)}
+            aria-pressed={showIncidents}
+            title="Toggle incident points"
+            className={`inline-flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-xs font-medium transition-colors ${
+              showIncidents
+                ? 'border-rose-700 bg-rose-950/60 text-rose-300 hover:bg-rose-900/60'
+                : 'border-zinc-700 text-zinc-500 hover:border-zinc-500 hover:text-zinc-300'
+            }`}
+          >
+            <Crosshair className="h-3.5 w-3.5" />
+            Incidents
+          </button>
           {withoutGeometry.length > 0 && (
             <Link
               to="/municipalities"
@@ -105,7 +182,7 @@ function MapPage() {
           </div>
         ) : (
           <Suspense fallback={<MapPlaceholder label="Loading map…" />}>
-            <MunicipalityMap geojson={geojson!} focusId={focus} metric={metric} onPreview={setPreviewId} />
+            <MunicipalityMap geojson={geojson!} focusId={focus} metric={metric} onPreview={setPreviewId} incidentPoints={incidentPoints} setPoints={setPoints} />
           </Suspense>
         )}
 

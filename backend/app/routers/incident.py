@@ -27,29 +27,36 @@ from app.schemas.incident import (
 router = APIRouter(prefix="/incidents", tags=["incidents"])
 
 
-async def _enrich_victim_names(session: AsyncSession, items: list) -> list:
+async def _enrich_participant_names(session: AsyncSession, items: list) -> list:
     if not items:
         return items
     incident_ids = [inc.id for inc in items]
     ip = IncidentParticipant.__table__
     m = Member.__table__
-    display_name = case(
+    display_name_expr = case(
         (m.c.nickname_unknown | m.c.nickname.is_(None), m.c.legal_name),
         else_=m.c.nickname,
     )
     rows = (await session.execute(
-        select(ip.c.incident_id, display_name.label("display_name"))
+        select(ip.c.incident_id, ip.c.role, display_name_expr.label("display_name"))
         .join(m, m.c.id == ip.c.member_id)
         .where(ip.c.incident_id.in_(incident_ids))
-        .where(ip.c.role == 'VICTIM')
+        .where(ip.c.role.in_(('VICTIM', 'SHOOTER')))
     )).fetchall()
     victim_map: dict[str, list[str]] = {}
-    for incident_id, display_name in rows:
-        victim_map.setdefault(str(incident_id), []).append(display_name)
+    shooter_map: dict[str, list[str]] = {}
+    for incident_id, role, name in rows:
+        key = str(incident_id)
+        if role == 'VICTIM':
+            victim_map.setdefault(key, []).append(name)
+        else:
+            shooter_map.setdefault(key, []).append(name)
     enriched = []
     for inc in items:
         d = IncidentListItem.model_validate(inc)
-        d.victim_names = victim_map.get(str(inc.id), [])
+        key = str(inc.id)
+        d.victim_names = victim_map.get(key, [])
+        d.shooter_names = shooter_map.get(key, [])
         enriched.append(d)
     return enriched
 
@@ -71,15 +78,15 @@ async def list_incidents(
         return to_csv_response(items, "incidents.csv")
     if set_id is not None:
         items = await crud.list_incidents_by_set(session, set_id, universe_id, limit=limit)
-        return CursorPage(items=await _enrich_victim_names(session, items), next_cursor=None, total=None)
+        return CursorPage(items=await _enrich_participant_names(session, items), next_cursor=None, total=None)
     if member_id is not None:
         items = await crud.list_incidents_by_member(session, member_id, universe_id, limit=limit)
-        return CursorPage(items=await _enrich_victim_names(session, items), next_cursor=None, total=None)
+        return CursorPage(items=await _enrich_participant_names(session, items), next_cursor=None, total=None)
     if municipality_id is not None:
         items = await crud.list_incidents_by_municipality(session, municipality_id, universe_id, limit=limit)
-        return CursorPage(items=await _enrich_victim_names(session, items), next_cursor=None, total=None)
+        return CursorPage(items=await _enrich_participant_names(session, items), next_cursor=None, total=None)
     items, next_cursor = await crud.list_incidents(session, universe_id, limit=limit, cursor=cursor)
-    return CursorPage(items=await _enrich_victim_names(session, items), next_cursor=next_cursor, total=None)
+    return CursorPage(items=await _enrich_participant_names(session, items), next_cursor=next_cursor, total=None)
 
 
 @router.post("/", response_model=IncidentRead, status_code=201)
@@ -98,6 +105,8 @@ async def search_incidents(
     _: CurrentUser,
     session: Annotated[AsyncSession, Depends(get_session)],
 ):
+    if len(q.strip()) < 2:
+        return []
     return await crud.search_incidents(session, universe_id, q)
 
 

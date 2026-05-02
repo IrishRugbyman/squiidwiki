@@ -5,6 +5,17 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
+export function ageFromFuzzyDates(
+  dob: { year: number; month?: number | null },
+  asOf?: { year: number; month?: number | null } | null,
+): number | null {
+  const endYear = asOf?.year ?? new Date().getFullYear()
+  const endMonth = asOf?.month ?? (new Date().getMonth() + 1)
+  const dobMonth = dob.month ?? 1
+  const age = endYear - dob.year - (endMonth < dobMonth ? 1 : 0)
+  return age >= 0 ? age : null
+}
+
 export function timeAgo(isoString: string): string {
   const diff = Date.now() - new Date(isoString).getTime()
   const s = Math.floor(diff / 1000)

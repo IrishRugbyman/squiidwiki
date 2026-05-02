@@ -60,6 +60,8 @@ async def search_sets(
     _: CurrentUser,
     session: Annotated[AsyncSession, Depends(get_session)],
 ):
+    if len(q.strip()) < 2:
+        return []
     items = await crud.search_gang_sets(session, universe_id, q)
     await attach_primary_photos_sets(session, items)
     return items

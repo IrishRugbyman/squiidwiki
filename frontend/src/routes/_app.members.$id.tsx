@@ -12,7 +12,7 @@ import { ErrorState } from '@/components/ErrorState'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { Breadcrumbs } from '@/components/Breadcrumbs'
 import { CopyButton } from '@/components/CopyButton'
-import { timeAgo } from '@/lib/utils'
+import { ageFromFuzzyDates, timeAgo } from '@/lib/utils'
 import { DetailHeaderSkeleton } from '@/components/skeletons'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -306,7 +306,7 @@ function MemberDetailPage() {
   const navigate = useNavigate()
 
   const { data: member, isLoading, isError, refetch } = useMember(id, universe?.id ?? null)
-  const { data: stats } = useMemberStats(id, universe?.id ?? null)
+  const { data: stats } = useMemberStats(member?.id ?? null, universe?.id ?? null)
   const { data: allSets } = useSets(universe?.id ?? null)
   const { data: allAlliances } = useAlliances(universe?.id ?? null)
   const memberUuid = member?.id ?? null
@@ -571,7 +571,20 @@ function MemberDetailPage() {
                 <div>
                   <div className="rounded-xl border border-zinc-800 bg-zinc-900/30 px-4 py-1">
                     <DetailRow label="Date of Birth">
-                      {member.dob ? <FuzzyDate value={member.dob} /> : <span className="text-zinc-600">Unknown</span>}
+                      {member.dob ? (
+                        <span className="flex items-center gap-2 flex-wrap">
+                          <FuzzyDate value={member.dob} />
+                          {member.dob.year && (() => {
+                            const age = ageFromFuzzyDates(member.dob!, member.status === 'DEAD' ? member.date_of_death : null)
+                            if (age === null) return null
+                            return (
+                              <span className="text-xs text-zinc-500">
+                                {member.status === 'DEAD' ? `died aged ${age}` : `${age} years old`}
+                              </span>
+                            )
+                          })()}
+                        </span>
+                      ) : <span className="text-zinc-600">Unknown</span>}
                     </DetailRow>
                     {member.status === 'DEAD' && (
                       <DetailRow label="Date of Death">

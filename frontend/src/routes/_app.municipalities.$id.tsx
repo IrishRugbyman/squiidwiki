@@ -1,6 +1,7 @@
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
 import { AlertTriangle, ChevronRight, CheckCircle2, Map, MapPin, Pencil, Plus, Trash2 } from 'lucide-react'
 import { lazy, Suspense, useState } from 'react'
+import type { MapMetric } from '@/components/maps/MunicipalityMap'
 import { ErrorState } from '@/components/ErrorState'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { FuzzyDate } from '@/components/FuzzyDate'
@@ -60,6 +61,7 @@ function MunicipalityDetailPage() {
     childrenWithGeometry.length > 0 ? id : undefined,
   )
 
+  const [districtMetric, setDistrictMetric] = useState<MapMetric>('incidents')
   const [creatingChild, setCreatingChild] = useState(false)
   const [creatingSet, setCreatingSet] = useState(false)
   const [creatingIncident, setCreatingIncident] = useState(false)
@@ -156,13 +158,30 @@ function MunicipalityDetailPage() {
       {/* Sub-districts map — only when at least one child has geometry */}
       {childrenGeoJSON && childrenGeoJSON.features.length > 0 && (
         <div className="rounded-xl border border-zinc-800 bg-zinc-900/30 overflow-hidden">
-          <div className="border-b border-zinc-800 px-4 py-3 flex items-center justify-between">
+          <div className="border-b border-zinc-800 px-4 py-3 flex items-center justify-between gap-3">
             <h2 className="text-xs font-semibold uppercase tracking-wider text-zinc-500">
               Districts map
             </h2>
-            <span className="text-[11px] text-zinc-600">
-              {childrenGeoJSON.features.length} of {children.length} mapped · click to zoom
-            </span>
+            <div className="flex items-center gap-3">
+              <div className="inline-flex items-center gap-1 rounded-lg border border-zinc-800 bg-zinc-900/50 p-0.5" role="tablist">
+                {(['incidents', 'sets'] as MapMetric[]).map((key) => (
+                  <button
+                    key={key}
+                    role="tab"
+                    aria-selected={districtMetric === key}
+                    onClick={() => setDistrictMetric(key)}
+                    className={`rounded-md px-2.5 py-0.5 text-[11px] font-medium capitalize transition-colors ${
+                      districtMetric === key ? 'bg-zinc-700 text-white' : 'text-zinc-500 hover:text-zinc-300'
+                    }`}
+                  >
+                    {key}
+                  </button>
+                ))}
+              </div>
+              <span className="text-[11px] text-zinc-600">
+                {childrenGeoJSON.features.length} of {children.length} mapped · click to zoom
+              </span>
+            </div>
           </div>
           <div className="h-[420px] relative">
             <Suspense fallback={
@@ -173,7 +192,7 @@ function MunicipalityDetailPage() {
                 </div>
               </div>
             }>
-              <MunicipalityMap geojson={childrenGeoJSON} />
+              <MunicipalityMap geojson={childrenGeoJSON} metric={districtMetric} />
             </Suspense>
           </div>
         </div>

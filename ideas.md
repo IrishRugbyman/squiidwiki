@@ -19,7 +19,7 @@ Open items only. Implemented ideas are in git history.
 - [ ] **Set territory polygon** — optional GeoJSON polygon on `sets`, rendered on the map alongside the municipality choropleth. Hand-drawn or derived from K-means over incident lat/lng.
 - [ ] **Member-to-member direct links (non-family)** — generic `MemberRelationship` (e.g., "co-defendants", "childhood friends", "direct rivals") that the reactflow graph can render independent of set boundaries.
 - [ ] **Gang affiliation field** — new `Gang` entity (name + aliases) referenced by sets, alliances, and members. Alliances and sets can be `None` or any single gang; members cannot be `Mixed`. Needs a gang admin page and pickers on the set/alliance/member forms. Chicago-centric seed values to start (Black Disciples, Gangster Disciples, Bloods, etc.) but the model is generic.
-- [ ] **Reserved pseudo-sets: Civilian and Police** — two universe-scoped, undeletable set records seeded on universe create (`is_reserved=True`). Lets incidents tag civilian victims or police-involved shootings without fabricating a real crew.
+- [x] **Reserved pseudo-sets: Civilian and Police** — two universe-scoped, undeletable set records seeded on universe create (`is_reserved=True`). Lets incidents tag civilian victims or police-involved shootings without fabricating a real crew.
 - [ ] **Set-level participant on incidents** — when the individual shooter is unknown, allow tagging a set (not a specific member) as the aggressor. Parallel to the existing `member_id` participant row but with `set_id`; role + outcome still apply.
 
 ---
@@ -76,6 +76,10 @@ Open items only. Implemented ideas are in git history.
 - [ ] **Pinned route between linked incidents** — when an incident links to a retaliation, draw the directional path between them on the map. Visual storytelling once lat/lng exists.
 - [ ] **Geofenced alerts** — notify when new incidents or members are added within a custom geographic boundary.
 - [ ] **Municipality boundary overlay** — shapefile import of official city/district borders displayed on the map.
+
+# Bug
+
+- adding a set on an alliance page should put this allaince by default in the creation form
 
 ---
 
@@ -156,12 +160,12 @@ Open items only. Implemented ideas are in git history.
 
 ## Quick wins *(low effort, high value)*
 
-- [ ] **Copy entity URL** — button to copy a direct link to an entity for sharing in chat or notes.
+- [x] **Copy entity URL** — button to copy a direct link to an entity for sharing in chat or notes.
 - [x] **Last edited timestamp** — show when and by whom each entity was last modified in list views and detail pages.
 - [ ] **Entity references in text** — auto-link `@MemberName` or `#SetName` in biographies and notes to their pages.
-- [ ] **Breadcrumbs** — navigate back through the hierarchy (Universe → Set → Member).
-- [ ] **Age calculation display** — auto-compute and display member age from `date_of_birth` with FuzzyDate support.
-- [ ] **Empty state guidance** — helpful tips when tables are empty (e.g., "Add your first member with the + button").
+- [x] **Breadcrumbs** — navigate back through the hierarchy (Universe → Set → Member).
+- [x] **Age calculation display** — auto-compute and display member age from `date_of_birth` with FuzzyDate support.
+- [x] **Empty state guidance** — helpful tips when tables are empty (e.g., "Add your first member with the + button").
 - [ ] **Recent edits feed** — dashboard widget showing the latest changes across the universe.
 
 ---
