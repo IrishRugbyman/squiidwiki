@@ -13,6 +13,7 @@ import { ErrorState } from '@/components/ErrorState'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { Breadcrumbs } from '@/components/Breadcrumbs'
 import { CopyButton } from '@/components/CopyButton'
+import { timeAgo } from '@/lib/utils'
 import { DetailHeaderSkeleton } from '@/components/skeletons'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -436,6 +437,7 @@ function MemberDetailPage() {
                   {member.aliases && member.aliases.length > 0 && (
                     <span className="text-xs text-zinc-500">a.k.a. {member.aliases.join(', ')}</span>
                   )}
+                  <span className="text-[11px] text-zinc-600">Updated {timeAgo(member.updated_at)}</span>
                 </div>
                 {(member.set_id || member.alliance_id) && (
                   <div className="mt-2 flex flex-wrap gap-1.5">

@@ -1,5 +1,6 @@
 import re
 import uuid
+from datetime import datetime
 
 import sqlalchemy as sa
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -158,6 +159,7 @@ async def update_alliance(
         dump["slug"] = await _unique_slug(session, universe_id, base, exclude_id=id)
     for k, v in dump.items():
         setattr(obj, k, v)
+    obj.updated_at = datetime.utcnow()
     session.add(obj)
     if data.territory_ids is not None:
         await _sync_alliance_municipalities(session, obj.id, data.territory_ids)

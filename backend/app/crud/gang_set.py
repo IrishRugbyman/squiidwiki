@@ -1,5 +1,6 @@
 import re
 import uuid
+from datetime import datetime
 
 import sqlalchemy as sa
 from fastapi import HTTPException, status
@@ -178,6 +179,7 @@ async def update_gang_set(
         setattr(obj, k, v)
     if "name" in dump:
         obj.slug = await _unique_slug(session, obj.universe_id, obj.name, exclude_id=obj.id)
+    obj.updated_at = datetime.utcnow()
     session.add(obj)
     if data.territory_ids is not None:
         # Validate against the post-update municipality_id (we may be updating

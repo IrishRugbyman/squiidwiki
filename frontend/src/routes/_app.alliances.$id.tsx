@@ -16,6 +16,7 @@ import { ErrorState } from '@/components/ErrorState'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { Breadcrumbs } from '@/components/Breadcrumbs'
 import { CopyButton } from '@/components/CopyButton'
+import { timeAgo } from '@/lib/utils'
 import { EmptyState } from '@/components/EmptyState'
 import { StatCard } from '@/components/StatCard'
 import { DetailHeaderSkeleton } from '@/components/skeletons'
@@ -126,6 +127,7 @@ function AllianceDetailPage() {
                     Founded&nbsp;<FuzzyDate value={alliance.founded_at} />
                   </span>
                 )}
+                <span className="text-[11px] text-zinc-600">Updated {timeAgo(alliance.updated_at)}</span>
               </div>
             </div>
             <div className="flex shrink-0 items-center gap-2">

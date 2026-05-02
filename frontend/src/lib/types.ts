@@ -109,6 +109,7 @@ export interface SourceRead extends SourceListItem {
   notes: string | null
   archive_url: string | null
   created_at: string
+  updated_at: string
 }
 
 // Alliance
@@ -127,6 +128,7 @@ export interface AllianceRead extends AllianceListItem {
   description: string | null
   founded_at: FuzzyDateValue | null
   created_at: string
+  updated_at: string
 }
 
 export interface AllianceReadDetail extends AllianceRead {
@@ -152,6 +154,7 @@ export interface SetRead extends SetListItem {
   bio: string | null
   founder_id: UUID | null
   created_at: string
+  updated_at: string
 }
 
 export interface SetReadDetail extends SetRead {
@@ -245,6 +248,7 @@ export interface IncidentRead extends IncidentListItem {
   location_text: string | null
   narrative: string | null
   created_at: string
+  updated_at: string
 }
 
 export interface IncidentReadDetail extends IncidentRead {

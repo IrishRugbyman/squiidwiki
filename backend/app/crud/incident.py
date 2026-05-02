@@ -189,6 +189,8 @@ async def update_incident(
             dump["sortable_date"] = None
     for k, v in dump.items():
         setattr(obj, k, v)
+    from datetime import datetime as _dt
+    obj.updated_at = _dt.utcnow()
     session.add(obj)
     if data.participants is not None:
         await _sync_participants(session, obj.id, data.participants)

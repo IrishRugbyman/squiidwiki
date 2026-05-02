@@ -22,6 +22,7 @@ import { ErrorState } from '@/components/ErrorState'
 import { FuzzyDate, type FuzzyDateValue } from '@/components/FuzzyDate'
 import { Breadcrumbs } from '@/components/Breadcrumbs'
 import { CopyButton } from '@/components/CopyButton'
+import { timeAgo } from '@/lib/utils'
 import { DetailHeaderSkeleton } from '@/components/skeletons'
 import { Skeleton } from '@/components/ui/skeleton'
 import { SetAvatar, SetFormSheet } from './_app.sets.index'
@@ -374,6 +375,7 @@ function SetDetailPage() {
                       {territoryNames.length} sub-district{territoryNames.length === 1 ? '' : 's'}
                     </span>
                   )}
+                  <span className="text-[11px] text-zinc-600">Updated {timeAgo(set.updated_at)}</span>
                 </div>
               </div>
             </div>

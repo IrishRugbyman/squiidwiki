@@ -60,4 +60,5 @@ class GangSet(SQLModel, table=True):
     )
     slug: Optional[str] = Field(default=None, index=True)
     created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
     created_by_id: Optional[uuid.UUID] = Field(default=None, foreign_key="users.id")

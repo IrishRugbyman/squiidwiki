@@ -49,6 +49,7 @@ class SetRead(BaseModel):
     municipality_id: Optional[uuid.UUID]
     founder_id: Optional[uuid.UUID]
     created_at: datetime
+    updated_at: datetime
 
 
 class SetReadDetail(SetRead):

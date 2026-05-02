@@ -1,4 +1,5 @@
 import uuid
+from datetime import datetime
 
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import func, select
@@ -58,6 +59,7 @@ async def update_source(
         dump["published_at"] = _fuzzy_to_dict(data.published_at)
     for k, v in dump.items():
         setattr(obj, k, v)
+    obj.updated_at = datetime.utcnow()
     session.add(obj)
     await session.commit()
     await session.refresh(obj)

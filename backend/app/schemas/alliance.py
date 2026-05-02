@@ -41,6 +41,7 @@ class AllianceRead(BaseModel):
     status: AllianceStatus
     founded_at: FuzzyDateField
     created_at: datetime
+    updated_at: datetime
 
 
 class AllianceReadDetail(AllianceRead):

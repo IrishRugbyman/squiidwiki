@@ -8,6 +8,7 @@ import { ErrorState } from '@/components/ErrorState'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { Breadcrumbs } from '@/components/Breadcrumbs'
 import { CopyButton } from '@/components/CopyButton'
+import { timeAgo } from '@/lib/utils'
 import { DetailHeaderSkeleton } from '@/components/skeletons'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Badge } from '@/components/ui/badge'
@@ -96,6 +97,7 @@ function SourceDetailPage() {
                     Published <FuzzyDate value={source.published_at} />
                   </span>
                 )}
+                <span className="text-[11px] text-zinc-600">Updated {timeAgo(source.updated_at)}</span>
               </div>
             </div>
             <div className="flex shrink-0 items-center gap-2">

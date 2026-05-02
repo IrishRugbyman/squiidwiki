@@ -12,6 +12,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { ReliabilityBadge } from '@/components/StatusBadge'
 import { useIncident, useAllMembers, useAllSources, useDeleteIncident, useMunicipality, useSets } from '@/lib/queries'
+import { timeAgo } from '@/lib/utils'
 import { useUniverseStore } from '@/stores/universe'
 import { useAuthStore } from '@/stores/auth'
 import { IncidentFormSheet } from './_app.incidents.index'
@@ -147,6 +148,7 @@ function IncidentDetailPage() {
               {incident.lat != null && incident.lng != null && (
                 <p className="mt-1 text-xs text-zinc-500 font-mono">{incident.lat.toFixed(5)}, {incident.lng.toFixed(5)}</p>
               )}
+              <p className="mt-1 text-[11px] text-zinc-600">Updated {timeAgo(incident.updated_at)}</p>
             </div>
             <div className="flex items-center gap-2">
               <Button size="sm" variant="outline" onClick={() => setEditing(true)}>

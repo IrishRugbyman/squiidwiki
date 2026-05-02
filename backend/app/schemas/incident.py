@@ -83,6 +83,7 @@ class IncidentRead(BaseModel):
     narrative: Optional[str]
     verified: bool
     created_at: datetime
+    updated_at: datetime
 
 
 class IncidentReadDetail(IncidentRead):

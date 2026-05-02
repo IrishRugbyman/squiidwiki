@@ -157,7 +157,7 @@ Open items only. Implemented ideas are in git history.
 ## Quick wins *(low effort, high value)*
 
 - [ ] **Copy entity URL** — button to copy a direct link to an entity for sharing in chat or notes.
-- [ ] **Last edited timestamp** — show when and by whom each entity was last modified in list views and detail pages.
+- [x] **Last edited timestamp** — show when and by whom each entity was last modified in list views and detail pages.
 - [ ] **Entity references in text** — auto-link `@MemberName` or `#SetName` in biographies and notes to their pages.
 - [ ] **Breadcrumbs** — navigate back through the hierarchy (Universe → Set → Member).
 - [ ] **Age calculation display** — auto-compute and display member age from `date_of_birth` with FuzzyDate support.

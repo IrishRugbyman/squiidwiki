@@ -45,6 +45,7 @@ class SourceRead(BaseModel):
     notes: Optional[str]
     archive_url: Optional[str]
     created_at: datetime
+    updated_at: datetime
 
 
 class SourceListItem(BaseModel):

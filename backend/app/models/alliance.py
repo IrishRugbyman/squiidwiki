@@ -36,4 +36,5 @@ class Alliance(SQLModel, table=True):
     founded_at: Optional[dict] = Field(default=None, sa_column=Column(JSONB))
     slug: Optional[str] = Field(default=None, index=True)
     created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
     created_by_id: Optional[uuid.UUID] = Field(default=None, foreign_key="users.id")
