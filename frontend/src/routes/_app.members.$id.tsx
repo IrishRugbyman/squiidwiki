@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
 import {
   AlertTriangle, CheckCircle2, Copy, Download, ExternalLink, Heart,
-  Pencil, Plus, Skull, Trash2,
+  Pencil, Plus, Skull, Trash2, X,
 } from 'lucide-react'
 import { FacebookIcon, InstagramIcon, TwitterIcon } from '@/components/icons/SocialIcons'
 import { lazy, Suspense, useState } from 'react'
@@ -27,10 +27,10 @@ import {
   useMember, useMemberStats, useSets, useAlliances,
   useDeleteMember, useMemberIncidents, useAllMembers, useUpdateMember,
   useIncident, useMunicipality,
-  useMemberAliases, useCreateMemberAlias, useDeleteMemberAlias,
+  useMemberAliases,
   useMemberIncarcerations, useCreateMemberIncarceration, useDeleteMemberIncarceration,
 } from '@/lib/queries'
-import type { IncidentListItem, MemberAliasRead, MemberIncarcerationRead, MemberListItem, MemberRead } from '@/lib/types'
+import type { IncidentListItem, MemberIncarcerationRead, MemberListItem, MemberRead } from '@/lib/types'
 import type { FuzzyDateValue } from '@/components/FuzzyDate'
 import { downloadText } from '@/lib/download'
 import { useUniverseStore } from '@/stores/universe'
@@ -314,8 +314,6 @@ function MemberDetailPage() {
   const { data: incidents } = useMemberIncidents(id, universe?.id ?? null)
   const memberUuid = member?.id ?? null
   const { data: aliases } = useMemberAliases(memberUuid, universe?.id ?? null)
-  const createAlias = useCreateMemberAlias(memberUuid ?? '', universe?.id ?? '')
-  const deleteAlias = useDeleteMemberAlias(memberUuid ?? '', universe?.id ?? '')
   const { data: incarcerations } = useMemberIncarcerations(memberUuid, universe?.id ?? null)
   const createIncarceration = useCreateMemberIncarceration(memberUuid ?? '', universe?.id ?? '')
   const deleteIncarceration = useDeleteMemberIncarceration(memberUuid ?? '', universe?.id ?? '')
@@ -335,8 +333,6 @@ function MemberDetailPage() {
 
   const [editing, setEditing] = useState(false)
   const [duplicating, setDuplicating] = useState(false)
-  const [addingAlias, setAddingAlias] = useState(false)
-  const [aliasText, setAliasText] = useState('')
   const [addingIncarceration, setAddingIncarceration] = useState(false)
   const [incarcerationDraft, setIncarcerationDraft] = useState({ facility: '', case_id: '', notes: '' })
   const [deleting, setDeleting] = useState(false)
@@ -443,39 +439,45 @@ function MemberDetailPage() {
                 )}
               </div>
               <div className="min-w-0">
-                <div className="flex items-center gap-1">
-                  <MemberIdentity member={member} showLegalName className="text-2xl font-bold" secondaryClassName="text-base mt-0.5" />
-                  <CopyButton value={window.location.href} label="Copy link to this member" className="ml-1 opacity-60 hover:opacity-100" />
+                {/* Primary name */}
+                <div className="flex items-center gap-2">
+                  <h1 className="text-2xl font-bold leading-none text-white">{member.display_name}</h1>
+                  <CopyButton value={window.location.href} label="Copy link" className="opacity-40 hover:opacity-100" />
                 </div>
+                {/* All alternative names on one line: legal name + street names */}
+                {(() => {
+                  const alts: string[] = []
+                  if (!member.nickname_unknown && member.legal_name && member.legal_name !== member.display_name) {
+                    alts.push(member.legal_name)
+                  }
+                  if (aliases && aliases.length > 0) alts.push(...aliases.map((a) => a.alias))
+                  return alts.length > 0 ? (
+                    <p className="mt-1 text-sm text-zinc-500">a/k/a {alts.join(' · ')}</p>
+                  ) : null
+                })()}
+                {/* Status + affiliation chips */}
                 <div className="mt-2 flex flex-wrap items-center gap-2">
                   <MemberStatusBadge status={member.status} />
-                  {member.aliases && member.aliases.length > 0 && (
-                    <span className="text-xs text-zinc-500">a.k.a. {member.aliases.join(', ')}</span>
+                  {member.set_id && (
+                    <Link
+                      to="/sets/$id"
+                      params={{ id: setSlug(member.set_id) }}
+                      className="rounded-full bg-zinc-800/70 px-2.5 py-0.5 text-xs text-zinc-400 hover:bg-zinc-800 hover:text-violet-400 transition-colors"
+                    >
+                      {setName(member.set_id)}
+                    </Link>
+                  )}
+                  {member.alliance_id && (
+                    <Link
+                      to="/alliances/$id"
+                      params={{ id: member.alliance_id }}
+                      className="rounded-full bg-zinc-800/70 px-2.5 py-0.5 text-xs text-zinc-400 hover:bg-zinc-800 hover:text-blue-400 transition-colors"
+                    >
+                      {allianceName(member.alliance_id)}
+                    </Link>
                   )}
                   <span className="text-[11px] text-zinc-600">Updated {timeAgo(member.updated_at)}</span>
                 </div>
-                {(member.set_id || member.alliance_id) && (
-                  <div className="mt-2 flex flex-wrap gap-1.5">
-                    {member.set_id && (
-                      <Link
-                        to="/sets/$id"
-                        params={{ id: setSlug(member.set_id) }}
-                        className="rounded-full bg-zinc-800/70 px-2.5 py-0.5 text-xs text-zinc-400 hover:bg-zinc-800 hover:text-violet-400 transition-colors"
-                      >
-                        {setName(member.set_id)}
-                      </Link>
-                    )}
-                    {member.alliance_id && (
-                      <Link
-                        to="/alliances/$id"
-                        params={{ id: member.alliance_id }}
-                        className="rounded-full bg-zinc-800/70 px-2.5 py-0.5 text-xs text-zinc-400 hover:bg-zinc-800 hover:text-blue-400 transition-colors"
-                      >
-                        {allianceName(member.alliance_id)}
-                      </Link>
-                    )}
-                  </div>
-                )}
               </div>
             </div>
             <div className="flex shrink-0 items-center gap-2">
@@ -570,248 +572,193 @@ function MemberDetailPage() {
             </TabsList>
 
             {/* Overview */}
-            <TabsContent value="overview" className="mt-4 space-y-4">
-              <div className="rounded-xl border border-zinc-800 bg-zinc-900/30 px-4 py-1">
-                <DetailRow label="Date of Birth">
-                  {member.dob ? <FuzzyDate value={member.dob} /> : <span className="text-zinc-600">Unknown</span>}
-                </DetailRow>
-                {member.status === 'DEAD' && (
-                  <DetailRow label="Date of Death">
-                    <span className="flex items-center gap-2">
-                      <Skull className="h-3 w-3 text-zinc-500" />
-                      {member.date_of_death ? <FuzzyDate value={member.date_of_death} /> : <span className="text-zinc-600">Unknown</span>}
-                    </span>
-                  </DetailRow>
-                )}
-                {member.status === 'LOCKED' && (member.life_sentence || member.release_date) && (
-                  <DetailRow label="Release Date">
-                    {member.life_sentence
-                      ? <span className="font-medium text-rose-400">Life</span>
-                      : <FuzzyDate value={member.release_date} />}
-                  </DetailRow>
-                )}
-                <DetailRow label="Set">
-                  {member.set_id ? (
-                    <Link to="/sets/$id" params={{ id: setSlug(member.set_id) }} className="text-violet-400 hover:underline">
-                      {setName(member.set_id)}
-                    </Link>
-                  ) : <span className="text-zinc-600">—</span>}
-                </DetailRow>
-                <DetailRow label="Alliance">
-                  {member.alliance_id ? (
-                    <Link to="/alliances/$id" params={{ id: member.alliance_id }} className="text-blue-400 hover:underline">
-                      {allianceName(member.alliance_id)}
-                    </Link>
-                  ) : <span className="text-zinc-600">—</span>}
-                </DetailRow>
-              </div>
+            <TabsContent value="overview" className="mt-4">
+              {(() => {
+                const hasSocial = !!(member.social_media && Object.values(member.social_media as Record<string, string>).some((v) => v))
+                const hasIncarcerationPanel = (incarcerations && incarcerations.length > 0) || user?.global_role === 'ADMIN'
+                const showRightCol = hasSocial || hasIncarcerationPanel
+                return (
+              <div className={showRightCol ? 'grid grid-cols-1 gap-4 lg:grid-cols-[1fr_260px]' : ''}>
 
-              {/* AKA history */}
-              {((aliases && aliases.length > 0) || user?.global_role === 'ADMIN') && (
-                <div className="rounded-xl border border-zinc-800 bg-zinc-900/30 px-4 py-3 space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-medium uppercase tracking-wider text-zinc-500">AKA History</span>
-                    {user?.global_role === 'ADMIN' && (
-                      <button type="button" onClick={() => setAddingAlias((v) => !v)}
-                        className="inline-flex items-center gap-1 text-xs text-zinc-500 hover:text-violet-400 transition-colors">
-                        <Plus className="h-3 w-3" />{addingAlias ? 'Cancel' : 'Add'}
-                      </button>
+                {/* ── Left: identity facts ── */}
+                <div>
+                  <div className="rounded-xl border border-zinc-800 bg-zinc-900/30 px-4 py-1">
+                    <DetailRow label="Date of Birth">
+                      {member.dob ? <FuzzyDate value={member.dob} /> : <span className="text-zinc-600">Unknown</span>}
+                    </DetailRow>
+                    {member.status === 'DEAD' && (
+                      <DetailRow label="Date of Death">
+                        <span className="flex items-center gap-2">
+                          <Skull className="h-3 w-3 text-zinc-500" />
+                          {member.date_of_death ? <FuzzyDate value={member.date_of_death} /> : <span className="text-zinc-600">Unknown</span>}
+                        </span>
+                      </DetailRow>
                     )}
+                    {member.status === 'LOCKED' && (member.life_sentence || member.release_date) && (
+                      <DetailRow label="Release Date">
+                        {member.life_sentence
+                          ? <span className="font-medium text-rose-400">Life sentence</span>
+                          : <FuzzyDate value={member.release_date} />}
+                      </DetailRow>
+                    )}
+                    <DetailRow label="Set">
+                      {member.set_id ? (
+                        <Link to="/sets/$id" params={{ id: setSlug(member.set_id) }} className="text-violet-400 hover:underline">
+                          {setName(member.set_id)}
+                        </Link>
+                      ) : <span className="text-zinc-600">—</span>}
+                    </DetailRow>
+                    <DetailRow label="Alliance">
+                      {member.alliance_id ? (
+                        <Link to="/alliances/$id" params={{ id: member.alliance_id }} className="text-blue-400 hover:underline">
+                          {allianceName(member.alliance_id)}
+                        </Link>
+                      ) : <span className="text-zinc-600">—</span>}
+                    </DetailRow>
                   </div>
-                  {addingAlias && (
-                    <form
-                      onSubmit={async (e) => {
-                        e.preventDefault()
-                        if (!aliasText.trim()) return
-                        await createAlias.mutateAsync({ alias: aliasText.trim() })
-                        setAliasText('')
-                        setAddingAlias(false)
-                      }}
-                      className="flex gap-2"
-                    >
-                      <Input
-                        value={aliasText}
-                        onChange={(e) => setAliasText(e.target.value)}
-                        placeholder="Alias / street name…"
-                        className="h-7 text-sm flex-1"
-                        autoFocus
-                      />
-                      <Button type="submit" size="sm" className="h-7 px-3" disabled={createAlias.isPending}>
-                        Save
-                      </Button>
-                    </form>
-                  )}
-                  {aliases && aliases.length > 0 ? (
-                    <div className="space-y-1">
-                      {aliases.map((a: MemberAliasRead) => (
-                        <div key={a.id} className="flex items-center justify-between py-0.5">
-                          <span className="text-sm text-zinc-200">{a.alias}</span>
-                          <div className="flex items-center gap-2">
-                            {(a.from_date || a.until_date) && (
-                              <span className="text-[11px] text-zinc-500">
-                                {a.from_date && <FuzzyDate value={a.from_date} />}
-                                {a.from_date && a.until_date && ' – '}
-                                {a.until_date && <FuzzyDate value={a.until_date} />}
-                              </span>
-                            )}
-                            {user?.global_role === 'ADMIN' && (
-                              <button type="button"
-                                onClick={() => deleteAlias.mutate(a.id)}
-                                className="text-zinc-700 hover:text-red-400 transition-colors">
-                                <Trash2 className="h-3 w-3" />
-                              </button>
-                            )}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    !addingAlias && <p className="text-xs text-zinc-600">No aliases recorded.</p>
-                  )}
                 </div>
-              )}
 
-              {/* Incarceration history */}
-              {((incarcerations && incarcerations.length > 0) || user?.global_role === 'ADMIN') && (
-                <div className="rounded-xl border border-zinc-800 bg-zinc-900/30 px-4 py-3 space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-medium uppercase tracking-wider text-zinc-500">Incarceration History</span>
-                    {user?.global_role === 'ADMIN' && (
-                      <button type="button" onClick={() => setAddingIncarceration((v) => !v)}
-                        className="inline-flex items-center gap-1 text-xs text-zinc-500 hover:text-violet-400 transition-colors">
-                        <Plus className="h-3 w-3" />{addingIncarceration ? 'Cancel' : 'Add'}
-                      </button>
-                    )}
-                  </div>
-                  {addingIncarceration && (
-                    <form
-                      onSubmit={async (e) => {
-                        e.preventDefault()
-                        await createIncarceration.mutateAsync({
-                          facility: incarcerationDraft.facility || null,
-                          case_id: incarcerationDraft.case_id || null,
-                          notes: incarcerationDraft.notes || null,
-                        })
-                        setIncarcerationDraft({ facility: '', case_id: '', notes: '' })
-                        setAddingIncarceration(false)
-                      }}
-                      className="space-y-2"
-                    >
-                      <div className="grid grid-cols-2 gap-2">
-                        <div>
-                          <Label className="text-xs text-zinc-500">Facility</Label>
+                {/* ── Right column: incarceration timeline + social ── */}
+                <div className="space-y-4">
+
+                  {/* Social media — compact icon buttons */}
+                  {member.social_media && Object.values(member.social_media as Record<string, string>).some((v) => v) && (
+                    <div className="rounded-xl border border-zinc-800 bg-zinc-900/30 px-4 py-3">
+                      <p className="mb-2.5 text-xs font-medium uppercase tracking-wider text-zinc-500">Social</p>
+                      <div className="flex flex-wrap gap-2">
+                        {Object.entries(member.social_media as Record<string, string>).map(([platform, handle]) => {
+                          if (!handle) return null
+                          const raw = String(handle)
+                          const url = socialUrl(platform, raw)
+                          const display = raw.startsWith('http') ? (extractHost(raw) ?? raw) : `@${raw.replace(/^@/, '')}`
+                          const Icon = SOCIAL_ICON[platform.toLowerCase()] ?? null
+                          if (url) {
+                            return (
+                              <a key={platform} href={url} target="_blank" rel="noopener noreferrer"
+                                className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-700/60 bg-zinc-800/60 px-2.5 py-1.5 text-xs text-zinc-400 hover:border-zinc-600 hover:text-white transition-colors">
+                                {Icon && <Icon className="h-3.5 w-3.5" />}
+                                <span className="capitalize">{platform}</span>
+                                <ExternalLink className="h-2.5 w-2.5 opacity-50" />
+                              </a>
+                            )
+                          }
+                          return (
+                            <Tooltip key={platform}>
+                              <TooltipTrigger asChild>
+                                <span className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-700/40 bg-zinc-800/40 px-2.5 py-1.5 text-xs text-zinc-600 cursor-default">
+                                  {Icon && <Icon className="h-3.5 w-3.5" />}
+                                  <span className="capitalize">{platform}</span>
+                                  {raw.startsWith('http') && <AlertTriangle className="h-2.5 w-2.5 text-amber-500" />}
+                                </span>
+                              </TooltipTrigger>
+                              <TooltipContent side="bottom">
+                                {raw.startsWith('http') ? 'Malformed URL' : display}
+                              </TooltipContent>
+                            </Tooltip>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Incarceration — timeline */}
+                  {((incarcerations && incarcerations.length > 0) || user?.global_role === 'ADMIN') && (
+                    <div className="rounded-xl border border-zinc-800 bg-zinc-900/30 px-4 py-3 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <p className="text-xs font-medium uppercase tracking-wider text-zinc-500">Incarceration</p>
+                        {user?.global_role === 'ADMIN' && (
+                          <button type="button" onClick={() => setAddingIncarceration((v) => !v)}
+                            className="inline-flex items-center gap-1 text-xs text-zinc-500 hover:text-violet-400 transition-colors">
+                            <Plus className="h-3 w-3" />{addingIncarceration ? 'Cancel' : 'Add'}
+                          </button>
+                        )}
+                      </div>
+
+                      {addingIncarceration && (
+                        <form
+                          onSubmit={async (e) => {
+                            e.preventDefault()
+                            await createIncarceration.mutateAsync({
+                              facility: incarcerationDraft.facility || null,
+                              case_id: incarcerationDraft.case_id || null,
+                              notes: incarcerationDraft.notes || null,
+                            })
+                            setIncarcerationDraft({ facility: '', case_id: '', notes: '' })
+                            setAddingIncarceration(false)
+                          }}
+                          className="space-y-2 pb-1"
+                        >
                           <Input
                             value={incarcerationDraft.facility}
                             onChange={(e) => setIncarcerationDraft((d) => ({ ...d, facility: e.target.value }))}
-                            placeholder="e.g. Cook County Jail"
-                            className="h-7 text-sm mt-0.5"
+                            placeholder="Facility name"
+                            className="h-7 text-sm"
                           />
-                        </div>
-                        <div>
-                          <Label className="text-xs text-zinc-500">Case ID</Label>
                           <Input
                             value={incarcerationDraft.case_id}
                             onChange={(e) => setIncarcerationDraft((d) => ({ ...d, case_id: e.target.value }))}
-                            placeholder="Case number"
-                            className="h-7 text-sm mt-0.5"
+                            placeholder="Case number (optional)"
+                            className="h-7 text-sm"
                           />
-                        </div>
-                      </div>
-                      <div>
-                        <Label className="text-xs text-zinc-500">Notes</Label>
-                        <Input
-                          value={incarcerationDraft.notes}
-                          onChange={(e) => setIncarcerationDraft((d) => ({ ...d, notes: e.target.value }))}
-                          placeholder="Optional notes"
-                          className="h-7 text-sm mt-0.5"
-                        />
-                      </div>
-                      <div className="flex justify-end gap-2">
-                        <Button type="button" size="sm" variant="outline" className="h-7 px-3"
-                          onClick={() => setAddingIncarceration(false)}>Cancel</Button>
-                        <Button type="submit" size="sm" className="h-7 px-3" disabled={createIncarceration.isPending}>
-                          Save
-                        </Button>
-                      </div>
-                    </form>
-                  )}
-                  {incarcerations && incarcerations.length > 0 ? (
-                    <div className="space-y-1">
-                      {incarcerations.map((spell: MemberIncarcerationRead) => (
-                        <div key={spell.id} className="flex items-start justify-between py-1 border-b border-zinc-800/50 last:border-0">
-                          <div className="min-w-0">
-                            <span className="text-sm text-zinc-200">{spell.facility ?? 'Unknown facility'}</span>
-                            {spell.case_id && (
-                              <span className="ml-2 text-xs text-zinc-500 font-mono">#{spell.case_id}</span>
-                            )}
-                            {(spell.from_date || spell.to_date) && (
-                              <div className="text-[11px] text-zinc-500 mt-0.5">
-                                {spell.from_date && <FuzzyDate value={spell.from_date} />}
-                                {spell.from_date && spell.to_date && ' – '}
-                                {spell.to_date ? <FuzzyDate value={spell.to_date} /> : spell.from_date ? ' – present' : ''}
-                              </div>
-                            )}
-                            {spell.notes && (
-                              <p className="text-xs text-zinc-500 mt-0.5">{spell.notes}</p>
-                            )}
+                          <Input
+                            value={incarcerationDraft.notes}
+                            onChange={(e) => setIncarcerationDraft((d) => ({ ...d, notes: e.target.value }))}
+                            placeholder="Notes (optional)"
+                            className="h-7 text-sm"
+                          />
+                          <div className="flex justify-end gap-2 pt-1">
+                            <Button type="button" size="sm" variant="ghost" className="h-7 px-2"
+                              onClick={() => setAddingIncarceration(false)}><X className="h-3.5 w-3.5" /></Button>
+                            <Button type="submit" size="sm" className="h-7 px-3" disabled={createIncarceration.isPending}>Save</Button>
                           </div>
-                          {user?.global_role === 'ADMIN' && (
-                            <button type="button"
-                              onClick={() => deleteIncarceration.mutate(spell.id)}
-                              className="ml-3 shrink-0 text-zinc-700 hover:text-red-400 transition-colors">
-                              <Trash2 className="h-3 w-3" />
-                            </button>
-                          )}
+                        </form>
+                      )}
+
+                      {incarcerations && incarcerations.length > 0 ? (
+                        <div className="relative pl-4 space-y-0">
+                          {/* vertical timeline rail */}
+                          <div className="absolute left-[7px] top-2 bottom-2 w-px bg-zinc-700/50" />
+                          {incarcerations.map((spell: MemberIncarcerationRead) => (
+                            <div key={spell.id} className="group relative pb-4 last:pb-0">
+                              <div className="absolute -left-[13px] top-1.5 h-2.5 w-2.5 rounded-full border-2 border-zinc-700 bg-zinc-900 ring-0 group-hover:border-violet-500 transition-colors" />
+                              <div className="flex items-start justify-between gap-2">
+                                <div className="min-w-0">
+                                  <p className="text-sm font-medium text-zinc-200 leading-snug">
+                                    {spell.facility ?? 'Unknown facility'}
+                                  </p>
+                                  {(spell.from_date || spell.to_date) && (
+                                    <p className="mt-0.5 text-[11px] text-zinc-500">
+                                      {spell.from_date ? <FuzzyDate value={spell.from_date} /> : '?'}
+                                      {' – '}
+                                      {spell.to_date ? <FuzzyDate value={spell.to_date} /> : 'present'}
+                                    </p>
+                                  )}
+                                  {spell.case_id && (
+                                    <p className="mt-0.5 font-mono text-[11px] text-zinc-600">#{spell.case_id}</p>
+                                  )}
+                                  {spell.notes && (
+                                    <p className="mt-0.5 text-[11px] text-zinc-500 italic">{spell.notes}</p>
+                                  )}
+                                </div>
+                                {user?.global_role === 'ADMIN' && (
+                                  <button type="button" onClick={() => deleteIncarceration.mutate(spell.id)}
+                                    className="mt-0.5 shrink-0 text-zinc-700 opacity-0 group-hover:opacity-100 hover:text-red-400 transition-all">
+                                    <Trash2 className="h-3 w-3" />
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                          ))}
                         </div>
-                      ))}
+                      ) : (
+                        !addingIncarceration && <p className="text-xs text-zinc-600">No incarceration records.</p>
+                      )}
                     </div>
-                  ) : (
-                    !addingIncarceration && <p className="text-xs text-zinc-600">No incarceration records.</p>
                   )}
                 </div>
-              )}
-
-              {/* Social media */}
-              {member.social_media && Object.keys(member.social_media).length > 0 && (
-                <div className="rounded-xl border border-zinc-800 bg-zinc-900/30 px-4 py-2">
-                  {Object.entries(member.social_media).map(([platform, handle]) => {
-                    const raw = String(handle)
-                    const url = socialUrl(platform, raw)
-                    const display = raw.startsWith('http') ? (extractHost(raw) ?? raw) : `@${raw.replace(/^@/, '')}`
-                    const Icon = SOCIAL_ICON[platform.toLowerCase()] ?? null
-                    return (
-                      <DetailRow
-                        key={platform}
-                        label={
-                          <span className="inline-flex items-center gap-1.5 capitalize">
-                            {Icon ? <Icon className="h-3.5 w-3.5 text-zinc-500" /> : null}
-                            {platform}
-                          </span>
-                        }
-                      >
-                        {url ? (
-                          <a href={url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-sky-400 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/50 rounded">
-                            <span>{display}</span>
-                            <ExternalLink className="h-3 w-3" />
-                          </a>
-                        ) : raw.startsWith('http') ? (
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <span className="inline-flex items-center gap-1 text-amber-400">
-                                <AlertTriangle className="h-3 w-3" />
-                                <span className="truncate">{raw}</span>
-                              </span>
-                            </TooltipTrigger>
-                            <TooltipContent side="right">Malformed URL — could not be parsed</TooltipContent>
-                          </Tooltip>
-                        ) : (
-                          <span className="text-zinc-300">{raw}</span>
-                        )}
-                      </DetailRow>
-                    )
-                  })}
-                </div>
-              )}
+              </div>
+                )
+              })()}
             </TabsContent>
 
             {/* Biography */}
