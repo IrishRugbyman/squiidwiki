@@ -9,12 +9,12 @@ from sqlmodel import select
 
 from app.core import storage
 from app.core.enums import MediaKind
-from app.models.member import Member, MemberAlias, MemberSource
+from app.models.member import Member, MemberAlias, MemberIncarceration, MemberSource
 from app.models.incident import IncidentParticipant
 from app.models.gang_set import GangSet
 from app.models.media import Media
 from app.schemas.common import make_cursor, parse_cursor
-from app.schemas.member import MemberAliasCreate, MemberCreate, MemberUpdate
+from app.schemas.member import MemberAliasCreate, MemberCreate, MemberIncarcerationCreate, MemberIncarcerationUpdate, MemberUpdate
 
 
 INVERSE_REL: dict[str, str] = {
@@ -412,3 +412,72 @@ async def get_member_stats(session: AsyncSession, member_id: uuid.UUID) -> dict 
         "kills": 0,
         "times_shot_survived": 0,
     }
+
+
+async def list_member_incarcerations(
+    session: AsyncSession, member_id: uuid.UUID
+) -> list[MemberIncarceration]:
+    result = await session.execute(
+        select(MemberIncarceration)
+        .where(MemberIncarceration.member_id == member_id)
+        .order_by(MemberIncarceration.created_at)
+    )
+    return result.scalars().all()
+
+
+async def create_member_incarceration(
+    session: AsyncSession, member_id: uuid.UUID, data: MemberIncarcerationCreate
+) -> MemberIncarceration:
+    obj = MemberIncarceration(
+        member_id=member_id,
+        from_date=_fuzzy_to_dict(data.from_date),
+        to_date=_fuzzy_to_dict(data.to_date),
+        facility=data.facility,
+        case_id=data.case_id,
+        notes=data.notes,
+    )
+    session.add(obj)
+    await session.commit()
+    await session.refresh(obj)
+    return obj
+
+
+async def update_member_incarceration(
+    session: AsyncSession, spell_id: uuid.UUID, member_id: uuid.UUID, data: MemberIncarcerationUpdate
+) -> MemberIncarceration | None:
+    result = await session.execute(
+        select(MemberIncarceration).where(
+            MemberIncarceration.id == spell_id,
+            MemberIncarceration.member_id == member_id,
+        )
+    )
+    obj = result.scalar_one_or_none()
+    if obj is None:
+        return None
+    for field in ("facility", "case_id", "notes"):
+        v = getattr(data, field)
+        if v is not None:
+            setattr(obj, field, v)
+    obj.from_date = _fuzzy_to_dict(data.from_date)
+    obj.to_date = _fuzzy_to_dict(data.to_date)
+    session.add(obj)
+    await session.commit()
+    await session.refresh(obj)
+    return obj
+
+
+async def delete_member_incarceration(
+    session: AsyncSession, spell_id: uuid.UUID, member_id: uuid.UUID
+) -> bool:
+    result = await session.execute(
+        select(MemberIncarceration).where(
+            MemberIncarceration.id == spell_id,
+            MemberIncarceration.member_id == member_id,
+        )
+    )
+    obj = result.scalar_one_or_none()
+    if obj is None:
+        return False
+    await session.delete(obj)
+    await session.commit()
+    return True

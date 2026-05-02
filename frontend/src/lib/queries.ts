@@ -15,6 +15,7 @@ import type {
   MediaEntityType,
   MediaWithUrls,
   MemberAliasRead,
+  MemberIncarcerationRead,
   MemberListItem,
   MemberRead,
   MemberReadDetail,
@@ -445,6 +446,40 @@ export const useDeleteMemberAlias = (memberId: UUID, universeId: UUID) => {
     mutationFn: (aliasId: UUID) =>
       api.delete(`/members/${memberId}/aliases/${aliasId}?universe_id=${universeId}`),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['members', memberId, 'aliases'] }) },
+  })
+}
+
+export const useMemberIncarcerations = (memberId: UUID | null, universeId: UUID | null) =>
+  useQuery({
+    queryKey: ['members', memberId, 'incarcerations'],
+    queryFn: () => api.get<MemberIncarcerationRead[]>(`/members/${memberId}/incarcerations?universe_id=${universeId}`),
+    enabled: !!memberId && !!universeId,
+  })
+
+export const useCreateMemberIncarceration = (memberId: UUID, universeId: UUID) => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (data: { from_date?: unknown; to_date?: unknown; facility?: string | null; case_id?: string | null; notes?: string | null }) =>
+      api.post<MemberIncarcerationRead>(`/members/${memberId}/incarcerations?universe_id=${universeId}`, data),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['members', memberId, 'incarcerations'] }) },
+  })
+}
+
+export const useUpdateMemberIncarceration = (memberId: UUID, universeId: UUID) => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ spellId, data }: { spellId: UUID; data: { from_date?: unknown; to_date?: unknown; facility?: string | null; case_id?: string | null; notes?: string | null } }) =>
+      api.patch<MemberIncarcerationRead>(`/members/${memberId}/incarcerations/${spellId}?universe_id=${universeId}`, data),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['members', memberId, 'incarcerations'] }) },
+  })
+}
+
+export const useDeleteMemberIncarceration = (memberId: UUID, universeId: UUID) => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (spellId: UUID) =>
+      api.delete(`/members/${memberId}/incarcerations/${spellId}?universe_id=${universeId}`),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['members', memberId, 'incarcerations'] }) },
   })
 }
 

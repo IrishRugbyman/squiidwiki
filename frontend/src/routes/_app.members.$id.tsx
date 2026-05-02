@@ -28,8 +28,9 @@ import {
   useDeleteMember, useMemberIncidents, useAllMembers, useUpdateMember,
   useIncident, useMunicipality,
   useMemberAliases, useCreateMemberAlias, useDeleteMemberAlias,
+  useMemberIncarcerations, useCreateMemberIncarceration, useDeleteMemberIncarceration,
 } from '@/lib/queries'
-import type { IncidentListItem, MemberAliasRead, MemberListItem, MemberRead } from '@/lib/types'
+import type { IncidentListItem, MemberAliasRead, MemberIncarcerationRead, MemberListItem, MemberRead } from '@/lib/types'
 import type { FuzzyDateValue } from '@/components/FuzzyDate'
 import { downloadText } from '@/lib/download'
 import { useUniverseStore } from '@/stores/universe'
@@ -311,9 +312,13 @@ function MemberDetailPage() {
   const { data: allSets } = useSets(universe?.id ?? null)
   const { data: allAlliances } = useAlliances(universe?.id ?? null)
   const { data: incidents } = useMemberIncidents(id, universe?.id ?? null)
-  const { data: aliases } = useMemberAliases(id, universe?.id ?? null)
-  const createAlias = useCreateMemberAlias(id, universe?.id ?? '')
-  const deleteAlias = useDeleteMemberAlias(id, universe?.id ?? '')
+  const memberUuid = member?.id ?? null
+  const { data: aliases } = useMemberAliases(memberUuid, universe?.id ?? null)
+  const createAlias = useCreateMemberAlias(memberUuid ?? '', universe?.id ?? '')
+  const deleteAlias = useDeleteMemberAlias(memberUuid ?? '', universe?.id ?? '')
+  const { data: incarcerations } = useMemberIncarcerations(memberUuid, universe?.id ?? null)
+  const createIncarceration = useCreateMemberIncarceration(memberUuid ?? '', universe?.id ?? '')
+  const deleteIncarceration = useDeleteMemberIncarceration(memberUuid ?? '', universe?.id ?? '')
   const { data: killingIncident } = useIncident(
     member?.death_incident_id ?? '',
     member?.death_incident_id ? (universe?.id ?? null) : null,
@@ -332,6 +337,8 @@ function MemberDetailPage() {
   const [duplicating, setDuplicating] = useState(false)
   const [addingAlias, setAddingAlias] = useState(false)
   const [aliasText, setAliasText] = useState('')
+  const [addingIncarceration, setAddingIncarceration] = useState(false)
+  const [incarcerationDraft, setIncarcerationDraft] = useState({ facility: '', case_id: '', notes: '' })
   const [deleting, setDeleting] = useState(false)
   const [creatingIncident, setCreatingIncident] = useState(false)
   const [addingFamily, setAddingFamily] = useState(false)
@@ -660,6 +667,106 @@ function MemberDetailPage() {
                     </div>
                   ) : (
                     !addingAlias && <p className="text-xs text-zinc-600">No aliases recorded.</p>
+                  )}
+                </div>
+              )}
+
+              {/* Incarceration history */}
+              {((incarcerations && incarcerations.length > 0) || user?.global_role === 'ADMIN') && (
+                <div className="rounded-xl border border-zinc-800 bg-zinc-900/30 px-4 py-3 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-medium uppercase tracking-wider text-zinc-500">Incarceration History</span>
+                    {user?.global_role === 'ADMIN' && (
+                      <button type="button" onClick={() => setAddingIncarceration((v) => !v)}
+                        className="inline-flex items-center gap-1 text-xs text-zinc-500 hover:text-violet-400 transition-colors">
+                        <Plus className="h-3 w-3" />{addingIncarceration ? 'Cancel' : 'Add'}
+                      </button>
+                    )}
+                  </div>
+                  {addingIncarceration && (
+                    <form
+                      onSubmit={async (e) => {
+                        e.preventDefault()
+                        await createIncarceration.mutateAsync({
+                          facility: incarcerationDraft.facility || null,
+                          case_id: incarcerationDraft.case_id || null,
+                          notes: incarcerationDraft.notes || null,
+                        })
+                        setIncarcerationDraft({ facility: '', case_id: '', notes: '' })
+                        setAddingIncarceration(false)
+                      }}
+                      className="space-y-2"
+                    >
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <Label className="text-xs text-zinc-500">Facility</Label>
+                          <Input
+                            value={incarcerationDraft.facility}
+                            onChange={(e) => setIncarcerationDraft((d) => ({ ...d, facility: e.target.value }))}
+                            placeholder="e.g. Cook County Jail"
+                            className="h-7 text-sm mt-0.5"
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-xs text-zinc-500">Case ID</Label>
+                          <Input
+                            value={incarcerationDraft.case_id}
+                            onChange={(e) => setIncarcerationDraft((d) => ({ ...d, case_id: e.target.value }))}
+                            placeholder="Case number"
+                            className="h-7 text-sm mt-0.5"
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <Label className="text-xs text-zinc-500">Notes</Label>
+                        <Input
+                          value={incarcerationDraft.notes}
+                          onChange={(e) => setIncarcerationDraft((d) => ({ ...d, notes: e.target.value }))}
+                          placeholder="Optional notes"
+                          className="h-7 text-sm mt-0.5"
+                        />
+                      </div>
+                      <div className="flex justify-end gap-2">
+                        <Button type="button" size="sm" variant="outline" className="h-7 px-3"
+                          onClick={() => setAddingIncarceration(false)}>Cancel</Button>
+                        <Button type="submit" size="sm" className="h-7 px-3" disabled={createIncarceration.isPending}>
+                          Save
+                        </Button>
+                      </div>
+                    </form>
+                  )}
+                  {incarcerations && incarcerations.length > 0 ? (
+                    <div className="space-y-1">
+                      {incarcerations.map((spell: MemberIncarcerationRead) => (
+                        <div key={spell.id} className="flex items-start justify-between py-1 border-b border-zinc-800/50 last:border-0">
+                          <div className="min-w-0">
+                            <span className="text-sm text-zinc-200">{spell.facility ?? 'Unknown facility'}</span>
+                            {spell.case_id && (
+                              <span className="ml-2 text-xs text-zinc-500 font-mono">#{spell.case_id}</span>
+                            )}
+                            {(spell.from_date || spell.to_date) && (
+                              <div className="text-[11px] text-zinc-500 mt-0.5">
+                                {spell.from_date && <FuzzyDate value={spell.from_date} />}
+                                {spell.from_date && spell.to_date && ' – '}
+                                {spell.to_date ? <FuzzyDate value={spell.to_date} /> : spell.from_date ? ' – present' : ''}
+                              </div>
+                            )}
+                            {spell.notes && (
+                              <p className="text-xs text-zinc-500 mt-0.5">{spell.notes}</p>
+                            )}
+                          </div>
+                          {user?.global_role === 'ADMIN' && (
+                            <button type="button"
+                              onClick={() => deleteIncarceration.mutate(spell.id)}
+                              className="ml-3 shrink-0 text-zinc-700 hover:text-red-400 transition-colors">
+                              <Trash2 className="h-3 w-3" />
+                            </button>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    !addingIncarceration && <p className="text-xs text-zinc-600">No incarceration records.</p>
                   )}
                 </div>
               )}

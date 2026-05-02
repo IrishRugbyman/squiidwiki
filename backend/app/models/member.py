@@ -28,6 +28,19 @@ class MemberAlias(SQLModel, table=True):
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
 
+class MemberIncarceration(SQLModel, table=True):
+    __tablename__ = "member_incarceration"
+
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    member_id: uuid.UUID = Field(foreign_key="member.id", index=True)
+    from_date: Optional[dict] = Field(default=None, sa_column=Column(JSONB))
+    to_date: Optional[dict] = Field(default=None, sa_column=Column(JSONB))
+    facility: Optional[str] = None
+    case_id: Optional[str] = None
+    notes: Optional[str] = None
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+
 class Member(SQLModel, table=True):
     __tablename__ = "member"
 

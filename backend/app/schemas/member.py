@@ -94,6 +94,35 @@ class MemberListItem(BaseModel):
     date_of_death: FuzzyDateField = None
 
 
+class MemberIncarcerationCreate(BaseModel):
+    from_date: FuzzyDateField = None
+    to_date: FuzzyDateField = None
+    facility: Optional[str] = None
+    case_id: Optional[str] = None
+    notes: Optional[str] = None
+
+
+class MemberIncarcerationUpdate(BaseModel):
+    from_date: FuzzyDateField = None
+    to_date: FuzzyDateField = None
+    facility: Optional[str] = None
+    case_id: Optional[str] = None
+    notes: Optional[str] = None
+
+
+class MemberIncarcerationRead(BaseModel):
+    model_config = {"from_attributes": True}
+
+    id: uuid.UUID
+    member_id: uuid.UUID
+    from_date: FuzzyDateField
+    to_date: FuzzyDateField
+    facility: Optional[str]
+    case_id: Optional[str]
+    notes: Optional[str]
+    created_at: datetime
+
+
 class MemberAliasCreate(BaseModel):
     alias: str
     from_date: FuzzyDateField = None

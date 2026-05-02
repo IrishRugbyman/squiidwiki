@@ -15,6 +15,9 @@ from app.schemas.member import (
     MemberAliasCreate,
     MemberAliasRead,
     MemberCreate,
+    MemberIncarcerationCreate,
+    MemberIncarcerationRead,
+    MemberIncarcerationUpdate,
     MemberListItem,
     MemberRead,
     MemberReadDetail,
@@ -178,5 +181,66 @@ async def delete_member_alias(
     session: Annotated[AsyncSession, Depends(get_session)],
 ):
     ok = await crud.delete_member_alias(session, alias_id, id)
+    if not ok:
+        raise HTTPException(404)
+
+
+@router.get("/{id}/incarcerations", response_model=list[MemberIncarcerationRead])
+async def list_member_incarcerations(
+    id: uuid.UUID,
+    universe_id: uuid.UUID,
+    _: CurrentUser,
+    session: Annotated[AsyncSession, Depends(get_session)],
+):
+    obj = await crud.get_member(session, id, universe_id)
+    if obj is None:
+        raise HTTPException(404)
+    return await crud.list_member_incarcerations(session, id)
+
+
+@router.post("/{id}/incarcerations", response_model=MemberIncarcerationRead, status_code=201)
+async def create_member_incarceration(
+    id: uuid.UUID,
+    universe_id: uuid.UUID,
+    data: MemberIncarcerationCreate,
+    _: Annotated[None, require_global_role(GlobalRole.ADMIN)],
+    session: Annotated[AsyncSession, Depends(get_session)],
+):
+    obj = await crud.get_member(session, id, universe_id)
+    if obj is None:
+        raise HTTPException(404)
+    return await crud.create_member_incarceration(session, id, data)
+
+
+@router.patch("/{id}/incarcerations/{spell_id}", response_model=MemberIncarcerationRead)
+async def update_member_incarceration(
+    id: uuid.UUID,
+    spell_id: uuid.UUID,
+    universe_id: uuid.UUID,
+    data: MemberIncarcerationUpdate,
+    _: Annotated[None, require_global_role(GlobalRole.ADMIN)],
+    session: Annotated[AsyncSession, Depends(get_session)],
+):
+    obj = await crud.get_member(session, id, universe_id)
+    if obj is None:
+        raise HTTPException(404)
+    result = await crud.update_member_incarceration(session, spell_id, id, data)
+    if result is None:
+        raise HTTPException(404)
+    return result
+
+
+@router.delete("/{id}/incarcerations/{spell_id}", status_code=204)
+async def delete_member_incarceration(
+    id: uuid.UUID,
+    spell_id: uuid.UUID,
+    universe_id: uuid.UUID,
+    _: Annotated[None, require_global_role(GlobalRole.ADMIN)],
+    session: Annotated[AsyncSession, Depends(get_session)],
+):
+    obj = await crud.get_member(session, id, universe_id)
+    if obj is None:
+        raise HTTPException(404)
+    ok = await crud.delete_member_incarceration(session, spell_id, id)
     if not ok:
         raise HTTPException(404)

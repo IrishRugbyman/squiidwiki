@@ -197,6 +197,17 @@ export interface MemberAliasRead {
   created_at: string
 }
 
+export interface MemberIncarcerationRead {
+  id: UUID
+  member_id: UUID
+  from_date: FuzzyDateValue | null
+  to_date: FuzzyDateValue | null
+  facility: string | null
+  case_id: string | null
+  notes: string | null
+  created_at: string
+}
+
 export interface MemberRead extends MemberListItem {
   nickname: string | null
   legal_name: string | null
