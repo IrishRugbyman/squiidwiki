@@ -306,7 +306,7 @@ function MemberDetailPage() {
   const navigate = useNavigate()
 
   const { data: member, isLoading, isError, refetch } = useMember(id, universe?.id ?? null)
-  const { data: stats } = useMemberStats(member?.id ?? null, universe?.id ?? null)
+  const { data: stats } = useMemberStats(member?.id ?? '', universe?.id ?? null)
   const { data: allSets } = useSets(universe?.id ?? null)
   const { data: allAlliances } = useAlliances(universe?.id ?? null)
   const memberUuid = member?.id ?? null
