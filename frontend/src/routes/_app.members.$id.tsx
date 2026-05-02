@@ -7,7 +7,6 @@ import { FacebookIcon, InstagramIcon, TwitterIcon } from '@/components/icons/Soc
 import { lazy, Suspense, useState } from 'react'
 import { toast } from 'sonner'
 import { FuzzyDate } from '@/components/FuzzyDate'
-import { MemberIdentity } from '@/components/MemberIdentity'
 import { MemberStatusBadge } from '@/components/StatusBadge'
 import { ErrorState } from '@/components/ErrorState'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
@@ -21,7 +20,6 @@ import { Textarea } from '@/components/ui/textarea'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import {
   useMember, useMemberStats, useSets, useAlliances,
