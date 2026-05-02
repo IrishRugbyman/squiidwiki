@@ -311,8 +311,8 @@ function MemberDetailPage() {
   const { data: stats } = useMemberStats(id, universe?.id ?? null)
   const { data: allSets } = useSets(universe?.id ?? null)
   const { data: allAlliances } = useAlliances(universe?.id ?? null)
-  const { data: incidents } = useMemberIncidents(id, universe?.id ?? null)
   const memberUuid = member?.id ?? null
+  const { data: incidents } = useMemberIncidents(memberUuid, universe?.id ?? null)
   const { data: aliases } = useMemberAliases(memberUuid, universe?.id ?? null)
   const { data: incarcerations } = useMemberIncarcerations(memberUuid, universe?.id ?? null)
   const createIncarceration = useCreateMemberIncarceration(memberUuid ?? '', universe?.id ?? '')
