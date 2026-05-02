@@ -46,6 +46,8 @@ class IncidentCreate(BaseModel):
     date: FuzzyDateField = None
     municipality_id: Optional[uuid.UUID] = None
     location_text: Optional[str] = None
+    lat: Optional[float] = None
+    lng: Optional[float] = None
     narrative: Optional[str] = None
     verified: bool = False
     participants: list[ParticipantCreate] = []
@@ -58,6 +60,8 @@ class IncidentUpdate(BaseModel):
     date: FuzzyDateField = None
     municipality_id: Optional[uuid.UUID] = None
     location_text: Optional[str] = None
+    lat: Optional[float] = None
+    lng: Optional[float] = None
     narrative: Optional[str] = None
     verified: Optional[bool] = None
     participants: Optional[list[ParticipantCreate]] = None
@@ -74,6 +78,8 @@ class IncidentRead(BaseModel):
     date: FuzzyDateField
     municipality_id: Optional[uuid.UUID]
     location_text: Optional[str]
+    lat: Optional[float]
+    lng: Optional[float]
     narrative: Optional[str]
     verified: bool
     created_at: datetime
@@ -92,6 +98,8 @@ class IncidentListItem(BaseModel):
     type: IncidentType
     date: FuzzyDateField
     municipality_id: Optional[uuid.UUID]
+    lat: Optional[float]
+    lng: Optional[float]
     verified: bool
     universe_id: uuid.UUID
     victim_names: list[str] = []

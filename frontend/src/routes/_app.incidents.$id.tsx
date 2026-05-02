@@ -144,6 +144,9 @@ function IncidentDetailPage() {
               {incident.location_text && municipality && (
                 <p className="mt-1 text-xs text-zinc-500">{incident.location_text}</p>
               )}
+              {incident.lat != null && incident.lng != null && (
+                <p className="mt-1 text-xs text-zinc-500 font-mono">{incident.lat.toFixed(5)}, {incident.lng.toFixed(5)}</p>
+              )}
             </div>
             <div className="flex items-center gap-2">
               <Button size="sm" variant="outline" onClick={() => setEditing(true)}>

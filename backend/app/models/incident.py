@@ -51,6 +51,8 @@ class Incident(SQLModel, table=True):
     sortable_date: Optional[datetime] = Field(default=None, index=True)
     municipality_id: Optional[uuid.UUID] = Field(default=None, foreign_key="municipality.id")
     location_text: Optional[str] = None
+    lat: Optional[float] = None
+    lng: Optional[float] = None
     narrative: Optional[str] = None
     verified: bool = False
     verified_by_id: Optional[uuid.UUID] = Field(default=None, foreign_key="users.id")

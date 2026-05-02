@@ -234,6 +234,8 @@ export interface IncidentListItem {
   type: IncidentType
   date: FuzzyDateValue | null
   municipality_id: UUID | null
+  lat: number | null
+  lng: number | null
   verified: boolean
   universe_id: UUID
   victim_names: string[]

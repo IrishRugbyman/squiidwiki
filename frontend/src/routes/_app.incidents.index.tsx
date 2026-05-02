@@ -300,6 +300,8 @@ export function IncidentFormSheet({ universeId, open, onClose, initial, defaultP
   const [type, setType] = useState<IncidentType>(initial?.type ?? 'SHOOTING')
   const [date, setDate] = useState<FuzzyDateValue | null>(initial?.date ?? null)
   const [locationText, setLocationText] = useState(initial?.location_text ?? '')
+  const [lat, setLat] = useState<string>(initial?.lat != null ? String(initial.lat) : '')
+  const [lng, setLng] = useState<string>(initial?.lng != null ? String(initial.lng) : '')
   const [municipalityId, setMunicipalityId] = useState<string>(initial?.municipality_id ?? defaultMunicipalityId ?? '')
   const [narrative, setNarrative] = useState(initial?.narrative ?? '')
   const [verified, setVerified] = useState(initial?.verified ?? false)
@@ -354,6 +356,8 @@ export function IncidentFormSheet({ universeId, open, onClose, initial, defaultP
         universe_id: universeId,
         type, date,
         location_text: locationText || null,
+        lat: lat !== '' ? parseFloat(lat) : null,
+        lng: lng !== '' ? parseFloat(lng) : null,
         municipality_id: municipalityId || null,
         narrative: narrative || null,
         verified,
@@ -366,7 +370,7 @@ export function IncidentFormSheet({ universeId, open, onClose, initial, defaultP
       } else {
         await create.mutateAsync(body)
         toast.success(`Recorded ${type.toLowerCase()} incident`)
-        setType('SHOOTING'); setDate(null); setLocationText(''); setMunicipalityId('')
+        setType('SHOOTING'); setDate(null); setLocationText(''); setLat(''); setLng(''); setMunicipalityId('')
         setNarrative(''); setVerified(false); setParticipants([]); updateSetLevelParticipants([])
       }
       onClose()
@@ -409,6 +413,16 @@ export function IncidentFormSheet({ universeId, open, onClose, initial, defaultP
           <div className="space-y-1.5">
             <Label htmlFor="inc-loc">Location</Label>
             <Input id="inc-loc" value={locationText} onChange={(e) => setLocationText(e.target.value)} placeholder="Street address or area" />
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <div className="space-y-1.5">
+              <Label htmlFor="inc-lat">Latitude</Label>
+              <Input id="inc-lat" type="number" step="any" value={lat} onChange={(e) => setLat(e.target.value)} placeholder="41.8781" />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="inc-lng">Longitude</Label>
+              <Input id="inc-lng" type="number" step="any" value={lng} onChange={(e) => setLng(e.target.value)} placeholder="-87.6298" />
+            </div>
           </div>
           <div className="flex items-center gap-2">
             <input id="inc-verified" type="checkbox" checked={verified} onChange={(e) => setVerified(e.target.checked)}
