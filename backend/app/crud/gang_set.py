@@ -1,0 +1,331 @@
+import re
+import uuid
+from datetime import datetime
+
+import sqlalchemy as sa
+from fastapi import HTTPException, status
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlmodel import func, select
+
+from app.core.enums import SetRelationshipType
+from app.models.gang_set import GangSet, SetMunicipality, SetRelationship
+from app.schemas.gang_set import SetCreate, SetUpdate
+
+
+def _slugify(name: str) -> str:
+    s = name.lower().strip()
+    s = re.sub(r"[^\w\s-]", "", s)
+    s = re.sub(r"[\s_]+", "-", s)
+    s = re.sub(r"-+", "-", s)
+    return s.strip("-") or "set"
+
+
+async def _unique_slug(
+    session: AsyncSession,
+    universe_id: uuid.UUID,
+    name: str,
+    exclude_id: uuid.UUID | None = None,
+) -> str:
+    base = _slugify(name)
+    slug, n = base, 2
+    while True:
+        q = select(GangSet).where(GangSet.universe_id == universe_id, GangSet.slug == slug)
+        if exclude_id is not None:
+            q = q.where(GangSet.id != exclude_id)
+        if (await session.execute(q)).scalar_one_or_none() is None:
+            return slug
+        slug, n = f"{base}-{n}", n + 1
+
+
+async def _sync_set_municipalities(
+    session: AsyncSession, set_id: uuid.UUID, territory_ids: list[uuid.UUID]
+) -> None:
+    await session.execute(
+        SetMunicipality.__table__.delete().where(SetMunicipality.set_id == set_id)
+    )
+    for mid in territory_ids:
+        session.add(SetMunicipality(set_id=set_id, municipality_id=mid))
+
+
+async def _validate_territory_ids(
+    session: AsyncSession,
+    municipality_id: uuid.UUID | None,
+    territory_ids: list[uuid.UUID],
+) -> None:
+    """Each territory must be a child of the set's primary municipality."""
+    if not territory_ids:
+        return
+    if municipality_id is None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="territory_ids requires a municipality_id (the parent)",
+        )
+    from app.models.municipality import Municipality
+    rows = await session.execute(
+        select(Municipality.id, Municipality.parent_id).where(
+            Municipality.id.in_(territory_ids)
+        )
+    )
+    by_id = {r[0]: r[1] for r in rows}
+    bad = [str(tid) for tid in territory_ids if by_id.get(tid) != municipality_id]
+    if bad:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"territory_ids must be children of municipality_id; offending: {bad}",
+        )
+
+
+async def _sync_set_relationships(
+    session: AsyncSession,
+    set_id: uuid.UUID,
+    friend_ids: list[uuid.UUID],
+    enemy_ids: list[uuid.UUID],
+) -> None:
+    existing = await session.execute(
+        select(SetRelationship).where(
+            (SetRelationship.set_a_id == set_id) | (SetRelationship.set_b_id == set_id)
+        )
+    )
+    for rel in existing.scalars().all():
+        await session.delete(rel)
+
+    for fid in friend_ids:
+        a, b = (set_id, fid) if set_id < fid else (fid, set_id)
+        session.add(SetRelationship(set_a_id=a, set_b_id=b, relationship_type=SetRelationshipType.FRIEND))
+
+    for eid in enemy_ids:
+        a, b = (set_id, eid) if set_id < eid else (eid, set_id)
+        session.add(SetRelationship(set_a_id=a, set_b_id=b, relationship_type=SetRelationshipType.ENEMY))
+
+
+async def _sync_alliance_auto_allies(
+    session: AsyncSession, set_id: uuid.UUID, alliance_id: uuid.UUID
+) -> None:
+    """Create FRIEND relationships between set_id and all other sets in alliance_id."""
+    result = await session.execute(
+        select(GangSet.id).where(GangSet.alliance_id == alliance_id, GangSet.id != set_id)
+    )
+    sibling_ids = result.scalars().all()
+    for sibling_id in sibling_ids:
+        a, b = (set_id, sibling_id) if set_id < sibling_id else (sibling_id, set_id)
+        existing = await session.execute(
+            select(SetRelationship).where(
+                SetRelationship.set_a_id == a, SetRelationship.set_b_id == b
+            )
+        )
+        if existing.scalar_one_or_none() is None:
+            session.add(SetRelationship(
+                set_a_id=a, set_b_id=b, relationship_type=SetRelationshipType.FRIEND
+            ))
+
+
+_RESERVED_NAMES = {"civilian", "police"}
+
+
+async def create_gang_set(
+    session: AsyncSession, data: SetCreate, actor_id: uuid.UUID
+) -> GangSet:
+    if data.name.strip().lower() in _RESERVED_NAMES:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"'{data.name}' is a reserved system set name and cannot be used.",
+        )
+    await _validate_territory_ids(session, data.municipality_id, data.territory_ids)
+    dump = data.model_dump(exclude={"territory_ids", "friend_ids", "enemy_ids"})
+    slug = await _unique_slug(session, data.universe_id, data.name)
+    obj = GangSet(**dump, slug=slug, created_by_id=actor_id)
+    session.add(obj)
+    await session.flush()
+    await _sync_set_municipalities(session, obj.id, data.territory_ids)
+    await _sync_set_relationships(session, obj.id, data.friend_ids, data.enemy_ids)
+    if obj.alliance_id:
+        await _sync_alliance_auto_allies(session, obj.id, obj.alliance_id)
+    await session.commit()
+    await session.refresh(obj)
+    return obj
+
+
+async def get_gang_set(
+    session: AsyncSession, id: uuid.UUID, universe_id: uuid.UUID
+) -> GangSet | None:
+    result = await session.execute(
+        select(GangSet).where(GangSet.id == id, GangSet.universe_id == universe_id)
+    )
+    return result.scalar_one_or_none()
+
+
+async def get_gang_set_by_slug(
+    session: AsyncSession, slug: str, universe_id: uuid.UUID
+) -> GangSet | None:
+    result = await session.execute(
+        select(GangSet).where(GangSet.slug == slug, GangSet.universe_id == universe_id)
+    )
+    return result.scalar_one_or_none()
+
+
+async def list_gang_sets(
+    session: AsyncSession, universe_id: uuid.UUID, offset: int = 0, limit: int = 50
+) -> tuple[list[GangSet], int]:
+    count_result = await session.execute(
+        select(func.count()).select_from(GangSet).where(GangSet.universe_id == universe_id)
+    )
+    total = count_result.scalar_one()
+    result = await session.execute(
+        select(GangSet).where(GangSet.universe_id == universe_id).offset(offset).limit(limit)
+    )
+    return result.scalars().all(), total
+
+
+async def update_gang_set(
+    session: AsyncSession, id: uuid.UUID, universe_id: uuid.UUID, data: SetUpdate
+) -> GangSet | None:
+    obj = await get_gang_set(session, id, universe_id)
+    if obj is None:
+        return None
+    if obj.is_reserved:
+        dump = data.model_dump(exclude_unset=True)
+        forbidden = set(dump) - {"bio"}
+        if forbidden:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=f"Reserved sets only accept bio updates; rejected fields: {sorted(forbidden)}",
+            )
+        if "bio" in dump:
+            obj.bio = dump["bio"]
+            obj.updated_at = datetime.utcnow()
+            session.add(obj)
+            await session.commit()
+            await session.refresh(obj)
+        return obj
+    dump = data.model_dump(exclude_unset=True, exclude={"territory_ids", "friend_ids", "enemy_ids"})
+    for k, v in dump.items():
+        setattr(obj, k, v)
+    if "name" in dump:
+        obj.slug = await _unique_slug(session, obj.universe_id, obj.name, exclude_id=obj.id)
+    obj.updated_at = datetime.utcnow()
+    session.add(obj)
+    if data.territory_ids is not None:
+        # Validate against the post-update municipality_id (we may be updating
+        # both at the same time).
+        await _validate_territory_ids(session, obj.municipality_id, data.territory_ids)
+        await _sync_set_municipalities(session, obj.id, data.territory_ids)
+    if data.friend_ids is not None or data.enemy_ids is not None:
+        friend_ids = data.friend_ids if data.friend_ids is not None else []
+        enemy_ids = data.enemy_ids if data.enemy_ids is not None else []
+        await _sync_set_relationships(session, obj.id, friend_ids, enemy_ids)
+    if "alliance_id" in dump and obj.alliance_id:
+        await _sync_alliance_auto_allies(session, obj.id, obj.alliance_id)
+    await session.commit()
+    await session.refresh(obj)
+    return obj
+
+
+async def delete_gang_set(
+    session: AsyncSession, id: uuid.UUID, universe_id: uuid.UUID
+) -> bool:
+    obj = await get_gang_set(session, id, universe_id)
+    if obj is None:
+        return False
+    if obj.is_reserved:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Reserved sets (Civilian, Police) cannot be deleted.",
+        )
+    await session.delete(obj)
+    await session.commit()
+    return True
+
+
+_RESERVED_SETS = [("Civilian", "civilian"), ("Police", "police")]
+
+
+async def seed_reserved_sets(session: AsyncSession, universe_id: uuid.UUID) -> None:
+    for name, slug in _RESERVED_SETS:
+        obj = GangSet(universe_id=universe_id, name=name, slug=slug, is_reserved=True)
+        session.add(obj)
+    await session.commit()
+
+
+async def list_set_territory_ids(
+    session: AsyncSession, set_id: uuid.UUID
+) -> list[uuid.UUID]:
+    result = await session.execute(
+        select(SetMunicipality.municipality_id).where(SetMunicipality.set_id == set_id)
+    )
+    return result.scalars().all()
+
+
+async def list_set_relationships(
+    session: AsyncSession, set_id: uuid.UUID, universe_id: uuid.UUID
+) -> tuple[list[uuid.UUID], list[uuid.UUID]]:
+    result = await session.execute(
+        select(SetRelationship).where(
+            (SetRelationship.set_a_id == set_id) | (SetRelationship.set_b_id == set_id)
+        )
+    )
+    rels = result.scalars().all()
+    friend_ids = []
+    enemy_ids = []
+    for r in rels:
+        other = r.set_b_id if r.set_a_id == set_id else r.set_a_id
+        if r.relationship_type == SetRelationshipType.FRIEND:
+            friend_ids.append(other)
+        else:
+            enemy_ids.append(other)
+    return friend_ids, enemy_ids
+
+
+async def add_set_relationship(
+    session: AsyncSession,
+    set_a_id: uuid.UUID,
+    set_b_id: uuid.UUID,
+    rel_type: SetRelationshipType,
+    universe_id: uuid.UUID,
+) -> None:
+    a, b = (set_a_id, set_b_id) if set_a_id < set_b_id else (set_b_id, set_a_id)
+    existing = await session.execute(
+        select(SetRelationship).where(
+            SetRelationship.set_a_id == a, SetRelationship.set_b_id == b
+        )
+    )
+    ex = existing.scalar_one_or_none()
+    if ex is not None:
+        if ex.relationship_type != rel_type:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Relationship already exists with a different type",
+            )
+        return
+    session.add(SetRelationship(set_a_id=a, set_b_id=b, relationship_type=rel_type))
+    await session.commit()
+
+
+async def remove_set_relationship(
+    session: AsyncSession, set_a_id: uuid.UUID, set_b_id: uuid.UUID, universe_id: uuid.UUID
+) -> bool:
+    a, b = (set_a_id, set_b_id) if set_a_id < set_b_id else (set_b_id, set_a_id)
+    result = await session.execute(
+        select(SetRelationship).where(
+            SetRelationship.set_a_id == a, SetRelationship.set_b_id == b
+        )
+    )
+    obj = result.scalar_one_or_none()
+    if obj is None:
+        return False
+    await session.delete(obj)
+    await session.commit()
+    return True
+
+
+async def search_gang_sets(
+    session: AsyncSession, universe_id: uuid.UUID, q: str
+) -> list[GangSet]:
+    pattern = f"%{q}%"
+    result = await session.execute(
+        select(GangSet).where(
+            GangSet.universe_id == universe_id,
+            GangSet.name.ilike(pattern)
+            | sa.cast(GangSet.aliases, sa.Text).ilike(pattern),
+        )
+    )
+    return result.scalars().all()
