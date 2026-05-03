@@ -25,7 +25,7 @@ import { CopyButton } from '@/components/CopyButton'
 import { timeAgo } from '@/lib/utils'
 import { DetailHeaderSkeleton } from '@/components/skeletons'
 import { Skeleton } from '@/components/ui/skeleton'
-import { SetAvatar, SetFormSheet } from './_app.sets.index'
+import { SetFormSheet } from './_app.sets.index'
 import { MemberAvatar, MemberFormSheet } from './_app.members.index'
 import { AddMemberToSetDialog } from '@/components/AddMemberToSetDialog'
 import { useRecordRecent } from '@/stores/recents'
@@ -337,7 +337,21 @@ function SetDetailPage() {
         <>
           <div className="mb-4 flex items-start justify-between gap-4">
             <div className="flex items-start gap-4">
-              <SetAvatar name={set.name} thumbUrl={set.primary_photo_thumb_url} size="md" isReserved={set.is_reserved} />
+              <div className="shrink-0">
+                {set.primary_photo_url ? (
+                  <img
+                    src={set.primary_photo_url}
+                    alt={`Photo of ${set.name}`}
+                    loading="lazy"
+                    decoding="async"
+                    className="h-20 w-20 rounded-xl object-cover ring-1 ring-zinc-600/80 shadow-lg shadow-black/30"
+                  />
+                ) : (
+                  <div className="flex h-20 w-20 items-center justify-center rounded-xl bg-zinc-800 text-2xl font-bold text-zinc-400 ring-1 ring-zinc-700">
+                    {set.name.slice(0, 2).toUpperCase()}
+                  </div>
+                )}
+              </div>
               <div>
                 <div className="flex items-center gap-1.5">
                   <h1 className="text-2xl font-bold text-white">{set.name}</h1>
