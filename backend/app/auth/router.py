@@ -12,18 +12,22 @@ from app.auth.crud import (
     authenticate_user,
     create_refresh_token_record,
     create_user,
+    delete_user_universe_access,
     get_refresh_token,
     get_user_by_id,
+    list_user_universe_access,
     revoke_refresh_token,
     set_last_login,
+    upsert_user_universe_access,
 )
 from app.auth.dependencies import CurrentUser, get_current_user, get_current_user_optional, require_global_role
 from app.auth.schemas import CreateUserRequest, LoginRequest, TokenResponse, UserRead
 from app.auth.security import create_access_token, create_refresh_token, decode_token, hash_password
 from app.core.config import settings
 from app.core.database import get_prod_session as get_session
-from app.core.enums import GlobalRole
+from app.core.enums import GlobalRole, UniverseRole
 from app.models.auth import User
+from app.models.universe import Universe
 from app.schemas.common import OffsetPage
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -217,3 +221,70 @@ async def change_password(
     current_user.hashed_password = hash_password(body.new_password)
     session.add(current_user)
     await session.commit()
+
+
+# ─── Per-user universe access (admin) ─────────────────────────────────────────
+
+
+class UserUniverseAccessItem(BaseModel):
+    universe_id: uuid.UUID
+    slug: str
+    name: str
+    role: UniverseRole
+    granted: bool
+
+
+class GrantUniverseAccessRequest(BaseModel):
+    role: UniverseRole = UniverseRole.VIEWER
+
+
+@router.get("/users/{user_id}/universe-access", response_model=list[UserUniverseAccessItem])
+async def list_user_access(
+    user_id: uuid.UUID,
+    session: Annotated[AsyncSession, Depends(get_session)],
+    _: Annotated[None, require_global_role(GlobalRole.ADMIN)],
+):
+    user = await get_user_by_id(session, user_id)
+    if user is None:
+        raise HTTPException(404)
+    grants = {a.universe_id: a.role for a in await list_user_universe_access(session, user_id)}
+    universes = (await session.execute(select(Universe).order_by(Universe.name))).scalars().all()
+    return [
+        UserUniverseAccessItem(
+            universe_id=u.id,
+            slug=u.slug,
+            name=u.name,
+            role=grants.get(u.id, UniverseRole.VIEWER),
+            granted=u.id in grants,
+        )
+        for u in universes
+    ]
+
+
+@router.put("/users/{user_id}/universe-access/{universe_id}", status_code=204)
+async def grant_user_access(
+    user_id: uuid.UUID,
+    universe_id: uuid.UUID,
+    body: GrantUniverseAccessRequest,
+    session: Annotated[AsyncSession, Depends(get_session)],
+    _: Annotated[None, require_global_role(GlobalRole.ADMIN)],
+):
+    user = await get_user_by_id(session, user_id)
+    if user is None:
+        raise HTTPException(404, detail="User not found")
+    universe = await session.get(Universe, universe_id)
+    if universe is None:
+        raise HTTPException(404, detail="Universe not found")
+    await upsert_user_universe_access(session, user_id, universe_id, body.role)
+
+
+@router.delete("/users/{user_id}/universe-access/{universe_id}", status_code=204)
+async def revoke_user_access(
+    user_id: uuid.UUID,
+    universe_id: uuid.UUID,
+    session: Annotated[AsyncSession, Depends(get_session)],
+    _: Annotated[None, require_global_role(GlobalRole.ADMIN)],
+):
+    ok = await delete_user_universe_access(session, user_id, universe_id)
+    if not ok:
+        raise HTTPException(404, detail="No such grant")
