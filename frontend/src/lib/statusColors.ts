@@ -45,6 +45,7 @@ export const RELIABILITY_HEX: Record<SourceReliability, string> = {
 export const INCIDENT_TYPE_HEX: Record<IncidentType, string> = {
   SHOOTING: '#f97316',
   MURDER: '#ef4444',
+  FIGHT: '#8b5cf6',
 }
 
 export const RELIABILITY_DESCRIPTION: Record<SourceReliability, string> = {

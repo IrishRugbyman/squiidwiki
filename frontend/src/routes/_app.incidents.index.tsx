@@ -49,6 +49,7 @@ export const Route = createFileRoute('/_app/incidents/')({
 const TYPE_CONFIG: Record<IncidentType, { icon: typeof ShieldAlert; color: string; dot: string; label: string }> = {
   SHOOTING: { icon: Swords,     color: 'text-amber-400',  dot: 'bg-amber-500',  label: 'Shooting' },
   MURDER:   { icon: Skull,      color: 'text-rose-400',   dot: 'bg-rose-500',   label: 'Murder'   },
+  FIGHT:    { icon: ShieldAlert, color: 'text-violet-400', dot: 'bg-violet-500', label: 'Fight'    },
 }
 
 function TypeChip({ type }: { type: IncidentType }) {
@@ -483,6 +484,7 @@ export function IncidentFormSheet({ universeId, open, onClose, initial, defaultP
                 <SelectContent>
                   <SelectItem value="SHOOTING">Shooting</SelectItem>
                   <SelectItem value="MURDER">Murder</SelectItem>
+                  <SelectItem value="FIGHT">Fight</SelectItem>
                 </SelectContent>
               </Select>
             </div>

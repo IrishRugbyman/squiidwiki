@@ -8,7 +8,7 @@ import type { GeoJSONGeometry, MunicipalityGeoJSON } from '@/lib/types'
 
 export interface IncidentPoint {
   id: string
-  type: 'SHOOTING' | 'MURDER'
+  type: 'SHOOTING' | 'MURDER' | 'FIGHT'
   lat: number
   lng: number
 }
@@ -344,6 +344,7 @@ export default function MunicipalityMap({
                 'circle-color': [
                   'match', ['get', 'incidentType'],
                   'MURDER', '#fb7185',
+                  'FIGHT', '#a78bfa',
                   '#fbbf24',
                 ] as unknown as string,
                 'circle-stroke-width': 1.5,

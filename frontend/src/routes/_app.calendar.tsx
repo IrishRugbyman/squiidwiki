@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
-import { CheckCircle2, ChevronLeft, ChevronRight, Keyboard, Skull, Swords } from 'lucide-react'
+import { CheckCircle2, ChevronLeft, ChevronRight, Keyboard, ShieldAlert, Skull, Swords } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { NoUniverse } from '@/components/NoUniverse'
 import { Button } from '@/components/ui/button'
@@ -22,14 +22,15 @@ const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 
 // ─── Event types ─────────────────────────────────────────────────────────────
 
-type EventKind = 'SHOOTING' | 'MURDER' | 'DEATH'
+type EventKind = 'SHOOTING' | 'MURDER' | 'FIGHT' | 'DEATH'
 
 const KIND_CONFIG: Record<EventKind, {
   dot: string; pill: string; pillHover: string; icon: typeof Skull; label: string
 }> = {
-  SHOOTING: { dot: 'bg-amber-500',  pill: 'bg-amber-950/80 text-amber-300 ring-1 ring-amber-800/50',  pillHover: 'hover:ring-amber-500',  icon: Swords, label: 'Shooting' },
-  MURDER:   { dot: 'bg-rose-500',   pill: 'bg-rose-950/80 text-rose-300 ring-1 ring-rose-800/50',     pillHover: 'hover:ring-rose-500',    icon: Skull,  label: 'Murder'   },
-  DEATH:    { dot: 'bg-zinc-500',   pill: 'bg-zinc-900 text-zinc-400 ring-1 ring-zinc-700',            pillHover: 'hover:ring-zinc-500',    icon: Skull,  label: 'Death'    },
+  SHOOTING: { dot: 'bg-amber-500',  pill: 'bg-amber-950/80 text-amber-300 ring-1 ring-amber-800/50',    pillHover: 'hover:ring-amber-500',    icon: Swords,      label: 'Shooting' },
+  MURDER:   { dot: 'bg-rose-500',   pill: 'bg-rose-950/80 text-rose-300 ring-1 ring-rose-800/50',       pillHover: 'hover:ring-rose-500',      icon: Skull,       label: 'Murder'   },
+  FIGHT:    { dot: 'bg-violet-500', pill: 'bg-violet-950/80 text-violet-300 ring-1 ring-violet-800/50', pillHover: 'hover:ring-violet-500',    icon: ShieldAlert, label: 'Fight'    },
+  DEATH:    { dot: 'bg-zinc-500',   pill: 'bg-zinc-900 text-zinc-400 ring-1 ring-zinc-700',              pillHover: 'hover:ring-zinc-500',      icon: Skull,       label: 'Death'    },
 }
 
 interface CalendarEvent {
@@ -103,14 +104,16 @@ function DayDetail({ day, month, year, events, onClose }: {
 function MonthSummary({ events }: { events: CalendarEvent[] }) {
   const murders   = events.filter((e) => e.kind === 'MURDER').length
   const shootings = events.filter((e) => e.kind === 'SHOOTING').length
+  const fights    = events.filter((e) => e.kind === 'FIGHT').length
   const deaths    = events.filter((e) => e.kind === 'DEATH').length
 
-  if (!murders && !shootings && !deaths) return null
+  if (!murders && !shootings && !fights && !deaths) return null
 
   const parts = [
-    murders   > 0 && { label: `${murders} murder${murders !== 1 ? 's' : ''}`,   color: 'text-rose-400',  dot: 'bg-rose-500' },
-    shootings > 0 && { label: `${shootings} shooting${shootings !== 1 ? 's' : ''}`, color: 'text-amber-400', dot: 'bg-amber-500' },
-    deaths    > 0 && { label: `${deaths} death${deaths !== 1 ? 's' : ''}`,       color: 'text-zinc-400',  dot: 'bg-zinc-500' },
+    murders   > 0 && { label: `${murders} murder${murders !== 1 ? 's' : ''}`,     color: 'text-rose-400',   dot: 'bg-rose-500'   },
+    shootings > 0 && { label: `${shootings} shooting${shootings !== 1 ? 's' : ''}`, color: 'text-amber-400', dot: 'bg-amber-500'  },
+    fights    > 0 && { label: `${fights} fight${fights !== 1 ? 's' : ''}`,         color: 'text-violet-400', dot: 'bg-violet-500' },
+    deaths    > 0 && { label: `${deaths} death${deaths !== 1 ? 's' : ''}`,         color: 'text-zinc-400',   dot: 'bg-zinc-500'   },
   ].filter(Boolean) as { label: string; color: string; dot: string }[]
 
   return (
@@ -233,12 +236,12 @@ function CalendarPage() {
     const victims = inc.victim_names ?? []
     const label = victims.length > 0
       ? victims.slice(0, 2).join(', ') + (victims.length > 2 ? ` +${victims.length - 2}` : '')
-      : (inc.type === 'MURDER' ? 'Murder' : 'Shooting')
+      : (KIND_CONFIG[inc.type as EventKind]?.label ?? inc.type)
     allMonthEvents.push({
       id: inc.id,
       kind: inc.type as EventKind,
       label,
-      sublabel: victims.length > 0 ? (inc.type === 'MURDER' ? 'Murder' : 'Shooting') : undefined,
+      sublabel: victims.length > 0 ? (KIND_CONFIG[inc.type as EventKind]?.label ?? inc.type) : undefined,
       href: `/incidents/${inc.id}`,
       date: inc.date,
       verified: inc.verified,

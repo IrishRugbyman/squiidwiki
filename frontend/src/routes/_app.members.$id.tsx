@@ -859,7 +859,7 @@ function MemberDetailPage() {
                           </Link>
                         </td>
                         <td className="px-4 py-3">
-                          <Badge variant="outline" className={`text-xs ${inc.type === 'MURDER' ? 'border-rose-800 text-rose-400' : 'border-amber-800 text-amber-400'}`}>
+                          <Badge variant="outline" className={`text-xs ${inc.type === 'MURDER' ? 'border-rose-800 text-rose-400' : inc.type === 'FIGHT' ? 'border-violet-800 text-violet-400' : 'border-amber-800 text-amber-400'}`}>
                             {inc.type}
                           </Badge>
                         </td>

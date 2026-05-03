@@ -377,6 +377,8 @@ function AllianceDetailPage() {
                                 <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
                                   inc.type === 'MURDER'
                                     ? 'bg-rose-950/60 text-rose-300 ring-1 ring-rose-800/50'
+                                    : inc.type === 'FIGHT'
+                                    ? 'bg-violet-950/60 text-violet-300 ring-1 ring-violet-800/50'
                                     : 'bg-amber-950/60 text-amber-300 ring-1 ring-amber-800/50'
                                 }`}>
                                   {inc.type}

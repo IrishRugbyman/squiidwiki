@@ -17,7 +17,7 @@ export interface CursorPage<T> {
 export type MemberStatus = 'FREE' | 'LOCKED' | 'DEAD' | 'UNKNOWN' | 'ESCAPEE' | 'ABSCONDER'
 export type SetStatus = 'ACTIVE' | 'EXTINCT'
 export type AllianceStatus = 'ACTIVE' | 'EXTINCT' | 'DORMANT'
-export type IncidentType = 'SHOOTING' | 'MURDER'
+export type IncidentType = 'SHOOTING' | 'MURDER' | 'FIGHT'
 export type ParticipantRole = 'SHOOTER' | 'ASSISTED' | 'BYSTANDER' | 'VICTIM'
 export type ParticipantOutcome = 'KILLED' | 'INJURED' | 'UNHARMED' | 'UNKNOWN'
 export type SourceReliability = 'HIGH' | 'MEDIUM' | 'LOW' | 'UNVERIFIED'

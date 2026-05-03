@@ -31,6 +31,7 @@ class AllianceStatus(str, Enum):
 class IncidentType(str, Enum):
     SHOOTING = "SHOOTING"
     MURDER = "MURDER"
+    FIGHT = "FIGHT"
 
 
 class ParticipantRole(str, Enum):
