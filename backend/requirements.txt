@@ -17,3 +17,5 @@ slowapi==0.1.9
 prometheus-fastapi-instrumentator==7.0.2
 aiobotocore==2.15.2
 Pillow==11.0.0
+httpx==0.28.1
+beautifulsoup4==4.12.3

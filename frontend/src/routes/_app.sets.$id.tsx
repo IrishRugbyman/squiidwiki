@@ -844,8 +844,26 @@ function SetDetailPage() {
                               params={{ id: linkId }}
                               className="block px-3 py-3 transition-colors group-hover:text-violet-400"
                             >
-                              <span className={`font-medium ${isDead ? 'text-zinc-400 line-through decoration-zinc-600' : 'text-white'}`}>
-                                {m.display_name}
+                              <span className="inline-flex items-center gap-1.5">
+                                <span className={`font-medium ${isDead ? 'text-zinc-400 line-through decoration-zinc-600' : 'text-white'}`}>
+                                  {m.display_name}
+                                </span>
+                                {m.set_rank === 'CEO' && (
+                                  <span
+                                    title="CEO"
+                                    className="inline-flex items-center rounded-md border border-amber-500/40 bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-amber-300"
+                                  >
+                                    CEO
+                                  </span>
+                                )}
+                                {m.set_rank === 'CO_CEO' && (
+                                  <span
+                                    title="Co-CEO"
+                                    className="inline-flex items-center rounded-md border border-amber-600/30 bg-amber-600/10 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-amber-400"
+                                  >
+                                    Co-CEO
+                                  </span>
+                                )}
                               </span>
                               {m.aliases && m.aliases.length > 0 && (
                                 <span className="mt-0.5 block text-[11px] text-zinc-600 group-hover:text-zinc-500 transition-colors">

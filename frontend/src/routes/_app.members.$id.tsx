@@ -7,6 +7,7 @@ import { FacebookIcon, InstagramIcon, TwitterIcon } from '@/components/icons/Soc
 import { lazy, Suspense, useState } from 'react'
 import { toast } from 'sonner'
 import { FuzzyDate } from '@/components/FuzzyDate'
+import { FuzzyDateInput } from '@/components/FuzzyDateInput'
 import { MemberStatusBadge } from '@/components/StatusBadge'
 import { ErrorState } from '@/components/ErrorState'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
@@ -26,7 +27,7 @@ import {
   useDeleteMember, useMemberIncidents, useAllMembers, useUpdateMember,
   useIncident, useMunicipality,
   useMemberAliases,
-  useMemberIncarcerations, useCreateMemberIncarceration, useDeleteMemberIncarceration,
+  useMemberIncarcerations, useCreateMemberIncarceration, useUpdateMemberIncarceration, useDeleteMemberIncarceration,
 } from '@/lib/queries'
 import type { IncidentListItem, MemberIncarcerationRead, MemberListItem, MemberRead } from '@/lib/types'
 import type { FuzzyDateValue } from '@/components/FuzzyDate'
@@ -133,6 +134,101 @@ function FamilyMemberLink({ memberId, member }: { memberId: string; member: Memb
       <span className="text-sm text-zinc-300 group-hover:text-white">{member.display_name}</span>
       <MemberStatusBadge status={member.status} />
     </Link>
+  )
+}
+
+// ─── Incarceration form (shared by create + edit) ────────────────────────────
+
+interface IncarcerationDraft {
+  facility: string
+  case_id: string
+  notes: string
+  from_date: FuzzyDateValue | null
+  earliest_release_date: FuzzyDateValue | null
+  max_discharge_date: FuzzyDateValue | null
+  life_sentence: boolean
+}
+
+const EMPTY_INCARCERATION_DRAFT: IncarcerationDraft = {
+  facility: '', case_id: '', notes: '',
+  from_date: null, earliest_release_date: null, max_discharge_date: null,
+  life_sentence: false,
+}
+
+function IncarcerationForm({
+  draft, setDraft, onSubmit, onCancel, isPending, submitLabel, idPrefix,
+}: {
+  draft: IncarcerationDraft
+  setDraft: React.Dispatch<React.SetStateAction<IncarcerationDraft>>
+  onSubmit: () => Promise<void>
+  onCancel: () => void
+  isPending: boolean
+  submitLabel: string
+  idPrefix: string
+}) {
+  return (
+    <form
+      onSubmit={async (e) => { e.preventDefault(); await onSubmit() }}
+      className="space-y-3 pb-1"
+    >
+      <Input
+        value={draft.facility}
+        onChange={(e) => setDraft((d) => ({ ...d, facility: e.target.value }))}
+        placeholder="Facility name"
+        className="h-7 text-sm"
+      />
+      <Input
+        value={draft.case_id}
+        onChange={(e) => setDraft((d) => ({ ...d, case_id: e.target.value }))}
+        placeholder="Case number (optional)"
+        className="h-7 text-sm"
+      />
+      <Input
+        value={draft.notes}
+        onChange={(e) => setDraft((d) => ({ ...d, notes: e.target.value }))}
+        placeholder="Notes (optional)"
+        className="h-7 text-sm"
+      />
+      <FuzzyDateInput
+        idPrefix={`${idPrefix}-from`}
+        label="From"
+        value={draft.from_date}
+        onChange={(v) => setDraft((d) => ({ ...d, from_date: v }))}
+      />
+      <label className="flex items-center gap-2 text-xs text-zinc-300 cursor-pointer">
+        <input
+          type="checkbox"
+          checked={draft.life_sentence}
+          onChange={(e) => setDraft((d) => ({ ...d, life_sentence: e.target.checked }))}
+          className="h-3.5 w-3.5 rounded border-zinc-700 bg-zinc-900 accent-rose-600"
+        />
+        Life sentence (no release dates)
+      </label>
+      {!draft.life_sentence && (
+        <>
+          <FuzzyDateInput
+            idPrefix={`${idPrefix}-earliest`}
+            label="Earliest release date (state DOC only — leave blank for federal)"
+            value={draft.earliest_release_date}
+            onChange={(v) => setDraft((d) => ({ ...d, earliest_release_date: v }))}
+          />
+          <FuzzyDateInput
+            idPrefix={`${idPrefix}-max`}
+            label="Maximum discharge date"
+            value={draft.max_discharge_date}
+            onChange={(v) => setDraft((d) => ({ ...d, max_discharge_date: v }))}
+          />
+        </>
+      )}
+      <div className="flex justify-end gap-2 pt-1">
+        <Button type="button" size="sm" variant="ghost" className="h-7 px-2" onClick={onCancel}>
+          <X className="h-3.5 w-3.5" />
+        </Button>
+        <Button type="submit" size="sm" className="h-7 px-3" disabled={isPending}>
+          {submitLabel}
+        </Button>
+      </div>
+    </form>
   )
 }
 
@@ -347,7 +443,9 @@ function MemberDetailPage() {
   const { data: aliases } = useMemberAliases(memberUuid, universe?.id ?? null)
   const { data: incarcerations } = useMemberIncarcerations(memberUuid, universe?.id ?? null)
   const createIncarceration = useCreateMemberIncarceration(memberUuid ?? '', universe?.id ?? '')
+  const updateIncarceration = useUpdateMemberIncarceration(memberUuid ?? '', universe?.id ?? '')
   const deleteIncarceration = useDeleteMemberIncarceration(memberUuid ?? '', universe?.id ?? '')
+  const [editingSpellId, setEditingSpellId] = useState<string | null>(null)
   const { data: killingIncident } = useIncident(
     member?.death_incident_id ?? '',
     member?.death_incident_id ? (universe?.id ?? null) : null,
@@ -360,12 +458,12 @@ function MemberDetailPage() {
   useRecordRecent(member ? { type: 'member', id: member.id, slug: member.slug, label: member.display_name } : null)
 
   const deleteMember = useDeleteMember(universe?.id ?? '')
-  const updateMember = useUpdateMember(id, universe?.id ?? '')
+  const updateMember = useUpdateMember(memberUuid ?? '', universe?.id ?? '')
 
   const [editing, setEditing] = useState(false)
   const [duplicating, setDuplicating] = useState(false)
   const [addingIncarceration, setAddingIncarceration] = useState(false)
-  const [incarcerationDraft, setIncarcerationDraft] = useState({ facility: '', case_id: '', notes: '' })
+  const [incarcerationDraft, setIncarcerationDraft] = useState<IncarcerationDraft>(EMPTY_INCARCERATION_DRAFT)
   const [deleting, setDeleting] = useState(false)
   const [creatingIncident, setCreatingIncident] = useState(false)
   const [addingFamily, setAddingFamily] = useState(false)
@@ -478,17 +576,21 @@ function MemberDetailPage() {
               </div>
               <div className="min-w-0">
                 <div className="flex items-center gap-2">
-                  <h1 className="text-2xl font-bold leading-none text-white">{member.display_name}</h1>
+                  <h1 className="text-2xl font-bold leading-none text-white">
+                    {member.display_name}
+                    {!member.nickname_unknown && member.nickname && member.legal_name && member.legal_name !== member.display_name && (
+                      <span className="ml-2 text-lg font-medium text-zinc-400">({member.legal_name})</span>
+                    )}
+                  </h1>
                   <CopyButton value={window.location.href} label="Copy link" className="opacity-40 hover:opacity-100" />
                 </div>
                 {(() => {
-                  const alts: string[] = []
-                  if (!member.nickname_unknown && member.legal_name && member.legal_name !== member.display_name) {
-                    alts.push(member.legal_name)
-                  }
-                  if (aliases && aliases.length > 0) alts.push(...aliases.map((a) => a.alias))
-                  return alts.length > 0 ? (
-                    <p className="mt-1 text-sm text-zinc-500">a/k/a {alts.join(' · ')}</p>
+                  const aliasNames = [
+                    ...(member.aliases ?? []),
+                    ...((aliases ?? []).map((a) => a.alias)),
+                  ].filter((v, i, arr) => v && arr.indexOf(v) === i)
+                  return aliasNames.length > 0 ? (
+                    <p className="mt-1 text-sm text-zinc-500">a/k/a {aliasNames.join(' · ')}</p>
                   ) : null
                 })()}
                 <div className="mt-2 flex flex-wrap items-center gap-2">
@@ -635,20 +737,6 @@ function MemberDetailPage() {
                   </span>
                 </DetailRow>
               )}
-              {member.status === 'LOCKED' && (member.life_sentence || member.release_date) && (
-                <DetailRow label="Release Date">
-                  {member.life_sentence
-                    ? <span className="font-medium text-rose-400">Life sentence</span>
-                    : <FuzzyDate value={member.release_date} />}
-                </DetailRow>
-              )}
-              <DetailRow label="Set">
-                {member.set_id ? (
-                  <Link to="/sets/$id" params={{ id: setSlug(member.set_id) }} className="text-violet-400 hover:underline">
-                    {setName(member.set_id)}
-                  </Link>
-                ) : <span className="text-zinc-600">—</span>}
-              </DetailRow>
               <DetailRow label="Alliance">
                 {member.alliance_id ? (
                   <Link to="/alliances/$id" params={{ id: member.alliance_id }} className="text-blue-400 hover:underline">
@@ -658,9 +746,162 @@ function MemberDetailPage() {
               </DetailRow>
             </div>
 
-            {/* Right: family + social + incarceration */}
+            {/* Right: incarceration (top for LOCKED) + family + social */}
             {universe && (
               <div className="space-y-4">
+                {hasIncarcerationPanel && (
+                  <div className="rounded-xl border border-zinc-800 bg-zinc-900/30 px-4 py-3 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <p className="text-xs font-medium uppercase tracking-wider text-zinc-500">Incarceration</p>
+                      {isAdmin && (
+                        <button type="button" onClick={() => setAddingIncarceration((v) => !v)}
+                          className="inline-flex items-center gap-1 text-xs text-zinc-500 hover:text-violet-400 transition-colors">
+                          <Plus className="h-3 w-3" />{addingIncarceration ? 'Cancel' : 'Add'}
+                        </button>
+                      )}
+                    </div>
+
+                    {addingIncarceration && (
+                      <IncarcerationForm
+                        draft={incarcerationDraft}
+                        setDraft={setIncarcerationDraft}
+                        idPrefix="inc-new"
+                        isPending={createIncarceration.isPending}
+                        submitLabel="Save"
+                        onCancel={() => {
+                          setIncarcerationDraft(EMPTY_INCARCERATION_DRAFT)
+                          setAddingIncarceration(false)
+                        }}
+                        onSubmit={async () => {
+                          await createIncarceration.mutateAsync({
+                            facility: incarcerationDraft.facility || null,
+                            case_id: incarcerationDraft.case_id || null,
+                            notes: incarcerationDraft.notes || null,
+                            from_date: incarcerationDraft.from_date,
+                            earliest_release_date: incarcerationDraft.life_sentence ? null : incarcerationDraft.earliest_release_date,
+                            max_discharge_date: incarcerationDraft.life_sentence ? null : incarcerationDraft.max_discharge_date,
+                            life_sentence: incarcerationDraft.life_sentence,
+                          })
+                          setIncarcerationDraft(EMPTY_INCARCERATION_DRAFT)
+                          setAddingIncarceration(false)
+                        }}
+                      />
+                    )}
+
+                    {incarcerations && incarcerations.length > 0 ? (
+                      <div className="relative pl-4 space-y-0">
+                        <div className="absolute left-[7px] top-2 bottom-2 w-px bg-zinc-700/50" />
+                        {incarcerations.map((spell: MemberIncarcerationRead) => (
+                          <div key={spell.id} className="group relative pb-4 last:pb-0">
+                            <div className="absolute -left-[13px] top-1.5 h-2.5 w-2.5 rounded-full border-2 border-zinc-700 bg-zinc-900 ring-0 group-hover:border-violet-500 transition-colors" />
+                            {editingSpellId === spell.id ? (
+                              <IncarcerationForm
+                                draft={incarcerationDraft}
+                                setDraft={setIncarcerationDraft}
+                                idPrefix={`inc-edit-${spell.id}`}
+                                isPending={updateIncarceration.isPending}
+                                submitLabel="Save"
+                                onCancel={() => {
+                                  setIncarcerationDraft(EMPTY_INCARCERATION_DRAFT)
+                                  setEditingSpellId(null)
+                                }}
+                                onSubmit={async () => {
+                                  await updateIncarceration.mutateAsync({
+                                    spellId: spell.id,
+                                    data: {
+                                      facility: incarcerationDraft.facility || null,
+                                      case_id: incarcerationDraft.case_id || null,
+                                      notes: incarcerationDraft.notes || null,
+                                      from_date: incarcerationDraft.from_date,
+                                      earliest_release_date: incarcerationDraft.life_sentence ? null : incarcerationDraft.earliest_release_date,
+                                      max_discharge_date: incarcerationDraft.life_sentence ? null : incarcerationDraft.max_discharge_date,
+                                      life_sentence: incarcerationDraft.life_sentence,
+                                    },
+                                  })
+                                  setIncarcerationDraft(EMPTY_INCARCERATION_DRAFT)
+                                  setEditingSpellId(null)
+                                }}
+                              />
+                            ) : (
+                              <div className="flex items-start justify-between gap-2">
+                                <div className="min-w-0">
+                                  <p className="text-sm font-medium text-zinc-200 leading-snug">
+                                    {spell.facility ?? 'Unknown facility'}
+                                  </p>
+                                  {spell.life_sentence ? (
+                                    <p className="mt-0.5 text-[11px] font-medium text-rose-400">
+                                      {spell.from_date ? <><FuzzyDate value={spell.from_date} />{' – '}</> : null}
+                                      Life sentence
+                                    </p>
+                                  ) : (spell.from_date || spell.earliest_release_date || spell.max_discharge_date) && (
+                                    <p className="mt-0.5 text-[11px] text-zinc-500">
+                                      {spell.from_date ? <FuzzyDate value={spell.from_date} /> : '?'}
+                                      {' – '}
+                                      {spell.earliest_release_date && spell.max_discharge_date ? (
+                                        <>
+                                          Earliest: <FuzzyDate value={spell.earliest_release_date} />
+                                          {' · Max: '}
+                                          <FuzzyDate value={spell.max_discharge_date} />
+                                        </>
+                                      ) : spell.max_discharge_date ? (
+                                        <>Max: <FuzzyDate value={spell.max_discharge_date} /></>
+                                      ) : spell.earliest_release_date ? (
+                                        <>Earliest: <FuzzyDate value={spell.earliest_release_date} /></>
+                                      ) : (
+                                        'present'
+                                      )}
+                                    </p>
+                                  )}
+                                  {spell.case_id && (
+                                    <p className="mt-0.5 font-mono text-[11px] text-zinc-600">#{spell.case_id}</p>
+                                  )}
+                                  {spell.notes && (
+                                    <p className="mt-0.5 text-[11px] text-zinc-500 italic">{spell.notes}</p>
+                                  )}
+                                </div>
+                                {isAdmin && (
+                                  <div className="mt-0.5 flex shrink-0 items-center gap-2 opacity-0 transition-opacity group-hover:opacity-100">
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setIncarcerationDraft({
+                                          facility: spell.facility ?? '',
+                                          case_id: spell.case_id ?? '',
+                                          notes: spell.notes ?? '',
+                                          from_date: spell.from_date,
+                                          earliest_release_date: spell.earliest_release_date,
+                                          max_discharge_date: spell.max_discharge_date,
+                                          life_sentence: spell.life_sentence,
+                                        })
+                                        setEditingSpellId(spell.id)
+                                        setAddingIncarceration(false)
+                                      }}
+                                      className="text-zinc-700 hover:text-violet-400 transition-colors"
+                                      aria-label="Edit incarceration"
+                                    >
+                                      <Pencil className="h-3 w-3" />
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => deleteIncarceration.mutate(spell.id)}
+                                      className="text-zinc-700 hover:text-red-400 transition-colors"
+                                      aria-label="Delete incarceration"
+                                    >
+                                      <Trash2 className="h-3 w-3" />
+                                    </button>
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      !addingIncarceration && <p className="text-xs text-zinc-600">No incarceration records.</p>
+                    )}
+                  </div>
+                )}
+
                 <FamilyPanel
                   family={member.family as Record<string, unknown> | null}
                   universeId={universe.id}
@@ -705,99 +946,6 @@ function MemberDetailPage() {
                         )
                       })}
                     </div>
-                  </div>
-                )}
-
-                {hasIncarcerationPanel && (
-                  <div className="rounded-xl border border-zinc-800 bg-zinc-900/30 px-4 py-3 space-y-3">
-                    <div className="flex items-center justify-between">
-                      <p className="text-xs font-medium uppercase tracking-wider text-zinc-500">Incarceration</p>
-                      {isAdmin && (
-                        <button type="button" onClick={() => setAddingIncarceration((v) => !v)}
-                          className="inline-flex items-center gap-1 text-xs text-zinc-500 hover:text-violet-400 transition-colors">
-                          <Plus className="h-3 w-3" />{addingIncarceration ? 'Cancel' : 'Add'}
-                        </button>
-                      )}
-                    </div>
-
-                    {addingIncarceration && (
-                      <form
-                        onSubmit={async (e) => {
-                          e.preventDefault()
-                          await createIncarceration.mutateAsync({
-                            facility: incarcerationDraft.facility || null,
-                            case_id: incarcerationDraft.case_id || null,
-                            notes: incarcerationDraft.notes || null,
-                          })
-                          setIncarcerationDraft({ facility: '', case_id: '', notes: '' })
-                          setAddingIncarceration(false)
-                        }}
-                        className="space-y-2 pb-1"
-                      >
-                        <Input
-                          value={incarcerationDraft.facility}
-                          onChange={(e) => setIncarcerationDraft((d) => ({ ...d, facility: e.target.value }))}
-                          placeholder="Facility name"
-                          className="h-7 text-sm"
-                        />
-                        <Input
-                          value={incarcerationDraft.case_id}
-                          onChange={(e) => setIncarcerationDraft((d) => ({ ...d, case_id: e.target.value }))}
-                          placeholder="Case number (optional)"
-                          className="h-7 text-sm"
-                        />
-                        <Input
-                          value={incarcerationDraft.notes}
-                          onChange={(e) => setIncarcerationDraft((d) => ({ ...d, notes: e.target.value }))}
-                          placeholder="Notes (optional)"
-                          className="h-7 text-sm"
-                        />
-                        <div className="flex justify-end gap-2 pt-1">
-                          <Button type="button" size="sm" variant="ghost" className="h-7 px-2"
-                            onClick={() => setAddingIncarceration(false)}><X className="h-3.5 w-3.5" /></Button>
-                          <Button type="submit" size="sm" className="h-7 px-3" disabled={createIncarceration.isPending}>Save</Button>
-                        </div>
-                      </form>
-                    )}
-
-                    {incarcerations && incarcerations.length > 0 ? (
-                      <div className="relative pl-4 space-y-0">
-                        <div className="absolute left-[7px] top-2 bottom-2 w-px bg-zinc-700/50" />
-                        {incarcerations.map((spell: MemberIncarcerationRead) => (
-                          <div key={spell.id} className="group relative pb-4 last:pb-0">
-                            <div className="absolute -left-[13px] top-1.5 h-2.5 w-2.5 rounded-full border-2 border-zinc-700 bg-zinc-900 ring-0 group-hover:border-violet-500 transition-colors" />
-                            <div className="flex items-start justify-between gap-2">
-                              <div className="min-w-0">
-                                <p className="text-sm font-medium text-zinc-200 leading-snug">
-                                  {spell.facility ?? 'Unknown facility'}
-                                </p>
-                                {(spell.from_date || spell.to_date) && (
-                                  <p className="mt-0.5 text-[11px] text-zinc-500">
-                                    {spell.from_date ? <FuzzyDate value={spell.from_date} /> : '?'}
-                                    {' – '}
-                                    {spell.to_date ? <FuzzyDate value={spell.to_date} /> : 'present'}
-                                  </p>
-                                )}
-                                {spell.case_id && (
-                                  <p className="mt-0.5 font-mono text-[11px] text-zinc-600">#{spell.case_id}</p>
-                                )}
-                                {spell.notes && (
-                                  <p className="mt-0.5 text-[11px] text-zinc-500 italic">{spell.notes}</p>
-                                )}
-                              </div>
-                              {isAdmin && (
-                                <button type="button" onClick={() => deleteIncarceration.mutate(spell.id)}
-                                  className="mt-0.5 shrink-0 text-zinc-700 opacity-0 group-hover:opacity-100 hover:text-red-400 transition-all">
-                                  <Trash2 className="h-3 w-3" />
-                                </button>
-                              )}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      !addingIncarceration && <p className="text-xs text-zinc-600">No incarceration records.</p>
-                    )}
                   </div>
                 )}
               </div>

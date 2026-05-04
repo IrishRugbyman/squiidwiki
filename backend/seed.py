@@ -191,7 +191,7 @@ async def seed(session: AsyncSession, is_test: bool) -> None:
     dice = Member(
         universe_id=universe.id, nickname="Dice", slug=slugify("Dice"),
         set_id=ghost_gang.id, status=MemberStatus.LOCKED,
-        release_date=FuzzyDate.year_only(2027).model_dump(), created_by_id=admin_id,
+        created_by_id=admin_id,
     )
     lil_ray = Member(
         universe_id=universe.id, nickname="Lil Ray", slug=slugify("Lil Ray"),

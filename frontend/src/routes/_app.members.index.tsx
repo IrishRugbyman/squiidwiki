@@ -16,7 +16,9 @@ import { FuzzyDateInput } from '@/components/FuzzyDateInput'
 import {
   useCreateMember, useMembers, useMemberSearch, useUpdateMember,
   useSets, useAlliances, useBulkMemberStatus, useMember, useAllMembers,
+  useMdocLookup, useMdocImportPhoto,
 } from '@/lib/queries'
+import { api } from '@/lib/api'
 import { useUniverseStore } from '@/stores/universe'
 import { downloadCsv } from '@/lib/download'
 import { useDebounce } from '@/hooks/useDebounce'
@@ -24,7 +26,7 @@ import { MemberRowSkeleton } from '@/components/skeletons'
 import { MemberStatusBadge } from '@/components/StatusBadge'
 import { UrlPasteBanner, useUrlPasteBanner } from '@/components/UrlPasteBanner'
 import { SourceFormSheet } from './_app.sources.index'
-import type { MemberListItem, MemberRead, MemberStatus } from '@/lib/types'
+import type { MemberListItem, MemberRead, MemberStatus, SetRank } from '@/lib/types'
 import type { FuzzyDateValue } from '@/components/FuzzyDate'
 
 export const Route = createFileRoute('/_app/members/')({
@@ -316,6 +318,7 @@ export function MemberFormSheet({ universeId, open, onClose, initial, defaultSet
   const [nicknameUnknown, setNicknameUnknown] = useState(initial?.nickname_unknown ?? copyFrom?.nickname_unknown ?? false)
   const [status, setStatus] = useState<MemberStatus>(initial?.status ?? copyFrom?.status ?? 'UNKNOWN')
   const [setId, setSetId] = useState<string>(initial?.set_id ?? copyFrom?.set_id ?? defaultSetId ?? '')
+  const [setRank, setSetRank] = useState<SetRank | ''>(initial?.set_rank ?? copyFrom?.set_rank ?? '')
   const [allianceId, setAllianceId] = useState<string>(initial?.alliance_id ?? copyFrom?.alliance_id ?? defaultAllianceId ?? '')
   const [biography, setBiography] = useState(initial?.biography ?? copyFrom?.biography ?? '')
   const [aliases, setAliases] = useState(initial?.aliases?.join(', ') ?? copyFrom?.aliases?.join(', ') ?? '')
@@ -328,14 +331,21 @@ export function MemberFormSheet({ universeId, open, onClose, initial, defaultSet
   const [twitter, setTwitter] = useState<string>(seedSocial('twitter'))
   const [dob, setDob] = useState<FuzzyDateValue | null>(initial?.dob ?? copyFrom?.dob ?? null)
   const [dateOfDeath, setDateOfDeath] = useState<FuzzyDateValue | null>(initial?.date_of_death ?? copyFrom?.date_of_death ?? null)
-  const [releaseDate, setReleaseDate] = useState<FuzzyDateValue | null>(initial?.release_date ?? copyFrom?.release_date ?? null)
-  const [lifeSentence, setLifeSentence] = useState<boolean>(initial?.life_sentence ?? copyFrom?.life_sentence ?? false)
   // Note: family is intentionally NOT copied — entries are bilateral and would create
   // duplicated reverse links on save. User can re-add family on the new record.
   const [familyEntries, setFamilyEntries] = useState<FamilyEntry[]>(
     () => familyDictToEntries(initial?.family as Record<string, unknown> | null)
   )
   const [error, setError] = useState<string | null>(null)
+  const mdocLookup = useMdocLookup()
+  const mdocImportPhoto = useMdocImportPhoto()
+  const [mdocUrl, setMdocUrl] = useState('')
+  const [mdocPending, setMdocPending] = useState<{
+    earliest_release_date: FuzzyDateValue | null
+    max_discharge_date: FuzzyDateValue | null
+    facility: string | null
+    photo_url: string | null
+  } | null>(null)
   const urlPaste = useUrlPasteBanner()
   const [creatingSourceFromUrl, setCreatingSourceFromUrl] = useState<string | null>(null)
 
@@ -363,25 +373,75 @@ export function MemberFormSheet({ universeId, open, onClose, initial, defaultSet
       nickname_unknown: nicknameUnknown,
       status,
       set_id: setId || null,
+      set_rank: setId && setRank ? setRank : null,
       alliance_id: allianceId || null,
       biography,
       aliases: aliasList.length > 0 ? aliasList : null,
       dob: dob ?? null,
       date_of_death: status === 'DEAD' ? dateOfDeath : null,
-      release_date: status === 'LOCKED' && !lifeSentence ? releaseDate : null,
-      life_sentence: status === 'LOCKED' ? lifeSentence : false,
       family: familyEntriesToDict(familyEntries),
       social_media: Object.keys(social).length > 0 ? social : null,
     }
     const label = nickname || legalName || 'member'
     try {
-      if (isEdit) await update.mutateAsync(body)
-      else await create.mutateAsync(body)
-      toast.success(`${isEdit ? 'Updated' : 'Created'} ${label}`)
-      if (!isEdit) resetForm()
+      if (isEdit) {
+        await update.mutateAsync(body)
+        toast.success(`Updated ${label}`)
+      } else {
+        const created = await create.mutateAsync(body)
+        toast.success(`Created ${label}`)
+        if (mdocPending && (mdocPending.earliest_release_date || mdocPending.max_discharge_date || mdocPending.facility)) {
+          try {
+            await api.post(`/members/${created.id}/incarcerations?universe_id=${universeId}`, {
+              from_date: null,
+              earliest_release_date: mdocPending.earliest_release_date,
+              max_discharge_date: mdocPending.max_discharge_date,
+              facility: mdocPending.facility,
+              case_id: null,
+              notes: null,
+            })
+            toast.success('Imported MDOC incarceration record')
+          } catch (e) {
+            toast.error(e instanceof Error ? `Couldn't save MDOC incarceration: ${e.message}` : "Couldn't save MDOC incarceration")
+          }
+        }
+        if (mdocPending?.photo_url) {
+          try {
+            await mdocImportPhoto.mutateAsync({
+              photo_url: mdocPending.photo_url,
+              member_id: created.id,
+              universe_id: universeId,
+            })
+            toast.success('Imported MDOC photo')
+          } catch (e) {
+            toast.error(e instanceof Error ? `Couldn't import MDOC photo: ${e.message}` : "Couldn't import MDOC photo")
+          }
+        }
+        resetForm()
+      }
       onClose()
     } catch (err) {
       setError(err instanceof Error ? err.message : `Failed to ${isEdit ? 'update' : 'create'} member`)
+    }
+  }
+
+  async function handleMdocImport() {
+    if (!mdocUrl.trim()) return
+    try {
+      const profile = await mdocLookup.mutateAsync(mdocUrl.trim())
+      if (profile.legal_name) setLegalName(profile.legal_name)
+      if (profile.dob) setDob(profile.dob)
+      setMdocPending({
+        earliest_release_date: profile.earliest_release_date,
+        max_discharge_date: profile.max_discharge_date,
+        facility: profile.facility,
+        photo_url: profile.photo_url,
+      })
+      if (status === 'UNKNOWN') setStatus('LOCKED')
+      toast.success('Imported from MDOC — review and save')
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'MDOC import failed'
+      toast.error(msg)
     }
   }
 
@@ -391,6 +451,7 @@ export function MemberFormSheet({ universeId, open, onClose, initial, defaultSet
     setNicknameUnknown(false)
     setStatus('UNKNOWN')
     setSetId(defaultSetId ?? '')
+    setSetRank('')
     setAllianceId(defaultAllianceId ?? '')
     setBiography('')
     setAliases('')
@@ -399,10 +460,10 @@ export function MemberFormSheet({ universeId, open, onClose, initial, defaultSet
     setTwitter('')
     setDob(null)
     setDateOfDeath(null)
-    setReleaseDate(null)
-    setLifeSentence(false)
     setFamilyEntries([])
     setError(null)
+    setMdocUrl('')
+    setMdocPending(null)
   }
 
   const isPending = isEdit ? update.isPending : create.isPending
@@ -415,6 +476,33 @@ export function MemberFormSheet({ universeId, open, onClose, initial, defaultSet
         description={isEdit ? 'Update this member' : 'Create a new member profile'}
       >
         <form onSubmit={handleSubmit} className="divide-y divide-zinc-800/60">
+          {!isEdit && (
+            <FormSection title="Import from MDOC">
+              <p className="text-xs text-zinc-500">
+                Paste an MDOC OTIS profile URL to prefill legal name, date of birth, and create an incarceration record with the facility and release dates.
+              </p>
+              <div className="flex gap-2">
+                <Input
+                  value={mdocUrl}
+                  onChange={(e) => setMdocUrl(e.target.value)}
+                  placeholder="https://mdocweb.state.mi.us/OTIS2/..."
+                  className="flex-1"
+                />
+                <Button type="button" onClick={handleMdocImport} disabled={!mdocUrl.trim() || mdocLookup.isPending}>
+                  {mdocLookup.isPending ? 'Importing…' : 'Import'}
+                </Button>
+              </div>
+              {mdocPending && (
+                <p className="text-xs text-emerald-400">
+                  Will save on submit:{' '}
+                  {mdocPending.facility ?? 'unknown facility'}
+                  {mdocPending.earliest_release_date && ' · earliest release set'}
+                  {mdocPending.max_discharge_date && ' · max discharge set'}
+                  {mdocPending.photo_url && ' · photo'}
+                </p>
+              )}
+            </FormSection>
+          )}
           <FormSection title="Identity">
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="space-y-1.5">
@@ -452,7 +540,7 @@ export function MemberFormSheet({ universeId, open, onClose, initial, defaultSet
           </FormSection>
 
           <FormSection title="Status & Affiliation">
-            <div className="grid gap-3 sm:grid-cols-3">
+            <div className="grid gap-3 grid-cols-2 sm:grid-cols-4">
               <div className="space-y-1.5">
                 <Label>Status</Label>
                 <Select value={status} onValueChange={(v) => setStatus(v as MemberStatus)}>
@@ -464,11 +552,26 @@ export function MemberFormSheet({ universeId, open, onClose, initial, defaultSet
               </div>
               <div className="space-y-1.5">
                 <Label>Set</Label>
-                <Select value={setId || 'none'} onValueChange={(v) => setSetId(v === 'none' ? '' : v)}>
+                <Select value={setId || 'none'} onValueChange={(v) => { const next = v === 'none' ? '' : v; setSetId(next); if (!next) setSetRank('') }}>
                   <SelectTrigger><SelectValue placeholder="None" /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="none">— None —</SelectItem>
                     {(sets?.items ?? []).map((s) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label>Set rank</Label>
+                <Select
+                  value={setRank || 'none'}
+                  onValueChange={(v) => setSetRank(v === 'none' ? '' : (v as SetRank))}
+                  disabled={!setId}
+                >
+                  <SelectTrigger><SelectValue placeholder={setId ? 'None' : 'Pick a set first'} /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">— None —</SelectItem>
+                    <SelectItem value="CEO">CEO</SelectItem>
+                    <SelectItem value="CO_CEO">Co-CEO</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -494,15 +597,10 @@ export function MemberFormSheet({ universeId, open, onClose, initial, defaultSet
               </div>
             )}
             {status === 'LOCKED' && (
-              <div className="rounded-lg border border-zinc-800 bg-zinc-900/50 p-3">
-                <FuzzyDateInput
-                  value={releaseDate}
-                  onChange={setReleaseDate}
-                  label="Expected release date"
-                  idPrefix="rel"
-                  life={{ value: lifeSentence, onChange: setLifeSentence }}
-                />
-              </div>
+              <p className="text-xs text-zinc-500">
+                Add release dates (earliest / max discharge / life sentence) on the
+                member detail page after saving — they live on the incarceration spell.
+              </p>
             )}
           </FormSection>
 

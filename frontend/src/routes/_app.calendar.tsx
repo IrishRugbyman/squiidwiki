@@ -1,10 +1,10 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
-import { CheckCircle2, ChevronLeft, ChevronRight, Flame, Keyboard, ShieldAlert, Skull, Swords } from 'lucide-react'
+import { CheckCircle2, ChevronLeft, ChevronRight, Flame, Keyboard, ShieldAlert, Skull, Swords, Unlock } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { NoUniverse } from '@/components/NoUniverse'
 import { Button } from '@/components/ui/button'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
-import { useAllIncidents, useAllMembers } from '@/lib/queries'
+import { useAllIncidents, useAllMembers, useUniverseReleaseEvents } from '@/lib/queries'
 import { useUniverseStore } from '@/stores/universe'
 import type { FuzzyDateValue } from '@/components/FuzzyDate'
 
@@ -22,7 +22,7 @@ const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 
 // ─── Event types ─────────────────────────────────────────────────────────────
 
-type EventKind = 'SHOOTING' | 'MURDER' | 'FIGHT' | 'DEATH' | 'MEMORIAL'
+type EventKind = 'SHOOTING' | 'MURDER' | 'FIGHT' | 'DEATH' | 'MEMORIAL' | 'RELEASE'
 
 const KIND_CONFIG: Record<EventKind, {
   dot: string; pill: string; pillHover: string; icon: typeof Skull; label: string
@@ -32,6 +32,7 @@ const KIND_CONFIG: Record<EventKind, {
   FIGHT:    { dot: 'bg-violet-500',  pill: 'bg-violet-950/80 text-violet-300 ring-1 ring-violet-800/50',       pillHover: 'hover:ring-violet-500',  icon: ShieldAlert, label: 'Fight'    },
   DEATH:    { dot: 'bg-zinc-500',    pill: 'bg-zinc-900 text-zinc-400 ring-1 ring-zinc-700',                    pillHover: 'hover:ring-zinc-500',    icon: Skull,       label: 'Death'    },
   MEMORIAL: { dot: 'bg-fuchsia-500', pill: 'bg-fuchsia-950/80 text-fuchsia-300 ring-1 ring-fuchsia-800/50',    pillHover: 'hover:ring-fuchsia-500', icon: Flame,       label: 'Memorial' },
+  RELEASE:  { dot: 'bg-emerald-500', pill: 'bg-emerald-950/80 text-emerald-300 ring-1 ring-emerald-800/50',   pillHover: 'hover:ring-emerald-500', icon: Unlock,      label: 'Release'  },
 }
 
 interface CalendarEvent {
@@ -108,8 +109,9 @@ function MonthSummary({ events }: { events: CalendarEvent[] }) {
   const fights    = events.filter((e) => e.kind === 'FIGHT').length
   const deaths    = events.filter((e) => e.kind === 'DEATH').length
   const memorials = events.filter((e) => e.kind === 'MEMORIAL').length
+  const releases  = events.filter((e) => e.kind === 'RELEASE').length
 
-  if (!murders && !shootings && !fights && !deaths && !memorials) return null
+  if (!murders && !shootings && !fights && !deaths && !memorials && !releases) return null
 
   const parts = [
     murders   > 0 && { label: `${murders} murder${murders !== 1 ? 's' : ''}`,           color: 'text-rose-400',    dot: 'bg-rose-500'    },
@@ -117,6 +119,7 @@ function MonthSummary({ events }: { events: CalendarEvent[] }) {
     fights    > 0 && { label: `${fights} fight${fights !== 1 ? 's' : ''}`,              color: 'text-violet-400',  dot: 'bg-violet-500'  },
     deaths    > 0 && { label: `${deaths} death${deaths !== 1 ? 's' : ''}`,              color: 'text-zinc-400',    dot: 'bg-zinc-500'    },
     memorials > 0 && { label: `${memorials} memorial${memorials !== 1 ? 's' : ''}`,     color: 'text-fuchsia-400', dot: 'bg-fuchsia-500' },
+    releases  > 0 && { label: `${releases} release${releases !== 1 ? 's' : ''}`,        color: 'text-emerald-400', dot: 'bg-emerald-500' },
   ].filter(Boolean) as { label: string; color: string; dot: string }[]
 
   return (
@@ -225,11 +228,13 @@ function CalendarPage() {
 
   const { data: incidentData } = useAllIncidents(universe?.id ?? null)
   const { data: memberData }   = useAllMembers(universe?.id ?? null)
+  const { data: releaseData }  = useUniverseReleaseEvents(universe?.id ?? null, year)
 
   if (!universe) return <NoUniverse />
 
   const incidents = incidentData?.items ?? []
   const members   = memberData?.items ?? []
+  const releases  = releaseData ?? []
 
   // Collect all events for this month
   const allMonthEvents: CalendarEvent[] = []
@@ -282,6 +287,32 @@ function CalendarPage() {
         sublabel: `Memorial · ${years} year${years === 1 ? '' : 's'}`,
         href: `/members/${m.slug ?? m.id}`,
         date: { year, month, day: dod.day, precision: 'YMD', approx: false },
+      })
+    }
+  }
+
+  for (const r of releases) {
+    if (r.life_sentence) continue
+    const memberHref = `/members/${r.member_slug ?? r.member_id}`
+    const facilityNote = r.facility ? ` · ${r.facility}` : ''
+    if (r.earliest_release_date && fuzzyMatchesMonth(r.earliest_release_date, year, month)) {
+      allMonthEvents.push({
+        id: `${r.spell_id}-earliest`,
+        kind: 'RELEASE',
+        label: r.member_display_name,
+        sublabel: `Earliest release${facilityNote}`,
+        href: memberHref,
+        date: r.earliest_release_date,
+      })
+    }
+    if (r.max_discharge_date && fuzzyMatchesMonth(r.max_discharge_date, year, month)) {
+      allMonthEvents.push({
+        id: `${r.spell_id}-max`,
+        kind: 'RELEASE',
+        label: r.member_display_name,
+        sublabel: `Max discharge${facilityNote}`,
+        href: memberHref,
+        date: r.max_discharge_date,
       })
     }
   }

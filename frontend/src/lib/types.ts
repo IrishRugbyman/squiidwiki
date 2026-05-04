@@ -16,6 +16,7 @@ export interface CursorPage<T> {
 // Enums mirroring backend
 export type MemberStatus = 'FREE' | 'LOCKED' | 'DEAD' | 'UNKNOWN' | 'ESCAPEE' | 'ABSCONDER'
 export type SetStatus = 'ACTIVE' | 'EXTINCT'
+export type SetRank = 'CEO' | 'CO_CEO'
 export type AllianceStatus = 'ACTIVE' | 'EXTINCT' | 'DORMANT'
 export type IncidentType = 'SHOOTING' | 'MURDER' | 'FIGHT'
 export type ParticipantRole = 'SHOOTER' | 'ASSISTED' | 'BYSTANDER' | 'VICTIM'
@@ -179,6 +180,7 @@ export interface MemberListItem {
   display_name: string
   status: MemberStatus
   set_id: UUID | null
+  set_rank: SetRank | null
   alliance_id: UUID | null
   universe_id: UUID
   slug: string | null
@@ -198,15 +200,37 @@ export interface MemberAliasRead {
   created_at: string
 }
 
+export interface MdocProfile {
+  legal_name: string
+  dob: FuzzyDateValue
+  earliest_release_date: FuzzyDateValue | null
+  max_discharge_date: FuzzyDateValue | null
+  facility: string | null
+  photo_url: string | null
+}
+
 export interface MemberIncarcerationRead {
   id: UUID
   member_id: UUID
   from_date: FuzzyDateValue | null
-  to_date: FuzzyDateValue | null
+  earliest_release_date: FuzzyDateValue | null
+  max_discharge_date: FuzzyDateValue | null
+  life_sentence: boolean
   facility: string | null
   case_id: string | null
   notes: string | null
   created_at: string
+}
+
+export interface MemberReleaseEvent {
+  spell_id: UUID
+  member_id: UUID
+  member_display_name: string
+  member_slug: string | null
+  facility: string | null
+  earliest_release_date: FuzzyDateValue | null
+  max_discharge_date: FuzzyDateValue | null
+  life_sentence: boolean
 }
 
 export interface MemberRead extends MemberListItem {
@@ -218,8 +242,6 @@ export interface MemberRead extends MemberListItem {
   alliance_id: UUID | null
   dob: FuzzyDateValue | null
   date_of_death: FuzzyDateValue | null
-  release_date: FuzzyDateValue | null
-  life_sentence: boolean
   family: Record<string, string> | null
   social_media: Record<string, string> | null
   death_incident_id: UUID | null

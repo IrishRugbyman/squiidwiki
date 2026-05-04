@@ -12,10 +12,12 @@ import type {
   UniverseAnalytics,
   IncidentRead,
   IncidentReadDetail,
+  MdocProfile,
   MediaEntityType,
   MediaWithUrls,
   MemberAliasRead,
   MemberIncarcerationRead,
+  MemberReleaseEvent,
   MemberListItem,
   MemberRead,
   MemberReadDetail,
@@ -461,7 +463,7 @@ export const useMemberIncarcerations = (memberId: UUID | null, universeId: UUID 
 export const useCreateMemberIncarceration = (memberId: UUID, universeId: UUID) => {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (data: { from_date?: unknown; to_date?: unknown; facility?: string | null; case_id?: string | null; notes?: string | null }) =>
+    mutationFn: (data: { from_date?: unknown; earliest_release_date?: unknown; max_discharge_date?: unknown; life_sentence?: boolean; facility?: string | null; case_id?: string | null; notes?: string | null }) =>
       api.post<MemberIncarcerationRead>(`/members/${memberId}/incarcerations?universe_id=${universeId}`, data),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['members', memberId, 'incarcerations'] }) },
   })
@@ -470,11 +472,29 @@ export const useCreateMemberIncarceration = (memberId: UUID, universeId: UUID) =
 export const useUpdateMemberIncarceration = (memberId: UUID, universeId: UUID) => {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: ({ spellId, data }: { spellId: UUID; data: { from_date?: unknown; to_date?: unknown; facility?: string | null; case_id?: string | null; notes?: string | null } }) =>
+    mutationFn: ({ spellId, data }: { spellId: UUID; data: { from_date?: unknown; earliest_release_date?: unknown; max_discharge_date?: unknown; life_sentence?: boolean; facility?: string | null; case_id?: string | null; notes?: string | null } }) =>
       api.patch<MemberIncarcerationRead>(`/members/${memberId}/incarcerations/${spellId}?universe_id=${universeId}`, data),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['members', memberId, 'incarcerations'] }) },
   })
 }
+
+export const useMdocLookup = () =>
+  useMutation({
+    mutationFn: (url: string) => api.post<MdocProfile>('/mdoc/lookup', { url }),
+  })
+
+export const useMdocImportPhoto = () =>
+  useMutation({
+    mutationFn: (body: { photo_url: string; member_id: UUID; universe_id: UUID }) =>
+      api.post('/mdoc/import-photo', body),
+  })
+
+export const useUniverseReleaseEvents = (universeId: UUID | null, year: number) =>
+  useQuery({
+    queryKey: ['release-events', universeId, year],
+    queryFn: () => api.get<MemberReleaseEvent[]>(`/members/release-events?universe_id=${universeId}&year=${year}`),
+    enabled: !!universeId,
+  })
 
 export const useDeleteMemberIncarceration = (memberId: UUID, universeId: UUID) => {
   const qc = useQueryClient()
