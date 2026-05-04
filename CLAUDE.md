@@ -141,3 +141,8 @@ There are two databases (`squiidwiki_db` = prod, `squiidwiki_test` = test). The 
 - Incident participant role: `SHOOTER`, `ASSISTED`, `BYSTANDER`, `VICTIM`
 - Incident participant outcome: `KILLED`, `INJURED`, `UNHARMED`, `UNKNOWN`
 - Global role: `ADMIN`, `USER`
+
+
+-------
+
+always git commit after finishing a request / feature (not just a small thing, after changes worth commiting)
