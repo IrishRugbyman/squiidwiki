@@ -108,7 +108,7 @@ export function AttachIncidentsToSourceDialog({
                       <div className="flex items-center gap-2 min-w-0">
                         <Badge
                           variant="outline"
-                          className={`text-xs shrink-0 ${inc.type === 'MURDER' ? 'border-rose-800 text-rose-400' : 'border-amber-800 text-amber-400'}`}
+                          className={`text-xs shrink-0 ${inc.type === 'MURDER' ? 'border-rose-800 text-rose-400' : inc.type === 'FIGHT' ? 'border-violet-800 text-violet-400' : 'border-amber-800 text-amber-400'}`}
                         >
                           {inc.type}
                         </Badge>
@@ -141,7 +141,7 @@ export function AttachIncidentsToSourceDialog({
                 <div className="flex items-center gap-2 min-w-0">
                   <Badge
                     variant="outline"
-                    className={`text-xs shrink-0 ${inc.type === 'MURDER' ? 'border-rose-800 text-rose-400' : 'border-amber-800 text-amber-400'}`}
+                    className={`text-xs shrink-0 ${inc.type === 'MURDER' ? 'border-rose-800 text-rose-400' : inc.type === 'FIGHT' ? 'border-violet-800 text-violet-400' : 'border-amber-800 text-amber-400'}`}
                   >
                     {inc.type}
                   </Badge>

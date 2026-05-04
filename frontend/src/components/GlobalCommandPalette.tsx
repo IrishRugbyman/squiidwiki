@@ -205,27 +205,6 @@ export function GlobalCommandPalette({ open, onClose }: GlobalCommandPaletteProp
         <CommandList>
           {searching && !hasResults && <CommandEmpty>No results for "{q}"</CommandEmpty>}
 
-          {/* Recently viewed — only when no search */}
-          {!searching && recents.length > 0 && (
-            <CommandGroup heading="Recent">
-              {recents.map((r) => {
-                const Icon = RECENT_ICON[r.type]
-                const path = `${RECENT_ROUTE[r.type]}/${r.slug ?? r.id}`
-                return (
-                  <CommandItem
-                    key={`${r.type}-${r.id}`}
-                    value={`recent-${r.type}-${r.id}`}
-                    onSelect={() => go(path)}
-                  >
-                    <Icon className="mr-2 h-3.5 w-3.5 shrink-0 text-zinc-500" />
-                    <span className="truncate">{r.label}</span>
-                    <Clock className="ml-auto h-3 w-3 shrink-0 text-zinc-700" />
-                  </CommandItem>
-                )
-              })}
-            </CommandGroup>
-          )}
-
           {/* Entity search results */}
           {searching && (memberResults?.length ?? 0) > 0 && (
             <CommandGroup heading="Members">
@@ -326,6 +305,31 @@ export function GlobalCommandPalette({ open, onClose }: GlobalCommandPaletteProp
                     New universe…
                   </CommandItem>
                 )}
+              </CommandGroup>
+            </>
+          )}
+
+          {/* Recently viewed — only when no search; below Universes so it doesn't
+              get top billing while the user is picking a universe. */}
+          {!searching && recents.length > 0 && (
+            <>
+              <CommandSeparator />
+              <CommandGroup heading="Recent">
+                {recents.map((r) => {
+                  const Icon = RECENT_ICON[r.type]
+                  const path = `${RECENT_ROUTE[r.type]}/${r.slug ?? r.id}`
+                  return (
+                    <CommandItem
+                      key={`${r.type}-${r.id}`}
+                      value={`recent-${r.type}-${r.id}`}
+                      onSelect={() => go(path)}
+                    >
+                      <Icon className="mr-2 h-3.5 w-3.5 shrink-0 text-zinc-500" />
+                      <span className="truncate">{r.label}</span>
+                      <Clock className="ml-auto h-3 w-3 shrink-0 text-zinc-700" />
+                    </CommandItem>
+                  )
+                })}
               </CommandGroup>
             </>
           )}

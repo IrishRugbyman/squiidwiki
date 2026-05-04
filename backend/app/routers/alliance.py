@@ -81,8 +81,15 @@ async def get_alliance(
         raise HTTPException(404)
     territory_ids = await crud.list_alliance_territory_ids(session, obj.id)
     set_ids = await crud.list_alliance_set_ids(session, obj.id)
-    base = AllianceRead.model_validate(obj)
-    return AllianceReadDetail(**base.model_dump(), territory_ids=territory_ids, set_ids=set_ids)
+    await attach_primary_photos_alliances(session, [obj])
+    base = AllianceRead.model_validate(obj).model_dump()
+    base["primary_photo_url"] = getattr(obj, "primary_photo_url", None)
+    base["primary_photo_thumb_url"] = getattr(obj, "primary_photo_thumb_url", None)
+    return AllianceReadDetail(
+        **base,
+        territory_ids=territory_ids,
+        set_ids=set_ids,
+    )
 
 
 @router.patch("/{id}", response_model=AllianceRead)

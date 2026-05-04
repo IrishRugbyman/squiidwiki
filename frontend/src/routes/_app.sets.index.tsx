@@ -4,7 +4,7 @@ import { useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import { NoUniverse } from '@/components/NoUniverse'
 import { PageHeader } from '@/components/PageHeader'
-import { SetStatusToggle } from '@/components/StatusToggle'
+import { SetStatusBadge } from '@/components/StatusBadge'
 import { Sheet, SheetContent, SheetClose } from '@/components/Sheet'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -12,7 +12,7 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Textarea } from '@/components/ui/textarea'
-import { useAlliances, useCreateSet, useDeleteSet, useMunicipalities, useSet, useSets, useSetSearch, useUpdateSet, useUpdateSetStatus } from '@/lib/queries'
+import { useAlliances, useCreateSet, useDeleteSet, useMunicipalities, useSet, useSets, useSetSearch, useUpdateSet } from '@/lib/queries'
 import { BulkActionBar } from '@/components/BulkActionBar'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { useUniverseStore } from '@/stores/universe'
@@ -404,7 +404,6 @@ function SetsPage() {
   const PAGE = 20
 
   const debouncedQ = useDebounce(q, 250)
-  const statusUpdate = useUpdateSetStatus(universe?.id ?? '')
   const deleteSet = useDeleteSet(universe?.id ?? '')
   const { data, isLoading } = useSets(universe?.id ?? null, offset)
   const { data: searchResults, isLoading: searchLoading } = useSetSearch(universe?.id ?? null, debouncedQ)
@@ -651,11 +650,7 @@ function SetsPage() {
 
                       {/* Status */}
                       <td className="px-4 py-3">
-                        <SetStatusToggle
-                          value={set.status}
-                          pending={statusUpdate.isPending && statusUpdate.variables?.id === set.id}
-                          onChange={(s) => statusUpdate.mutate({ id: set.id, status: s })}
-                        />
+                        <SetStatusBadge status={set.status} />
                       </td>
 
                       {/* Quick edit */}

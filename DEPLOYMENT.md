@@ -197,8 +197,8 @@ Create the `.env` file at the repo root:
 ```bash
 cat > .env <<'EOF'
 # Database
-DATABASE_URL_PROD=postgresql+asyncpg://lbzgiu:CHOOSE_A_STRONG_PASSWORD@localhost:5432/squiidwiki_db
-DATABASE_URL_TEST=postgresql+asyncpg://lbzgiu:CHOOSE_A_STRONG_PASSWORD@localhost:5432/squiidwiki_test
+DATABASE_URL_PROD=postgresql+asyncpg://lbzgiu:YOUR_DB_PASSWORD@localhost:5432/squiidwiki_prod
+DATABASE_URL_TEST=postgresql+asyncpg://lbzgiu:YOUR_DB_PASSWORD@localhost:5432/squiidwiki_test
 
 # Auth — generate with: python3 -c "import secrets; print(secrets.token_hex(32))"
 SECRET_KEY=GENERATE_A_RANDOM_64_CHAR_HEX_STRING
@@ -214,8 +214,8 @@ REDIS_URL=redis://localhost:6379
 
 # Cloudflare R2 — copy from your existing .env on Windows
 R2_ENDPOINT_URL=https://2274e774b94707d729b8ca16df8c5fec.r2.cloudflarestorage.com
-R2_ACCESS_KEY_ID=your_r2_key_id
-R2_SECRET_ACCESS_KEY=your_r2_secret
+R2_ACCESS_KEY_ID=YOUR_R2_ACCESS_KEY_ID
+R2_SECRET_ACCESS_KEY=YOUR_R2_SECRET_ACCESS_KEY
 R2_BUCKET_PROD=squiidwiki-prod
 R2_BUCKET_TEST=squiidwiki-prod
 EOF
@@ -236,15 +236,16 @@ nano .env
 ```bash
 cd /home/lbzgiu/squiidwiki/backend
 
-# Create virtualenv
-python3.12 -m venv .venv
-source .venv/bin/activate
+# Install uv
+curl -LsSf https://astral.sh/uv/install.sh | sh
+source $HOME/.local/bin/env  # add uv to PATH for this session
 
-# Install deps
-pip install -r requirements.txt
+# Create virtualenv and install deps
+uv venv .venv
+uv pip install -r requirements.txt
 
 # Run migrations
-python -m alembic upgrade head
+.venv/bin/python -m alembic upgrade head
 ```
 
 ---
@@ -440,15 +441,15 @@ sudo tail -f /var/log/postgresql/postgresql-16-main.log
 Enable Hetzner's snapshot backup in the UI (server page → Backups → Enable, +20% of server cost). For database-level backups:
 
 ```bash
-mkdir -p /home/lbzgiu/backups
+mkdir -p /home/lbzgiu/backups/squiidwiki
 crontab -e
 ```
 
 Add these two lines at the bottom (press `i` to insert if it opens in vim, `:wq` to save):
 
 ```
-0 3 * * * pg_dump -U lbzgiu squiidwiki_db | gzip > /home/lbzgiu/backups/squiidwiki_$(date +\%Y\%m\%d).sql.gz
-0 4 * * * find /home/lbzgiu/backups -name "*.sql.gz" -mtime +14 -delete
+0 3 * * * pg_dump -U lbzgiu squiidwiki_db | gzip > /home/lbzgiu/backups/squiidwiki/squiidwiki_$(date +\%Y\%m\%d).sql.gz
+0 4 * * * find /home/lbzgiu/backups/squiidwiki -name "*.sql.gz" -mtime +14 -delete
 ```
 
 This dumps the database every night at 3 AM and keeps 14 days of history.

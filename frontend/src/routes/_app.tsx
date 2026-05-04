@@ -13,7 +13,6 @@ import {
   NotebookText,
   ScrollText,
   Shield,
-  Skull,
   Users,
   UserCog,
   X,
@@ -216,7 +215,7 @@ function AppLayout() {
           className="flex items-center rounded-md outline-none focus-visible:ring-2 focus-visible:ring-violet-500/50"
           aria-label="Go to dashboard"
         >
-          <Skull className="mr-2 h-5 w-5 text-violet-500" />
+          <img src="/logo.png" alt="" className="mr-2 h-7 w-7 rounded-md object-cover" />
           <span className="font-bold tracking-tight text-white">SquiidWiki</span>
         </Link>
         <button
@@ -298,7 +297,7 @@ function AppLayout() {
           >
             <Menu className="h-5 w-5" />
           </button>
-          <Skull className="mr-2 h-5 w-5 text-violet-500" />
+          <img src="/logo.png" alt="" className="mr-2 h-7 w-7 rounded-md object-cover" />
           <span className="font-bold tracking-tight text-white">SquiidWiki</span>
         </div>
 

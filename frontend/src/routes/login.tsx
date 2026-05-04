@@ -1,5 +1,4 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
-import { Skull } from 'lucide-react'
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -59,9 +58,7 @@ function LoginPage() {
 
       <div className="relative w-full max-w-sm">
         <div className="mb-8 flex flex-col items-center text-center">
-          <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-violet-600/10 ring-1 ring-violet-600/30">
-            <Skull className="h-6 w-6 text-violet-400" />
-          </div>
+          <img src="/logo.png" alt="SquiidWiki" className="mb-2 h-24 w-24 rounded-2xl object-cover shadow-lg shadow-black/40" />
           <h1 className="text-2xl font-bold tracking-tight text-white">SquiidWiki</h1>
           <p className="mt-1 text-sm text-zinc-500">Sign in to continue</p>
         </div>

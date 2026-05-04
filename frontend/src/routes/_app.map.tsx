@@ -79,7 +79,7 @@ function MapPage() {
           for (const c of coords as number[][]) walk(c)
         }
       }
-      walk(f.geometry.coordinates as number[][])
+      walk(f.geometry.coordinates as unknown as number[][])
       if (minLng !== Infinity) {
         result[f.id as string] = [(minLng + maxLng) / 2, (minLat + maxLat) / 2]
       }

@@ -11,6 +11,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - After making a UI or navigation change, state exactly: (1) what URL to visit, (2) what to click, (3) what to expect — then wait for user confirmation before declaring done
 - Never mark work complete based on type-checks or compilation alone; `tsc --noEmit` passing is necessary but not sufficient
 - Do not move to the next task until the user confirms the fix works in the browser
+- **Frontend changes need `npm run build`** — the user serves the production build, not the Vite dev server. After any frontend edit, tell the user to run `npm run build` (from `frontend/`) before reloading.
 - After implementing something from `ideas.md`, check it off (`- [ ]` → `- [x]`).
 
 ## Cloudflare R2 (media storage)
@@ -19,16 +20,20 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - Endpoint: `https://2274e774b94707d729b8ca16df8c5fec.r2.cloudflarestorage.com`
 - Credentials live in `.env` (`R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`). Without them the upload endpoint throws 500 immediately.
 - Photos are supported on **members, sets, and alliances** — the `media` table has `member_id`, `set_id`, `alliance_id` (plus `incident_id`/`source_id` for schema completeness, but no UI for those).
-- The `media.kind` column is plain `VARCHAR` in the DB (not a Postgres ENUM). The SQLModel field must use `sa_column=Column(String, ...)` — do **not** let SQLModel infer the type from `MediaKind`, or asyncpg will cast as `::mediakind` and blow up on INSERT.
-- `attach_primary_photos()` sets transient attributes (`primary_photo_url`, `primary_photo_thumb_url`) on `Member` ORM instances. Pydantic v2 rejects unknown field assignment via `__setattr__`, so use `object.__setattr__(m, 'primary_photo_url', url)`.
+- For the `media.kind` SQLModel typing quirk and the `attach_primary_photos()` Pydantic v2 workaround, see `backend/CLAUDE.md`.
 
 ## Hard rules
 
 - **NEVER MODIFY DATA IN PROD DB** without explicit instruction. The exception currently baked in is municipalities (see Architecture → DB toggle).
 
-## Windows Development Environment
+## Development Environment (Linux server)
 
-- `uvicorn --reload` is unreliable on Windows — restart without `--reload`. Find the PID with `netstat -ano | grep 8001`, kill with `taskkill /PID <pid> /F`, then restart.
+- Backend venv: `/home/lbzgiu/squiidwiki/backend/.venv/` — invoke as `.venv/bin/python` or `.venv/bin/uvicorn`.
+- Postgres 16 runs natively on `localhost:5432` as user `lbzgiu`. Databases: `squiidwiki_prod` (always present) and `squiidwiki_test` (may not exist — check before migrating).
+- `.env` lives at the **repo root** (`/home/lbzgiu/squiidwiki/.env`), not in `backend/`. `DATABASE_URL_PROD` and `DATABASE_URL_TEST` are defined there.
+- Restart uvicorn with `pgrep -af "uvicorn app.main"` → `kill <pid>` → relaunch in background. `--reload` is fine here, but production-style runs use `--workers 2` (note: in-process DB-mode toggle is inconsistent across workers — single-worker is cleaner for local dev).
+- Alembic: `env.py` reads `settings.database_url_prod` from `.env` and **ignores** the stale `sqlalchemy.url` in `alembic.ini`. To migrate the test DB, run `DATABASE_URL_PROD=<test-url> .venv/bin/python -m alembic upgrade head` (do not try `Config.set_main_option` — `%`-encoded passwords trip configparser interpolation).
+- New Alembic revision IDs: pick a fresh random hex (`python -c "import secrets; print(secrets.token_hex(6))"`). The existing repo IDs are heavily patterned and easy to collide with.
 - If a bash command fails twice, stop retrying: summarize what was tried, state the hypothesis, and ask the user how to proceed.
 
 ## Project Overview
@@ -67,15 +72,15 @@ SquiidWiki is a gang research database wiki that tracks social networks, inciden
 
 ## Development Commands
 
-**Python env:** `C:\Users\irish\miniconda3\envs\squiidwiki\python.exe` — always invoke via this path (no venv activation needed).
+**Python env:** `/home/lbzgiu/squiidwiki/backend/.venv/bin/python` — always invoke via this path (no venv activation needed).
 
 **Easiest local dev:** `./dev.sh` from repo root — kills anything on :8001 / :5173, then runs backend (uvicorn on **:8001**) and frontend (Vite on :5173) together.
 
 ```bash
 # Manual backend (from backend/) — note port 8001, the Vite proxy targets it
-PY="C:\Users\irish\miniconda3\envs\squiidwiki\python.exe"
+PY=.venv/bin/python
 $PY -m uvicorn app.main:app --port 8001     # → http://localhost:8001/docs
-$PY -m alembic upgrade head                 # apply migrations to PROD DB
+$PY -m alembic upgrade head                 # apply migrations to PROD DB (squiidwiki_prod)
 $PY -m app.seed                             # seed sample data (Metro Detroit)
 $PY -m app.seed --test                      # wipe + seed TEST DB
 $PY -m pytest --cov                         # run tests
@@ -120,8 +125,9 @@ Universe → Municipality
 - **Bilateral relationships** — stored once as `(set_a_id < set_b_id)` with a Postgres trigger enforcing the ordering. Application CRUD always normalizes pairs before insert.
 - **Incident participants** — `incident_participants` join table with `role ∈ {SHOOTER, ASSISTED, BYSTANDER, VICTIM}` and `outcome ∈ {KILLED, INJURED, UNHARMED, UNKNOWN}`. Do not use dict-of-lists.
 - **Incident-driven death sync** — saving an incident with a participant `outcome=KILLED` runs `_sync_killed_participants` in `app/crud/incident.py` after `_sync_participants`. For each killed member it sets `status=DEAD`, copies `incident.date` to `member.date_of_death` (only when the incident date has at least year precision), and assigns `member.death_incident_id=incident.id` (first death wins; never overrides an existing link to a *different* incident). Fires on both create and update. Audit listeners on `member` capture the changes for free. Reverting (un-kill) is **never automatic** — clear status manually on the member to undo. The FK uses `ON DELETE SET NULL`, so deleting an incident unlinks but does not change the member's status.
-- **Computed stats** — materialized views `member_stats` and `set_stats`; refreshed every 5 min via APScheduler + manual admin endpoint. Stats can lag the underlying tables by up to 5 minutes.
+- **Computed stats** — materialized views `member_stats` and `set_stats`; refreshed every 5 min via APScheduler + manual admin endpoint. List endpoints return live data; stat tiles can show stale counts briefly after edits.
 - **Universe scoping** — all CRUD functions take `universe_id`; no cross-universe queries from API handlers.
+- **Slug vs UUID in routes** — GET single-resource endpoints (`/members/{id_or_slug}`, sets, alliances) accept either a UUID or a slug. **PATCH and DELETE require UUID.** On detail pages, mutation hooks (`useUpdateMember`, etc.) must be passed the loaded `entity.id`, never the route param `$id` (which is the slug). Passing a slug to PATCH yields a Pydantic UUID validation error.
 
 ### DB toggle (prod ↔ test)
 
@@ -141,3 +147,8 @@ There are two databases (`squiidwiki_db` = prod, `squiidwiki_test` = test). The 
 - Incident participant role: `SHOOTER`, `ASSISTED`, `BYSTANDER`, `VICTIM`
 - Incident participant outcome: `KILLED`, `INJURED`, `UNHARMED`, `UNKNOWN`
 - Global role: `ADMIN`, `USER`
+
+
+-------
+
+always git commit after finishing a request / feature (not just a small thing, after changes worth commiting)
