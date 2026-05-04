@@ -21,6 +21,7 @@ from app.schemas.member import (
     MemberListItem,
     MemberRead,
     MemberReadDetail,
+    MemberReleaseEvent,
     MemberStats,
     MemberUpdate,
 )
@@ -84,6 +85,16 @@ async def search_members(
     items = await crud.search_members(session, universe_id, q)
     await crud.attach_primary_photos(session, items)
     return items
+
+
+@router.get("/release-events", response_model=list[MemberReleaseEvent])
+async def list_universe_release_events(
+    universe_id: uuid.UUID,
+    year: int,
+    _: CurrentUser,
+    session: Annotated[AsyncSession, Depends(get_session)],
+):
+    return await crud.list_universe_release_events(session, universe_id, year)
 
 
 @router.get("/{id_or_slug}", response_model=MemberReadDetail)
@@ -205,7 +216,7 @@ async def create_member_incarceration(
     id: uuid.UUID,
     universe_id: uuid.UUID,
     data: MemberIncarcerationCreate,
-    _: Annotated[None, require_global_role(GlobalRole.ADMIN)],
+    _: CurrentUser,
     session: Annotated[AsyncSession, Depends(get_session)],
 ):
     obj = await crud.get_member(session, id, universe_id)
@@ -220,7 +231,7 @@ async def update_member_incarceration(
     spell_id: uuid.UUID,
     universe_id: uuid.UUID,
     data: MemberIncarcerationUpdate,
-    _: Annotated[None, require_global_role(GlobalRole.ADMIN)],
+    _: CurrentUser,
     session: Annotated[AsyncSession, Depends(get_session)],
 ):
     obj = await crud.get_member(session, id, universe_id)

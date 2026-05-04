@@ -157,6 +157,9 @@ Open items only. Implemented ideas are in git history.
 
 - [ ] **Entity references in text** — auto-link `@MemberName` or `#SetName` in biographies and notes to their pages.
 - [ ] **Recent edits feed** — dashboard widget showing the latest changes across the universe.
+- remove thumbnails from list, it will improve performance of the site ? 
+
+create a test db where you test alembic migration always before applying on prod, to verify it does not alter the data 
 
 ---
 

@@ -42,6 +42,8 @@ class AllianceRead(BaseModel):
     founded_at: FuzzyDateField
     created_at: datetime
     updated_at: datetime
+    primary_photo_url: Optional[str] = None
+    primary_photo_thumb_url: Optional[str] = None
 
 
 class AllianceReadDetail(AllianceRead):

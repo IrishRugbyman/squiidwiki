@@ -112,6 +112,22 @@ function AllianceDetailPage() {
         <>
           {/* Hero */}
           <div className="mb-5 flex items-start justify-between gap-4">
+            <div className="flex items-start gap-4">
+              <div className="shrink-0">
+                {alliance.primary_photo_url ? (
+                  <img
+                    src={alliance.primary_photo_url}
+                    alt={`Photo of ${alliance.name}`}
+                    loading="lazy"
+                    decoding="async"
+                    className="h-20 w-20 rounded-xl object-cover ring-1 ring-zinc-600/80 shadow-lg shadow-black/30"
+                  />
+                ) : (
+                  <div className="flex h-20 w-20 items-center justify-center rounded-xl bg-zinc-800 text-2xl font-bold text-zinc-400 ring-1 ring-zinc-700">
+                    {alliance.name.slice(0, 2).toUpperCase()}
+                  </div>
+                )}
+              </div>
             <div className="min-w-0">
               <div className="flex items-center gap-1.5">
                 <h1 className="text-2xl font-bold text-white">{alliance.name}</h1>
@@ -129,6 +145,7 @@ function AllianceDetailPage() {
                 )}
                 <span className="text-[11px] text-zinc-600">Updated {timeAgo(alliance.updated_at)}</span>
               </div>
+            </div>
             </div>
             <div className="flex shrink-0 items-center gap-2">
               <Button size="sm" variant="outline" onClick={() => setEditing(true)}>
@@ -360,6 +377,8 @@ function AllianceDetailPage() {
                                 <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
                                   inc.type === 'MURDER'
                                     ? 'bg-rose-950/60 text-rose-300 ring-1 ring-rose-800/50'
+                                    : inc.type === 'FIGHT'
+                                    ? 'bg-violet-950/60 text-violet-300 ring-1 ring-violet-800/50'
                                     : 'bg-amber-950/60 text-amber-300 ring-1 ring-amber-800/50'
                                 }`}>
                                   {inc.type}

@@ -2,11 +2,11 @@ import uuid
 from datetime import date, datetime
 from typing import Optional
 
-from sqlalchemy import Column, ForeignKey
+from sqlalchemy import Column, ForeignKey, String
 from sqlalchemy.dialects.postgresql import JSONB, UUID as PG_UUID
 from sqlmodel import Field, SQLModel
 
-from app.core.enums import MemberStatus
+from app.core.enums import MemberStatus, SetRank
 
 
 class MemberSource(SQLModel, table=True):
@@ -34,7 +34,9 @@ class MemberIncarceration(SQLModel, table=True):
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
     member_id: uuid.UUID = Field(foreign_key="member.id", index=True)
     from_date: Optional[dict] = Field(default=None, sa_column=Column(JSONB))
-    to_date: Optional[dict] = Field(default=None, sa_column=Column(JSONB))
+    earliest_release_date: Optional[dict] = Field(default=None, sa_column=Column(JSONB))
+    max_discharge_date: Optional[dict] = Field(default=None, sa_column=Column(JSONB))
+    life_sentence: bool = False
     facility: Optional[str] = None
     case_id: Optional[str] = None
     notes: Optional[str] = None
@@ -56,14 +58,13 @@ class Member(SQLModel, table=True):
     biography: str = ""
 
     set_id: Optional[uuid.UUID] = Field(default=None, foreign_key="sets.id", index=True)
+    set_rank: Optional[SetRank] = Field(default=None, sa_column=Column(String, nullable=True))
     alliance_id: Optional[uuid.UUID] = Field(default=None, foreign_key="alliance.id", index=True)
 
     status: MemberStatus = MemberStatus.UNKNOWN
 
     dob: Optional[dict] = Field(default=None, sa_column=Column(JSONB))
     date_of_death: Optional[dict] = Field(default=None, sa_column=Column(JSONB))
-    release_date: Optional[dict] = Field(default=None, sa_column=Column(JSONB))
-    life_sentence: bool = False
 
     family: Optional[dict] = Field(default=None, sa_column=Column(JSONB))
     social_media: Optional[dict] = Field(default=None, sa_column=Column(JSONB))

@@ -64,10 +64,11 @@ frontend/src/
 
 ## Type checking
 
-- `npx tsc --noEmit` ≠ `npm run build` — the latter runs `tsc -b` (build mode) which catches unused imports and project-reference errors the former misses. Run **both** before claiming done.
+- Always run `npm run build` before claiming done — it runs `tsc -b` (build mode) which catches unused imports and project-reference errors that `tsc --noEmit` misses. The user serves the production build, so this also produces the bundle they'll actually load.
 
 ## Frontend pitfalls
 
 - **`?.items.find(...)` is unsafe.** Optional chaining only protects the LHS — `.find` is then called on possibly-undefined `items` during refetch windows (e.g. after the optimistic-delete invalidation). Always: `(x?.items ?? []).find(...)`. Same shape for `.map`, `.filter`, `.some`, etc.
+- **Mutation hooks need UUIDs, not slugs.** The route param `$id` on detail pages can be a slug (e.g. `/members/jason`). GET endpoints accept slug-or-UUID, but PATCH/DELETE require UUID. Pass the loaded `entity.id` (or a `memberUuid` derived from it) into hooks like `useUpdateMember(id, universeId)`, never the route param. Symptom: `Input should be a valid UUID, invalid character ... at 1`.
 - **`react-markdown` is NOT installed** (despite anything older docs may say). Either install it before using, or use plain text + a small URL-detection regex (see `_app.research.$id.tsx` for the pattern).
 - **`isPending && variables?.id === row.id`** — for per-row mutation pending state with a single hook instance, gate the spinner on the variables payload, not just `isPending` (which would spin on every row during a mutation).

@@ -7,6 +7,7 @@ from sqlmodel import SQLModel
 
 # Import all models so their metadata is registered
 import app.models  # noqa: F401
+from app.core.config import settings
 
 config = context.config
 
@@ -16,10 +17,17 @@ if config.config_file_name is not None:
 target_metadata = SQLModel.metadata
 
 
+def get_url() -> str:
+    # Use DATABASE_URL_PROD from .env; fall back to alembic.ini for local overrides
+    url = settings.database_url_prod
+    if not url:
+        url = config.get_main_option("sqlalchemy.url")
+    return url
+
+
 def run_migrations_offline() -> None:
-    url = config.get_main_option("sqlalchemy.url")
     context.configure(
-        url=url,
+        url=get_url(),
         target_metadata=target_metadata,
         literal_binds=True,
         dialect_opts={"paramstyle": "named"},
@@ -35,8 +43,7 @@ def do_run_migrations(connection):
 
 
 async def run_async_migrations() -> None:
-    url = config.get_main_option("sqlalchemy.url")
-    connectable = create_async_engine(url)
+    connectable = create_async_engine(get_url())
     async with connectable.connect() as connection:
         await connection.run_sync(do_run_migrations)
     await connectable.dispose()

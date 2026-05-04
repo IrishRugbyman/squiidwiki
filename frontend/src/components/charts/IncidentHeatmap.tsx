@@ -71,11 +71,19 @@ export function IncidentHeatmap({ incidents }: IncidentHeatmapProps) {
     for (const inc of incidents) {
       if (inc.date?.precision === 'YMD' && inc.date.year) set.add(inc.date.year)
     }
-    if (set.size === 0) set.add(new Date().getFullYear())
-    return Array.from(set).sort((a, b) => b - a)
+    if (set.size === 0) {
+      const y = new Date().getFullYear()
+      return [y]
+    }
+    // Fill the full range so missing years are still browsable
+    const min = Math.min(...set)
+    const max = Math.max(...set)
+    const years: number[] = []
+    for (let y = min; y <= max; y++) years.push(y)
+    return years
   }, [incidents])
 
-  const [year, setYear] = useState<number>(availableYears[0])
+  const [year, setYear] = useState<number>(availableYears[availableYears.length - 1])
 
   const countsByDate = useMemo(() => {
     const map = new Map<string, { count: number; murders: number }>()

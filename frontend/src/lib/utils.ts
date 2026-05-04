@@ -6,9 +6,10 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 export function ageFromFuzzyDates(
-  dob: { year: number; month?: number | null },
-  asOf?: { year: number; month?: number | null } | null,
+  dob: { year?: number | null; month?: number | null },
+  asOf?: { year?: number | null; month?: number | null } | null,
 ): number | null {
+  if (!dob.year) return null
   const endYear = asOf?.year ?? new Date().getFullYear()
   const endMonth = asOf?.month ?? (new Date().getMonth() + 1)
   const dobMonth = dob.month ?? 1

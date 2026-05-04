@@ -156,10 +156,9 @@ async def _sync_member_sources(
 async def create_member(
     session: AsyncSession, data: MemberCreate, actor_id: uuid.UUID
 ) -> Member:
-    dump = data.model_dump(exclude={"source_ids", "dob", "date_of_death", "release_date"})
+    dump = data.model_dump(exclude={"source_ids", "dob", "date_of_death"})
     dump["dob"] = _fuzzy_to_dict(data.dob)
     dump["date_of_death"] = _fuzzy_to_dict(data.date_of_death)
-    dump["release_date"] = _fuzzy_to_dict(data.release_date)
     display = data.nickname if not data.nickname_unknown and data.nickname else data.legal_name
     if display:
         base = _slugify(display)
@@ -234,14 +233,12 @@ async def update_member(
     if obj is None:
         return None
     dump = data.model_dump(
-        exclude_unset=True, exclude={"source_ids", "dob", "date_of_death", "release_date"}
+        exclude_unset=True, exclude={"source_ids", "dob", "date_of_death"}
     )
     if "dob" in data.model_fields_set:
         dump["dob"] = _fuzzy_to_dict(data.dob)
     if "date_of_death" in data.model_fields_set:
         dump["date_of_death"] = _fuzzy_to_dict(data.date_of_death)
-    if "release_date" in data.model_fields_set:
-        dump["release_date"] = _fuzzy_to_dict(data.release_date)
     dump["updated_at"] = datetime.utcnow()
 
     nickname_changed = "nickname" in data.model_fields_set or "nickname_unknown" in data.model_fields_set
@@ -299,6 +296,14 @@ async def delete_member(
     # Remove source citations (no cascade on member_id FK)
     await session.execute(
         MemberSource.__table__.delete().where(MemberSource.member_id == id)
+    )
+    # Remove aliases (no cascade on member_id FK)
+    await session.execute(
+        MemberAlias.__table__.delete().where(MemberAlias.member_id == id)
+    )
+    # Remove incarceration spells (no cascade on member_id FK)
+    await session.execute(
+        MemberIncarceration.__table__.delete().where(MemberIncarceration.member_id == id)
     )
     # Null out founder_id on any set this member founded (no cascade on founder_id FK)
     await session.execute(
@@ -431,7 +436,9 @@ async def create_member_incarceration(
     obj = MemberIncarceration(
         member_id=member_id,
         from_date=_fuzzy_to_dict(data.from_date),
-        to_date=_fuzzy_to_dict(data.to_date),
+        earliest_release_date=None if data.life_sentence else _fuzzy_to_dict(data.earliest_release_date),
+        max_discharge_date=None if data.life_sentence else _fuzzy_to_dict(data.max_discharge_date),
+        life_sentence=data.life_sentence,
         facility=data.facility,
         case_id=data.case_id,
         notes=data.notes,
@@ -458,12 +465,53 @@ async def update_member_incarceration(
         v = getattr(data, field)
         if v is not None:
             setattr(obj, field, v)
+    if data.life_sentence is not None:
+        obj.life_sentence = data.life_sentence
     obj.from_date = _fuzzy_to_dict(data.from_date)
-    obj.to_date = _fuzzy_to_dict(data.to_date)
+    if obj.life_sentence:
+        obj.earliest_release_date = None
+        obj.max_discharge_date = None
+    else:
+        obj.earliest_release_date = _fuzzy_to_dict(data.earliest_release_date)
+        obj.max_discharge_date = _fuzzy_to_dict(data.max_discharge_date)
     session.add(obj)
     await session.commit()
     await session.refresh(obj)
     return obj
+
+
+async def list_universe_release_events(
+    session: AsyncSession, universe_id: uuid.UUID, year: int
+) -> list[dict]:
+    """Return spells in `universe_id` whose earliest_release or max_discharge falls in `year`.
+
+    Filters at the JSONB level for cheapness; the calendar still filters by month
+    client-side via fuzzyMatchesMonth.
+    """
+    year_text = str(year)
+    earliest_year = MemberIncarceration.earliest_release_date["year"].astext
+    max_year = MemberIncarceration.max_discharge_date["year"].astext
+    stmt = (
+        select(MemberIncarceration, Member)
+        .join(Member, Member.id == MemberIncarceration.member_id)
+        .where(Member.universe_id == universe_id)
+        .where(MemberIncarceration.life_sentence.is_(False))
+        .where(sa.or_(earliest_year == year_text, max_year == year_text))
+    )
+    result = await session.execute(stmt)
+    rows: list[dict] = []
+    for spell, member in result.all():
+        rows.append({
+            "spell_id": spell.id,
+            "member_id": member.id,
+            "member_display_name": member.display_name,
+            "member_slug": member.slug,
+            "facility": spell.facility,
+            "earliest_release_date": spell.earliest_release_date,
+            "max_discharge_date": spell.max_discharge_date,
+            "life_sentence": spell.life_sentence,
+        })
+    return rows
 
 
 async def delete_member_incarceration(

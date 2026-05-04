@@ -83,8 +83,16 @@ async def get_set(
         raise HTTPException(404)
     territory_ids = await crud.list_set_territory_ids(session, obj.id)
     friend_ids, enemy_ids = await crud.list_set_relationships(session, obj.id, universe_id)
-    base = SetRead.model_validate(obj)
-    return SetReadDetail(**base.model_dump(), territory_ids=territory_ids, friend_ids=friend_ids, enemy_ids=enemy_ids)
+    await attach_primary_photos_sets(session, [obj])
+    base = SetRead.model_validate(obj).model_dump()
+    base["primary_photo_url"] = getattr(obj, "primary_photo_url", None)
+    base["primary_photo_thumb_url"] = getattr(obj, "primary_photo_thumb_url", None)
+    return SetReadDetail(
+        **base,
+        territory_ids=territory_ids,
+        friend_ids=friend_ids,
+        enemy_ids=enemy_ids,
+    )
 
 
 @router.patch("/{id}", response_model=SetRead)

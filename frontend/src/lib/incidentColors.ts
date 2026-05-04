@@ -3,6 +3,7 @@ import type { IncidentType, ParticipantOutcome, ParticipantRole } from './types'
 export const INCIDENT_TYPE_CHIP: Record<IncidentType, string> = {
   SHOOTING: 'border-amber-800/70 text-amber-400 bg-amber-950/30',
   MURDER: 'border-rose-800/70 text-rose-400 bg-rose-950/30',
+  FIGHT: 'border-violet-800/70 text-violet-400 bg-violet-950/30',
 }
 
 export const ROLE_CHIP: Record<ParticipantRole, string> = {

@@ -4,7 +4,7 @@ import { useState, useMemo } from 'react'
 import { toast } from 'sonner'
 import { NoUniverse } from '@/components/NoUniverse'
 import { PageHeader } from '@/components/PageHeader'
-import { AllianceStatusToggle } from '@/components/StatusToggle'
+import { AllianceStatusBadge } from '@/components/StatusBadge'
 import { Sheet, SheetContent, SheetClose } from '@/components/Sheet'
 import { EmptyState } from '@/components/EmptyState'
 import { TableRowSkeleton } from '@/components/skeletons'
@@ -13,7 +13,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
-import { useAlliances, useCreateAlliance, useDeleteAlliance, useUpdateAlliance, useUpdateAllianceStatus } from '@/lib/queries'
+import { useAlliances, useCreateAlliance, useDeleteAlliance, useUpdateAlliance } from '@/lib/queries'
 import { BulkActionBar } from '@/components/BulkActionBar'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
 import type { AllianceRead, AllianceStatus, UUID } from '@/lib/types'
@@ -129,7 +129,6 @@ function AlliancesPage() {
   const [bulkDeleting, setBulkDeleting] = useState(false)
   const PAGE = 20
 
-  const statusUpdate = useUpdateAllianceStatus(universe?.id ?? '')
   const deleteAlliance = useDeleteAlliance(universe?.id ?? '')
   const { data, isLoading } = useAlliances(universe?.id ?? null, offset)
 
@@ -267,11 +266,7 @@ function AlliancesPage() {
                         </Link>
                       </td>
                       <td className="px-4 py-3">
-                        <AllianceStatusToggle
-                          value={alliance.status}
-                          pending={statusUpdate.isPending && statusUpdate.variables?.id === alliance.id}
-                          onChange={(s) => statusUpdate.mutate({ id: alliance.id, status: s })}
-                        />
+                        <AllianceStatusBadge status={alliance.status} />
                       </td>
                     </tr>
                   )

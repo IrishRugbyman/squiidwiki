@@ -1,5 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { Plus, Search, Shield, User as UserIcon } from 'lucide-react'
+import { Globe, Plus, Search, Shield, User as UserIcon } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import { PageHeader } from '@/components/PageHeader'
@@ -10,7 +10,14 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Sheet, SheetContent, SheetClose } from '@/components/Sheet'
-import { useUsers, useUpdateUserRole, useCreateUser } from '@/lib/queries'
+import {
+  useCreateUser,
+  useGrantUniverseAccess,
+  useRevokeUniverseAccess,
+  useUpdateUserRole,
+  useUserUniverseAccess,
+  useUsers,
+} from '@/lib/queries'
 import { useAuthStore } from '@/stores/auth'
 import type { GlobalRole, UserListItem } from '@/lib/types'
 
@@ -107,6 +114,79 @@ function AddUserSheet({ open, onClose }: { open: boolean; onClose: () => void })
   )
 }
 
+function ManageAccessSheet({ user, onClose }: { user: UserListItem; onClose: () => void }) {
+  const { data, isLoading } = useUserUniverseAccess(user.id)
+  const grant = useGrantUniverseAccess()
+  const revoke = useRevokeUniverseAccess()
+
+  const isAdmin = user.global_role === 'ADMIN'
+
+  return (
+    <Sheet open onOpenChange={(v) => !v && onClose()}>
+      <SheetContent
+        title={`Universe access — ${user.email}`}
+        description={
+          isAdmin
+            ? 'Admins automatically have access to every universe. Per-universe grants are not enforced for admin accounts.'
+            : 'Toggle which universes this user can see and use.'
+        }
+      >
+        {isAdmin && (
+          <p className="rounded-md border border-amber-900/50 bg-amber-950/30 p-2.5 text-xs text-amber-300">
+            This user is an ADMIN and bypasses universe access checks.
+          </p>
+        )}
+        <div className="mt-3 space-y-1.5">
+          {isLoading && <p className="text-sm text-zinc-500">Loading…</p>}
+          {!isLoading && data?.length === 0 && (
+            <p className="text-sm text-zinc-500">No universes exist yet.</p>
+          )}
+          {data?.map((row) => {
+            const pendingGrant  = grant.isPending  && grant.variables?.universeId  === row.universe_id
+            const pendingRevoke = revoke.isPending && revoke.variables?.universeId === row.universe_id
+            const pending = pendingGrant || pendingRevoke
+            return (
+              <label
+                key={row.universe_id}
+                className={`flex items-center justify-between gap-3 rounded-md border border-zinc-800 bg-zinc-900/40 px-3 py-2 text-sm ${pending ? 'opacity-60' : 'hover:bg-zinc-900/70'}`}
+              >
+                <div className="min-w-0">
+                  <div className="truncate text-zinc-200">{row.name}</div>
+                  <div className="truncate text-[11px] text-zinc-500">/{row.slug}</div>
+                </div>
+                <input
+                  type="checkbox"
+                  className="h-4 w-4 accent-violet-500"
+                  checked={row.granted}
+                  disabled={pending}
+                  onChange={(e) => {
+                    if (e.target.checked) {
+                      grant.mutate(
+                        { userId: user.id, universeId: row.universe_id },
+                        { onSuccess: () => toast.success(`Granted ${row.name} to ${user.email}`) },
+                      )
+                    } else {
+                      revoke.mutate(
+                        { userId: user.id, universeId: row.universe_id },
+                        { onSuccess: () => toast.success(`Revoked ${row.name} from ${user.email}`) },
+                      )
+                    }
+                  }}
+                />
+              </label>
+            )
+          })}
+        </div>
+        <div className="mt-4 flex justify-end">
+          <SheetClose asChild>
+            <Button variant="outline" onClick={onClose}>Done</Button>
+          </SheetClose>
+        </div>
+      </SheetContent>
+    </Sheet>
+  )
+}
+
 function AdminUsersPage() {
   const user = useAuthStore((s) => s.user)
   const [offset, setOffset] = useState(0)
@@ -114,6 +194,7 @@ function AdminUsersPage() {
   const [roleFilter, setRoleFilter] = useState<GlobalRole | 'ALL'>('ALL')
   const [pendingChange, setPendingChange] = useState<{ target: UserListItem; newRole: GlobalRole } | null>(null)
   const [addingUser, setAddingUser] = useState(false)
+  const [accessUser, setAccessUser] = useState<UserListItem | null>(null)
 
   const { data, isLoading } = useUsers(offset)
   const updateRole = useUpdateUserRole()
@@ -187,11 +268,12 @@ function AdminUsersPage() {
               <th className="px-4 py-2.5 text-left font-medium text-zinc-400" scope="col">Role</th>
               <th className="px-4 py-2.5 text-left font-medium text-zinc-400" scope="col">Joined</th>
               <th className="px-4 py-2.5 text-left font-medium text-zinc-400" scope="col">Last login</th>
+              <th className="px-4 py-2.5 text-right font-medium text-zinc-400" scope="col">Access</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-zinc-800">
             {isLoading
-              ? Array.from({ length: 8 }).map((_, i) => <TableRowSkeleton key={i} cols={4} height={48} />)
+              ? Array.from({ length: 8 }).map((_, i) => <TableRowSkeleton key={i} cols={5} height={48} />)
               : items.map((u) => (
                   <tr key={u.id} className="hover:bg-zinc-900/30">
                     <td className="px-4 py-3 text-zinc-200">
@@ -230,11 +312,23 @@ function AdminUsersPage() {
                         </span>
                       ) : '—'}
                     </td>
+                    <td className="px-4 py-3 text-right">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-7 text-xs"
+                        onClick={() => setAccessUser(u)}
+                        title={u.global_role === 'ADMIN' ? 'Admins access all universes' : 'Manage universe access'}
+                      >
+                        <Globe className="mr-1 h-3 w-3" />
+                        {u.global_role === 'ADMIN' ? 'All' : 'Manage'}
+                      </Button>
+                    </td>
                   </tr>
                 ))}
             {!isLoading && items.length === 0 && (
               <tr>
-                <td colSpan={4} className="px-4 py-12 text-center text-sm text-zinc-500">
+                <td colSpan={5} className="px-4 py-12 text-center text-sm text-zinc-500">
                   {q || roleFilter !== 'ALL' ? 'No users match the current filters' : 'No users found'}
                 </td>
               </tr>
@@ -254,6 +348,10 @@ function AdminUsersPage() {
       )}
 
       <AddUserSheet open={addingUser} onClose={() => setAddingUser(false)} />
+
+      {accessUser && (
+        <ManageAccessSheet user={accessUser} onClose={() => setAccessUser(null)} />
+      )}
 
       {pendingChange && (
         <ConfirmDialog

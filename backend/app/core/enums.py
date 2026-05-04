@@ -22,6 +22,11 @@ class SetStatus(str, Enum):
     EXTINCT = "EXTINCT"
 
 
+class SetRank(str, Enum):
+    CEO = "CEO"
+    CO_CEO = "CO_CEO"
+
+
 class AllianceStatus(str, Enum):
     ACTIVE = "ACTIVE"
     EXTINCT = "EXTINCT"
@@ -31,6 +36,7 @@ class AllianceStatus(str, Enum):
 class IncidentType(str, Enum):
     SHOOTING = "SHOOTING"
     MURDER = "MURDER"
+    FIGHT = "FIGHT"
 
 
 class ParticipantRole(str, Enum):

@@ -83,3 +83,53 @@ async def get_universe_role(
     )
     access = result.scalar_one_or_none()
     return access.role if access else None
+
+
+async def list_user_universe_access(
+    session: AsyncSession, user_id: uuid.UUID
+) -> list[UserUniverseAccess]:
+    result = await session.execute(
+        select(UserUniverseAccess).where(UserUniverseAccess.user_id == user_id)
+    )
+    return list(result.scalars().all())
+
+
+async def upsert_user_universe_access(
+    session: AsyncSession,
+    user_id: uuid.UUID,
+    universe_id: uuid.UUID,
+    role: UniverseRole,
+) -> UserUniverseAccess:
+    existing = await session.execute(
+        select(UserUniverseAccess).where(
+            UserUniverseAccess.user_id == user_id,
+            UserUniverseAccess.universe_id == universe_id,
+        )
+    )
+    access = existing.scalar_one_or_none()
+    if access is None:
+        access = UserUniverseAccess(user_id=user_id, universe_id=universe_id, role=role)
+        session.add(access)
+    else:
+        access.role = role
+        session.add(access)
+    await session.commit()
+    await session.refresh(access)
+    return access
+
+
+async def delete_user_universe_access(
+    session: AsyncSession, user_id: uuid.UUID, universe_id: uuid.UUID
+) -> bool:
+    result = await session.execute(
+        select(UserUniverseAccess).where(
+            UserUniverseAccess.user_id == user_id,
+            UserUniverseAccess.universe_id == universe_id,
+        )
+    )
+    access = result.scalar_one_or_none()
+    if access is None:
+        return False
+    await session.delete(access)
+    await session.commit()
+    return True
