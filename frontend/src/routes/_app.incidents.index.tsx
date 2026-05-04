@@ -337,44 +337,92 @@ export function IncidentFormSheet({ universeId, open, onClose, initial, defaultP
   const urlPaste = useUrlPasteBanner()
   const [creatingSourceFromUrl, setCreatingSourceFromUrl] = useState<string | null>(null)
 
-  // Address geocode autocomplete (Nominatim / OSM)
+  // Address geocode autocomplete (Mapbox v6 forward geocoding)
+  type MapboxFeature = {
+    id: string
+    geometry: { coordinates: [number, number]; type: string }
+    properties: {
+      feature_type?: string
+      full_address?: string
+      name?: string
+      place_formatted?: string
+      context?: {
+        address?: { address_number?: string; street_name?: string; name?: string }
+        street?: { name?: string }
+        neighborhood?: { name?: string }
+        postcode?: { name?: string }
+        place?: { name?: string }
+        district?: { name?: string }
+        region?: { name?: string; region_code?: string }
+        country?: { name?: string }
+      }
+    }
+  }
   const [geoSearchTerm, setGeoSearchTerm] = useState('')
-  const debouncedGeo = useDebounce(geoSearchTerm, 350)
-  const [geoResults, setGeoResults] = useState<Array<{ display_name: string; lat: string; lon: string; address: Record<string, string> }>>([])
+  const debouncedGeo = useDebounce(geoSearchTerm, 300)
+  const [geoResults, setGeoResults] = useState<MapboxFeature[]>([])
   const [showGeoDropdown, setShowGeoDropdown] = useState(false)
+  const [geoSearched, setGeoSearched] = useState(false)
+  const [geoLoading, setGeoLoading] = useState(false)
+  const [geoError, setGeoError] = useState<string | null>(null)
+  const mapboxToken = (import.meta.env.VITE_MAPBOX_TOKEN ?? '') as string
 
   useEffect(() => {
-    if (debouncedGeo.length < 3) { setGeoResults([]); setShowGeoDropdown(false); return }
+    if (debouncedGeo.length < 3) {
+      setGeoResults([]); setShowGeoDropdown(false); setGeoSearched(false); setGeoLoading(false); setGeoError(null)
+      return
+    }
+    if (!mapboxToken) {
+      setGeoError('Address autocomplete unavailable (missing VITE_MAPBOX_TOKEN)')
+      setShowGeoDropdown(true); setGeoSearched(true)
+      return
+    }
     const ctrl = new AbortController()
+    setGeoLoading(true); setGeoError(null)
+
     fetch(
-      `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(debouncedGeo)}&format=json&addressdetails=1&limit=6&accept-language=en`,
-      { signal: ctrl.signal, headers: { 'Accept-Language': 'en' } }
+      `https://api.mapbox.com/search/geocode/v6/forward?q=${encodeURIComponent(debouncedGeo)}` +
+      `&autocomplete=true&limit=6&country=us&access_token=${mapboxToken}`,
+      { signal: ctrl.signal },
     )
-      .then((r) => r.json())
-      .then((data) => { setGeoResults(data); setShowGeoDropdown(true) })
-      .catch(() => {})
+      .then(async (r) => {
+        if (!r.ok) throw new Error(`Mapbox ${r.status}`)
+        return r.json()
+      })
+      .then((data: { features?: MapboxFeature[] }) => {
+        setGeoResults(Array.isArray(data.features) ? data.features : [])
+        setShowGeoDropdown(true); setGeoSearched(true)
+      })
+      .catch((err) => {
+        if (err.name === 'AbortError') return
+        setGeoError('Geocoder error — check console')
+        setGeoResults([]); setShowGeoDropdown(true); setGeoSearched(true)
+      })
+      .finally(() => setGeoLoading(false))
     return () => ctrl.abort()
-  }, [debouncedGeo])
+  }, [debouncedGeo, mapboxToken])
 
-  function selectGeoResult(r: { display_name: string; lat: string; lon: string; address: Record<string, string> }) {
-    const parts = [r.address.house_number, r.address.road].filter(Boolean)
-    const street = parts.length > 0 ? parts.join(' ') : r.display_name.split(',')[0]
+  function selectGeoResult(f: MapboxFeature) {
+    const ctx = f.properties.context ?? {}
+    const num = ctx.address?.address_number
+    const streetName = ctx.address?.street_name ?? ctx.street?.name ?? f.properties.name ?? ''
+    const street = [num, streetName].filter(Boolean).join(' ').trim() || (f.properties.name ?? '')
     setLocationText(street)
-    setLat(parseFloat(r.lat).toFixed(6))
-    setLng(parseFloat(r.lon).toFixed(6))
+    const [lon, lat] = f.geometry.coordinates
+    setLat(lat.toFixed(6))
+    setLng(lon.toFixed(6))
 
-    // Auto-match city → sub-district from Nominatim address fields
-    const a = r.address
-    const cityCandidates = [a.city, a.town, a.village, a.county].filter(Boolean)
+    // Auto-match city → sub-district from Mapbox context fields
+    const cityCandidates = [ctx.place?.name, ctx.district?.name].filter(Boolean) as string[]
     const matchedCity = topLevelMunis.find((m) =>
-      cityCandidates.some((n) => n?.toLowerCase() === m.name.toLowerCase()),
+      cityCandidates.some((n) => n.toLowerCase() === m.name.toLowerCase()),
     )
     if (matchedCity) {
       setCityId(matchedCity.id)
-      const subCandidates = [a.suburb, a.neighbourhood, a.quarter, a.postcode].filter(Boolean)
+      const subCandidates = [ctx.neighborhood?.name, ctx.postcode?.name].filter(Boolean) as string[]
       const children = allMunis.filter((m) => m.parent_id === matchedCity.id)
       const matchedSub = children.find((m) =>
-        subCandidates.some((n) => n?.toLowerCase() === m.name.toLowerCase()),
+        subCandidates.some((n) => n.toLowerCase() === m.name.toLowerCase()),
       )
       setSubDistrictId(matchedSub?.id ?? '')
     }
@@ -384,12 +432,16 @@ export function IncidentFormSheet({ universeId, open, onClose, initial, defaultP
     setShowGeoDropdown(false)
   }
 
-  function formatGeoLabel(r: { display_name: string; address: Record<string, string> }): string {
-    const a = r.address
-    const street = [a.house_number, a.road].filter(Boolean).join(' ')
-    const city = a.city ?? a.town ?? a.village ?? a.county ?? ''
-    const state = a.state ?? ''
-    return [street, city, state].filter(Boolean).join(', ') || r.display_name
+  function useTypedAddress() {
+    setLocationText(geoSearchTerm)
+    setGeoSearchTerm('')
+    setShowGeoDropdown(false)
+  }
+
+  function formatGeoLabel(f: MapboxFeature): string {
+    return f.properties.full_address
+      ?? [f.properties.name, f.properties.place_formatted].filter(Boolean).join(', ')
+      ?? f.id
   }
 
   // Re-resolve participant names once member map loads (edit mode only)
@@ -536,22 +588,39 @@ export function IncidentFormSheet({ universeId, open, onClose, initial, defaultP
                     setGeoSearchTerm(e.target.value)
                   }}
                   onBlur={() => setTimeout(() => setShowGeoDropdown(false), 150)}
-                  onFocus={() => geoResults.length > 0 && setShowGeoDropdown(true)}
+                  onFocus={() => (geoResults.length > 0 || geoSearched) && setShowGeoDropdown(true)}
                   placeholder="Street address or intersection"
                   autoComplete="off"
                 />
-                {showGeoDropdown && geoResults.length > 0 && (
-                  <div className="absolute z-30 mt-1 w-full rounded-md border border-zinc-700 bg-zinc-950 shadow-xl">
-                    {geoResults.map((r, i) => (
+                {showGeoDropdown && (geoLoading || geoResults.length > 0 || (geoSearched && geoSearchTerm.length >= 3)) && (
+                  <div className="absolute z-30 mt-1 w-full overflow-hidden rounded-md border border-zinc-700 bg-zinc-950 shadow-xl">
+                    {geoLoading && (
+                      <div className="px-3 py-2 text-xs text-zinc-500">Searching…</div>
+                    )}
+                    {!geoLoading && geoError && (
+                      <div className="px-3 py-2 text-xs text-amber-400">{geoError}</div>
+                    )}
+                    {!geoLoading && !geoError && geoResults.map((r, i) => (
                       <button
-                        key={i}
+                        key={r.id ?? i}
                         type="button"
                         onMouseDown={() => selectGeoResult(r)}
-                        className="w-full px-3 py-2 text-left text-sm text-zinc-200 hover:bg-zinc-800 transition-colors first:rounded-t-md last:rounded-b-md"
+                        className="block w-full px-3 py-2 text-left text-sm text-zinc-200 hover:bg-zinc-800 transition-colors"
                       >
                         {formatGeoLabel(r)}
                       </button>
                     ))}
+                    {!geoLoading && geoSearchTerm.length >= 3 && (
+                      <button
+                        type="button"
+                        onMouseDown={useTypedAddress}
+                        className="block w-full border-t border-zinc-800 px-3 py-2 text-left text-xs text-zinc-400 hover:bg-zinc-800 transition-colors"
+                      >
+                        {geoResults.length === 0
+                          ? <>No matches — <span className="text-violet-400">use “{geoSearchTerm}” as typed</span></>
+                          : <>None of these — <span className="text-violet-400">use “{geoSearchTerm}” as typed</span></>}
+                      </button>
+                    )}
                   </div>
                 )}
               </div>

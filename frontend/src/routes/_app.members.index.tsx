@@ -16,13 +16,12 @@ import { FuzzyDateInput } from '@/components/FuzzyDateInput'
 import {
   useCreateMember, useMembers, useMemberSearch, useUpdateMember,
   useSets, useAlliances, useBulkMemberStatus, useMember, useAllMembers,
-  useUpdateMemberStatus,
 } from '@/lib/queries'
 import { useUniverseStore } from '@/stores/universe'
 import { downloadCsv } from '@/lib/download'
 import { useDebounce } from '@/hooks/useDebounce'
 import { MemberRowSkeleton } from '@/components/skeletons'
-import { MemberStatusToggle } from '@/components/StatusToggle'
+import { MemberStatusBadge } from '@/components/StatusBadge'
 import { UrlPasteBanner, useUrlPasteBanner } from '@/components/UrlPasteBanner'
 import { SourceFormSheet } from './_app.sources.index'
 import type { MemberListItem, MemberRead, MemberStatus } from '@/lib/types'
@@ -627,7 +626,6 @@ function MembersPage() {
   const [sortKey, setSortKey] = useState<'display_name' | 'status' | null>('display_name')
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc')
   const bulkUpdate = useBulkMemberStatus(universe?.id ?? '')
-  const statusUpdate = useUpdateMemberStatus(universe?.id ?? '')
 
   const debouncedQ = useDebounce(q, 250)
   const { data, isLoading } = useMembers(universe?.id ?? null, cursor)
@@ -868,11 +866,7 @@ function MembersPage() {
                         ) : <span className="text-xs text-zinc-700">—</span>}
                       </td>
                       <td className="px-3 py-3">
-                        <MemberStatusToggle
-                          value={member.status}
-                          pending={statusUpdate.isPending && statusUpdate.variables?.id === member.id}
-                          onChange={(s) => statusUpdate.mutate({ id: member.id, status: s })}
-                        />
+                        <MemberStatusBadge status={member.status} />
                       </td>
                       <td className="px-3 py-3">
                         <button
@@ -967,11 +961,7 @@ function MembersPage() {
                       )}
                     </Link>
                     <div className="mt-2 flex flex-wrap items-center gap-2">
-                      <MemberStatusToggle
-                        value={member.status}
-                        pending={statusUpdate.isPending && statusUpdate.variables?.id === member.id}
-                        onChange={(s) => statusUpdate.mutate({ id: member.id, status: s })}
-                      />
+                      <MemberStatusBadge status={member.status} />
                       {setInfo && (
                         <Link
                           to="/sets/$id"

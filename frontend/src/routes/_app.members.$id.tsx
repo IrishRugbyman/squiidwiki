@@ -598,19 +598,13 @@ function MemberDetailPage() {
           )}
 
           {/* Stats row */}
-          {stats && (
-            allStatsZero ? (
-              <div className="rounded-xl border border-zinc-800 bg-zinc-900/30 px-4 py-3 text-center text-xs text-zinc-500">
-                No recorded shooting activity.
-              </div>
-            ) : (
-              <div className="grid grid-cols-4 gap-2">
-                <StatPill label="Shootings" value={stats.shootings} accent="text-amber-400" />
-                <StatPill label="Assists" value={stats.assists} accent="text-violet-400" />
-                <StatPill label="Kills" value={stats.kills} accent="text-rose-400" />
-                <StatPill label="Survived" value={stats.times_shot_survived} accent="text-emerald-400" />
-              </div>
-            )
+          {stats && !allStatsZero && (
+            <div className="grid grid-cols-4 gap-2">
+              <StatPill label="Shootings" value={stats.shootings} accent="text-amber-400" />
+              <StatPill label="Assists" value={stats.assists} accent="text-violet-400" />
+              <StatPill label="Kills" value={stats.kills} accent="text-rose-400" />
+              <StatPill label="Survived" value={stats.times_shot_survived} accent="text-emerald-400" />
+            </div>
           )}
 
           {/* Two-column wiki layout: identity facts + right panels */}

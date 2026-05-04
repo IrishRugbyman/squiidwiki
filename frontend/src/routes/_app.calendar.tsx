@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
-import { CheckCircle2, ChevronLeft, ChevronRight, Keyboard, ShieldAlert, Skull, Swords } from 'lucide-react'
+import { CheckCircle2, ChevronLeft, ChevronRight, Flame, Keyboard, ShieldAlert, Skull, Swords } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { NoUniverse } from '@/components/NoUniverse'
 import { Button } from '@/components/ui/button'
@@ -22,15 +22,16 @@ const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 
 // ─── Event types ─────────────────────────────────────────────────────────────
 
-type EventKind = 'SHOOTING' | 'MURDER' | 'FIGHT' | 'DEATH'
+type EventKind = 'SHOOTING' | 'MURDER' | 'FIGHT' | 'DEATH' | 'MEMORIAL'
 
 const KIND_CONFIG: Record<EventKind, {
   dot: string; pill: string; pillHover: string; icon: typeof Skull; label: string
 }> = {
-  SHOOTING: { dot: 'bg-amber-500',  pill: 'bg-amber-950/80 text-amber-300 ring-1 ring-amber-800/50',    pillHover: 'hover:ring-amber-500',    icon: Swords,      label: 'Shooting' },
-  MURDER:   { dot: 'bg-rose-500',   pill: 'bg-rose-950/80 text-rose-300 ring-1 ring-rose-800/50',       pillHover: 'hover:ring-rose-500',      icon: Skull,       label: 'Murder'   },
-  FIGHT:    { dot: 'bg-violet-500', pill: 'bg-violet-950/80 text-violet-300 ring-1 ring-violet-800/50', pillHover: 'hover:ring-violet-500',    icon: ShieldAlert, label: 'Fight'    },
-  DEATH:    { dot: 'bg-zinc-500',   pill: 'bg-zinc-900 text-zinc-400 ring-1 ring-zinc-700',              pillHover: 'hover:ring-zinc-500',      icon: Skull,       label: 'Death'    },
+  SHOOTING: { dot: 'bg-amber-500',   pill: 'bg-amber-950/80 text-amber-300 ring-1 ring-amber-800/50',          pillHover: 'hover:ring-amber-500',   icon: Swords,      label: 'Shooting' },
+  MURDER:   { dot: 'bg-rose-500',    pill: 'bg-rose-950/80 text-rose-300 ring-1 ring-rose-800/50',             pillHover: 'hover:ring-rose-500',    icon: Skull,       label: 'Murder'   },
+  FIGHT:    { dot: 'bg-violet-500',  pill: 'bg-violet-950/80 text-violet-300 ring-1 ring-violet-800/50',       pillHover: 'hover:ring-violet-500',  icon: ShieldAlert, label: 'Fight'    },
+  DEATH:    { dot: 'bg-zinc-500',    pill: 'bg-zinc-900 text-zinc-400 ring-1 ring-zinc-700',                    pillHover: 'hover:ring-zinc-500',    icon: Skull,       label: 'Death'    },
+  MEMORIAL: { dot: 'bg-fuchsia-500', pill: 'bg-fuchsia-950/80 text-fuchsia-300 ring-1 ring-fuchsia-800/50',    pillHover: 'hover:ring-fuchsia-500', icon: Flame,       label: 'Memorial' },
 }
 
 interface CalendarEvent {
@@ -106,14 +107,16 @@ function MonthSummary({ events }: { events: CalendarEvent[] }) {
   const shootings = events.filter((e) => e.kind === 'SHOOTING').length
   const fights    = events.filter((e) => e.kind === 'FIGHT').length
   const deaths    = events.filter((e) => e.kind === 'DEATH').length
+  const memorials = events.filter((e) => e.kind === 'MEMORIAL').length
 
-  if (!murders && !shootings && !fights && !deaths) return null
+  if (!murders && !shootings && !fights && !deaths && !memorials) return null
 
   const parts = [
-    murders   > 0 && { label: `${murders} murder${murders !== 1 ? 's' : ''}`,     color: 'text-rose-400',   dot: 'bg-rose-500'   },
-    shootings > 0 && { label: `${shootings} shooting${shootings !== 1 ? 's' : ''}`, color: 'text-amber-400', dot: 'bg-amber-500'  },
-    fights    > 0 && { label: `${fights} fight${fights !== 1 ? 's' : ''}`,         color: 'text-violet-400', dot: 'bg-violet-500' },
-    deaths    > 0 && { label: `${deaths} death${deaths !== 1 ? 's' : ''}`,         color: 'text-zinc-400',   dot: 'bg-zinc-500'   },
+    murders   > 0 && { label: `${murders} murder${murders !== 1 ? 's' : ''}`,           color: 'text-rose-400',    dot: 'bg-rose-500'    },
+    shootings > 0 && { label: `${shootings} shooting${shootings !== 1 ? 's' : ''}`,     color: 'text-amber-400',   dot: 'bg-amber-500'   },
+    fights    > 0 && { label: `${fights} fight${fights !== 1 ? 's' : ''}`,              color: 'text-violet-400',  dot: 'bg-violet-500'  },
+    deaths    > 0 && { label: `${deaths} death${deaths !== 1 ? 's' : ''}`,              color: 'text-zinc-400',    dot: 'bg-zinc-500'    },
+    memorials > 0 && { label: `${memorials} memorial${memorials !== 1 ? 's' : ''}`,     color: 'text-fuchsia-400', dot: 'bg-fuchsia-500' },
   ].filter(Boolean) as { label: string; color: string; dot: string }[]
 
   return (
@@ -250,15 +253,37 @@ function CalendarPage() {
 
   for (const m of members) {
     if (m.status !== 'DEAD' || !m.date_of_death) continue
-    if (!fuzzyMatchesMonth(m.date_of_death, year, month)) continue
-    allMonthEvents.push({
-      id: m.id + '-death',
-      kind: 'DEATH',
-      label: m.display_name,
-      sublabel: 'Died',
-      href: `/members/${m.slug ?? m.id}`,
-      date: m.date_of_death,
-    })
+    const dod = m.date_of_death
+
+    // Original death event — only in the actual year of death.
+    if (fuzzyMatchesMonth(dod, year, month)) {
+      allMonthEvents.push({
+        id: m.id + '-death',
+        kind: 'DEATH',
+        label: m.display_name,
+        sublabel: 'Died',
+        href: `/members/${m.slug ?? m.id}`,
+        date: dod,
+      })
+    }
+
+    // Memorial / "XXX Day" — recurs every year after the death.
+    // Needs full Y-M-D precision so we can pin it to a specific cell.
+    if (
+      dod.year && dod.month && dod.day &&
+      dod.month === month &&
+      year > dod.year
+    ) {
+      const years = year - dod.year
+      allMonthEvents.push({
+        id: `${m.id}-memorial-${year}`,
+        kind: 'MEMORIAL',
+        label: `${m.display_name} Day`,
+        sublabel: `Memorial · ${years} year${years === 1 ? '' : 's'}`,
+        href: `/members/${m.slug ?? m.id}`,
+        date: { year, month, day: dod.day, precision: 'YMD', approx: false },
+      })
+    }
   }
 
   // day → events (only precise-day events go on the grid)

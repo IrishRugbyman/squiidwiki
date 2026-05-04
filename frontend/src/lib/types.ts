@@ -345,3 +345,13 @@ export interface UserListItem {
   created_at: string
   last_login_at: string | null
 }
+
+export type UniverseRole = 'ADMIN' | 'EDITOR' | 'VIEWER'
+
+export interface UserUniverseAccessItem {
+  universe_id: UUID
+  slug: string
+  name: string
+  role: UniverseRole
+  granted: boolean
+}

@@ -33,6 +33,8 @@ import type {
   SourceListItem,
   SourceRead,
   UserListItem,
+  UserUniverseAccessItem,
+  UniverseRole,
   UUID,
 } from './types'
 
@@ -854,6 +856,36 @@ export const useUpdateUserRole = () => {
     mutationFn: ({ userId, role }: { userId: string; role: GlobalRole }) =>
       api.patch<UserListItem>(`/auth/users/${userId}/role`, { global_role: role }),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['users'] }) },
+  })
+}
+
+export const useUserUniverseAccess = (userId: string | null) =>
+  useQuery({
+    queryKey: ['user-universe-access', userId],
+    queryFn: () => api.get<UserUniverseAccessItem[]>(`/auth/users/${userId}/universe-access`),
+    enabled: !!userId,
+    staleTime: 10_000,
+  })
+
+export const useGrantUniverseAccess = () => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ userId, universeId, role = 'VIEWER' as UniverseRole }: {
+      userId: string; universeId: string; role?: UniverseRole
+    }) =>
+      api.put<void>(`/auth/users/${userId}/universe-access/${universeId}`, { role }),
+    onSuccess: (_, { userId }) =>
+      qc.invalidateQueries({ queryKey: ['user-universe-access', userId] }),
+  })
+}
+
+export const useRevokeUniverseAccess = () => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ userId, universeId }: { userId: string; universeId: string }) =>
+      api.delete<void>(`/auth/users/${userId}/universe-access/${universeId}`),
+    onSuccess: (_, { userId }) =>
+      qc.invalidateQueries({ queryKey: ['user-universe-access', userId] }),
   })
 }
 

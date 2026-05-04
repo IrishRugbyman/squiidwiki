@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
-import { Skull, Swords, Unlock } from 'lucide-react'
+import { ShieldAlert, Skull, Swords, Unlock } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { useMemo } from 'react'
 import { FuzzyDate } from '@/components/FuzzyDate'
@@ -15,7 +15,7 @@ export const Route = createFileRoute('/_app/timeline')({
   component: TimelinePage,
 })
 
-type EventKind = 'SHOOTING' | 'MURDER' | 'DEATH' | 'RELEASE'
+type EventKind = 'SHOOTING' | 'MURDER' | 'FIGHT' | 'DEATH' | 'RELEASE'
 
 interface TimelineEvent {
   kind: EventKind
@@ -40,6 +40,7 @@ function sortableKey(d: FuzzyDateValue | null | undefined): number {
 const KIND_CONFIG: Record<EventKind, { icon: LucideIcon; tint: string; label: string; route: string }> = {
   SHOOTING: { icon: Swords, tint: 'text-amber-400 bg-amber-950/40 border-amber-800/60', label: 'Shooting', route: '/incidents/$id' },
   MURDER: { icon: Skull, tint: 'text-rose-400 bg-rose-950/40 border-rose-800/60', label: 'Murder', route: '/incidents/$id' },
+  FIGHT: { icon: ShieldAlert, tint: 'text-violet-400 bg-violet-950/40 border-violet-800/60', label: 'Fight', route: '/incidents/$id' },
   DEATH: { icon: Skull, tint: 'text-rose-300 bg-rose-950/30 border-rose-900/60', label: 'Member died', route: '/members/$id' },
   RELEASE: { icon: Unlock, tint: 'text-emerald-400 bg-emerald-950/30 border-emerald-800/60', label: 'Released', route: '/members/$id' },
 }
@@ -60,20 +61,25 @@ function TimelinePage() {
       if (!inc.date?.year) continue
       const shooters = inc.shooter_names ?? []
       const victims = inc.victim_names ?? []
-      const verb = inc.type === 'MURDER' ? 'killed' : 'shot'
+      const kind: EventKind =
+        inc.type === 'MURDER' ? 'MURDER'
+        : inc.type === 'FIGHT' ? 'FIGHT'
+        : 'SHOOTING'
+      const verb = kind === 'MURDER' ? 'killed' : kind === 'FIGHT' ? 'fought' : 'shot'
+      const aggressorLabel = kind === 'FIGHT' ? 'Aggressor' : 'Shooter'
       const fmt = (names: string[], max = 3) =>
         names.slice(0, max).join(', ') + (names.length > max ? ` +${names.length - max}` : '')
       const secondary =
         shooters.length > 0 && victims.length > 0 ? `${fmt(shooters)} ${verb} ${fmt(victims)}`
         : victims.length > 0 ? `Victim${victims.length === 1 ? '' : 's'}: ${fmt(victims)}`
-        : shooters.length > 0 ? `Shooter${shooters.length === 1 ? '' : 's'}: ${fmt(shooters)}`
+        : shooters.length > 0 ? `${aggressorLabel}${shooters.length === 1 ? '' : 's'}: ${fmt(shooters)}`
         : undefined
       out.push({
-        kind: inc.type === 'MURDER' ? 'MURDER' : 'SHOOTING',
+        kind,
         date: inc.date,
         id: inc.id,
         slug: inc.id,
-        primary: inc.type === 'MURDER' ? 'Murder' : 'Shooting',
+        primary: KIND_CONFIG[kind].label,
         secondary,
       })
       const dateKey = `${inc.date.year}-${inc.date.month ?? 0}-${inc.date.day ?? 0}`
