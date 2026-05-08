@@ -13,7 +13,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
-import { useAlliances, useCreateAlliance, useDeleteAlliance, useUpdateAlliance } from '@/lib/queries'
+import { useAlliances, useCreateAlliance, useDeleteAlliance, useGangs, useUpdateAlliance } from '@/lib/queries'
 import { BulkActionBar } from '@/components/BulkActionBar'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
 import type { AllianceRead, AllianceStatus, UUID } from '@/lib/types'
@@ -32,15 +32,19 @@ interface AllianceFormProps {
   onSaved?: (data: AllianceRead) => void
 }
 
+const ALLIANCE_GANG_NONE = '__none__'
+
 export function AllianceFormSheet({ universeId, open, onClose, initial, onSaved }: AllianceFormProps) {
   const create = useCreateAlliance()
   const update = useUpdateAlliance(initial?.id ?? '', universeId)
+  const { data: gangsData } = useGangs(universeId)
   const isEdit = !!initial
 
   const [name, setName] = useState(initial?.name ?? '')
   const [aliases, setAliases] = useState(initial?.aliases?.join(', ') ?? '')
   const [description, setDescription] = useState(initial?.description ?? '')
   const [status, setStatus] = useState<AllianceStatus>(initial?.status ?? 'ACTIVE')
+  const [gangId, setGangId] = useState<string>(initial?.gang_id ?? ALLIANCE_GANG_NONE)
   const [error, setError] = useState<string | null>(null)
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -53,6 +57,7 @@ export function AllianceFormSheet({ universeId, open, onClose, initial, onSaved 
       aliases: aliasList.length > 0 ? aliasList : null,
       description: description || null,
       status,
+      gang_id: gangId === ALLIANCE_GANG_NONE ? null : gangId,
     }
     try {
       if (isEdit) {
@@ -61,7 +66,7 @@ export function AllianceFormSheet({ universeId, open, onClose, initial, onSaved 
         toast.success(`Updated "${name}"`)
       } else {
         await create.mutateAsync(body)
-        setName(''); setAliases(''); setDescription(''); setStatus('ACTIVE')
+        setName(''); setAliases(''); setDescription(''); setStatus('ACTIVE'); setGangId(ALLIANCE_GANG_NONE)
         toast.success(`Created "${name}"`)
       }
       onClose()
@@ -95,6 +100,18 @@ export function AllianceFormSheet({ universeId, open, onClose, initial, onSaved 
                 <SelectItem value="ACTIVE">Active</SelectItem>
                 <SelectItem value="DORMANT">Dormant</SelectItem>
                 <SelectItem value="EXTINCT">Extinct</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1.5">
+            <Label>Gang</Label>
+            <Select value={gangId} onValueChange={setGangId}>
+              <SelectTrigger><SelectValue placeholder="No gang" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value={ALLIANCE_GANG_NONE}>No gang</SelectItem>
+                {(gangsData?.items ?? []).map((g) => (
+                  <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>

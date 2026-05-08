@@ -7,6 +7,8 @@ import type {
   AllianceReadDetail,
   AuditLogRead,
   CursorPage,
+  GangListItem,
+  GangRead,
   GlobalRole,
   IncidentListItem,
   UniverseAnalytics,
@@ -296,6 +298,42 @@ export const useDeleteAlliance = (universeId: UUID) => {
   return useMutation({
     mutationFn: (id: UUID) => api.delete(`/alliances/${id}?universe_id=${universeId}`),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['alliances'] }) },
+  })
+}
+
+// ─── Gangs ────────────────────────────────────────────────────────────────────
+
+export const useGangs = (universeId: UUID | null) =>
+  useQuery({
+    queryKey: ['gangs', universeId],
+    queryFn: () => api.get<OffsetPage<GangListItem>>(`/gangs/?universe_id=${universeId}`),
+    enabled: !!universeId,
+    staleTime: 60_000,
+  })
+
+export const useCreateGang = (universeId: UUID) => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (body: { name: string; aliases?: string[] | null; description?: string | null }) =>
+      api.post<GangRead>('/gangs/', { universe_id: universeId, ...body }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['gangs', universeId] }) },
+  })
+}
+
+export const useUpdateGang = (universeId: UUID) => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, ...body }: { id: UUID; name?: string; aliases?: string[] | null; description?: string | null }) =>
+      api.patch<GangRead>(`/gangs/${id}?universe_id=${universeId}`, body),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['gangs', universeId] }) },
+  })
+}
+
+export const useDeleteGang = (universeId: UUID) => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (id: UUID) => api.delete(`/gangs/${id}?universe_id=${universeId}`),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['gangs', universeId] }) },
   })
 }
 

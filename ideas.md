@@ -15,7 +15,7 @@ Open items only. Implemented ideas are in git history.
 - [ ] **Funeral / memorial events** — sub-type of incident. Frequent retaliation triggers and often the only public photo of a network in one place at one time.
 - [ ] **Set territory polygon** — optional GeoJSON polygon on `sets`, rendered on the map alongside the municipality choropleth. Hand-drawn or derived from K-means over incident lat/lng.
 - [ ] **Member-to-member direct links (non-family)** — generic `MemberRelationship` (e.g., "co-defendants", "childhood friends", "direct rivals") that the reactflow graph can render independent of set boundaries.
-- [ ] **Gang affiliation field** — new `Gang` entity (name + aliases) referenced by sets, alliances, and members. Alliances and sets can be `None` or any single gang; members cannot be `Mixed`. Needs a gang admin page and pickers on the set/alliance/member forms. Chicago-centric seed values to start (Black Disciples, Gangster Disciples, Bloods, etc.) but the model is generic.
+- [x] **Gang affiliation field** — new `Gang` entity (name + aliases) referenced by sets, alliances, and members. Alliances and sets can be `None` or any single gang; members cannot be `Mixed`. Needs a gang admin page and pickers on the set/alliance/member forms. Chicago-centric seed values to start (Black Disciples, Gangster Disciples, Bloods, etc.) but the model is generic.
 
 ---
 
@@ -157,9 +157,17 @@ Open items only. Implemented ideas are in git history.
 
 - [ ] **Entity references in text** — auto-link `@MemberName` or `#SetName` in biographies and notes to their pages.
 - [ ] **Recent edits feed** — dashboard widget showing the latest changes across the universe.
-- remove thumbnails from list, it will improve performance of the site ? 
 
 create a test db where you test alembic migration always before applying on prod, to verify it does not alter the data 
+
+---
+
+## Performance
+
+*Investigated 2026-05-05. Lists are the slowest pages; thumbnails already use pre-resized variants + `loading="lazy"`, so they're not the bottleneck. The two real culprits:*
+
+- [ ] **Cache R2 signed URLs in Redis** — `attach_primary_photos` (`backend/app/crud/media.py:262-289`) batches the Media query but then calls `storage.signed_get_url()` serially per row × 2 (full + thumb). A 50-row list = ~100 sequential R2 presign round trips, every request, no cache. Fix: cache signed URLs in Redis (key `r2:signed:{key}`, ~15min TTL — under the 1h presign expiry) and `asyncio.gather()` the misses. Estimated 5–10× speedup on this step.
+- [ ] **Composite `(universe_id, created_at DESC)` indexes** — list queries (`crud/member.py:216`, `crud/gang_set.py:174`, `crud/incident.py:186`, alliance crud) order by `created_at DESC, id DESC` scoped to a universe, but only single-column indexes exist. Postgres scans the whole universe partition and sorts before paginating. Add `ix_<table>_universe_created_at` on member, sets, alliance, incident via Alembic. Painful once a universe has >5k rows — defer until data volume justifies it.
 
 ---
 

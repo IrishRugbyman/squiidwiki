@@ -33,6 +33,7 @@ class Alliance(SQLModel, table=True):
     aliases: Optional[list] = Field(default=None, sa_column=Column(JSONB))
     description: Optional[str] = None
     status: AllianceStatus = AllianceStatus.ACTIVE
+    gang_id: Optional[uuid.UUID] = Field(default=None, foreign_key="gang.id", index=True)
     founded_at: Optional[dict] = Field(default=None, sa_column=Column(JSONB))
     slug: Optional[str] = Field(default=None, index=True)
     created_at: datetime = Field(default_factory=datetime.utcnow)

@@ -14,6 +14,7 @@ class AllianceCreate(BaseModel):
     aliases: Optional[list[str]] = None
     description: Optional[str] = None
     status: AllianceStatus = AllianceStatus.ACTIVE
+    gang_id: Optional[uuid.UUID] = None
     founded_at: FuzzyDateField = None
     territory_ids: list[uuid.UUID] = []
     set_ids: list[uuid.UUID] = []
@@ -24,6 +25,7 @@ class AllianceUpdate(BaseModel):
     aliases: Optional[list[str]] = None
     description: Optional[str] = None
     status: Optional[AllianceStatus] = None
+    gang_id: Optional[uuid.UUID] = None
     founded_at: FuzzyDateField = None
     territory_ids: Optional[list[uuid.UUID]] = None
     set_ids: Optional[list[uuid.UUID]] = None
@@ -39,6 +41,7 @@ class AllianceRead(BaseModel):
     aliases: Optional[list[str]] = None
     description: Optional[str]
     status: AllianceStatus
+    gang_id: Optional[uuid.UUID] = None
     founded_at: FuzzyDateField
     created_at: datetime
     updated_at: datetime
@@ -58,6 +61,7 @@ class AllianceListItem(BaseModel):
     name: str
     aliases: Optional[list[str]] = None
     status: AllianceStatus
+    gang_id: Optional[uuid.UUID] = None
     universe_id: uuid.UUID
     slug: Optional[str] = None
     primary_photo_url: Optional[str] = None

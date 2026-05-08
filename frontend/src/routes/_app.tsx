@@ -4,6 +4,7 @@ import {
   CalendarDays,
   Clock,
   FileText,
+  Flag,
   Globe,
   Home,
   Map,
@@ -56,6 +57,7 @@ const ADMIN_NAV_ITEMS = [
   { to: '/universes', icon: Globe, label: 'Universes' },
   { to: '/audit', icon: ScrollText, label: 'Audit Log' },
   { to: '/admin/users', icon: UserCog, label: 'Users' },
+  { to: '/admin/gangs', icon: Flag, label: 'Gangs' },
 ] as const
 
 interface ShortcutGroup {

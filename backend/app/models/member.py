@@ -60,6 +60,7 @@ class Member(SQLModel, table=True):
     set_id: Optional[uuid.UUID] = Field(default=None, foreign_key="sets.id", index=True)
     set_rank: Optional[SetRank] = Field(default=None, sa_column=Column(String, nullable=True))
     alliance_id: Optional[uuid.UUID] = Field(default=None, foreign_key="alliance.id", index=True)
+    gang_id: Optional[uuid.UUID] = Field(default=None, foreign_key="gang.id", index=True)
 
     status: MemberStatus = MemberStatus.UNKNOWN
 

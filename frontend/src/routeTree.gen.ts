@@ -33,6 +33,7 @@ import { Route as AppMembersIdRouteImport } from './routes/_app.members.$id'
 import { Route as AppIncidentsIdRouteImport } from './routes/_app.incidents.$id'
 import { Route as AppAlliancesIdRouteImport } from './routes/_app.alliances.$id'
 import { Route as AppAdminUsersRouteImport } from './routes/_app.admin.users'
+import { Route as AppAdminGangsRouteImport } from './routes/_app.admin.gangs'
 
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
@@ -153,6 +154,11 @@ const AppAdminUsersRoute = AppAdminUsersRouteImport.update({
   path: '/admin/users',
   getParentRoute: () => AppRoute,
 } as any)
+const AppAdminGangsRoute = AppAdminGangsRouteImport.update({
+  id: '/admin/gangs',
+  path: '/admin/gangs',
+  getParentRoute: () => AppRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AppIndexRoute
@@ -163,6 +169,7 @@ export interface FileRoutesByFullPath {
   '/profile': typeof AppProfileRoute
   '/timeline': typeof AppTimelineRoute
   '/universes': typeof AppUniversesRoute
+  '/admin/gangs': typeof AppAdminGangsRoute
   '/admin/users': typeof AppAdminUsersRoute
   '/alliances/$id': typeof AppAlliancesIdRoute
   '/incidents/$id': typeof AppIncidentsIdRoute
@@ -188,6 +195,7 @@ export interface FileRoutesByTo {
   '/timeline': typeof AppTimelineRoute
   '/universes': typeof AppUniversesRoute
   '/': typeof AppIndexRoute
+  '/admin/gangs': typeof AppAdminGangsRoute
   '/admin/users': typeof AppAdminUsersRoute
   '/alliances/$id': typeof AppAlliancesIdRoute
   '/incidents/$id': typeof AppIncidentsIdRoute
@@ -215,6 +223,7 @@ export interface FileRoutesById {
   '/_app/timeline': typeof AppTimelineRoute
   '/_app/universes': typeof AppUniversesRoute
   '/_app/': typeof AppIndexRoute
+  '/_app/admin/gangs': typeof AppAdminGangsRoute
   '/_app/admin/users': typeof AppAdminUsersRoute
   '/_app/alliances/$id': typeof AppAlliancesIdRoute
   '/_app/incidents/$id': typeof AppIncidentsIdRoute
@@ -242,6 +251,7 @@ export interface FileRouteTypes {
     | '/profile'
     | '/timeline'
     | '/universes'
+    | '/admin/gangs'
     | '/admin/users'
     | '/alliances/$id'
     | '/incidents/$id'
@@ -267,6 +277,7 @@ export interface FileRouteTypes {
     | '/timeline'
     | '/universes'
     | '/'
+    | '/admin/gangs'
     | '/admin/users'
     | '/alliances/$id'
     | '/incidents/$id'
@@ -293,6 +304,7 @@ export interface FileRouteTypes {
     | '/_app/timeline'
     | '/_app/universes'
     | '/_app/'
+    | '/_app/admin/gangs'
     | '/_app/admin/users'
     | '/_app/alliances/$id'
     | '/_app/incidents/$id'
@@ -485,6 +497,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAdminUsersRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/admin/gangs': {
+      id: '/_app/admin/gangs'
+      path: '/admin/gangs'
+      fullPath: '/admin/gangs'
+      preLoaderRoute: typeof AppAdminGangsRouteImport
+      parentRoute: typeof AppRoute
+    }
   }
 }
 
@@ -496,6 +515,7 @@ interface AppRouteChildren {
   AppTimelineRoute: typeof AppTimelineRoute
   AppUniversesRoute: typeof AppUniversesRoute
   AppIndexRoute: typeof AppIndexRoute
+  AppAdminGangsRoute: typeof AppAdminGangsRoute
   AppAdminUsersRoute: typeof AppAdminUsersRoute
   AppAlliancesIdRoute: typeof AppAlliancesIdRoute
   AppIncidentsIdRoute: typeof AppIncidentsIdRoute
@@ -521,6 +541,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppTimelineRoute: AppTimelineRoute,
   AppUniversesRoute: AppUniversesRoute,
   AppIndexRoute: AppIndexRoute,
+  AppAdminGangsRoute: AppAdminGangsRoute,
   AppAdminUsersRoute: AppAdminUsersRoute,
   AppAlliancesIdRoute: AppAlliancesIdRoute,
   AppIncidentsIdRoute: AppIncidentsIdRoute,

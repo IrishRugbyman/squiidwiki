@@ -14,6 +14,7 @@ class SetCreate(BaseModel):
     bio: Optional[str] = None
     status: SetStatus = SetStatus.ACTIVE
     alliance_id: Optional[uuid.UUID] = None
+    gang_id: Optional[uuid.UUID] = None
     municipality_id: Optional[uuid.UUID] = None
     founder_id: Optional[uuid.UUID] = None
     # Sub-district claims; each id MUST be a child of municipality_id.
@@ -28,6 +29,7 @@ class SetUpdate(BaseModel):
     bio: Optional[str] = None
     status: Optional[SetStatus] = None
     alliance_id: Optional[uuid.UUID] = None
+    gang_id: Optional[uuid.UUID] = None
     municipality_id: Optional[uuid.UUID] = None
     founder_id: Optional[uuid.UUID] = None
     territory_ids: Optional[list[uuid.UUID]] = None
@@ -46,6 +48,7 @@ class SetRead(BaseModel):
     bio: Optional[str]
     status: SetStatus
     alliance_id: Optional[uuid.UUID]
+    gang_id: Optional[uuid.UUID] = None
     municipality_id: Optional[uuid.UUID]
     founder_id: Optional[uuid.UUID]
     is_reserved: bool = False
@@ -71,6 +74,7 @@ class SetListItem(BaseModel):
     status: SetStatus
     universe_id: uuid.UUID
     alliance_id: Optional[uuid.UUID]
+    gang_id: Optional[uuid.UUID] = None
     municipality_id: Optional[uuid.UUID]
     is_reserved: bool = False
     primary_photo_url: Optional[str] = None

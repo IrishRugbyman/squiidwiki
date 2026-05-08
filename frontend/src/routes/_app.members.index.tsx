@@ -15,7 +15,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { FuzzyDateInput } from '@/components/FuzzyDateInput'
 import {
   useCreateMember, useMembers, useMemberSearch, useUpdateMember,
-  useSets, useAlliances, useBulkMemberStatus, useMember, useAllMembers,
+  useSets, useAlliances, useBulkMemberStatus, useGangs, useMember, useAllMembers,
   useMdocLookup, useMdocImportPhoto,
 } from '@/lib/queries'
 import { api } from '@/lib/api'
@@ -312,6 +312,7 @@ export function MemberFormSheet({ universeId, open, onClose, initial, defaultSet
 
   const { data: sets } = useSets(universeId)
   const { data: alliances } = useAlliances(universeId)
+  const { data: gangs } = useGangs(universeId)
 
   const [nickname, setNickname] = useState(initial?.nickname ?? copyFrom?.nickname ?? '')
   const [legalName, setLegalName] = useState(initial?.legal_name ?? copyFrom?.legal_name ?? '')
@@ -320,6 +321,7 @@ export function MemberFormSheet({ universeId, open, onClose, initial, defaultSet
   const [setId, setSetId] = useState<string>(initial?.set_id ?? copyFrom?.set_id ?? defaultSetId ?? '')
   const [setRank, setSetRank] = useState<SetRank | ''>(initial?.set_rank ?? copyFrom?.set_rank ?? '')
   const [allianceId, setAllianceId] = useState<string>(initial?.alliance_id ?? copyFrom?.alliance_id ?? defaultAllianceId ?? '')
+  const [gangId, setGangId] = useState<string>(initial?.gang_id ?? copyFrom?.gang_id ?? '')
   const [biography, setBiography] = useState(initial?.biography ?? copyFrom?.biography ?? '')
   const [aliases, setAliases] = useState(initial?.aliases?.join(', ') ?? copyFrom?.aliases?.join(', ') ?? '')
   const seedSocial = (key: 'facebook' | 'instagram' | 'twitter'): string => {
@@ -375,6 +377,7 @@ export function MemberFormSheet({ universeId, open, onClose, initial, defaultSet
       set_id: setId || null,
       set_rank: setId && setRank ? setRank : null,
       alliance_id: allianceId || null,
+      gang_id: gangId || null,
       biography,
       aliases: aliasList.length > 0 ? aliasList : null,
       dob: dob ?? null,
@@ -453,6 +456,7 @@ export function MemberFormSheet({ universeId, open, onClose, initial, defaultSet
     setSetId(defaultSetId ?? '')
     setSetRank('')
     setAllianceId(defaultAllianceId ?? '')
+    setGangId('')
     setBiography('')
     setAliases('')
     setFacebook('')
@@ -582,6 +586,16 @@ export function MemberFormSheet({ universeId, open, onClose, initial, defaultSet
                   <SelectContent>
                     <SelectItem value="none">— None —</SelectItem>
                     {(alliances?.items ?? []).map((a) => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label>Gang</Label>
+                <Select value={gangId || 'none'} onValueChange={(v) => setGangId(v === 'none' ? '' : v)}>
+                  <SelectTrigger><SelectValue placeholder="None" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">— None —</SelectItem>
+                    {(gangs?.items ?? []).map((g) => <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>

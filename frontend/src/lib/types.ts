@@ -113,12 +113,28 @@ export interface SourceRead extends SourceListItem {
   updated_at: string
 }
 
+// Gang
+export interface GangListItem {
+  id: UUID
+  universe_id: UUID
+  name: string
+  slug: string | null
+  aliases: string[] | null
+  description: string | null
+}
+
+export interface GangRead extends GangListItem {
+  created_at: string
+  updated_at: string
+}
+
 // Alliance
 export interface AllianceListItem {
   id: UUID
   name: string
   aliases: string[] | null
   status: AllianceStatus
+  gang_id: UUID | null
   universe_id: UUID
   slug: string | null
   primary_photo_url: string | null
@@ -146,6 +162,7 @@ export interface SetListItem {
   status: SetStatus
   universe_id: UUID
   alliance_id: UUID | null
+  gang_id: UUID | null
   municipality_id: UUID | null
   is_reserved: boolean
   primary_photo_url: string | null
@@ -182,6 +199,7 @@ export interface MemberListItem {
   set_id: UUID | null
   set_rank: SetRank | null
   alliance_id: UUID | null
+  gang_id: UUID | null
   universe_id: UUID
   slug: string | null
   primary_photo_url: string | null

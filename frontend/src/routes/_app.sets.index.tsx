@@ -12,7 +12,7 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Textarea } from '@/components/ui/textarea'
-import { useAlliances, useCreateSet, useDeleteSet, useMunicipalities, useSet, useSets, useSetSearch, useUpdateSet } from '@/lib/queries'
+import { useAlliances, useCreateSet, useDeleteSet, useGangs, useMunicipalities, useSet, useSets, useSetSearch, useUpdateSet } from '@/lib/queries'
 import { BulkActionBar } from '@/components/BulkActionBar'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { useUniverseStore } from '@/stores/universe'
@@ -94,12 +94,14 @@ interface SetFormProps {
 
 const ALLIANCE_NONE = '__none__'
 const MUNI_NONE = '__none__'
+const GANG_NONE = '__none__'
 
 export function SetFormSheet({ universeId, open, onClose, initial, onSaved, defaultAllianceId, defaultMunicipalityId, copyFrom }: SetFormProps) {
   const create = useCreateSet()
   const update = useUpdateSet(initial?.id ?? '')
   const { data: alliancesData } = useAlliances(universeId)
   const { data: munisData } = useMunicipalities(universeId)
+  const { data: gangsData } = useGangs(universeId)
   const isEdit = !!initial
 
   const [name, setName] = useState(initial?.name ?? copyFrom?.name ?? '')
@@ -107,6 +109,7 @@ export function SetFormSheet({ universeId, open, onClose, initial, onSaved, defa
   const [bio, setBio] = useState(initial?.bio ?? copyFrom?.bio ?? '')
   const [status, setStatus] = useState<SetStatus>(initial?.status ?? copyFrom?.status ?? 'ACTIVE')
   const [allianceId, setAllianceId] = useState<string>(initial?.alliance_id ?? copyFrom?.alliance_id ?? defaultAllianceId ?? ALLIANCE_NONE)
+  const [gangId, setGangId] = useState<string>(initial?.gang_id ?? copyFrom?.gang_id ?? GANG_NONE)
   const [municipalityId, setMunicipalityId] = useState<string>(initial?.municipality_id ?? copyFrom?.municipality_id ?? defaultMunicipalityId ?? MUNI_NONE)
   const [territoryIds, setTerritoryIds] = useState<string[]>(initial?.territory_ids ?? copyFrom?.territory_ids ?? [])
   const [error, setError] = useState<string | null>(null)
@@ -145,6 +148,7 @@ export function SetFormSheet({ universeId, open, onClose, initial, onSaved, defa
     e.preventDefault()
     setError(null)
     const alliance_id = allianceId === ALLIANCE_NONE ? null : allianceId
+    const gang_id = gangId === GANG_NONE ? null : gangId
     const municipality_id = municipalityId === MUNI_NONE ? null : municipalityId
     const aliasList = aliases.split(',').map((s) => s.trim()).filter(Boolean)
     const aliasesPayload = aliasList.length > 0 ? aliasList : null
@@ -155,6 +159,7 @@ export function SetFormSheet({ universeId, open, onClose, initial, onSaved, defa
       bio: bio || null,
       status,
       alliance_id,
+      gang_id,
       municipality_id,
       territory_ids: territoryIds,
     }
@@ -166,7 +171,7 @@ export function SetFormSheet({ universeId, open, onClose, initial, onSaved, defa
       } else {
         await create.mutateAsync(payload)
         setName(''); setAliases(''); setBio(''); setStatus('ACTIVE')
-        setAllianceId(ALLIANCE_NONE); setMunicipalityId(MUNI_NONE); setTerritoryIds([])
+        setAllianceId(ALLIANCE_NONE); setGangId(GANG_NONE); setMunicipalityId(MUNI_NONE); setTerritoryIds([])
         toast.success(`Created "${name}"`)
       }
       onClose()
@@ -216,6 +221,20 @@ export function SetFormSheet({ universeId, open, onClose, initial, onSaved, defa
                 <SelectContent>
                   <SelectItem value="ACTIVE">Active</SelectItem>
                   <SelectItem value="EXTINCT">Extinct</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+          {!isReserved && (
+            <div className="space-y-1.5">
+              <Label>Gang</Label>
+              <Select value={gangId} onValueChange={setGangId}>
+                <SelectTrigger><SelectValue placeholder="No gang" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={GANG_NONE}>No gang</SelectItem>
+                  {(gangsData?.items ?? []).map((g) => (
+                    <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>

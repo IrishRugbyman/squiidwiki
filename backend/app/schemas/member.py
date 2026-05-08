@@ -18,6 +18,7 @@ class MemberCreate(BaseModel):
     set_id: Optional[uuid.UUID] = None
     set_rank: Optional[SetRank] = None
     alliance_id: Optional[uuid.UUID] = None
+    gang_id: Optional[uuid.UUID] = None
     status: MemberStatus = MemberStatus.UNKNOWN
     dob: FuzzyDateField = None
     date_of_death: FuzzyDateField = None
@@ -36,6 +37,7 @@ class MemberUpdate(BaseModel):
     set_id: Optional[uuid.UUID] = None
     set_rank: Optional[SetRank] = None
     alliance_id: Optional[uuid.UUID] = None
+    gang_id: Optional[uuid.UUID] = None
     status: Optional[MemberStatus] = None
     dob: FuzzyDateField = None
     date_of_death: FuzzyDateField = None
@@ -58,6 +60,7 @@ class MemberRead(BaseModel):
     set_id: Optional[uuid.UUID]
     set_rank: Optional[SetRank] = None
     alliance_id: Optional[uuid.UUID]
+    gang_id: Optional[uuid.UUID] = None
     status: MemberStatus
     dob: FuzzyDateField
     date_of_death: FuzzyDateField
@@ -84,6 +87,7 @@ class MemberListItem(BaseModel):
     set_id: Optional[uuid.UUID]
     set_rank: Optional[SetRank] = None
     alliance_id: Optional[uuid.UUID] = None
+    gang_id: Optional[uuid.UUID] = None
     universe_id: uuid.UUID
     slug: Optional[str] = None
     primary_photo_url: Optional[str] = None
