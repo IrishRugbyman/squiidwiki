@@ -79,10 +79,43 @@ export const useDeleteUniverse = () => {
 
 // ─── Sets ─────────────────────────────────────────────────────────────────────
 
-export const useSets = (universeId: UUID | null, offset = 0) =>
+export type SetsListParams = {
+  offset?: number
+  limit?: number
+  q?: string
+  status?: 'ACTIVE' | 'EXTINCT'
+  /** UUID, or 'none' for unassigned, or omit for no filter. */
+  alliance_id?: string | 'none'
+  gang_id?: string | 'none'
+  municipality_id?: string | 'none'
+  sort?: 'name' | 'status' | 'member_count' | 'updated_at' | 'created_at'
+  order?: 'asc' | 'desc'
+}
+
+function buildSetsQuery(universeId: string, params?: SetsListParams): string {
+  const qs = new URLSearchParams({ universe_id: universeId })
+  if (params) {
+    if (params.offset != null) qs.set('offset', String(params.offset))
+    if (params.limit != null) qs.set('limit', String(params.limit))
+    if (params.q && params.q.trim().length >= 2) qs.set('q', params.q.trim())
+    if (params.status) qs.set('status', params.status)
+    if (params.alliance_id) qs.set('alliance_id', params.alliance_id)
+    if (params.gang_id) qs.set('gang_id', params.gang_id)
+    if (params.municipality_id) qs.set('municipality_id', params.municipality_id)
+    if (params.sort) qs.set('sort', params.sort)
+    if (params.order) qs.set('order', params.order)
+  }
+  return qs.toString()
+}
+
+/**
+ * Backwards-compatible: old callers pass `useSets(universeId)`. New callers can
+ * pass an options object with filters/sort/pagination.
+ */
+export const useSets = (universeId: UUID | null, params?: SetsListParams) =>
   useQuery({
-    queryKey: ['sets', universeId, offset],
-    queryFn: () => api.get<OffsetPage<SetListItem>>(`/sets/?universe_id=${universeId}&offset=${offset}`),
+    queryKey: ['sets', universeId, params ?? null],
+    queryFn: () => api.get<OffsetPage<SetListItem>>(`/sets/?${buildSetsQuery(universeId!, params)}`),
     enabled: !!universeId,
   })
 

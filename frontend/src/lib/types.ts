@@ -159,6 +159,7 @@ export interface NameVariant {
   initials: string | null
   number: string | null
   is_primary: boolean
+  lead?: 'name' | 'initials' | 'number' | null
 }
 
 export interface SetListItem {
@@ -169,8 +170,12 @@ export interface SetListItem {
   status: SetStatus
   universe_id: UUID
   alliance_id: UUID | null
+  alliance_name: string | null
   gang_id: UUID | null
+  gang_name: string | null
   municipality_id: UUID | null
+  municipality_name: string | null
+  member_count: number
   is_reserved: boolean
   primary_photo_url: string | null
   primary_photo_thumb_url: string | null

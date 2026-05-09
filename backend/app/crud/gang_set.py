@@ -1,15 +1,26 @@
 import re
 import uuid
 from datetime import datetime
+from typing import Literal, Optional
 
 import sqlalchemy as sa
 from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import func, select
 
-from app.core.enums import SetRelationshipType
+from app.core.enums import SetRelationshipType, SetStatus
+from app.models.alliance import Alliance
+from app.models.gang import Gang
 from app.models.gang_set import GangSet, SetMunicipality, SetRelationship
+from app.models.member import Member
+from app.models.municipality import Municipality
 from app.schemas.gang_set import SetCreate, SetUpdate
+
+SortKey = Literal["name", "status", "member_count", "updated_at", "created_at"]
+SortOrder = Literal["asc", "desc"]
+NoneSentinel = Literal["none"]
+# A filter value can be a UUID, the literal "none" (match NULL), or None (no filter).
+FilterId = Optional[uuid.UUID | NoneSentinel]
 
 
 def _slugify(name: str) -> str:
@@ -163,17 +174,125 @@ async def get_gang_set_by_slug(
     return result.scalar_one_or_none()
 
 
+def _apply_set_filters(
+    stmt,
+    universe_id: uuid.UUID,
+    *,
+    q: str | None = None,
+    status_filter: SetStatus | None = None,
+    alliance_id: FilterId = None,
+    gang_id: FilterId = None,
+    municipality_id: FilterId = None,
+):
+    stmt = stmt.where(GangSet.universe_id == universe_id)
+    if q and len(q.strip()) >= 2:
+        pattern = f"%{q.strip()}%"
+        stmt = stmt.where(
+            GangSet.name.ilike(pattern)
+            | sa.cast(GangSet.name_variants, sa.Text).ilike(pattern)
+        )
+    if status_filter is not None:
+        stmt = stmt.where(GangSet.status == status_filter)
+    if alliance_id == "none":
+        stmt = stmt.where(GangSet.alliance_id.is_(None))
+    elif alliance_id is not None:
+        stmt = stmt.where(GangSet.alliance_id == alliance_id)
+    if gang_id == "none":
+        stmt = stmt.where(GangSet.gang_id.is_(None))
+    elif gang_id is not None:
+        stmt = stmt.where(GangSet.gang_id == gang_id)
+    if municipality_id == "none":
+        stmt = stmt.where(GangSet.municipality_id.is_(None))
+    elif municipality_id is not None:
+        stmt = stmt.where(GangSet.municipality_id == municipality_id)
+    return stmt
+
+
 async def list_gang_sets(
-    session: AsyncSession, universe_id: uuid.UUID, offset: int = 0, limit: int = 50
+    session: AsyncSession,
+    universe_id: uuid.UUID,
+    *,
+    offset: int = 0,
+    limit: int = 50,
+    q: str | None = None,
+    status_filter: SetStatus | None = None,
+    alliance_id: FilterId = None,
+    gang_id: FilterId = None,
+    municipality_id: FilterId = None,
+    sort: SortKey = "name",
+    order: SortOrder = "asc",
 ) -> tuple[list[GangSet], int]:
-    count_result = await session.execute(
-        select(func.count()).select_from(GangSet).where(GangSet.universe_id == universe_id)
+    """List sets with optional filters, joined denorm labels, and member_count.
+
+    Returns ORM objects with three transient attrs attached: `_member_count`,
+    `_alliance_name`, `_gang_name`, `_municipality_name`. The router pulls
+    these onto the Pydantic ListItem.
+    """
+    count_stmt = _apply_set_filters(
+        select(func.count()).select_from(GangSet),
+        universe_id,
+        q=q,
+        status_filter=status_filter,
+        alliance_id=alliance_id,
+        gang_id=gang_id,
+        municipality_id=municipality_id,
     )
-    total = count_result.scalar_one()
-    result = await session.execute(
-        select(GangSet).where(GangSet.universe_id == universe_id).offset(offset).limit(limit)
+    total = (await session.execute(count_stmt)).scalar_one()
+
+    member_count_sq = (
+        select(Member.set_id, func.count(Member.id).label("member_count"))
+        .group_by(Member.set_id)
+        .subquery()
     )
-    return result.scalars().all(), total
+
+    stmt = (
+        select(
+            GangSet,
+            func.coalesce(member_count_sq.c.member_count, 0).label("member_count"),
+            Alliance.name.label("alliance_name"),
+            Gang.name.label("gang_name"),
+            Municipality.name.label("municipality_name"),
+        )
+        .select_from(GangSet)
+        .join(member_count_sq, member_count_sq.c.set_id == GangSet.id, isouter=True)
+        .join(Alliance, Alliance.id == GangSet.alliance_id, isouter=True)
+        .join(Gang, Gang.id == GangSet.gang_id, isouter=True)
+        .join(Municipality, Municipality.id == GangSet.municipality_id, isouter=True)
+    )
+    stmt = _apply_set_filters(
+        stmt,
+        universe_id,
+        q=q,
+        status_filter=status_filter,
+        alliance_id=alliance_id,
+        gang_id=gang_id,
+        municipality_id=municipality_id,
+    )
+
+    sort_cols: dict[str, sa.sql.ColumnElement] = {
+        "name": GangSet.name,
+        "status": GangSet.status,
+        "member_count": func.coalesce(member_count_sq.c.member_count, 0),
+        "updated_at": GangSet.updated_at,
+        "created_at": GangSet.created_at,
+    }
+    primary = sort_cols.get(sort, GangSet.name)
+    primary = primary.desc() if order == "desc" else primary.asc()
+    # Stable secondary sort so ties don't reshuffle across paginated requests.
+    stmt = stmt.order_by(primary, GangSet.name.asc(), GangSet.id.asc())
+    stmt = stmt.offset(offset).limit(limit)
+
+    rows = (await session.execute(stmt)).all()
+    items: list[GangSet] = []
+    for row in rows:
+        obj: GangSet = row[0]
+        # SQLModel/Pydantic v2 rejects unknown __setattr__; bypass like attach_primary_photos.
+        object.__setattr__(obj, "_member_count", int(row[1] or 0))
+        object.__setattr__(obj, "_alliance_name", row[2])
+        object.__setattr__(obj, "_gang_name", row[3])
+        object.__setattr__(obj, "_municipality_name", row[4])
+        items.append(obj)
+    return items, total
 
 
 async def update_gang_set(

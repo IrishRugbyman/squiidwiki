@@ -1,6 +1,6 @@
 import uuid
 from datetime import datetime
-from typing import Optional
+from typing import Literal, Optional
 
 from pydantic import BaseModel, model_validator
 
@@ -12,11 +12,17 @@ class NameVariant(BaseModel):
     initials: Optional[str] = None
     number: Optional[str] = None
     is_primary: bool = False
+    # Which slot leads the display for this variant. If None, falls back to
+    # name → initials → number.
+    lead: Optional[Literal["name", "initials", "number"]] = None
 
     @model_validator(mode="after")
     def _at_least_one_field(self):
         if not (self.name or self.initials or self.number):
             raise ValueError("name_variants entry must have at least one of name/initials/number")
+        if self.lead is not None and not getattr(self, self.lead):
+            # Fall back silently if lead points to an empty slot.
+            self.lead = None
         return self
 
 
@@ -108,8 +114,12 @@ class SetListItem(BaseModel):
     status: SetStatus
     universe_id: uuid.UUID
     alliance_id: Optional[uuid.UUID]
+    alliance_name: Optional[str] = None
     gang_id: Optional[uuid.UUID] = None
+    gang_name: Optional[str] = None
     municipality_id: Optional[uuid.UUID]
+    municipality_name: Optional[str] = None
+    member_count: int = 0
     is_reserved: bool = False
     primary_photo_url: Optional[str] = None
     primary_photo_thumb_url: Optional[str] = None
