@@ -46,7 +46,6 @@ async def list_members(
     items, next_cursor = await crud.list_members(
         session, universe_id, limit=limit, cursor=cursor, set_id=set_id, alliance_id=alliance_id
     )
-    await crud.attach_primary_photos(session, items)
     return CursorPage(items=items, next_cursor=next_cursor, total=None)
 
 
@@ -83,7 +82,6 @@ async def search_members(
     if len(q.strip()) < 2:
         return []
     items = await crud.search_members(session, universe_id, q)
-    await crud.attach_primary_photos(session, items)
     return items
 
 

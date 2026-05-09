@@ -91,12 +91,10 @@ async def list_sets(
         items, _total = await crud.list_gang_sets(
             session, universe_id, offset=0, limit=1000, **filters
         )
-        await attach_primary_photos_sets(session, items)
         return to_csv_response([_to_list_item(o) for o in items], "sets.csv")
     items, total = await crud.list_gang_sets(
         session, universe_id, offset=offset, limit=limit, **filters
     )
-    await attach_primary_photos_sets(session, items)
     return OffsetPage(items=[_to_list_item(o) for o in items], total=total)
 
 
@@ -122,7 +120,6 @@ async def search_sets(
     items, _total = await crud.list_gang_sets(
         session, universe_id, offset=0, limit=200, q=q
     )
-    await attach_primary_photos_sets(session, items)
     return [_to_list_item(o) for o in items]
 
 

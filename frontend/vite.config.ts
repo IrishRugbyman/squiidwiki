@@ -17,4 +17,22 @@ export default defineConfig({
       '/api': 'http://localhost:8001',
     },
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (!id.includes('node_modules')) return
+          if (id.includes('@tanstack/react-router')) return 'tanstack-router'
+          if (id.includes('@tanstack/react-query')) return 'tanstack-query'
+          if (id.includes('@radix-ui')) return 'radix'
+          if (id.includes('lucide-react')) return 'lucide'
+          if (id.includes('react-dom')) return 'react-dom'
+          if (id.match(/[\\/]react[\\/]/)) return 'react'
+          if (id.includes('zustand')) return 'zustand'
+          if (id.includes('cmdk')) return 'cmdk'
+          if (id.includes('sonner')) return 'sonner'
+        },
+      },
+    },
+  },
 })
