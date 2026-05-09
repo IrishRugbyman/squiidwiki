@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import type { QueryClient } from '@tanstack/react-query'
 import { api } from './api'
 import type {
@@ -117,6 +117,7 @@ export const useSets = (universeId: UUID | null, params?: SetsListParams) =>
     queryKey: ['sets', universeId, params ?? null],
     queryFn: () => api.get<OffsetPage<SetListItem>>(`/sets/?${buildSetsQuery(universeId!, params)}`),
     enabled: !!universeId,
+    placeholderData: keepPreviousData,
   })
 
 export const useAllSets = (universeId: UUID | null) =>
@@ -284,6 +285,7 @@ export const useAlliances = (universeId: UUID | null, offset = 0) =>
     queryKey: ['alliances', universeId, offset],
     queryFn: () => api.get<OffsetPage<AllianceListItem>>(`/alliances/?universe_id=${universeId}&offset=${offset}`),
     enabled: !!universeId,
+    placeholderData: keepPreviousData,
   })
 
 export const useAlliance = (id: UUID, universeId: UUID | null) =>
@@ -380,6 +382,7 @@ export const useMembers = (universeId: UUID | null, cursor?: string) =>
       return api.get<CursorPage<MemberListItem>>(`/members/${qs}`)
     },
     enabled: !!universeId,
+    placeholderData: keepPreviousData,
   })
 
 export const useAllMembers = (universeId: UUID | null) =>
@@ -652,6 +655,7 @@ export const useIncidents = (universeId: UUID | null, cursor?: string) =>
       return api.get<CursorPage<IncidentListItem>>(`/incidents/${qs}`)
     },
     enabled: !!universeId,
+    placeholderData: keepPreviousData,
   })
 
 export const useAllIncidents = (universeId: UUID | null) =>
@@ -709,6 +713,7 @@ export const useSources = (universeId: UUID | null, offset = 0) =>
     queryKey: ['sources', universeId, offset],
     queryFn: () => api.get<OffsetPage<SourceListItem>>(`/sources/?universe_id=${universeId}&offset=${offset}`),
     enabled: !!universeId,
+    placeholderData: keepPreviousData,
   })
 
 export const useAllSources = (universeId: UUID | null) =>
@@ -776,6 +781,7 @@ export const useMunicipalities = (universeId: UUID | null, offset = 0) =>
     queryFn: () =>
       api.get<OffsetPage<MunicipalityListItem>>(`/municipalities/?universe_id=${universeId}&offset=${offset}`),
     enabled: !!universeId,
+    placeholderData: keepPreviousData,
   })
 
 /**

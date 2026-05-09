@@ -1,3 +1,4 @@
+import asyncio
 import uuid
 from typing import Annotated
 
@@ -7,7 +8,7 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.dependencies import CurrentUser, require_global_role
-from app.core.database import get_session
+from app.core.database import _session_factories, get_db_mode, get_session
 from app.core.enums import GlobalRole
 from app.crud import universe as crud
 from app.schemas.common import OffsetPage
@@ -104,69 +105,98 @@ async def get_universe_analytics(
 ) -> UniverseAnalytics:
     uid = str(id)
 
-    totals = (await session.execute(text("""
-        SELECT
-            (SELECT count(*) FROM member WHERE universe_id = :uid) AS members,
-            (SELECT count(*) FROM sets WHERE universe_id = :uid) AS sets,
-            (SELECT count(*) FROM alliance WHERE universe_id = :uid) AS alliances,
-            (SELECT count(*) FROM incident WHERE universe_id = :uid) AS incidents,
-            (SELECT count(*) FROM source WHERE universe_id = :uid) AS sources
-    """), {"uid": uid})).one()
+    # Each query runs on its own short-lived session so we can fan out with
+    # asyncio.gather (AsyncSession itself is not safe for concurrent execute).
+    factory = _session_factories[get_db_mode()]
 
-    status_rows = (await session.execute(text(
-        "SELECT status, count(*) AS cnt FROM member WHERE universe_id = :uid GROUP BY status"
-    ), {"uid": uid})).fetchall()
+    async def _exec(sql: str, one: bool = False):
+        async with factory() as s:
+            res = await s.execute(text(sql), {"uid": uid})
+            return res.one() if one else res.fetchall()
 
-    type_rows = (await session.execute(text(
-        "SELECT type, count(*) AS cnt FROM incident WHERE universe_id = :uid GROUP BY type"
-    ), {"uid": uid})).fetchall()
-
-    top_sets_rows = (await session.execute(text("""
-        SELECT s.id, s.name, count(DISTINCT ip.incident_id) AS incident_count
-        FROM sets s
-        JOIN member m ON m.set_id = s.id
-        JOIN incident_participant ip ON ip.member_id = m.id
-        JOIN incident i ON i.id = ip.incident_id AND i.universe_id = :uid
-        WHERE s.universe_id = :uid
-        GROUP BY s.id, s.name
-        ORDER BY incident_count DESC
-        LIMIT 5
-    """), {"uid": uid})).fetchall()
-
-    top_sources_rows = (await session.execute(text("""
-        SELECT src.id, src.title,
-            (SELECT count(*) FROM incident_source WHERE source_id = src.id) +
-            (SELECT count(*) FROM member_source WHERE source_id = src.id) AS ref_count
-        FROM source src
-        WHERE src.universe_id = :uid
-        ORDER BY ref_count DESC
-        LIMIT 5
-    """), {"uid": uid})).fetchall()
-
-    month_rows = (await session.execute(text("""
-        SELECT TO_CHAR(DATE_TRUNC('month', sortable_date), 'YYYY-MM') AS month, count(*) AS cnt
-        FROM incident
-        WHERE universe_id = :uid AND sortable_date IS NOT NULL
-        GROUP BY month
-        ORDER BY month
-    """), {"uid": uid})).fetchall()
-
-    reliability_rows = (await session.execute(text(
-        "SELECT reliability, count(*) AS cnt FROM source WHERE universe_id = :uid GROUP BY reliability"
-    ), {"uid": uid})).fetchall()
-
-    top_members_rows = (await session.execute(text("""
-        SELECT m.id,
-            CASE WHEN m.nickname_unknown OR m.nickname IS NULL THEN m.legal_name ELSE m.nickname END AS display_name,
-            count(DISTINCT ip.incident_id) AS incident_count
-        FROM member m
-        JOIN incident_participant ip ON ip.member_id = m.id
-        JOIN incident i ON i.id = ip.incident_id AND i.universe_id = :uid
-        WHERE m.universe_id = :uid
-        GROUP BY m.id, display_name
-        ORDER BY incident_count DESC
-        LIMIT 5
-    """), {"uid": uid})).fetchall()
+    (
+        totals,
+        status_rows,
+        type_rows,
+        top_sets_rows,
+        top_sources_rows,
+        month_rows,
+        reliability_rows,
+        top_members_rows,
+    ) = await asyncio.gather(
+        _exec(
+            """
+            SELECT
+                (SELECT count(*) FROM member WHERE universe_id = :uid) AS members,
+                (SELECT count(*) FROM sets WHERE universe_id = :uid) AS sets,
+                (SELECT count(*) FROM alliance WHERE universe_id = :uid) AS alliances,
+                (SELECT count(*) FROM incident WHERE universe_id = :uid) AS incidents,
+                (SELECT count(*) FROM source WHERE universe_id = :uid) AS sources
+            """,
+            one=True,
+        ),
+        _exec(
+            "SELECT status, count(*) AS cnt FROM member WHERE universe_id = :uid GROUP BY status"
+        ),
+        _exec(
+            "SELECT type, count(*) AS cnt FROM incident WHERE universe_id = :uid GROUP BY type"
+        ),
+        _exec(
+            """
+            SELECT s.id, s.name, count(DISTINCT ip.incident_id) AS incident_count
+            FROM sets s
+            JOIN member m ON m.set_id = s.id
+            JOIN incident_participant ip ON ip.member_id = m.id
+            JOIN incident i ON i.id = ip.incident_id AND i.universe_id = :uid
+            WHERE s.universe_id = :uid
+            GROUP BY s.id, s.name
+            ORDER BY incident_count DESC
+            LIMIT 5
+            """
+        ),
+        _exec(
+            """
+            SELECT src.id, src.title,
+                COALESCE(isr.cnt, 0) + COALESCE(msr.cnt, 0) AS ref_count
+            FROM source src
+            LEFT JOIN (
+                SELECT source_id, count(*) AS cnt FROM incident_source GROUP BY source_id
+            ) isr ON isr.source_id = src.id
+            LEFT JOIN (
+                SELECT source_id, count(*) AS cnt FROM member_source GROUP BY source_id
+            ) msr ON msr.source_id = src.id
+            WHERE src.universe_id = :uid
+            ORDER BY ref_count DESC
+            LIMIT 5
+            """
+        ),
+        _exec(
+            """
+            SELECT TO_CHAR(DATE_TRUNC('month', sortable_date), 'YYYY-MM') AS month, count(*) AS cnt
+            FROM incident
+            WHERE universe_id = :uid AND sortable_date IS NOT NULL
+            GROUP BY month
+            ORDER BY month
+            """
+        ),
+        _exec(
+            "SELECT reliability, count(*) AS cnt FROM source WHERE universe_id = :uid GROUP BY reliability"
+        ),
+        _exec(
+            """
+            SELECT m.id,
+                CASE WHEN m.nickname_unknown OR m.nickname IS NULL THEN m.legal_name ELSE m.nickname END AS display_name,
+                count(DISTINCT ip.incident_id) AS incident_count
+            FROM member m
+            JOIN incident_participant ip ON ip.member_id = m.id
+            JOIN incident i ON i.id = ip.incident_id AND i.universe_id = :uid
+            WHERE m.universe_id = :uid
+            GROUP BY m.id, display_name
+            ORDER BY incident_count DESC
+            LIMIT 5
+            """
+        ),
+    )
 
     return UniverseAnalytics(
         total_members=totals.members,

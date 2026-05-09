@@ -22,11 +22,12 @@ import { useEffect, useState } from 'react'
 import { Drawer } from 'vaul'
 import { UniverseSwitcher } from '@/components/UniverseSwitcher'
 import { GlobalCommandPalette } from '@/components/GlobalCommandPalette'
-import { useAuthStore, type AuthState, type AuthUser } from '@/stores/auth'
+import { useAuthStore, type AuthState } from '@/stores/auth'
 import { useUniverseStore } from '@/stores/universe'
 import { useDbMode, useSetDbMode } from '@/lib/queries'
 import { useQueryClient } from '@tanstack/react-query'
 import { api, ApiError } from '@/lib/api'
+import { useCurrentUser } from '@/hooks/useCurrentUser'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { Toaster } from '@/components/ui/sonner'
 import { GO_TO_SHORTCUTS, useGoToNavigation } from '@/hooks/useKeymap'
@@ -142,19 +143,19 @@ function AppLayout() {
   const queryClient = useQueryClient()
   useGoToNavigation()
 
+  const { data: meData, error: meError } = useCurrentUser()
   useEffect(() => {
-    if (user) return
-    const token = localStorage.getItem('access_token')
-    if (!token) return
-    api.get<AuthUser>('/auth/me')
-      .then((u) => setAuth(u, token))
-      .catch((err) => {
-        if (err instanceof ApiError && err.status === 401) {
-          clearAuth()
-          window.location.href = '/login'
-        }
-      })
-  }, [user, setAuth, clearAuth])
+    if (!user && meData) {
+      const token = localStorage.getItem('access_token')
+      if (token) setAuth(meData, token)
+    }
+  }, [user, meData, setAuth])
+  useEffect(() => {
+    if (meError instanceof ApiError && meError.status === 401) {
+      clearAuth()
+      window.location.href = '/login'
+    }
+  }, [meError, clearAuth])
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {

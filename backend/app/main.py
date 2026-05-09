@@ -25,12 +25,16 @@ async def refresh_stats() -> None:
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     from app.core.audit import attach_audit_listeners
+    from app.core.storage import close_storage
 
     attach_audit_listeners()
     scheduler.add_job(refresh_stats, "interval", minutes=5)
     scheduler.start()
-    yield
-    scheduler.shutdown()
+    try:
+        yield
+    finally:
+        scheduler.shutdown()
+        await close_storage()
 
 
 app = FastAPI(

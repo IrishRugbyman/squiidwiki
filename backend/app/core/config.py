@@ -19,7 +19,7 @@ class Settings(BaseSettings):
     r2_secret_access_key: str = ""
     r2_bucket_prod: str = ""
     r2_bucket_test: str = ""
-    r2_signed_url_ttl_seconds: int = 3600
+    r2_signed_url_ttl_seconds: int = 86400
 
 
 settings = Settings()

@@ -11,6 +11,7 @@ export function useCurrentUser() {
     queryFn: () => api.get<AuthUser>('/auth/me'),
     enabled: !!accessToken,
     retry: false,
-    staleTime: 5 * 60 * 1000,
+    staleTime: Infinity,
+    gcTime: Infinity,
   })
 }
