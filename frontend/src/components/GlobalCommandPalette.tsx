@@ -220,13 +220,28 @@ export function GlobalCommandPalette({ open, onClose }: GlobalCommandPaletteProp
 
           {searching && (setResults?.length ?? 0) > 0 && (
             <CommandGroup heading="Sets">
-              {setResults!.slice(0, 5).map((s) => (
-                <CommandItem key={s.id} value={`set-${s.id}`} onSelect={() => go(`/sets/${s.slug ?? s.id}`)}>
-                  <Shield className="mr-2 h-3.5 w-3.5 shrink-0 text-zinc-500" />
-                  <span>{s.name}</span>
-                  <span className="ml-auto text-[10px] text-zinc-600">{s.status}</span>
-                </CommandItem>
-              ))}
+              {setResults!.slice(0, 5).map((s) => {
+                const ql = q.toLowerCase()
+                const matchedVariant = (s.name_variants ?? []).find((v) => {
+                  if (!v || v.is_primary) return false
+                  return [v.name, v.initials, v.number]
+                    .filter(Boolean)
+                    .some((x) => x!.toLowerCase().includes(ql))
+                })
+                const matchLabel = matchedVariant
+                  ? [matchedVariant.name, matchedVariant.initials, matchedVariant.number].filter(Boolean).join(' · ')
+                  : null
+                return (
+                  <CommandItem key={s.id} value={`set-${s.id}`} onSelect={() => go(`/sets/${s.slug ?? s.id}`)}>
+                    <Shield className="mr-2 h-3.5 w-3.5 shrink-0 text-zinc-500" />
+                    <span>{s.name}</span>
+                    {matchLabel && (
+                      <span className="ml-2 text-[10px] text-zinc-500">a/k/a {matchLabel}</span>
+                    )}
+                    <span className="ml-auto text-[10px] text-zinc-600">{s.status}</span>
+                  </CommandItem>
+                )
+              })}
             </CommandGroup>
           )}
 

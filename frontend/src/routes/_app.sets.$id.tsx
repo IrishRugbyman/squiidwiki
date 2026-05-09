@@ -33,7 +33,19 @@ import { AddMemberToSetDialog } from '@/components/AddMemberToSetDialog'
 import { useRecordRecent } from '@/stores/recents'
 import { useEditShortcut } from '@/hooks/useKeymap'
 import { INCIDENT_TYPE_CHIP } from '@/lib/incidentColors'
-import type { IncidentListItem, MemberListItem, SetReadDetail } from '@/lib/types'
+import type { IncidentListItem, MemberListItem, NameVariant, SetReadDetail } from '@/lib/types'
+
+function formatNameVariant(v: NameVariant): string {
+  const head = v.name?.trim() || v.initials?.trim() || v.number?.trim() || ''
+  const extras: string[] = []
+  if (v.name && v.initials) extras.push(v.initials)
+  if (v.number) extras.push(v.number)
+  return extras.length > 0 ? `${head} (${extras.join(' · ')})` : head
+}
+
+function nonPrimaryVariantStrings(variants?: NameVariant[] | null): string[] {
+  return (variants ?? []).filter((v) => !v.is_primary).map(formatNameVariant).filter(Boolean)
+}
 
 const SetRelationshipGraph = lazy(() =>
   import('@/components/graphs/SetRelationshipGraph').then((m) => ({ default: m.SetRelationshipGraph })),
@@ -135,9 +147,10 @@ function buildSetMarkdown({
 }): string {
   const lines: string[] = []
   lines.push(`# ${set.name}`)
-  if (set.aliases && set.aliases.length > 0) {
+  const akaList = nonPrimaryVariantStrings(set.name_variants)
+  if (akaList.length > 0) {
     lines.push('')
-    lines.push(`*a/k/a ${set.aliases.join(', ')}*`)
+    lines.push(`*a/k/a ${akaList.join(', ')}*`)
   }
   lines.push('')
 
@@ -609,9 +622,12 @@ function SetDetailPage() {
                   <h1 className="text-2xl font-bold leading-none text-white">{set.name}</h1>
                   <CopyButton value={window.location.href} label="Copy link to this set" className="opacity-40 hover:opacity-100" />
                 </div>
-                {set.aliases && set.aliases.length > 0 && (
-                  <p className="mt-1 text-sm text-zinc-500">a/k/a {set.aliases.join(' · ')}</p>
-                )}
+                {(() => {
+                  const aka = nonPrimaryVariantStrings(set.name_variants)
+                  return aka.length > 0 ? (
+                    <p className="mt-1 text-sm text-zinc-500">a/k/a {aka.join(' · ')}</p>
+                  ) : null
+                })()}
                 <div className="mt-2 flex flex-wrap items-center gap-2">
                   <SetStatusBadge status={set.status} />
                   {isReserved && (

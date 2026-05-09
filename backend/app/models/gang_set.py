@@ -41,7 +41,10 @@ class GangSet(SQLModel, table=True):
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
     universe_id: uuid.UUID = Field(foreign_key="universe.id", index=True)
     name: str = Field(index=True)
-    aliases: Optional[list] = Field(default=None, sa_column=Column(JSONB))
+    # list of {name?: str, initials?: str, number?: str, is_primary: bool}
+    # Replaces the prior flat `aliases: list[str]`. Each entry is a triplet
+    # encoding one variant of the set's name; exactly one entry is primary.
+    name_variants: Optional[list] = Field(default=None, sa_column=Column(JSONB))
     bio: Optional[str] = None
     status: SetStatus = SetStatus.ACTIVE
     gang_id: Optional[uuid.UUID] = Field(default=None, foreign_key="gang.id", index=True)

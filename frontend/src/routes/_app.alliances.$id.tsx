@@ -531,9 +531,17 @@ function AllianceSetRow({ set, memberCount, onRequestRemove }: AllianceSetRowPro
           <SetAvatar name={set.name} size="sm" />
           <div className="min-w-0">
             <p className="font-medium text-white group-hover:text-violet-400 transition-colors">{set.name}</p>
-            {set.aliases && set.aliases.length > 0 && (
-              <p className="text-xs text-zinc-500">{set.aliases.join(' · ')}</p>
-            )}
+            {(() => {
+              const aka = (set.name_variants ?? [])
+                .filter((v) => !v.is_primary)
+                .map((v) => {
+                  const head = v.name?.trim() || v.initials?.trim() || v.number?.trim() || ''
+                  const extras = [v.name && v.initials, v.number].filter(Boolean) as string[]
+                  return extras.length > 0 ? `${head} (${extras.join(' · ')})` : head
+                })
+                .filter(Boolean)
+              return aka.length > 0 ? <p className="text-xs text-zinc-500">{aka.join(' · ')}</p> : null
+            })()}
           </div>
         </Link>
       </td>

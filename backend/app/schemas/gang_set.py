@@ -2,15 +2,39 @@ import uuid
 from datetime import datetime
 from typing import Optional
 
-from pydantic import BaseModel
+from pydantic import BaseModel, model_validator
 
 from app.core.enums import SetRelationshipType, SetStatus
+
+
+class NameVariant(BaseModel):
+    name: Optional[str] = None
+    initials: Optional[str] = None
+    number: Optional[str] = None
+    is_primary: bool = False
+
+    @model_validator(mode="after")
+    def _at_least_one_field(self):
+        if not (self.name or self.initials or self.number):
+            raise ValueError("name_variants entry must have at least one of name/initials/number")
+        return self
+
+
+def _normalize_variants(variants: Optional[list[NameVariant]]) -> Optional[list[NameVariant]]:
+    if not variants:
+        return variants
+    primaries = [v for v in variants if v.is_primary]
+    if len(primaries) > 1:
+        raise ValueError("name_variants may only have one primary entry")
+    if not primaries:
+        variants[0].is_primary = True
+    return variants
 
 
 class SetCreate(BaseModel):
     universe_id: uuid.UUID
     name: str
-    aliases: Optional[list[str]] = None
+    name_variants: Optional[list[NameVariant]] = None
     bio: Optional[str] = None
     status: SetStatus = SetStatus.ACTIVE
     alliance_id: Optional[uuid.UUID] = None
@@ -22,10 +46,15 @@ class SetCreate(BaseModel):
     friend_ids: list[uuid.UUID] = []
     enemy_ids: list[uuid.UUID] = []
 
+    @model_validator(mode="after")
+    def _normalize(self):
+        self.name_variants = _normalize_variants(self.name_variants)
+        return self
+
 
 class SetUpdate(BaseModel):
     name: Optional[str] = None
-    aliases: Optional[list[str]] = None
+    name_variants: Optional[list[NameVariant]] = None
     bio: Optional[str] = None
     status: Optional[SetStatus] = None
     alliance_id: Optional[uuid.UUID] = None
@@ -36,6 +65,11 @@ class SetUpdate(BaseModel):
     friend_ids: Optional[list[uuid.UUID]] = None
     enemy_ids: Optional[list[uuid.UUID]] = None
 
+    @model_validator(mode="after")
+    def _normalize(self):
+        self.name_variants = _normalize_variants(self.name_variants)
+        return self
+
 
 class SetRead(BaseModel):
     model_config = {"from_attributes": True}
@@ -44,7 +78,7 @@ class SetRead(BaseModel):
     universe_id: uuid.UUID
     name: str
     slug: Optional[str]
-    aliases: Optional[list[str]]
+    name_variants: Optional[list[NameVariant]]
     bio: Optional[str]
     status: SetStatus
     alliance_id: Optional[uuid.UUID]
@@ -70,7 +104,7 @@ class SetListItem(BaseModel):
     id: uuid.UUID
     name: str
     slug: Optional[str]
-    aliases: Optional[list[str]]
+    name_variants: Optional[list[NameVariant]]
     status: SetStatus
     universe_id: uuid.UUID
     alliance_id: Optional[uuid.UUID]

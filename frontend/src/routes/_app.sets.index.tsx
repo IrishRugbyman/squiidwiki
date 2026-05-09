@@ -20,7 +20,48 @@ import { downloadCsv } from '@/lib/download'
 import { useDebounce } from '@/hooks/useDebounce'
 import { EmptyState } from '@/components/EmptyState'
 import { TableRowSkeleton } from '@/components/skeletons'
-import type { SetReadDetail, SetStatus, UUID } from '@/lib/types'
+import type { NameVariant, SetReadDetail, SetStatus, UUID } from '@/lib/types'
+
+function emptyVariant(isPrimary = false): NameVariant {
+  return { name: '', initials: '', number: '', is_primary: isPrimary }
+}
+
+function variantDisplay(v: NameVariant): string {
+  return (v.name || v.initials || v.number || '').trim()
+}
+
+function variantsToDisplayName(variants: NameVariant[]): string {
+  const primary = variants.find((v) => v.is_primary) ?? variants[0]
+  return primary ? variantDisplay(primary) : ''
+}
+
+// Render one variant compactly: "Across The Ave (ATA · 282)" or shorter forms.
+function formatVariant(v: NameVariant): string {
+  const head = v.name?.trim() || v.initials?.trim() || v.number?.trim() || ''
+  const extras: string[] = []
+  if (v.name && v.initials) extras.push(v.initials)
+  if (v.number) extras.push(v.number)
+  return extras.length > 0 ? `${head} (${extras.join(' · ')})` : head
+}
+
+function nonPrimaryVariantsText(variants?: NameVariant[] | null, sep = ' · '): string {
+  if (!variants) return ''
+  return variants.filter((v) => !v.is_primary).map(formatVariant).filter(Boolean).join(sep)
+}
+
+function initialVariants(initial?: SetReadDetail | null, copyFrom?: SetReadDetail | null): NameVariant[] {
+  const src = initial?.name_variants ?? copyFrom?.name_variants
+  if (src && src.length > 0) {
+    return src.map((v) => ({
+      name: v.name ?? '',
+      initials: v.initials ?? '',
+      number: v.number ?? '',
+      is_primary: !!v.is_primary,
+    }))
+  }
+  const seedName = initial?.name ?? copyFrom?.name ?? ''
+  return [{ name: seedName, initials: '', number: '', is_primary: true }]
+}
 
 export const Route = createFileRoute('/_app/sets/')({
   component: SetsPage,
@@ -104,8 +145,8 @@ export function SetFormSheet({ universeId, open, onClose, initial, onSaved, defa
   const { data: gangsData } = useGangs(universeId)
   const isEdit = !!initial
 
-  const [name, setName] = useState(initial?.name ?? copyFrom?.name ?? '')
-  const [aliases, setAliases] = useState(initial?.aliases?.join(', ') ?? copyFrom?.aliases?.join(', ') ?? '')
+  const [variants, setVariants] = useState<NameVariant[]>(() => initialVariants(initial, copyFrom))
+  const name = variantsToDisplayName(variants)
   const [bio, setBio] = useState(initial?.bio ?? copyFrom?.bio ?? '')
   const [status, setStatus] = useState<SetStatus>(initial?.status ?? copyFrom?.status ?? 'ACTIVE')
   const [allianceId, setAllianceId] = useState<string>(initial?.alliance_id ?? copyFrom?.alliance_id ?? defaultAllianceId ?? ALLIANCE_NONE)
@@ -150,12 +191,31 @@ export function SetFormSheet({ universeId, open, onClose, initial, onSaved, defa
     const alliance_id = allianceId === ALLIANCE_NONE ? null : allianceId
     const gang_id = gangId === GANG_NONE ? null : gangId
     const municipality_id = municipalityId === MUNI_NONE ? null : municipalityId
-    const aliasList = aliases.split(',').map((s) => s.trim()).filter(Boolean)
-    const aliasesPayload = aliasList.length > 0 ? aliasList : null
+    const cleanedVariants = variants
+      .map((v) => ({
+        name: (v.name ?? '').trim() || null,
+        initials: (v.initials ?? '').trim() || null,
+        number: (v.number ?? '').trim() || null,
+        is_primary: v.is_primary,
+      }))
+      .filter((v) => v.name || v.initials || v.number)
+    if (cleanedVariants.length === 0) {
+      setError('At least one name variant is required')
+      return
+    }
+    if (!cleanedVariants.some((v) => v.is_primary)) {
+      cleanedVariants[0].is_primary = true
+    }
+    const primary = cleanedVariants.find((v) => v.is_primary)!
+    const submitName = (primary.name || primary.initials || primary.number || '').trim()
+    if (!submitName) {
+      setError('The primary variant must have a name, initials, or number')
+      return
+    }
     const payload = {
       universe_id: universeId,
-      name,
-      aliases: aliasesPayload,
+      name: submitName,
+      name_variants: cleanedVariants,
       bio: bio || null,
       status,
       alliance_id,
@@ -170,7 +230,7 @@ export function SetFormSheet({ universeId, open, onClose, initial, onSaved, defa
         toast.success(`Updated "${name}"`)
       } else {
         await create.mutateAsync(payload)
-        setName(''); setAliases(''); setBio(''); setStatus('ACTIVE')
+        setVariants([emptyVariant(true)]); setBio(''); setStatus('ACTIVE')
         setAllianceId(ALLIANCE_NONE); setGangId(GANG_NONE); setMunicipalityId(MUNI_NONE); setTerritoryIds([])
         toast.success(`Created "${name}"`)
       }
@@ -195,22 +255,96 @@ export function SetFormSheet({ universeId, open, onClose, initial, onSaved, defa
               System set — only the bio is editable. All other fields are locked.
             </div>
           )}
-          <div className="space-y-1.5">
-            <Label htmlFor="set-name">Name *</Label>
-            <Input
-              id="set-name"
-              required
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="e.g. Terror Town"
-              readOnly={isReserved}
-              disabled={isReserved}
-            />
-          </div>
-          {!isReserved && (
+          {isReserved ? (
             <div className="space-y-1.5">
-              <Label htmlFor="set-aliases">Aliases <span className="text-zinc-600">(comma-separated)</span></Label>
-              <Input id="set-aliases" value={aliases} onChange={(e) => setAliases(e.target.value)} placeholder="e.g. GG, Ghost" />
+              <Label htmlFor="set-name">Name</Label>
+              <Input id="set-name" value={name} readOnly disabled />
+            </div>
+          ) : (
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label>Names *</Label>
+                <span className="text-[11px] text-zinc-500">Primary is shown as the set's display name</span>
+              </div>
+              <div className="space-y-2">
+                {variants.map((v, idx) => (
+                  <div
+                    key={idx}
+                    className={`rounded-md border p-2 ${v.is_primary ? 'border-violet-700/60 bg-violet-950/20' : 'border-zinc-800 bg-zinc-950/40'}`}
+                  >
+                    <div className="grid grid-cols-3 gap-2">
+                      <div className="space-y-1">
+                        <Label className="text-[11px] text-zinc-500">Name</Label>
+                        <Input
+                          value={v.name ?? ''}
+                          onChange={(e) =>
+                            setVariants((prev) => prev.map((x, i) => (i === idx ? { ...x, name: e.target.value } : x)))
+                          }
+                          placeholder="Across The Ave"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-[11px] text-zinc-500">Initials</Label>
+                        <Input
+                          value={v.initials ?? ''}
+                          onChange={(e) =>
+                            setVariants((prev) => prev.map((x, i) => (i === idx ? { ...x, initials: e.target.value } : x)))
+                          }
+                          placeholder="ATA"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-[11px] text-zinc-500">Number</Label>
+                        <Input
+                          value={v.number ?? ''}
+                          onChange={(e) =>
+                            setVariants((prev) => prev.map((x, i) => (i === idx ? { ...x, number: e.target.value } : x)))
+                          }
+                          placeholder="282"
+                        />
+                      </div>
+                    </div>
+                    <div className="mt-2 flex items-center justify-between">
+                      <label className="flex cursor-pointer items-center gap-1.5 text-xs text-zinc-400">
+                        <input
+                          type="radio"
+                          name="set-variant-primary"
+                          checked={v.is_primary}
+                          onChange={() =>
+                            setVariants((prev) => prev.map((x, i) => ({ ...x, is_primary: i === idx })))
+                          }
+                          className="h-3 w-3 accent-violet-500"
+                        />
+                        Primary
+                      </label>
+                      {variants.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setVariants((prev) => {
+                              const next = prev.filter((_, i) => i !== idx)
+                              if (!next.some((x) => x.is_primary) && next.length > 0) next[0].is_primary = true
+                              return next
+                            })
+                          }
+                          className="text-xs text-zinc-500 hover:text-red-400"
+                        >
+                          Remove
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setVariants((prev) => [...prev, emptyVariant(false)])}
+              >
+                <Plus className="mr-1 h-3.5 w-3.5" />
+                Add variant
+              </Button>
             </div>
           )}
           {!isReserved && (
@@ -644,9 +778,10 @@ function SetsPage() {
                                 </span>
                               )}
                             </div>
-                            {set.aliases && set.aliases.length > 0 && (
-                              <p className="text-xs text-zinc-500">{set.aliases.join(' · ')}</p>
-                            )}
+                            {(() => {
+                              const akaText = nonPrimaryVariantsText(set.name_variants)
+                              return akaText ? <p className="text-xs text-zinc-500">{akaText}</p> : null
+                            })()}
                           </div>
                         </Link>
                       </td>

@@ -154,11 +154,18 @@ export interface AllianceReadDetail extends AllianceRead {
 }
 
 // Set
+export interface NameVariant {
+  name: string | null
+  initials: string | null
+  number: string | null
+  is_primary: boolean
+}
+
 export interface SetListItem {
   id: UUID
   name: string
   slug: string | null
-  aliases: string[] | null
+  name_variants: NameVariant[] | null
   status: SetStatus
   universe_id: UUID
   alliance_id: UUID | null

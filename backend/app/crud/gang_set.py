@@ -325,7 +325,7 @@ async def search_gang_sets(
         select(GangSet).where(
             GangSet.universe_id == universe_id,
             GangSet.name.ilike(pattern)
-            | sa.cast(GangSet.aliases, sa.Text).ilike(pattern),
+            | sa.cast(GangSet.name_variants, sa.Text).ilike(pattern),
         )
     )
     return result.scalars().all()
