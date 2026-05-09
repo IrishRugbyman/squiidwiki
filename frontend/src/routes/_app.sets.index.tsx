@@ -850,7 +850,7 @@ function SetsPage() {
 
   // Settings — persisted defaults via URL (sharable). Effective values:
   const view: ViewMode = search.view ?? 'table'
-  const density: Density = search.density ?? 'comfortable'
+  const density: Density = search.density ?? 'compact'
   const sort: SortKey = search.sort ?? 'name'
   const order: 'asc' | 'desc' = search.order ?? 'asc'
   const pageSize = search.size ?? 20
