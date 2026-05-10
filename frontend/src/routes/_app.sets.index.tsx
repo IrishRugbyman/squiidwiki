@@ -133,7 +133,31 @@ function setColorStyle(name: string): React.CSSProperties {
   }
 }
 
-export function SetAvatar({ name, thumbUrl, size = 'md', isReserved = false }: { name: string; thumbUrl?: string | null; size?: 'sm' | 'md' | 'xl'; isReserved?: boolean }) {
+// Parse a #RRGGBB / #RGB hex into an [r,g,b] tuple, or null if unparseable.
+function parseHex(hex: string): [number, number, number] | null {
+  let h = hex.trim().replace(/^#/, '')
+  if (h.length === 3) h = h.split('').map((c) => c + c).join('')
+  if (h.length !== 6 && h.length !== 8) return null
+  const n = parseInt(h.slice(0, 6), 16)
+  if (Number.isNaN(n)) return null
+  return [(n >> 16) & 0xff, (n >> 8) & 0xff, n & 0xff]
+}
+
+// Translate a gang's hex color into the same dim-bg / bright-fg / soft-border
+// triplet that setColorStyle uses for hashed colors, so avatars stay visually
+// consistent regardless of the source.
+export function gangColorStyle(hex: string): React.CSSProperties {
+  const rgb = parseHex(hex)
+  if (!rgb) return setColorStyle(hex)
+  const [r, g, b] = rgb
+  return {
+    backgroundColor: `rgba(${r}, ${g}, ${b}, 0.22)`,
+    color: `rgb(${Math.min(255, r + 80)}, ${Math.min(255, g + 80)}, ${Math.min(255, b + 80)})`,
+    borderColor: `rgba(${r}, ${g}, ${b}, 0.55)`,
+  }
+}
+
+export function SetAvatar({ name, thumbUrl, size = 'md', isReserved = false, gangColor = null }: { name: string; thumbUrl?: string | null; size?: 'sm' | 'md' | 'xl'; isReserved?: boolean; gangColor?: string | null }) {
   const [imgError, setImgError] = useState(false)
   const sz =
     size === 'sm' ? 'h-7 w-7 text-xs rounded-md' :
@@ -166,7 +190,7 @@ export function SetAvatar({ name, thumbUrl, size = 'md', isReserved = false }: {
   return (
     <div
       className={`${sz} shrink-0 border flex items-center justify-center font-bold`}
-      style={setColorStyle(name)}
+      style={gangColor ? gangColorStyle(gangColor) : setColorStyle(name)}
       aria-hidden
     >
       {name.slice(0, 2).toUpperCase()}
@@ -759,11 +783,15 @@ function SetCard({ set, isSelected, onToggleSelect, onEdit, onDuplicate, onDelet
           {set.primary_photo_thumb_url ? (
             <img src={set.primary_photo_thumb_url} alt="" className="h-full w-full object-cover opacity-70" loading="lazy" />
           ) : (
-            <div className="h-full w-full" style={setColorStyle(set.name)} aria-hidden />
+            <div
+              className="h-full w-full"
+              style={set.gang_color ? gangColorStyle(set.gang_color) : setColorStyle(set.name)}
+              aria-hidden
+            />
           )}
           <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-zinc-950 to-transparent p-3">
             <div className="flex items-center gap-2">
-              <SetAvatar name={set.name} thumbUrl={set.primary_photo_thumb_url} isReserved={set.is_reserved} />
+              <SetAvatar name={set.name} thumbUrl={set.primary_photo_thumb_url} isReserved={set.is_reserved} gangColor={set.gang_color} />
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-semibold text-white group-hover:text-violet-300 transition-colors">
                   {set.name}
@@ -1196,7 +1224,7 @@ function SetsPage() {
               params={{ id: s.slug ?? s.id }}
               className="inline-flex items-center gap-1.5 rounded-full border border-zinc-700 bg-zinc-900/50 px-3 py-1 text-xs text-zinc-400 hover:border-zinc-500 hover:text-zinc-200 transition-colors"
             >
-              <SetAvatar name={s.name} thumbUrl={s.primary_photo_thumb_url} size="sm" isReserved={s.is_reserved} />
+              <SetAvatar name={s.name} thumbUrl={s.primary_photo_thumb_url} size="sm" isReserved={s.is_reserved} gangColor={s.gang_color} />
               {s.name}
             </Link>
           ))}
@@ -1290,7 +1318,7 @@ function SetsPage() {
                         </td>
                         <td className="p-0">
                           <Link to="/sets/$id" params={{ id: linkId }} className={`flex items-center gap-3 px-4 ${padY}`}>
-                            <SetAvatar name={set.name} thumbUrl={set.primary_photo_thumb_url} isReserved={set.is_reserved} />
+                            <SetAvatar name={set.name} thumbUrl={set.primary_photo_thumb_url} isReserved={set.is_reserved} gangColor={set.gang_color} />
                             <div className="min-w-0">
                               <div className="flex items-center gap-2">
                                 <p className="truncate font-medium text-white group-hover:text-violet-400 transition-colors">{set.name}</p>

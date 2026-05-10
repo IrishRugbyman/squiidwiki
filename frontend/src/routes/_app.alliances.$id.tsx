@@ -528,7 +528,7 @@ function AllianceSetRow({ set, memberCount, onRequestRemove }: AllianceSetRowPro
           params={{ id: linkId }}
           className="flex items-center gap-3 px-4 py-3"
         >
-          <SetAvatar name={set.name} size="sm" />
+          <SetAvatar name={set.name} size="sm" gangColor={set.gang_color} />
           <div className="min-w-0">
             <p className="font-medium text-white group-hover:text-violet-400 transition-colors">{set.name}</p>
             {(() => {

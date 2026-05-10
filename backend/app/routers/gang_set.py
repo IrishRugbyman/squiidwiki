@@ -16,6 +16,7 @@ from app.crud.gang_set import get_gang_set_by_slug
 from app.core.csv_export import to_csv_response
 from app.crud.incident import get_set_stats
 from app.models.alliance import Alliance
+from app.models.gang import Gang
 from app.models.member import Member
 from app.models.municipality import Municipality
 from app.schemas.common import OffsetPage
@@ -64,6 +65,7 @@ def _to_list_item(obj) -> SetListItem:
         alliance_name=getattr(obj, "_alliance_name", None),
         gang_id=obj.gang_id,
         gang_name=getattr(obj, "_gang_name", None),
+        gang_color=getattr(obj, "_gang_color", None),
         municipality_id=obj.municipality_id,
         municipality_name=getattr(obj, "_municipality_name", None),
         member_count=getattr(obj, "_member_count", 0),
@@ -212,6 +214,14 @@ async def get_set_detail(
         if row:
             alliance_name, alliance_slug = row
 
+    gang_name = gang_color = None
+    if obj.gang_id:
+        row = (await session.execute(
+            select(Gang.name, Gang.color).where(Gang.id == obj.gang_id)
+        )).one_or_none()
+        if row:
+            gang_name, gang_color = row
+
     municipality_name = None
     if obj.municipality_id:
         row = (await session.execute(
@@ -269,6 +279,8 @@ async def get_set_detail(
         municipality_slug=None,
         founder_display_name=founder_display_name,
         founder_slug=founder_slug,
+        gang_name=gang_name,
+        gang_color=gang_color,
         territories=[SetTerritorySummary(**t) for t in territories_raw],
         allies=[SetRelatedSummary(**a) for a in allies_raw],
         enemies=[SetRelatedSummary(**e) for e in enemies_raw],

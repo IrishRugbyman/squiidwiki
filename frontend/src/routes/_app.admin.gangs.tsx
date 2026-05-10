@@ -41,6 +41,7 @@ function GangFormSheet({
   const [name, setName] = useState(initial?.name ?? '')
   const [aliases, setAliases] = useState((initial?.aliases ?? []).join(', '))
   const [description, setDescription] = useState(initial?.description ?? '')
+  const [color, setColor] = useState(initial?.color ?? '')
 
   const isEdit = !!initial
 
@@ -54,6 +55,7 @@ function GangFormSheet({
       name: name.trim(),
       aliases: aliasList.length ? aliasList : null,
       description: description.trim() || null,
+      color: color.trim() || null,
     }
     if (isEdit && initial) {
       await update.mutateAsync({ id: initial.id, ...body })
@@ -90,6 +92,32 @@ function GangFormSheet({
               onChange={(e) => setAliases(e.target.value)}
               placeholder="GD, Growth & Development"
             />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="gang-color">Color</Label>
+            <div className="flex items-center gap-2">
+              <input
+                id="gang-color"
+                type="color"
+                value={color || '#7c3aed'}
+                onChange={(e) => setColor(e.target.value)}
+                className="h-9 w-12 cursor-pointer rounded border border-zinc-700 bg-zinc-900 p-0.5"
+              />
+              <Input
+                value={color}
+                onChange={(e) => setColor(e.target.value)}
+                placeholder="#7c3aed"
+                className="font-mono text-xs"
+              />
+              {color && (
+                <Button type="button" variant="ghost" size="sm" onClick={() => setColor('')}>
+                  Clear
+                </Button>
+              )}
+            </div>
+            <p className="text-[11px] text-zinc-500">
+              Tints sets, alliances, and the territory map for everything tagged with this gang.
+            </p>
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="gang-desc">Description</Label>
@@ -198,7 +226,15 @@ function AdminGangsPage() {
                 <tr key={g.id} className="hover:bg-zinc-900/30">
                   <td className="px-4 py-3 text-zinc-200">
                     <span className="inline-flex items-center gap-2">
-                      <Flag className="h-3.5 w-3.5 text-violet-400" />
+                      {g.color ? (
+                        <span
+                          className="h-3.5 w-3.5 rounded-sm ring-1 ring-zinc-700"
+                          style={{ backgroundColor: g.color }}
+                          aria-hidden
+                        />
+                      ) : (
+                        <Flag className="h-3.5 w-3.5 text-violet-400" />
+                      )}
                       {g.name}
                     </span>
                   </td>

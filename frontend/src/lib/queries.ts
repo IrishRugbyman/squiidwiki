@@ -381,7 +381,7 @@ export const useGangs = (universeId: UUID | null) =>
 export const useCreateGang = (universeId: UUID) => {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (body: { name: string; aliases?: string[] | null; description?: string | null }) =>
+    mutationFn: (body: { name: string; aliases?: string[] | null; description?: string | null; color?: string | null }) =>
       api.post<GangRead>('/gangs/', { universe_id: universeId, ...body }),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['gangs', universeId] }) },
   })
@@ -390,9 +390,14 @@ export const useCreateGang = (universeId: UUID) => {
 export const useUpdateGang = (universeId: UUID) => {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: ({ id, ...body }: { id: UUID; name?: string; aliases?: string[] | null; description?: string | null }) =>
+    mutationFn: ({ id, ...body }: { id: UUID; name?: string; aliases?: string[] | null; description?: string | null; color?: string | null }) =>
       api.patch<GangRead>(`/gangs/${id}?universe_id=${universeId}`, body),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['gangs', universeId] }) },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['gangs', universeId] })
+      // Sets carry denormalized gang_color — re-fetch so avatars/map repaint.
+      qc.invalidateQueries({ queryKey: ['sets'] })
+      qc.invalidateQueries({ queryKey: ['set-territory-polygons'] })
+    },
   })
 }
 

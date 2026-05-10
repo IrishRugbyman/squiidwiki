@@ -149,6 +149,8 @@ class SetPolygonItem(BaseModel):
     status: SetStatus
     municipality_id: Optional[uuid.UUID]
     alliance_id: Optional[uuid.UUID]
+    gang_id: Optional[uuid.UUID] = None
+    gang_color: Optional[str] = None
     territory_polygon: dict
 
 
@@ -165,6 +167,7 @@ class SetListItem(BaseModel):
     alliance_name: Optional[str] = None
     gang_id: Optional[uuid.UUID] = None
     gang_name: Optional[str] = None
+    gang_color: Optional[str] = None
     municipality_id: Optional[uuid.UUID]
     municipality_name: Optional[str] = None
     member_count: int = 0
@@ -231,6 +234,8 @@ class SetReadDetailFull(SetReadDetail):
     municipality_slug: Optional[str] = None
     founder_display_name: Optional[str] = None
     founder_slug: Optional[str] = None
+    gang_name: Optional[str] = None
+    gang_color: Optional[str] = None
     territories: list[SetTerritorySummary] = []
     allies: list[SetRelatedSummary] = []
     enemies: list[SetRelatedSummary] = []

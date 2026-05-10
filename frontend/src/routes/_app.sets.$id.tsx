@@ -777,6 +777,7 @@ function SetDetailPage() {
                 thumbUrl={set.primary_photo_url}
                 size="xl"
                 isReserved={isReserved}
+                gangColor={set.gang_color}
               />
               {/* Wrap text column so the avatar grid still works */}
               <div className="min-w-0">

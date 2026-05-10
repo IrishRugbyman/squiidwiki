@@ -121,6 +121,7 @@ export interface GangListItem {
   slug: string | null
   aliases: string[] | null
   description: string | null
+  color: string | null
 }
 
 export interface GangRead extends GangListItem {
@@ -173,6 +174,7 @@ export interface SetListItem {
   alliance_name: string | null
   gang_id: UUID | null
   gang_name: string | null
+  gang_color: string | null
   municipality_id: UUID | null
   municipality_name: string | null
   member_count: number
@@ -202,6 +204,8 @@ export interface SetTerritoryPolygon {
   status: 'ACTIVE' | 'EXTINCT'
   municipality_id: UUID | null
   alliance_id: UUID | null
+  gang_id: UUID | null
+  gang_color: string | null
   territory_polygon: GeoJSON.Polygon
 }
 

@@ -70,6 +70,11 @@ function statusColor(status: 'ACTIVE' | 'EXTINCT'): string {
   return status === 'ACTIVE' ? '#7c3aed' : '#52525b'
 }
 
+// Pick the per-set color: gang nation color if set, else status fallback.
+function setColorOf(s: SetTerritoryPolygon): string {
+  return s.gang_color ?? statusColor(s.status)
+}
+
 // ─── component ───────────────────────────────────────────────────────────────
 
 export default function TerritoryMap({
@@ -146,7 +151,7 @@ export default function TerritoryMap({
             kind: 'set',
             firstSetId: s.id,
             name: s.name,
-            color: statusColor(s.status),
+            color: setColorOf(s),
             isSelected: s.id === selectedSetId,
           },
           geometry: s.territory_polygon,
@@ -154,7 +159,7 @@ export default function TerritoryMap({
       }
       return { type: 'FeatureCollection', features }
     }
-    // Sets view: one feature per set, status-tinted.
+    // Sets view: one feature per set, gang-tinted (status fallback).
     return {
       type: 'FeatureCollection',
       features: setPolygons.map((s) => ({
@@ -165,7 +170,7 @@ export default function TerritoryMap({
           kind: 'set',
           firstSetId: s.id,
           name: s.name,
-          color: statusColor(s.status),
+          color: setColorOf(s),
           isSelected: s.id === selectedSetId,
         },
         geometry: s.territory_polygon,

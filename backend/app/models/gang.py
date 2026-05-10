@@ -23,6 +23,7 @@ class Gang(SQLModel, table=True):
     aliases: Optional[list] = Field(default=None, sa_column=Column(JSONB))
     description: Optional[str] = None
     slug: Optional[str] = Field(default=None, index=True)
+    color: Optional[str] = Field(default=None, max_length=16)
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
     created_by_id: Optional[uuid.UUID] = Field(default=None, foreign_key="users.id")

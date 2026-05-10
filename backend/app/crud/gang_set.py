@@ -251,6 +251,7 @@ async def list_gang_sets(
             func.coalesce(member_count_sq.c.member_count, 0).label("member_count"),
             Alliance.name.label("alliance_name"),
             Gang.name.label("gang_name"),
+            Gang.color.label("gang_color"),
             Municipality.name.label("municipality_name"),
         )
         .select_from(GangSet)
@@ -290,7 +291,8 @@ async def list_gang_sets(
         object.__setattr__(obj, "_member_count", int(row[1] or 0))
         object.__setattr__(obj, "_alliance_name", row[2])
         object.__setattr__(obj, "_gang_name", row[3])
-        object.__setattr__(obj, "_municipality_name", row[4])
+        object.__setattr__(obj, "_gang_color", row[4])
+        object.__setattr__(obj, "_municipality_name", row[5])
         items.append(obj)
     return items, total
 
@@ -386,8 +388,12 @@ async def list_set_polygons(
             GangSet.status,
             GangSet.municipality_id,
             GangSet.alliance_id,
+            GangSet.gang_id,
+            Gang.color,
             GangSet.territory_polygon,
         )
+        .select_from(GangSet)
+        .join(Gang, Gang.id == GangSet.gang_id, isouter=True)
         .where(GangSet.universe_id == universe_id)
         .where(GangSet.territory_polygon.isnot(None))
         .where(sa.cast(GangSet.territory_polygon, sa.Text) != "null")
@@ -403,7 +409,9 @@ async def list_set_polygons(
             "status": r[3],
             "municipality_id": r[4],
             "alliance_id": r[5],
-            "territory_polygon": r[6],
+            "gang_id": r[6],
+            "gang_color": r[7],
+            "territory_polygon": r[8],
         }
         for r in rows
     ]
