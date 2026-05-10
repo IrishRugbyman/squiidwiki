@@ -1,5 +1,5 @@
 import { UserPlus, Users } from 'lucide-react'
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -7,12 +7,13 @@ import { Badge } from '@/components/ui/badge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { useDebounce } from '@/hooks/useDebounce'
-import { useMemberSearch, useUpdateIncident } from '@/lib/queries'
+import { useAllSets, useMemberSearch, useUpdateIncident } from '@/lib/queries'
 import type { IncidentReadDetail, ParticipantOutcome, ParticipantRole, UUID } from '@/lib/types'
 
 interface PendingParticipant {
   member_id: UUID
   member_name: string
+  set_name?: string
   role: ParticipantRole
   outcome: ParticipantOutcome
 }
@@ -35,13 +36,20 @@ export function AddParticipantToIncidentDialog({
   const [pending, setPending] = useState<PendingParticipant[]>([])
   const debouncedSearch = useDebounce(search, 200)
   const { data: results } = useMemberSearch(universeId, debouncedSearch)
+  const { data: setsPage } = useAllSets(universeId)
+  const setNameById = useMemo(() => {
+    const out: Record<string, string> = {}
+    for (const s of setsPage?.items ?? []) out[s.id] = s.name
+    return out
+  }, [setsPage])
 
   const existingIds = new Set(incident.participants.map((p) => p.member_id))
   const pendingIds = new Set(pending.map((p) => p.member_id))
 
-  function addPending(memberId: UUID, memberName: string) {
+  function addPending(memberId: UUID, memberName: string, setId?: string | null) {
     if (existingIds.has(memberId) || pendingIds.has(memberId)) return
-    setPending((prev) => [...prev, { member_id: memberId, member_name: memberName, role, outcome }])
+    const setName = setId ? setNameById[setId] : undefined
+    setPending((prev) => [...prev, { member_id: memberId, member_name: memberName, set_name: setName, role, outcome }])
     setSearch('')
   }
 
@@ -139,11 +147,16 @@ export function AddParticipantToIncidentDialog({
                       key={m.id}
                       type="button"
                       disabled={already}
-                      onClick={() => addPending(m.id, m.display_name)}
-                      className="w-full px-3 py-2 text-left text-sm text-zinc-300 hover:bg-zinc-800 transition-colors disabled:opacity-40 disabled:hover:bg-transparent disabled:cursor-not-allowed flex items-center justify-between"
+                      onClick={() => addPending(m.id, m.display_name, m.set_id)}
+                      className="w-full px-3 py-2 text-left text-sm text-zinc-300 hover:bg-zinc-800 transition-colors disabled:opacity-40 disabled:hover:bg-transparent disabled:cursor-not-allowed flex items-center justify-between gap-2"
                     >
-                      <span>{m.display_name}</span>
-                      {already && <span className="text-xs text-zinc-500">already added</span>}
+                      <span className="truncate">{m.display_name}</span>
+                      <span className="flex items-center gap-2 shrink-0">
+                        {m.set_id && setNameById[m.set_id] && (
+                          <span className="text-[10px] text-zinc-500 truncate max-w-[120px]">{setNameById[m.set_id]}</span>
+                        )}
+                        {already && <span className="text-xs text-zinc-500">already added</span>}
+                      </span>
                     </button>
                   )
                 })
@@ -171,9 +184,14 @@ export function AddParticipantToIncidentDialog({
             {pending.map((p) => (
               <div
                 key={p.member_id}
-                className="flex items-center justify-between rounded border border-zinc-800 px-3 py-1.5 text-sm"
+                className="flex items-center justify-between rounded border border-zinc-800 px-3 py-1.5 text-sm gap-2"
               >
-                <span className="text-zinc-200">{p.member_name}</span>
+                <span className="min-w-0 flex items-baseline gap-1.5 truncate">
+                  <span className="text-zinc-200 truncate">{p.member_name}</span>
+                  {p.set_name && (
+                    <span className="text-[10px] text-zinc-500 truncate">· {p.set_name}</span>
+                  )}
+                </span>
                 <div className="flex items-center gap-2">
                   <Badge variant="secondary" className="text-xs">{p.role}</Badge>
                   <Badge variant="outline" className="text-xs">{p.outcome}</Badge>
