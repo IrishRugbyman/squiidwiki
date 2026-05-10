@@ -5,7 +5,7 @@ import { toast } from 'sonner'
 import {
   useSetDetail, useDeleteSet, useUpdateSet,
   useAddSetRelationship, useRemoveSetRelationship,
-  useSetMembers, useSetIncidents, useSets,
+  useSetMembers, useSetIncidents, useSets, useSetActivity,
 } from '@/lib/queries'
 import { useUniverseStore } from '@/stores/universe'
 import { useAuthStore } from '@/stores/auth'
@@ -117,6 +117,90 @@ function IncidentsYearStrip({ data }: { data: Array<{ year: number; count: numbe
           )
         })}
       </div>
+    </div>
+  )
+}
+
+/** Audit-log feed grouped by day. */
+function ActivityFeed({ entries, loading, setName }: {
+  entries: import('@/lib/types').SetActivityEntry[]
+  loading: boolean
+  setName: string
+}) {
+  if (loading) return <Skeleton className="h-40 w-full" />
+  if (entries.length === 0) {
+    return (
+      <EmptyState
+        icon={Activity}
+        title="No activity yet"
+        description={`Edits to ${setName} or any of its members will appear here.`}
+      />
+    )
+  }
+  // Group by YYYY-MM-DD (local time)
+  const groups = new Map<string, typeof entries>()
+  for (const e of entries) {
+    const d = new Date(e.created_at)
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+    if (!groups.has(key)) groups.set(key, [])
+    groups.get(key)!.push(e)
+  }
+  return (
+    <div className="space-y-4">
+      {Array.from(groups.entries()).map(([day, items]) => {
+        const date = new Date(items[0].created_at)
+        const today = new Date()
+        const isToday = date.toDateString() === today.toDateString()
+        const yesterday = new Date(today.getTime() - 86_400_000)
+        const isYesterday = date.toDateString() === yesterday.toDateString()
+        const label = isToday ? 'Today' : isYesterday ? 'Yesterday' : date.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })
+        return (
+          <div key={day}>
+            <h3 className="mb-1.5 text-[10px] font-medium uppercase tracking-wider text-zinc-500">{label}</h3>
+            <ul className="divide-y divide-zinc-800 rounded-xl border border-zinc-800 bg-zinc-900/30">
+              {items.map((e) => {
+                const verb = e.action === 'CREATE' ? 'created' : e.action === 'DELETE' ? 'deleted' : 'updated'
+                const actor = e.actor_email ? e.actor_email.split('@')[0] : 'Someone'
+                const noun = e.entity_type === 'set' ? 'set' : 'member'
+                const target = e.target_label ?? '(deleted)'
+                const linkTo = e.entity_type === 'set'
+                  ? { to: '/sets/$id' as const, params: { id: e.target_slug ?? e.entity_id } }
+                  : { to: '/members/$id' as const, params: { id: e.target_slug ?? e.entity_id } }
+                const time = new Date(e.created_at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
+                // The audit listener captures every column on CREATE — too noisy
+                // to display; only render diff_keys for UPDATE actions.
+                const showKeys = e.action === 'UPDATE' && e.diff_keys.length > 0
+                return (
+                  <li key={e.id} className="flex items-start gap-3 px-4 py-2.5 text-sm">
+                    <span className={`mt-1 inline-block h-1.5 w-1.5 shrink-0 rounded-full ${
+                      e.action === 'CREATE' ? 'bg-emerald-500' :
+                      e.action === 'DELETE' ? 'bg-red-500' : 'bg-violet-500'
+                    }`} aria-hidden />
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-baseline gap-x-1.5 gap-y-0.5">
+                        <span className="text-zinc-300">{actor}</span>
+                        <span className="text-zinc-500">{verb} {noun}</span>
+                        <Link {...linkTo} className="font-medium text-violet-400 hover:underline truncate">
+                          {target}
+                        </Link>
+                        <span className="ml-auto font-mono text-[11px] tabular-nums text-zinc-600">{time}</span>
+                      </div>
+                      {showKeys && (
+                        <div className="mt-0.5 flex flex-wrap gap-1 text-[10px] text-zinc-500">
+                          {e.diff_keys.slice(0, 6).map((k) => (
+                            <span key={k} className="rounded bg-zinc-800/60 px-1.5 py-0.5">{k}</span>
+                          ))}
+                          {e.diff_keys.length > 6 && <span className="text-zinc-600">+{e.diff_keys.length - 6}</span>}
+                        </div>
+                      )}
+                    </div>
+                  </li>
+                )
+              })}
+            </ul>
+          </div>
+        )
+      })}
     </div>
   )
 }
@@ -497,6 +581,8 @@ function SetDetailPage() {
   const stats = set?.stats
   const { data: membersData } = useSetMembers(realId, universe?.id ?? null)
   const { data: incidentsData } = useSetIncidents(realId, universe?.id ?? null)
+  // Lazy-load the activity feed only when the Activity tab is open.
+  const { data: activityData, isLoading: activityLoading } = useSetActivity(realId, universe?.id ?? null, tab === 'activity')
 
   useRecordRecent(set ? { type: 'set', id: set.id, slug: set.slug, label: set.name } : null)
 
@@ -1288,12 +1374,12 @@ function SetDetailPage() {
             </TabsContent>
           )}
 
-          {/* Activity tab — placeholder until Phase 5 wires the audit feed */}
+          {/* Activity tab — audit feed scoped to set + its members, lazy-loaded */}
           <TabsContent value="activity" className="mt-4">
-            <EmptyState
-              icon={Activity}
-              title="Activity feed coming soon"
-              description="An audit log scoped to this set and its members will land here."
+            <ActivityFeed
+              entries={activityData ?? []}
+              loading={activityLoading}
+              setName={set.name}
             />
           </TabsContent>
           </Tabs>

@@ -225,6 +225,18 @@ export interface IncidentsPerYear {
   count: number
 }
 
+export interface SetActivityEntry {
+  id: UUID
+  entity_type: 'set' | 'member'
+  entity_id: UUID
+  action: 'CREATE' | 'UPDATE' | 'DELETE'
+  actor_email: string | null
+  target_label: string | null
+  target_slug: string | null
+  diff_keys: string[]
+  created_at: string
+}
+
 export interface SetReadDetailFull extends SetReadDetail {
   alliance_name: string | null
   alliance_slug: string | null

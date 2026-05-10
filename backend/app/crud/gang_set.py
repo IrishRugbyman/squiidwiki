@@ -536,6 +536,88 @@ async def list_set_incidents_per_year(
     return [{"year": int(r[0]), "count": int(r[1])} for r in rows]
 
 
+async def list_set_activity(
+    session: AsyncSession, set_id: uuid.UUID, *, limit: int = 20
+) -> list[dict]:
+    """Audit-log feed scoped to this set + its members. Returns dicts ready
+    for SetActivityEntry, with actor email and target label denormalized."""
+    from app.models.auth import AuditLog, User
+
+    # Fetch the set's current member ids in one query.
+    member_ids = (await session.execute(
+        select(Member.id).where(Member.set_id == set_id)
+    )).scalars().all()
+
+    cond = (AuditLog.entity_type == "set") & (AuditLog.entity_id == set_id)
+    if member_ids:
+        cond = cond | ((AuditLog.entity_type == "member") & (AuditLog.entity_id.in_(member_ids)))
+
+    rows = (await session.execute(
+        select(
+            AuditLog.id, AuditLog.entity_type, AuditLog.entity_id, AuditLog.action,
+            AuditLog.diff_json, AuditLog.created_at,
+            User.email,
+        )
+        .select_from(AuditLog)
+        .outerjoin(User, User.id == AuditLog.user_id)
+        .where(cond)
+        .order_by(AuditLog.created_at.desc())
+        .limit(limit)
+    )).all()
+
+    if not rows:
+        return []
+
+    # Batched label/slug lookups: which set ids and member ids do we need?
+    set_ids_to_label: set[uuid.UUID] = set()
+    member_ids_to_label: set[uuid.UUID] = set()
+    for r in rows:
+        if r[1] == "set":
+            set_ids_to_label.add(r[2])
+        else:
+            member_ids_to_label.add(r[2])
+
+    set_labels: dict[uuid.UUID, tuple[str, str | None]] = {}
+    if set_ids_to_label:
+        srows = (await session.execute(
+            select(GangSet.id, GangSet.name, GangSet.slug)
+            .where(GangSet.id.in_(set_ids_to_label))
+        )).all()
+        set_labels = {s[0]: (s[1], s[2]) for s in srows}
+
+    member_labels: dict[uuid.UUID, tuple[str, str | None]] = {}
+    if member_ids_to_label:
+        mrows = (await session.execute(
+            select(Member.id, Member.nickname, Member.legal_name, Member.nickname_unknown, Member.slug)
+            .where(Member.id.in_(member_ids_to_label))
+        )).all()
+        for m in mrows:
+            mid, nick, legal, nick_unknown, mslug = m
+            display = (legal or "Unknown") if (nick_unknown or not nick) else nick
+            member_labels[mid] = (display, mslug)
+
+    out: list[dict] = []
+    for r in rows:
+        log_id, ent_type, ent_id, action, diff_json, created_at, email = r
+        if ent_type == "set":
+            label, slug = set_labels.get(ent_id, (None, None))
+        else:
+            label, slug = member_labels.get(ent_id, (None, None))
+        diff_keys = sorted(list(diff_json.keys())) if isinstance(diff_json, dict) else []
+        out.append({
+            "id": log_id,
+            "entity_type": ent_type,
+            "entity_id": ent_id,
+            "action": action.value if hasattr(action, "value") else str(action),
+            "actor_email": email,
+            "target_label": label,
+            "target_slug": slug,
+            "diff_keys": diff_keys,
+            "created_at": created_at,
+        })
+    return out
+
+
 async def get_set_max_updated_at(
     session: AsyncSession, set_id: uuid.UUID
 ) -> Optional[datetime]:

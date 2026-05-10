@@ -21,6 +21,7 @@ from app.models.municipality import Municipality
 from app.schemas.common import OffsetPage
 from app.schemas.gang_set import (
     IncidentsPerYear,
+    SetActivityEntry,
     SetCreate,
     SetListItem,
     SetRead,
@@ -346,6 +347,21 @@ async def remove_relationship(
     ok = await crud.remove_set_relationship(session, id, target_id, universe_id)
     if not ok:
         raise HTTPException(404)
+
+
+@router.get("/{id}/activity", response_model=list[SetActivityEntry])
+async def get_set_activity(
+    id: uuid.UUID,
+    universe_id: uuid.UUID,
+    _: CurrentUser,
+    session: Annotated[AsyncSession, Depends(get_session)],
+    limit: int = Query(20, ge=1, le=100),
+):
+    obj = await crud.get_gang_set(session, id, universe_id)
+    if obj is None:
+        raise HTTPException(404)
+    rows = await crud.list_set_activity(session, id, limit=limit)
+    return [SetActivityEntry(**r) for r in rows]
 
 
 @router.get("/{id}/stats", response_model=SetStats)

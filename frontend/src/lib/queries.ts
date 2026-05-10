@@ -31,6 +31,7 @@ import type {
   ResearchNoteListItem,
   ResearchNoteRead,
   SetListItem,
+  SetActivityEntry,
   SetRead,
   SetReadDetail,
   SetReadDetailFull,
@@ -178,6 +179,16 @@ export const useSetDetail = (idOrSlug: string, universeId: UUID | null) =>
     queryKey: ['sets', idOrSlug, 'detail'],
     queryFn: () => api.get<SetReadDetailFull>(`/sets/${idOrSlug}/detail?universe_id=${universeId}`),
     enabled: !!universeId && !!idOrSlug,
+  })
+
+// Audit-log feed scoped to a set + its members. Lazy-fetched only when the
+// Activity tab is opened.
+export const useSetActivity = (setId: UUID, universeId: UUID | null, enabled: boolean) =>
+  useQuery({
+    queryKey: ['sets', setId, 'activity'],
+    queryFn: () => api.get<SetActivityEntry[]>(`/sets/${setId}/activity?universe_id=${universeId}&limit=30`),
+    enabled: enabled && !!universeId && !!setId,
+    staleTime: 30_000,
   })
 
 export const useSetStats = (id: UUID, universeId: UUID | null) =>

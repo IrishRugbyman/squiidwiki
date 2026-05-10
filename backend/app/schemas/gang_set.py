@@ -162,6 +162,19 @@ class IncidentsPerYear(BaseModel):
     count: int
 
 
+class SetActivityEntry(BaseModel):
+    """One row in the per-set audit feed."""
+    id: uuid.UUID
+    entity_type: Literal["set", "member"]
+    entity_id: uuid.UUID
+    action: Literal["CREATE", "UPDATE", "DELETE"]
+    actor_email: Optional[str] = None
+    target_label: Optional[str] = None  # set name OR member display name
+    target_slug: Optional[str] = None
+    diff_keys: list[str] = []  # condensed view of diff_json — just the changed field names
+    created_at: datetime
+
+
 class SetReadDetailFull(SetReadDetail):
     """Denormalized payload for the set detail page — single round-trip."""
     alliance_name: Optional[str] = None
