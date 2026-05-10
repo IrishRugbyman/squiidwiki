@@ -35,11 +35,24 @@ import { useEditShortcut } from '@/hooks/useKeymap'
 import { INCIDENT_TYPE_CHIP } from '@/lib/incidentColors'
 import type { IncidentListItem, MemberListItem, NameVariant, SetReadDetail } from '@/lib/types'
 
+function variantLead(v: NameVariant): 'name' | 'initials' | 'number' | null {
+  if (v.lead && v[v.lead]?.trim()) return v.lead
+  if (v.name?.trim()) return 'name'
+  if (v.initials?.trim()) return 'initials'
+  if (v.number?.trim()) return 'number'
+  return null
+}
+
 function formatNameVariant(v: NameVariant): string {
-  const head = v.name?.trim() || v.initials?.trim() || v.number?.trim() || ''
+  const lead = variantLead(v)
+  if (!lead) return ''
+  const head = (v[lead] ?? '').trim()
   const extras: string[] = []
-  if (v.name && v.initials) extras.push(v.initials)
-  if (v.number) extras.push(v.number)
+  for (const slot of ['name', 'initials', 'number'] as const) {
+    if (slot === lead) continue
+    const val = v[slot]?.trim()
+    if (val) extras.push(val)
+  }
   return extras.length > 0 ? `${head} (${extras.join(' · ')})` : head
 }
 
@@ -623,10 +636,56 @@ function SetDetailPage() {
                   <CopyButton value={window.location.href} label="Copy link to this set" className="opacity-40 hover:opacity-100" />
                 </div>
                 {(() => {
-                  const aka = nonPrimaryVariantStrings(set.name_variants)
-                  return aka.length > 0 ? (
-                    <p className="mt-1 text-sm text-zinc-500">a/k/a {aka.join(' · ')}</p>
-                  ) : null
+                  const variants = set.name_variants ?? []
+                  const primary = variants.find((v) => v.is_primary)
+                  const others = variants.filter((v) => !v.is_primary)
+                  if (!primary && others.length === 0) return null
+                  const primaryExtras = primary
+                    ? (['name', 'initials', 'number'] as const)
+                        .filter((slot) => slot !== variantLead(primary) && primary[slot]?.trim())
+                        .map((slot) => ({ slot, value: primary[slot]!.trim() }))
+                    : []
+                  return (
+                    <div className="mt-1 space-y-1">
+                      {primaryExtras.length > 0 && (
+                        <div className="flex flex-wrap items-center gap-1.5 text-xs">
+                          {primaryExtras.map(({ slot, value }) => (
+                            <span
+                              key={slot}
+                              className="inline-flex items-center gap-1 rounded-full bg-zinc-800/70 px-2 py-0.5 text-zinc-300"
+                            >
+                              <span className="text-[10px] uppercase tracking-wider text-zinc-500">{slot}</span>
+                              {value}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                      {others.length > 0 && (
+                        <div className="flex flex-wrap items-center gap-1.5 text-xs">
+                          <span className="text-[10px] uppercase tracking-wider text-zinc-600">a/k/a</span>
+                          {others.map((v, i) => {
+                            const lead = variantLead(v)
+                            if (!lead) return null
+                            const head = v[lead]!.trim()
+                            const extras = (['name', 'initials', 'number'] as const)
+                              .filter((slot) => slot !== lead && v[slot]?.trim())
+                              .map((slot) => v[slot]!.trim())
+                            return (
+                              <span
+                                key={i}
+                                className="inline-flex items-center gap-1 rounded-full border border-zinc-800 bg-zinc-900/60 px-2 py-0.5 text-zinc-400"
+                              >
+                                <span className="text-zinc-200">{head}</span>
+                                {extras.length > 0 && (
+                                  <span className="text-zinc-600">· {extras.join(' · ')}</span>
+                                )}
+                              </span>
+                            )
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  )
                 })()}
                 <div className="mt-2 flex flex-wrap items-center gap-2">
                   <SetStatusBadge status={set.status} />

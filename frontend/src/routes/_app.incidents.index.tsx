@@ -111,6 +111,14 @@ function ParticipantsSection({ universeId, participants, onChangeParticipants, s
   const addedMemberIds = new Set(participants.map((p) => p.member_id))
   const addedSetIds = new Set(setParticipants.map((p) => p.set_id))
 
+  const memberSetNameById = useMemo(() => {
+    const out: Record<string, string> = {}
+    for (const m of allMembers) {
+      if (m.set_id && setNameById[m.set_id]) out[m.id] = setNameById[m.set_id]
+    }
+    return out
+  }, [allMembers, setNameById])
+
   const suggestions = useMemo(() => {
     if (participants.length === 0 || allMembers.length === 0) return [] as MemberListItem[]
     const memberMap = Object.fromEntries(allMembers.map((m) => [m.id, m]))
@@ -192,8 +200,11 @@ function ParticipantsSection({ universeId, participants, onChangeParticipants, s
             <div className="max-h-32 overflow-y-auto rounded border border-zinc-800 bg-zinc-950">
               {memberResults.map((m) => (
                 <button key={m.id} type="button" onClick={() => addMember(m.id, m.display_name)}
-                  className="w-full px-3 py-2 text-left text-sm text-zinc-300 hover:bg-zinc-800 transition-colors">
-                  {m.display_name}
+                  className="w-full px-3 py-2 text-left text-sm text-zinc-300 hover:bg-zinc-800 transition-colors flex items-center justify-between gap-2">
+                  <span className="truncate">{m.display_name}</span>
+                  {m.set_id && setNameById[m.set_id] && (
+                    <span className="text-[10px] text-zinc-500 shrink-0 truncate max-w-[40%]">{setNameById[m.set_id]}</span>
+                  )}
                 </button>
               ))}
             </div>
@@ -236,8 +247,13 @@ function ParticipantsSection({ universeId, participants, onChangeParticipants, s
       {total > 0 && (
         <div className="space-y-1 pt-1 border-t border-zinc-800">
           {participants.map((p) => (
-            <div key={p.member_id} className="flex items-center justify-between rounded border border-zinc-800 px-2.5 py-1.5 text-sm">
-              <span className="text-zinc-200 truncate">{p.member_name}</span>
+            <div key={p.member_id} className="flex items-center justify-between rounded border border-zinc-800 px-2.5 py-1.5 text-sm gap-2">
+              <span className="min-w-0 flex items-baseline gap-1.5 truncate">
+                <span className="text-zinc-200 truncate">{p.member_name}</span>
+                {memberSetNameById[p.member_id] && (
+                  <span className="text-[10px] text-zinc-500 truncate">· {memberSetNameById[p.member_id]}</span>
+                )}
+              </span>
               <div className="flex items-center gap-1.5 shrink-0">
                 <Badge variant="secondary" className="text-[10px] px-1.5">{p.role}</Badge>
                 <Badge variant="outline" className="text-[10px] px-1.5">{p.outcome}</Badge>

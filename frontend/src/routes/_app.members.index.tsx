@@ -19,7 +19,6 @@ import { MemberRowSkeleton } from '@/components/skeletons'
 import { MemberStatusBadge } from '@/components/StatusBadge'
 import {
   MemberFormSheet,
-  MemberAvatar,
   EditMemberSheet,
 } from '@/components/members/MemberFormSheet'
 import type { MemberListItem, MemberStatus } from '@/lib/types'
@@ -257,7 +256,6 @@ function MembersPage() {
                   className="rounded border-zinc-700 bg-zinc-900 accent-violet-600"
                 />
               </th>
-              <th className="px-3 py-2.5 w-8" scope="col" aria-label="Avatar" />
               <th className="px-3 py-2.5 text-left" scope="col" aria-sort={sortKey === 'display_name' ? (sortDir === 'asc' ? 'ascending' : 'descending') : 'none'}>
                 <button onClick={() => toggleSort('display_name')} className="flex items-center gap-1 text-xs font-medium text-zinc-400 hover:text-white transition-colors focus-visible:outline-none focus-visible:text-white">
                   Name <span className="text-zinc-600" aria-hidden>{sortKey === 'display_name' ? (sortDir === 'asc' ? '↑' : '↓') : '↕'}</span>
@@ -278,7 +276,7 @@ function MembersPage() {
             {listLoading
               ? Array.from({ length: 8 }).map((_, i) => <MemberRowSkeleton key={i} />)
               : isVirtualized && virtualPaddingTop > 0
-                ? <tr aria-hidden><td colSpan={6} style={{ height: virtualPaddingTop }} /></tr>
+                ? <tr aria-hidden><td colSpan={5} style={{ height: virtualPaddingTop }} /></tr>
                 : null}
             {!listLoading && (isVirtualized ? virtualRows.map((vRow) => items[vRow.index]) : items).map((member, idx) => {
                   const linkId = member.slug ?? member.id
@@ -297,7 +295,6 @@ function MembersPage() {
                           className="rounded border-zinc-700 bg-zinc-900 accent-violet-600"
                         />
                       </td>
-                      <td className="px-3 py-3"><MemberAvatar member={member} /></td>
                       <td className="p-0">
                         <Link to="/members/$id" params={{ id: linkId }} className="block px-3 py-3 transition-colors group-hover:text-violet-400">
                           <span className={`font-medium ${isDead ? 'text-zinc-400 line-through decoration-zinc-600' : 'text-white'}`}>{member.display_name}</span>
@@ -332,11 +329,11 @@ function MembersPage() {
                   )
                 })}
             {!listLoading && isVirtualized && virtualPaddingBottom > 0 && (
-              <tr aria-hidden><td colSpan={6} style={{ height: virtualPaddingBottom }} /></tr>
+              <tr aria-hidden><td colSpan={5} style={{ height: virtualPaddingBottom }} /></tr>
             )}
             {!isLoading && items.length === 0 && (
               <tr>
-                <td colSpan={6}>
+                <td colSpan={5}>
                   <div className="flex flex-col items-center py-14 text-center">
                     <Users className="mb-3 h-8 w-8 text-zinc-700" />
                     <p className="text-sm text-zinc-500">
@@ -394,7 +391,6 @@ function MembersPage() {
                     onChange={() => toggleSelect(member.id)}
                     className="mt-1 rounded border-zinc-700 bg-zinc-900 accent-violet-600"
                   />
-                  <MemberAvatar member={member} />
                   <div className="min-w-0 flex-1">
                     <Link
                       to="/members/$id"
