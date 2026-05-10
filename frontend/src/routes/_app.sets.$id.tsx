@@ -898,37 +898,6 @@ function SetDetailPage() {
             </div>
           </div>
 
-          {/* One-line lede — names link to their sets so "264" reads as a name. */}
-          {(stats?.member_count || stats?.dead_members || stats?.last_incident_year || set.allies.length || set.enemies.length) ? (
-            <p className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-sm text-zinc-400">
-              {stats && stats.member_count > 0 && (
-                <span><span className="font-medium text-zinc-200 tabular-nums">{stats.member_count}</span> member{stats.member_count === 1 ? '' : 's'}</span>
-              )}
-              {stats && stats.dead_members > 0 && (
-                <><span className="text-zinc-700">·</span><span><span className="font-medium text-zinc-200 tabular-nums">{stats.dead_members}</span> dead</span></>
-              )}
-              {stats?.last_incident_year && (
-                <><span className="text-zinc-700">·</span><span>last incident <span className="font-medium text-zinc-200 tabular-nums">{stats.last_incident_year}</span></span></>
-              )}
-              {set.allies[0] && (
-                <><span className="text-zinc-700">·</span><span>allied with{' '}
-                  <Link to="/sets/$id" params={{ id: set.allies[0].slug ?? set.allies[0].id }} className="rounded bg-emerald-950/40 px-1.5 py-0.5 text-emerald-300 hover:bg-emerald-900/50">
-                    {set.allies[0].name}
-                  </Link>
-                  {set.allies.length > 1 && <span className="text-zinc-500"> +{set.allies.length - 1}</span>}
-                </span></>
-              )}
-              {set.enemies[0] && (
-                <><span className="text-zinc-700">·</span><span>at war with{' '}
-                  <Link to="/sets/$id" params={{ id: set.enemies[0].slug ?? set.enemies[0].id }} className="rounded bg-red-950/40 px-1.5 py-0.5 text-red-300 hover:bg-red-900/50">
-                    {set.enemies[0].name}
-                  </Link>
-                  {set.enemies.length > 1 && <span className="text-zinc-500"> +{set.enemies.length - 1}</span>}
-                </span></>
-              )}
-            </p>
-          ) : null}
-
           {/* KPI grouping — primary 3-up cards, secondary inline strip. */}
           {stats && !allStatsZero && (
             <div className="space-y-2">
