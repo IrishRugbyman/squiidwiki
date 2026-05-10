@@ -193,6 +193,7 @@ export function GlobalCommandPalette({ open, onClose }: GlobalCommandPaletteProp
     <>
       <CommandDialog
         open={open}
+        shouldFilter={false}
         onOpenChange={(v) => {
           if (!v) { onClose(); setQ('') }
         }}

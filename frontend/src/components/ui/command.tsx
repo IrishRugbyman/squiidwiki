@@ -16,12 +16,16 @@ const Command = React.forwardRef<
 ))
 Command.displayName = CommandPrimitive.displayName
 
-const CommandDialog = ({ children, ...props }: React.ComponentPropsWithoutRef<typeof Dialog>) => (
+const CommandDialog = ({
+  children,
+  shouldFilter,
+  ...props
+}: React.ComponentPropsWithoutRef<typeof Dialog> & { shouldFilter?: boolean }) => (
   <Dialog {...props}>
     <DialogContent className="overflow-hidden p-0">
       <DialogTitle className="sr-only">Command Menu</DialogTitle>
       <DialogDescription className="sr-only">Search and select an option</DialogDescription>
-      <Command>{children}</Command>
+      <Command shouldFilter={shouldFilter}>{children}</Command>
     </DialogContent>
   </Dialog>
 )
