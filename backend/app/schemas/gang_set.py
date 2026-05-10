@@ -100,8 +100,14 @@ class SetUpdate(BaseModel):
 
     @model_validator(mode="after")
     def _normalize(self):
-        self.name_variants = _normalize_variants(self.name_variants)
-        self.territory_polygon = _validate_polygon(self.territory_polygon)
+        # Only touch fields the caller actually sent. Unconditional reassignment
+        # marks the field as "set", defeating exclude_unset=True in the CRUD —
+        # which previously wiped territory_polygon on every form-edit PATCH.
+        fields_set = self.model_fields_set
+        if "name_variants" in fields_set:
+            self.name_variants = _normalize_variants(self.name_variants)
+        if "territory_polygon" in fields_set:
+            self.territory_polygon = _validate_polygon(self.territory_polygon)
         return self
 
 
