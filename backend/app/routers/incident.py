@@ -13,6 +13,7 @@ from app.core.csv_export import to_csv_response
 from app.crud import incident as crud
 from app.models.incident import IncidentParticipant
 from app.models.member import Member
+from app.models.municipality import Municipality
 from app.schemas.common import CursorPage
 from app.schemas.incident import (
     IncidentCreate,
@@ -51,12 +52,24 @@ async def _enrich_participant_names(session: AsyncSession, items: list) -> list:
             victim_map.setdefault(key, []).append(name)
         else:
             shooter_map.setdefault(key, []).append(name)
+    # Single batched join for municipality names so the frontend doesn't have
+    # to fetch the entire municipalities table just to label rows.
+    muni_ids = {inc.municipality_id for inc in items if inc.municipality_id}
+    muni_names: dict[uuid.UUID, str] = {}
+    if muni_ids:
+        muni_rows = (await session.execute(
+            select(Municipality.id, Municipality.name).where(Municipality.id.in_(muni_ids))
+        )).all()
+        muni_names = {r[0]: r[1] for r in muni_rows}
+
     enriched = []
     for inc in items:
         d = IncidentListItem.model_validate(inc)
         key = str(inc.id)
         d.victim_names = victim_map.get(key, [])
         d.shooter_names = shooter_map.get(key, [])
+        if inc.municipality_id:
+            d.municipality_name = muni_names.get(inc.municipality_id)
         enriched.append(d)
     return enriched
 

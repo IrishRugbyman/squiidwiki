@@ -365,6 +365,7 @@ export interface IncidentListItem {
   date: FuzzyDateValue | null
   location_text: string | null
   municipality_id: UUID | null
+  municipality_name: string | null
   lat: number | null
   lng: number | null
   verified: boolean

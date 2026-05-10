@@ -5,7 +5,7 @@ import { toast } from 'sonner'
 import {
   useSetDetail, useDeleteSet, useUpdateSet,
   useAddSetRelationship, useRemoveSetRelationship,
-  useSetMembers, useSetIncidents, useSets, useMunicipalities,
+  useSetMembers, useSetIncidents, useSets,
 } from '@/lib/queries'
 import { useUniverseStore } from '@/stores/universe'
 import { useAuthStore } from '@/stores/auth'
@@ -82,6 +82,44 @@ export const Route = createFileRoute('/_app/sets/$id')({
   }),
   component: SetDetailPage,
 })
+
+/**
+ * Tiny year-bucketed activity strip — pure SVG, no recharts.
+ * Renders one bar per year between min..max, filling gaps with zero so the
+ * timeline is uniform. Designed to fit in ~64px height above an incidents table.
+ */
+function IncidentsYearStrip({ data }: { data: Array<{ year: number; count: number }> }) {
+  if (!data.length) return null
+  const minYear = data[0].year
+  const maxYear = data[data.length - 1].year
+  const span = maxYear - minYear + 1
+  // Densify: include every year between min and max so years aren't squished.
+  const counts = new Map(data.map((d) => [d.year, d.count]))
+  const years = Array.from({ length: span }, (_, i) => minYear + i)
+  const max = Math.max(...data.map((d) => d.count), 1)
+  return (
+    <div className="rounded-lg border border-zinc-800 bg-zinc-950 p-3">
+      <div className="mb-1.5 flex items-baseline justify-between text-[10px] uppercase tracking-wider text-zinc-600">
+        <span>Incidents per year</span>
+        <span className="font-mono tabular-nums">{minYear}–{maxYear}</span>
+      </div>
+      <div className="flex items-end gap-0.5" style={{ height: 48 }}>
+        {years.map((y) => {
+          const c = counts.get(y) ?? 0
+          const h = c === 0 ? 2 : Math.max(4, (c / max) * 48)
+          return (
+            <div
+              key={y}
+              title={`${y}: ${c} incident${c === 1 ? '' : 's'}`}
+              className={`flex-1 rounded-sm transition-colors ${c === 0 ? 'bg-zinc-800/40' : 'bg-violet-500/70 hover:bg-violet-400'}`}
+              style={{ height: h }}
+            />
+          )
+        })}
+      </div>
+    </div>
+  )
+}
 
 function DetailRow({ label, children }: { label: React.ReactNode; children: React.ReactNode }) {
   return (
@@ -459,11 +497,6 @@ function SetDetailPage() {
   const stats = set?.stats
   const { data: membersData } = useSetMembers(realId, universe?.id ?? null)
   const { data: incidentsData } = useSetIncidents(realId, universe?.id ?? null)
-  // Used only to decorate incident rows with municipality names. Will go away
-  // once IncidentListItem denormalizes municipality_name in Phase 4.
-  const { data: munisData } = useMunicipalities(universe?.id ?? null)
-  const muniMap: Record<string, { name: string }> = {}
-  for (const m of munisData?.items ?? []) muniMap[m.id] = { name: m.name }
 
   useRecordRecent(set ? { type: 'set', id: set.id, slug: set.slug, label: set.name } : null)
 
@@ -483,8 +516,17 @@ function SetDetailPage() {
 
   // Members section state
   const [memberQuery, setMemberQuery] = useState('')
+  const [memberStatusFilter, setMemberStatusFilter] = useState<string>('ALL')
   const [memberSortKey, setMemberSortKey] = useState<'name' | 'status' | 'date_of_death'>('name')
   const [memberSortDir, setMemberSortDir] = useState<SortDir>('asc')
+  const [memberDense, setMemberDense] = useState<boolean>(() => {
+    if (typeof localStorage === 'undefined') return false
+    return localStorage.getItem('sw:set-members-dense') === '1'
+  })
+  useEffect(() => {
+    if (typeof localStorage === 'undefined') return
+    localStorage.setItem('sw:set-members-dense', memberDense ? '1' : '0')
+  }, [memberDense])
 
   // Incidents section state
   const [incSortKey, setIncSortKey] = useState<'date' | 'type'>('date')
@@ -522,9 +564,18 @@ function SetDetailPage() {
     stats.total_kills === 0
   )
 
+  const memberStatusCounts = useMemo(() => {
+    const c: Record<string, number> = {}
+    for (const m of memberItems) c[m.status] = (c[m.status] ?? 0) + 1
+    return c
+  }, [memberItems])
+
   const filteredMembers = useMemo(() => {
     const q = memberQuery.trim().toLowerCase()
     let rows = memberItems
+    if (memberStatusFilter !== 'ALL') {
+      rows = rows.filter((m) => m.status === memberStatusFilter)
+    }
     if (q) {
       rows = rows.filter((m) => {
         if (m.display_name.toLowerCase().includes(q)) return true
@@ -545,7 +596,7 @@ function SetDetailPage() {
       if (cmp === 0) cmp = a.display_name.localeCompare(b.display_name)
       return cmp * dir
     })
-  }, [memberItems, memberQuery, memberSortKey, memberSortDir])
+  }, [memberItems, memberQuery, memberStatusFilter, memberSortKey, memberSortDir])
 
   const sortedIncidents = useMemo(() => {
     const dir = incSortDir === 'asc' ? 1 : -1
@@ -951,12 +1002,8 @@ function SetDetailPage() {
 
             {/* Members tab — existing table */}
             <TabsContent value="members" className="mt-4"><section>
-            <div className="mb-3 flex items-center justify-between gap-2">
-              <div className="flex items-center gap-2">
-                <h2 className="text-xs font-medium uppercase tracking-wider text-zinc-500">Members</h2>
-                {memberItems.length > 0 && (
-                  <Badge variant="secondary" className="px-1.5 py-0 text-xs">{memberItems.length}</Badge>
-                )}
+            <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+              <div className="flex flex-1 flex-wrap items-center gap-2">
                 {memberItems.length > 5 && (
                   <div className="relative max-w-xs flex-1">
                     <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-zinc-500" />
@@ -968,15 +1015,51 @@ function SetDetailPage() {
                     />
                   </div>
                 )}
-                {memberQuery && filteredMembers.length !== memberItems.length && (
+                {memberItems.length > 0 && Object.keys(memberStatusCounts).length > 1 && (
+                  <div className="flex flex-wrap items-center gap-1">
+                    {(['ALL', 'FREE', 'LOCKED', 'DEAD', 'UNKNOWN', 'ESCAPEE', 'ABSCONDER'] as const)
+                      .filter((s) => s === 'ALL' || (memberStatusCounts[s] ?? 0) > 0)
+                      .map((s) => {
+                        const active = memberStatusFilter === s
+                        const n = s === 'ALL' ? memberItems.length : (memberStatusCounts[s] ?? 0)
+                        return (
+                          <button
+                            key={s}
+                            type="button"
+                            onClick={() => setMemberStatusFilter(s)}
+                            aria-pressed={active}
+                            className={`rounded-full border px-2.5 py-0.5 text-[11px] font-medium transition-colors ${
+                              active
+                                ? 'border-violet-500/60 bg-violet-500/10 text-violet-200'
+                                : 'border-zinc-800 bg-zinc-900/40 text-zinc-500 hover:text-zinc-300'
+                            }`}
+                          >
+                            {s === 'ALL' ? 'All' : s.charAt(0) + s.slice(1).toLowerCase()}
+                            <span className="ml-1 tabular-nums opacity-60">{n}</span>
+                          </button>
+                        )
+                      })}
+                  </div>
+                )}
+                {(memberQuery || memberStatusFilter !== 'ALL') && filteredMembers.length !== memberItems.length && (
                   <span className="text-xs text-zinc-500 tabular-nums">
                     {filteredMembers.length} of {memberItems.length}
                   </span>
                 )}
               </div>
-              <Button size="sm" variant="outline" onClick={() => setAddingMember(true)}>
-                <Plus className="mr-1.5 h-3.5 w-3.5" />Add Member
-              </Button>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setMemberDense((d) => !d)}
+                  title={memberDense ? 'Comfortable rows' : 'Dense rows'}
+                  className="rounded-md border border-zinc-800 bg-zinc-900/40 px-2 py-1 text-[11px] text-zinc-400 hover:text-zinc-200"
+                >
+                  {memberDense ? 'Comfortable' : 'Dense'}
+                </button>
+                <Button size="sm" variant="outline" onClick={() => setAddingMember(true)}>
+                  <Plus className="mr-1.5 h-3.5 w-3.5" />Add Member
+                </Button>
+              </div>
             </div>
             {memberItems.length === 0 ? (
               <EmptyState
@@ -998,8 +1081,8 @@ function SetDetailPage() {
             ) : (
               <div className="overflow-hidden rounded-xl border border-zinc-800">
                 <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b border-zinc-800 bg-zinc-900/50">
+                  <thead className="sticky top-0 z-10">
+                    <tr className="border-b border-zinc-800 bg-zinc-900">
                       <th scope="col" className="w-10 px-3 py-2.5" aria-label="Photo" />
                       <SortHeader<'name' | 'status' | 'date_of_death'>
                         label="Name" col="name"
@@ -1020,14 +1103,15 @@ function SetDetailPage() {
                     {filteredMembers.map((m) => {
                       const isDead = m.status === 'DEAD'
                       const linkId = m.slug ?? m.id
+                      const cellPad = memberDense ? 'py-1.5' : 'py-3'
                       return (
                         <tr key={m.id} className={`group hover:bg-zinc-900/50 transition-colors ${isDead ? 'opacity-60' : ''}`}>
-                          <td className="px-3 py-3"><MemberAvatar member={m} /></td>
+                          <td className={`px-3 ${cellPad}`}><MemberAvatar member={m} /></td>
                           <td className="p-0">
                             <Link
                               to="/members/$id"
                               params={{ id: linkId }}
-                              className="block px-3 py-3 transition-colors group-hover:text-violet-400"
+                              className={`block px-3 ${cellPad} transition-colors group-hover:text-violet-400`}
                             >
                               <span className="inline-flex items-center gap-1.5">
                                 <span className={`font-medium ${isDead ? 'text-zinc-400 line-through decoration-zinc-600' : 'text-white'}`}>
@@ -1058,12 +1142,12 @@ function SetDetailPage() {
                             </Link>
                           </td>
                           <td className="p-0">
-                            <Link to="/members/$id" params={{ id: linkId }} className="block px-4 py-3" tabIndex={-1}>
+                            <Link to="/members/$id" params={{ id: linkId }} className={`block px-4 ${cellPad}`} tabIndex={-1}>
                               <MemberStatusBadge status={m.status} />
                             </Link>
                           </td>
                           <td className="hidden p-0 md:table-cell">
-                            <Link to="/members/$id" params={{ id: linkId }} className="block px-4 py-3 text-xs text-zinc-500" tabIndex={-1}>
+                            <Link to="/members/$id" params={{ id: linkId }} className={`block px-4 ${cellPad} text-xs text-zinc-500`} tabIndex={-1}>
                               {m.date_of_death ? <FuzzyDate value={m.date_of_death} /> : <span className="text-zinc-700">—</span>}
                             </Link>
                           </td>
@@ -1077,15 +1161,7 @@ function SetDetailPage() {
           </section></TabsContent>
 
           {/* Incidents tab — existing table */}
-          <TabsContent value="incidents" className="mt-4"><section>
-            <div className="mb-3 flex items-center justify-between gap-2">
-              <div className="flex items-center gap-2">
-                <h2 className="text-xs font-medium uppercase tracking-wider text-zinc-500">Incidents</h2>
-                {incidentCount > 0 && (
-                  <Badge variant="secondary" className="px-1.5 py-0 text-xs">{incidentCount}</Badge>
-                )}
-              </div>
-            </div>
+          <TabsContent value="incidents" className="mt-4"><section className="space-y-3">
             {incidentCount === 0 ? (
               <EmptyState
                 icon={ShieldAlert}
@@ -1093,10 +1169,12 @@ function SetDetailPage() {
                 description="Incidents involving members of this set will appear here."
               />
             ) : (
-              <div className="overflow-hidden rounded-xl border border-zinc-800">
+              <>
+                <IncidentsYearStrip data={set.incidents_per_year} />
+                <div className="overflow-hidden rounded-xl border border-zinc-800">
                 <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b border-zinc-800 bg-zinc-900/50">
+                  <thead className="sticky top-0 z-10">
+                    <tr className="border-b border-zinc-800 bg-zinc-900">
                       <SortHeader<'date' | 'type'>
                         label="Type" col="type"
                         sortKey={incSortKey} sortDir={incSortDir} onSort={toggleIncSort}
@@ -1111,7 +1189,7 @@ function SetDetailPage() {
                   </thead>
                   <tbody className="divide-y divide-zinc-800">
                     {sortedIncidents.map((inc) => {
-                      const muniName = inc.municipality_id ? muniMap[inc.municipality_id]?.name : null
+                      const muniName = inc.municipality_name
                       return (
                         <tr key={inc.id} className="group hover:bg-zinc-900/50 transition-colors">
                           <td className="p-0">
@@ -1148,7 +1226,8 @@ function SetDetailPage() {
                     })}
                   </tbody>
                 </table>
-              </div>
+                </div>
+              </>
             )}
           </section></TabsContent>
 
