@@ -604,15 +604,6 @@ function SetDetailPage() {
   const [memberStatusFilter, setMemberStatusFilter] = useState<string>('ALL')
   const [memberSortKey, setMemberSortKey] = useState<'name' | 'status' | 'date_of_death'>('name')
   const [memberSortDir, setMemberSortDir] = useState<SortDir>('asc')
-  const [memberDense, setMemberDense] = useState<boolean>(() => {
-    if (typeof localStorage === 'undefined') return false
-    return localStorage.getItem('sw:set-members-dense') === '1'
-  })
-  useEffect(() => {
-    if (typeof localStorage === 'undefined') return
-    localStorage.setItem('sw:set-members-dense', memberDense ? '1' : '0')
-  }, [memberDense])
-
   // Incidents section state
   const [incSortKey, setIncSortKey] = useState<'date' | 'type'>('date')
   const [incSortDir, setIncSortDir] = useState<SortDir>('desc')
@@ -1102,19 +1093,9 @@ function SetDetailPage() {
                   </span>
                 )}
               </div>
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => setMemberDense((d) => !d)}
-                  title={memberDense ? 'Comfortable rows' : 'Dense rows'}
-                  className="rounded-md border border-zinc-800 bg-zinc-900/40 px-2 py-1 text-[11px] text-zinc-400 hover:text-zinc-200"
-                >
-                  {memberDense ? 'Comfortable' : 'Dense'}
-                </button>
-                <Button size="sm" variant="outline" onClick={() => setAddingMember(true)}>
-                  <Plus className="mr-1.5 h-3.5 w-3.5" />Add Member
-                </Button>
-              </div>
+              <Button size="sm" variant="outline" onClick={() => setAddingMember(true)}>
+                <Plus className="mr-1.5 h-3.5 w-3.5" />Add Member
+              </Button>
             </div>
             {memberItems.length === 0 ? (
               <EmptyState
@@ -1157,7 +1138,7 @@ function SetDetailPage() {
                     {filteredMembers.map((m) => {
                       const isDead = m.status === 'DEAD'
                       const linkId = m.slug ?? m.id
-                      const cellPad = memberDense ? 'py-1.5' : 'py-3'
+                      const cellPad = 'py-1.5'
                       return (
                         <tr key={m.id} className={`group hover:bg-zinc-900/50 transition-colors ${isDead ? 'opacity-60' : ''}`}>
                           <td className="p-0">
