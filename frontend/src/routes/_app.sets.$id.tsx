@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
-import { Copy, Download, GitFork, MapPin, Pencil, Plus, Search, ShieldAlert, Swords, Trash2, Users, X } from 'lucide-react'
-import { useMemo, useState, lazy, Suspense } from 'react'
+import { Activity, Copy, Crosshair, Download, GitFork, Image as ImageIcon, ListTree, MapPin, MoreHorizontal, Pencil, Plus, Search, ShieldAlert, Skull, Swords, Trash2, Users, X } from 'lucide-react'
+import { useEffect, useMemo, useState, lazy, Suspense } from 'react'
 import { toast } from 'sonner'
 import {
   useSetDetail, useDeleteSet, useUpdateSet,
@@ -16,6 +16,9 @@ import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
+import { StatCard } from '@/components/StatCard'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { EmptyState } from '@/components/EmptyState'
 import { ErrorState } from '@/components/ErrorState'
@@ -66,18 +69,19 @@ const PhotoGallery = lazy(() =>
   import('@/components/media/PhotoGallery').then((m) => ({ default: m.PhotoGallery })),
 )
 
+const TAB_KEYS = ['overview', 'members', 'incidents', 'relationships', 'media', 'activity'] as const
+type TabKey = typeof TAB_KEYS[number]
+
+interface SetSearch {
+  tab?: TabKey
+}
+
 export const Route = createFileRoute('/_app/sets/$id')({
+  validateSearch: (s: Record<string, unknown>): SetSearch => ({
+    tab: typeof s.tab === 'string' && (TAB_KEYS as readonly string[]).includes(s.tab) ? (s.tab as TabKey) : undefined,
+  }),
   component: SetDetailPage,
 })
-
-function StatPill({ label, value, accent = 'text-white' }: { label: string; value: number; accent?: string }) {
-  return (
-    <div className="flex flex-col items-center rounded-xl border border-zinc-800 bg-zinc-900/50 p-3 text-center">
-      <span className={`text-2xl font-bold tabular-nums ${accent}`}>{value}</span>
-      <span className="mt-0.5 text-[11px] text-zinc-500">{label}</span>
-    </div>
-  )
-}
 
 function DetailRow({ label, children }: { label: React.ReactNode; children: React.ReactNode }) {
   return (
@@ -427,9 +431,28 @@ function RelationshipsPanel({
 
 function SetDetailPage() {
   const { id } = Route.useParams()
+  const search = Route.useSearch()
+  const tab: TabKey = search.tab ?? 'overview'
   const universe = useUniverseStore((s) => s.activeUniverse)
   const user = useAuthStore((s) => s.user)
   const navigate = useNavigate()
+  const setTab = (next: TabKey) => navigate({ to: '/sets/$id', params: { id }, search: (s) => ({ ...s, tab: next === 'overview' ? undefined : next }), replace: true })
+
+  // 1–6 keyboard shortcuts to switch tabs (ignored when typing).
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.metaKey || e.ctrlKey || e.altKey) return
+      const t = e.target as HTMLElement | null
+      if (t && (t.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(t.tagName))) return
+      const idx = '123456'.indexOf(e.key)
+      if (idx === -1) return
+      e.preventDefault()
+      setTab(TAB_KEYS[idx])
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id])
 
   const { data: set, isLoading, isError, refetch } = useSetDetail(id, universe?.id ?? null)
   const realId = set?.id ?? ''
@@ -716,24 +739,43 @@ function SetDetailPage() {
               </div>
             </div>
             <div className="flex shrink-0 items-center gap-2">
-              <Button size="sm" variant="outline" onClick={() => setEditing(true)}>
+              <Button size="sm" variant="outline" onClick={() => setEditing(true)} title="Edit (e)">
                 <Pencil className="mr-1.5 h-3.5 w-3.5" />Edit
               </Button>
-              {!isReserved && (
-                <Button size="sm" variant="outline" onClick={() => setDuplicating(true)}>
-                  <Copy className="mr-1.5 h-3.5 w-3.5" />Duplicate
-                </Button>
-              )}
-              <Button size="sm" variant="outline" onClick={handleExport}>
-                <Download className="mr-1.5 h-3.5 w-3.5" />Export
-              </Button>
-              {isAdmin && !isReserved && (
-                <Button size="sm" variant="destructive" onClick={() => setDeleting(true)}>
-                  <Trash2 className="mr-1.5 h-3.5 w-3.5" />Delete
-                </Button>
-              )}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button size="sm" variant="outline" aria-label="More actions">
+                    <MoreHorizontal className="h-3.5 w-3.5" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  {!isReserved && (
+                    <DropdownMenuItem onClick={() => setDuplicating(true)}>
+                      <Copy className="mr-2 h-3.5 w-3.5" />Duplicate
+                    </DropdownMenuItem>
+                  )}
+                  <DropdownMenuItem onClick={handleExport}>
+                    <Download className="mr-2 h-3.5 w-3.5" />Export Markdown
+                  </DropdownMenuItem>
+                  {isAdmin && !isReserved && (
+                    <>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem onClick={() => setDeleting(true)} className="text-red-400 focus:text-red-300">
+                        <Trash2 className="mr-2 h-3.5 w-3.5" />Delete set
+                      </DropdownMenuItem>
+                    </>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </div>
+
+          {/* One-line lede synthesised server-side */}
+          {set.lede && (
+            <p className="text-sm text-zinc-400">
+              {set.lede}
+            </p>
+          )}
 
           {/* Biography — inline under hero */}
           {editingBio ? (
@@ -775,70 +817,135 @@ function SetDetailPage() {
             </div>
           )}
 
-          {/* Stats row — hidden when all zero */}
+          {/* KPI grouping — primary 3-up, secondary 4-up */}
           {stats && !allStatsZero && (
-            <div className="grid grid-cols-5 gap-2">
-              <StatPill label="Members" value={stats.member_count} />
-              <StatPill label="Dead" value={stats.dead_members} accent="text-zinc-400" />
-              <StatPill label="Shootings" value={stats.total_shootings} accent="text-amber-400" />
-              <StatPill label="Assists" value={stats.total_assists} accent="text-violet-400" />
-              <StatPill label="Kills" value={stats.total_kills} accent="text-rose-400" />
+            <div className="space-y-2">
+              <div className="grid grid-cols-3 gap-2">
+                <StatCard icon={Users} label="Members" value={stats.member_count} accent="violet" />
+                <StatCard icon={Crosshair} label="Shootings" value={stats.total_shootings} accent="amber" />
+                <StatCard icon={Skull} label="Kills" value={stats.total_kills} accent="red" />
+              </div>
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                <StatCard label="Active" value={stats.active_member_count} hint="not dead/unknown" />
+                <StatCard label="Dead" value={stats.dead_members} accent="default" />
+                <StatCard label="Assists" value={stats.total_assists} accent="violet" />
+                <StatCard
+                  label="Last incident"
+                  value={stats.last_incident_year ?? '—'}
+                  hint={stats.first_incident_year ? `since ${stats.first_incident_year}` : undefined}
+                />
+              </div>
             </div>
           )}
 
-          {/* Two-column wiki layout: identity facts + side panels */}
-          <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1fr_280px]">
-            {/* Left: identity facts */}
-            <div className="rounded-xl border border-zinc-800 bg-zinc-900/30 px-4 py-1">
-              <DetailRow label="Founder">
-                {founder ? (
-                  <Link to="/members/$id" params={{ id: founder.slug ?? founder.id }} className="text-violet-400 hover:underline">
-                    {founder.display_name}
-                  </Link>
-                ) : <span className="text-zinc-600">—</span>}
-              </DetailRow>
-              <DetailRow label="Alliance">
-                {alliance ? (
-                  <Link to="/alliances/$id" params={{ id: alliance.slug ?? alliance.id }} className="text-blue-400 hover:underline">
-                    {alliance.name}
-                  </Link>
-                ) : <span className="text-zinc-600">—</span>}
-              </DetailRow>
-              <DetailRow label="Municipality">
-                {muni && set.municipality_id ? (
-                  <Link to="/municipalities/$id" params={{ id: set.municipality_id }} className="text-violet-400 hover:underline">
-                    {muni.name}
-                  </Link>
-                ) : <span className="text-zinc-600">—</span>}
-              </DetailRow>
-              <DetailRow label="Territories">
-                {territoryNames.length > 0 ? (
-                  <span title={territoryNames.join(', ')}>
-                    {territoryNames.length} sub-district{territoryNames.length === 1 ? '' : 's'}
-                  </span>
-                ) : <span className="text-zinc-600">—</span>}
-              </DetailRow>
-              <DetailRow label="Created">
-                <span className="text-zinc-400">{timeAgo(set.created_at)}</span>
-              </DetailRow>
-            </div>
+          <Tabs value={tab} onValueChange={(v) => setTab(v as TabKey)} className="w-full">
+            <TabsList className="h-auto flex-wrap bg-zinc-950/50 p-0.5">
+              <TabsTrigger value="overview" title="Overview (1)"><ListTree className="mr-1.5 h-3.5 w-3.5" />Overview</TabsTrigger>
+              <TabsTrigger value="members" title="Members (2)">
+                <Users className="mr-1.5 h-3.5 w-3.5" />Members
+                {memberItems.length > 0 && <Badge variant="secondary" className="ml-1.5 px-1.5 py-0 text-[10px]">{memberItems.length}</Badge>}
+              </TabsTrigger>
+              <TabsTrigger value="incidents" title="Incidents (3)">
+                <ShieldAlert className="mr-1.5 h-3.5 w-3.5" />Incidents
+                {incidentCount > 0 && <Badge variant="secondary" className="ml-1.5 px-1.5 py-0 text-[10px]">{incidentCount}</Badge>}
+              </TabsTrigger>
+              {!isReserved && (
+                <TabsTrigger value="relationships" title="Relationships (4)">
+                  <GitFork className="mr-1.5 h-3.5 w-3.5" />Relationships
+                  {(set.friend_ids.length + set.enemy_ids.length) > 0 && (
+                    <Badge variant="secondary" className="ml-1.5 px-1.5 py-0 text-[10px]">
+                      {set.friend_ids.length + set.enemy_ids.length}
+                    </Badge>
+                  )}
+                </TabsTrigger>
+              )}
+              {!isReserved && (
+                <TabsTrigger value="media" title="Media (5)"><ImageIcon className="mr-1.5 h-3.5 w-3.5" />Media</TabsTrigger>
+              )}
+              <TabsTrigger value="activity" title="Activity (6)"><Activity className="mr-1.5 h-3.5 w-3.5" />Activity</TabsTrigger>
+            </TabsList>
 
-            {/* Right: relationships */}
-            {!isReserved && (
-              <RelationshipsPanel
-                friendIds={set.friend_ids}
-                enemyIds={set.enemy_ids}
-                setMap={setMap}
-                onAdd={() => setAddingRel(true)}
-                onOpenGraph={() => setGraphOpen(true)}
-                onRemove={(sid) => removeRel.mutate(sid)}
-                removingId={removeRel.isPending ? (removeRel.variables as string | undefined) ?? null : null}
-              />
-            )}
-          </div>
+            {/* Overview: facts + ally/enemy strip + latest incidents + top members */}
+            <TabsContent value="overview" className="mt-4 space-y-4">
+              <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1fr_280px]">
+                <div className="rounded-xl border border-zinc-800 bg-zinc-900/30 px-4 py-1">
+                  <DetailRow label="Founder">
+                    {founder ? (
+                      <Link to="/members/$id" params={{ id: founder.slug ?? founder.id }} className="text-violet-400 hover:underline">
+                        {founder.display_name}
+                      </Link>
+                    ) : <span className="text-zinc-600">—</span>}
+                  </DetailRow>
+                  <DetailRow label="Alliance">
+                    {alliance ? (
+                      <Link to="/alliances/$id" params={{ id: alliance.slug ?? alliance.id }} className="text-blue-400 hover:underline">
+                        {alliance.name}
+                      </Link>
+                    ) : <span className="text-zinc-600">—</span>}
+                  </DetailRow>
+                  <DetailRow label="Municipality">
+                    {muni && set.municipality_id ? (
+                      <Link to="/municipalities/$id" params={{ id: set.municipality_id }} className="text-violet-400 hover:underline">
+                        {muni.name}
+                      </Link>
+                    ) : <span className="text-zinc-600">—</span>}
+                  </DetailRow>
+                  <DetailRow label="Territories">
+                    {territoryNames.length > 0 ? (
+                      <span title={territoryNames.join(', ')}>
+                        {territoryNames.length} sub-district{territoryNames.length === 1 ? '' : 's'}
+                      </span>
+                    ) : <span className="text-zinc-600">—</span>}
+                  </DetailRow>
+                  <DetailRow label="Created">
+                    <span className="text-zinc-400">{timeAgo(set.created_at)}</span>
+                  </DetailRow>
+                </div>
+                {!isReserved && (
+                  <RelationshipsPanel
+                    friendIds={set.friend_ids}
+                    enemyIds={set.enemy_ids}
+                    setMap={setMap}
+                    onAdd={() => setTab('relationships')}
+                    onOpenGraph={() => setTab('relationships')}
+                    onRemove={(sid) => removeRel.mutate(sid)}
+                    removingId={removeRel.isPending ? (removeRel.variables as string | undefined) ?? null : null}
+                  />
+                )}
+              </div>
 
-          {/* Members section */}
-          <section>
+              {/* Top-3 latest incidents — quick digest */}
+              {incidentItems.length > 0 && (
+                <div>
+                  <div className="mb-2 flex items-center justify-between">
+                    <h3 className="text-xs font-medium uppercase tracking-wider text-zinc-500">Latest incidents</h3>
+                    <button type="button" onClick={() => setTab('incidents')} className="text-xs text-zinc-500 hover:text-violet-400">
+                      View all {incidentItems.length} →
+                    </button>
+                  </div>
+                  <ul className="divide-y divide-zinc-800 rounded-xl border border-zinc-800 bg-zinc-900/30">
+                    {sortedIncidents.slice(0, 3).map((inc) => (
+                      <li key={inc.id}>
+                        <Link to="/incidents/$id" params={{ id: inc.id }} className="flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-zinc-900/60">
+                          <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-medium ${INCIDENT_TYPE_CHIP[inc.type]}`}>{inc.type}</span>
+                          <span className="font-mono text-xs text-zinc-400 tabular-nums">
+                            {inc.date ? <FuzzyDate value={inc.date} /> : 'Unknown'}
+                          </span>
+                          {inc.victim_names.length > 0 && (
+                            <span className="truncate text-xs text-zinc-500">
+                              {inc.victim_names.slice(0, 3).join(', ')}{inc.victim_names.length > 3 && ` +${inc.victim_names.length - 3}`}
+                            </span>
+                          )}
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </TabsContent>
+
+            {/* Members tab — existing table */}
+            <TabsContent value="members" className="mt-4"><section>
             <div className="mb-3 flex items-center justify-between gap-2">
               <div className="flex items-center gap-2">
                 <h2 className="text-xs font-medium uppercase tracking-wider text-zinc-500">Members</h2>
@@ -962,10 +1069,10 @@ function SetDetailPage() {
                 </table>
               </div>
             )}
-          </section>
+          </section></TabsContent>
 
-          {/* Incidents section */}
-          <section>
+          {/* Incidents tab — existing table */}
+          <TabsContent value="incidents" className="mt-4"><section>
             <div className="mb-3 flex items-center justify-between gap-2">
               <div className="flex items-center gap-2">
                 <h2 className="text-xs font-medium uppercase tracking-wider text-zinc-500">Incidents</h2>
@@ -1038,17 +1145,74 @@ function SetDetailPage() {
                 </table>
               </div>
             )}
-          </section>
+          </section></TabsContent>
 
-          {/* Photos section */}
+          {/* Relationships tab — full-width inline graph + add controls */}
+          {!isReserved && (
+            <TabsContent value="relationships" className="mt-4 space-y-4">
+              <div className="flex items-center justify-end">
+                <Button size="sm" variant="outline" onClick={() => setAddingRel(true)}>
+                  <Plus className="mr-1.5 h-3.5 w-3.5" />Add Relationship
+                </Button>
+              </div>
+              {(set.friend_ids.length + set.enemy_ids.length) === 0 ? (
+                <EmptyState
+                  icon={GitFork}
+                  title="No relationships yet"
+                  description="Mark allied or rival sets to power the network graph."
+                  action={
+                    <Button size="sm" onClick={() => setAddingRel(true)}>
+                      <Plus className="mr-1.5 h-4 w-4" />Add the first relationship
+                    </Button>
+                  }
+                />
+              ) : (
+                <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1fr_280px]">
+                  <div className="rounded-xl border border-zinc-800 bg-zinc-900/30">
+                    <Suspense fallback={<Skeleton className="h-[420px] w-full" />}>
+                      <SetRelationshipGraph
+                        input={{
+                          centerSetId: set.id,
+                          centerSetName: set.name,
+                          friendIds: set.friend_ids,
+                          enemyIds: set.enemy_ids,
+                          sets: [...set.allies, ...set.enemies],
+                        }}
+                      />
+                    </Suspense>
+                  </div>
+                  <RelationshipsPanel
+                    friendIds={set.friend_ids}
+                    enemyIds={set.enemy_ids}
+                    setMap={setMap}
+                    onAdd={() => setAddingRel(true)}
+                    onOpenGraph={() => { /* graph already inline */ }}
+                    onRemove={(sid) => removeRel.mutate(sid)}
+                    removingId={removeRel.isPending ? (removeRel.variables as string | undefined) ?? null : null}
+                  />
+                </div>
+              )}
+            </TabsContent>
+          )}
+
+          {/* Media tab — existing PhotoGallery */}
           {!isReserved && universe && (
-            <section>
-              <h2 className="mb-3 text-xs font-medium uppercase tracking-wider text-zinc-500">Photos</h2>
+            <TabsContent value="media" className="mt-4">
               <Suspense fallback={<Skeleton className="h-40 w-full" />}>
                 <PhotoGallery entityType="set" entityId={set.id} universeId={universe.id} />
               </Suspense>
-            </section>
+            </TabsContent>
           )}
+
+          {/* Activity tab — placeholder until Phase 5 wires the audit feed */}
+          <TabsContent value="activity" className="mt-4">
+            <EmptyState
+              icon={Activity}
+              title="Activity feed coming soon"
+              description="An audit log scoped to this set and its members will land here."
+            />
+          </TabsContent>
+          </Tabs>
 
           {/* Relationship graph dialog */}
           {!isReserved && (
