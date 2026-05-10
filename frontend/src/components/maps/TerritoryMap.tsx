@@ -27,6 +27,8 @@ export interface TerritoryMapProps {
   showSubDistrictOutlines: boolean
   /** Optional incident points overlay. */
   incidentPoints: IncidentPoint[]
+  /** Numbered markers for address-mode polygon construction. */
+  addressMarkers?: { lng: number; lat: number }[]
   viewMode: 'sets' | 'alliances'
   onPolygonComplete: (poly: GeoJSON.Polygon) => void
   onSelectSet: (id: UUID) => void
@@ -78,6 +80,7 @@ export default function TerritoryMap({
   subDistrictGeoJSON,
   showSubDistrictOutlines,
   incidentPoints,
+  addressMarkers,
   viewMode,
   onPolygonComplete,
   onSelectSet,
@@ -181,6 +184,31 @@ export default function TerritoryMap({
       })),
     }
   }, [incidentPoints])
+
+  // Address-mode markers (and the open ring connecting them) — rendered as a
+  // preview while the user is composing a polygon by address.
+  const markerFC = useMemo<GeoJSON.FeatureCollection | null>(() => {
+    if (!addressMarkers || addressMarkers.length === 0) return null
+    return {
+      type: 'FeatureCollection',
+      features: addressMarkers.map((m, i) => ({
+        type: 'Feature',
+        geometry: { type: 'Point', coordinates: [m.lng, m.lat] },
+        properties: { idx: i + 1 },
+      })),
+    }
+  }, [addressMarkers])
+
+  const markerLineFC = useMemo<GeoJSON.FeatureCollection | null>(() => {
+    if (!addressMarkers || addressMarkers.length < 2) return null
+    const coords = addressMarkers.map((m) => [m.lng, m.lat])
+    // If ≥3, close the ring visually as a polygon outline preview.
+    if (addressMarkers.length >= 3) coords.push([addressMarkers[0].lng, addressMarkers[0].lat])
+    return {
+      type: 'FeatureCollection',
+      features: [{ type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: coords } }],
+    }
+  }, [addressMarkers])
 
   // ─── bounds + initial view ───────────────────────────────────────────────
 
@@ -365,6 +393,52 @@ export default function TerritoryMap({
                 'circle-stroke-width': 1.25,
                 'circle-stroke-color': '#18181b',
                 'circle-opacity': 0.85,
+              }}
+            />
+          </Source>
+        )}
+
+        {/* Address-mode preview: connecting line + numbered markers */}
+        {markerLineFC && (
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          <Source id="address-line" type="geojson" data={markerLineFC as any}>
+            <Layer
+              id="address-line-layer"
+              type="line"
+              paint={{
+                'line-color': '#7c3aed',
+                'line-width': 2,
+                'line-dasharray': [2, 2],
+                'line-opacity': 0.9,
+              }}
+            />
+          </Source>
+        )}
+        {markerFC && (
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          <Source id="address-markers" type="geojson" data={markerFC as any}>
+            <Layer
+              id="address-markers-circle"
+              type="circle"
+              paint={{
+                'circle-radius': 10,
+                'circle-color': '#7c3aed',
+                'circle-stroke-width': 2,
+                'circle-stroke-color': '#ffffff',
+              }}
+            />
+            <Layer
+              id="address-markers-label"
+              type="symbol"
+              layout={{
+                'text-field': ['to-string', ['get', 'idx']] as unknown as string,
+                'text-size': 12,
+                'text-font': ['Open Sans Bold', 'Arial Unicode MS Bold'],
+                'text-allow-overlap': true,
+                'text-ignore-placement': true,
+              }}
+              paint={{
+                'text-color': '#ffffff',
               }}
             />
           </Source>

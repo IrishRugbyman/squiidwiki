@@ -37,6 +37,32 @@ def _normalize_variants(variants: Optional[list[NameVariant]]) -> Optional[list[
     return variants
 
 
+def _validate_polygon(value: Optional[dict]) -> Optional[dict]:
+    """A territory_polygon must be a closed GeoJSON Polygon.
+
+    None clears the field. Otherwise: type=='Polygon', at least one ring with
+    ≥4 coordinates (3 unique vertices plus the closing duplicate), and each
+    ring's first coordinate must equal its last."""
+    if value is None:
+        return None
+    if not isinstance(value, dict):
+        raise ValueError("territory_polygon must be a GeoJSON Polygon object")
+    if value.get("type") != "Polygon":
+        raise ValueError("territory_polygon.type must be 'Polygon'")
+    rings = value.get("coordinates")
+    if not isinstance(rings, list) or not rings:
+        raise ValueError("territory_polygon.coordinates must be a non-empty list of rings")
+    for i, ring in enumerate(rings):
+        if not isinstance(ring, list) or len(ring) < 4:
+            raise ValueError(f"ring {i} must have at least 4 coordinates (3 vertices + closing point)")
+        first, last = ring[0], ring[-1]
+        if not (isinstance(first, list) and isinstance(last, list) and len(first) >= 2 and len(last) >= 2):
+            raise ValueError(f"ring {i} coordinates must be [lng, lat] pairs")
+        if first[0] != last[0] or first[1] != last[1]:
+            raise ValueError(f"ring {i} is not closed: first and last coordinates must be equal")
+    return value
+
+
 class SetCreate(BaseModel):
     universe_id: uuid.UUID
     name: str
@@ -75,6 +101,7 @@ class SetUpdate(BaseModel):
     @model_validator(mode="after")
     def _normalize(self):
         self.name_variants = _normalize_variants(self.name_variants)
+        self.territory_polygon = _validate_polygon(self.territory_polygon)
         return self
 
 

@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
-import { Crosshair, Layers, MapPin, Pencil, Save, Search, X } from 'lucide-react'
+import { Check, Crosshair, Layers, Loader2, MapPin, Pencil, Save, Search, Trash2, X } from 'lucide-react'
 import { Suspense, lazy, useEffect, useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import { NoUniverse } from '@/components/NoUniverse'
@@ -46,6 +46,54 @@ interface OverlapCandidate {
   overlapPct: number
 }
 
+type EditTab = 'draw' | 'address'
+
+interface AddressVertex {
+  query: string
+  status: 'pending' | 'loading' | 'ok' | 'error'
+  lng?: number
+  lat?: number
+  label?: string
+  error?: string
+}
+
+const MAPBOX_TOKEN = (import.meta.env.VITE_MAPBOX_TOKEN ?? '') as string
+
+// A polygon is "closed" when its outer ring has at least 4 coords (3 unique
+// vertices + closing) and the first coord equals the last. Mirrors the
+// backend validator so the Save button disables when invalid.
+function isPolygonClosed(p: GeoJSON.Polygon | null): boolean {
+  if (!p || p.type !== 'Polygon') return false
+  const ring = p.coordinates[0]
+  if (!ring || ring.length < 4) return false
+  const a = ring[0], b = ring[ring.length - 1]
+  return a[0] === b[0] && a[1] === b[1]
+}
+
+function buildPolygonFromVertices(vs: AddressVertex[]): GeoJSON.Polygon | null {
+  const ok = vs.filter((v): v is AddressVertex & { lng: number; lat: number } =>
+    v.status === 'ok' && typeof v.lng === 'number' && typeof v.lat === 'number',
+  )
+  if (ok.length < 3) return null
+  const ring: number[][] = ok.map((v) => [v.lng, v.lat])
+  // Close the ring.
+  ring.push([ok[0].lng, ok[0].lat])
+  return { type: 'Polygon', coordinates: [ring] }
+}
+
+async function geocodeOne(query: string, signal: AbortSignal): Promise<{ lng: number; lat: number; label: string }> {
+  if (!MAPBOX_TOKEN) throw new Error('VITE_MAPBOX_TOKEN missing')
+  const url = `https://api.mapbox.com/search/geocode/v6/forward?q=${encodeURIComponent(query)}&limit=1&country=us&access_token=${MAPBOX_TOKEN}`
+  const r = await fetch(url, { signal })
+  if (!r.ok) throw new Error(`Mapbox ${r.status}`)
+  const data = (await r.json()) as { features?: Array<{ geometry: { coordinates: [number, number] }; properties: { full_address?: string; name?: string; place_formatted?: string } }> }
+  const f = data.features?.[0]
+  if (!f) throw new Error('No match')
+  const [lng, lat] = f.geometry.coordinates
+  const label = f.properties.full_address ?? f.properties.place_formatted ?? f.properties.name ?? query
+  return { lng, lat, label }
+}
+
 function TerritoryMapPage() {
   const { selected, edit, view } = Route.useSearch()
   const navigate = useNavigate({ from: Route.fullPath })
@@ -62,6 +110,15 @@ function TerritoryMapPage() {
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [candidates, setCandidates] = useState<OverlapCandidate[]>([])
   const [checkedIds, setCheckedIds] = useState<Set<UUID>>(new Set())
+
+  // Address-mode state.
+  const [editTab, setEditTab] = useState<EditTab>('draw')
+  const [addressInput, setAddressInput] = useState('')
+  const [vertices, setVertices] = useState<AddressVertex[]>([])
+  const addressMarkers = useMemo(
+    () => vertices.flatMap((v) => v.status === 'ok' && v.lng != null && v.lat != null ? [{ lng: v.lng, lat: v.lat }] : []),
+    [vertices],
+  )
 
   const { data: setsList, isLoading: setsLoading } = useAllSets(universeId)
   const { data: selectedSetData } = useSet((selected ?? '') as UUID, universeId, !!selected)
@@ -126,6 +183,9 @@ function TerritoryMapPage() {
   function cancelEditing() {
     navigate({ search: (prev) => ({ ...prev, edit: undefined }) })
     setPendingPolygon(null)
+    setVertices([])
+    setAddressInput('')
+    setEditTab('draw')
   }
   function setView(next: ViewMode) {
     navigate({ search: (prev) => ({ ...prev, view: next }) })
@@ -299,7 +359,23 @@ function TerritoryMapPage() {
             {!selectedSet.municipality_id ? (
               <p className="text-xs text-zinc-500">Set a primary municipality before drawing a boundary.</p>
             ) : drawingFor ? (
-              <p className="text-xs text-zinc-400">Click on the map to drop polygon vertices, double-click the last point to finish.</p>
+              <EditorTabs
+                tab={editTab}
+                onTabChange={(t) => {
+                  setEditTab(t)
+                  // Switching tabs invalidates the in-progress polygon from the
+                  // other mode so the user has a single clear pending state.
+                  setPendingPolygon(null)
+                }}
+                addressInput={addressInput}
+                onAddressInputChange={setAddressInput}
+                vertices={vertices}
+                onVerticesChange={setVertices}
+                onBuildPolygon={() => {
+                  const poly = buildPolygonFromVertices(vertices)
+                  if (poly) setPendingPolygon(poly)
+                }}
+              />
             ) : (
               <Button size="sm" variant="outline" className="w-full" onClick={startEditing}>
                 <Pencil className="mr-1.5 h-3.5 w-3.5" />
@@ -341,7 +417,12 @@ function TerritoryMapPage() {
                 <Button size="sm" variant="outline" onClick={cancelEditing}>
                   <X className="mr-1.5 h-3.5 w-3.5" />Cancel
                 </Button>
-                <Button size="sm" onClick={openConfirm} disabled={!pendingPolygon}>
+                <Button
+                  size="sm"
+                  onClick={openConfirm}
+                  disabled={!isPolygonClosed(pendingPolygon)}
+                  title={isPolygonClosed(pendingPolygon) ? undefined : 'Polygon must be closed (≥3 vertices, first = last)'}
+                >
                   <Save className="mr-1.5 h-3.5 w-3.5" />Save boundary
                 </Button>
               </>
@@ -355,11 +436,12 @@ function TerritoryMapPage() {
             <TerritoryMap
               setPolygons={setPolygons ?? []}
               selectedSetId={selected ?? null}
-              drawingFor={drawingFor}
+              drawingFor={editTab === 'draw' ? drawingFor : null}
               initialPolygon={selectedSet?.territory_polygon ?? null}
               subDistrictGeoJSON={showSubDistricts ? (subDistrictGeoJSON ?? null) : null}
               showSubDistrictOutlines={showSubDistricts}
               incidentPoints={incidentPoints}
+              addressMarkers={editTab === 'address' ? addressMarkers : []}
               viewMode={view}
               onPolygonComplete={handlePolygonComplete}
               onSelectSet={selectSet}
@@ -412,6 +494,131 @@ function TerritoryMapPage() {
           </div>
         </DialogContent>
       </Dialog>
+    </div>
+  )
+}
+
+function EditorTabs({
+  tab, onTabChange, addressInput, onAddressInputChange, vertices, onVerticesChange, onBuildPolygon,
+}: {
+  tab: EditTab
+  onTabChange: (t: EditTab) => void
+  addressInput: string
+  onAddressInputChange: (v: string) => void
+  vertices: AddressVertex[]
+  onVerticesChange: (v: AddressVertex[]) => void
+  onBuildPolygon: () => void
+}) {
+  const okCount = vertices.filter((v) => v.status === 'ok').length
+  const anyLoading = vertices.some((v) => v.status === 'loading')
+
+  async function geocodeAll() {
+    const lines = addressInput
+      .split('\n')
+      .map((l) => l.trim())
+      .filter(Boolean)
+    if (lines.length === 0) return
+    // Seed all rows immediately so the user sees progress.
+    const seeded: AddressVertex[] = lines.map((q) => ({ query: q, status: 'loading' }))
+    onVerticesChange(seeded)
+    const ctrl = new AbortController()
+    // Run sequentially — Mapbox is fast enough and this preserves order/UI clarity.
+    const next: AddressVertex[] = []
+    for (let i = 0; i < lines.length; i++) {
+      const q = lines[i]
+      try {
+        const { lng, lat, label } = await geocodeOne(q, ctrl.signal)
+        next.push({ query: q, status: 'ok', lng, lat, label })
+      } catch (e) {
+        next.push({ query: q, status: 'error', error: e instanceof Error ? e.message : 'Failed' })
+      }
+      // Push partial state so the UI updates as each line resolves.
+      onVerticesChange([...next, ...seeded.slice(next.length)])
+    }
+  }
+
+  function clearAll() {
+    onVerticesChange([])
+    onAddressInputChange('')
+  }
+
+  return (
+    <div className="space-y-2">
+      <div className="inline-flex w-full items-center gap-1 rounded-lg border border-zinc-800 bg-zinc-900/50 p-1" role="tablist">
+        {(['draw', 'address'] as const).map((t) => (
+          <button
+            key={t}
+            role="tab"
+            aria-selected={tab === t}
+            onClick={() => onTabChange(t)}
+            className={`flex-1 rounded-md px-2 py-1 text-[11px] font-medium transition-colors ${
+              tab === t ? 'bg-zinc-700 text-white' : 'text-zinc-500 hover:text-zinc-300'
+            }`}
+          >
+            {t === 'draw' ? 'Draw' : 'By address'}
+          </button>
+        ))}
+      </div>
+
+      {tab === 'draw' ? (
+        <p className="text-xs text-zinc-400">
+          Click on the map to drop polygon vertices, double-click the last point to finish.
+        </p>
+      ) : (
+        <div className="space-y-2">
+          <p className="text-[11px] text-zinc-500">
+            One address or intersection per line (US only). Mapbox geocoder.
+          </p>
+          <textarea
+            value={addressInput}
+            onChange={(e) => onAddressInputChange(e.target.value)}
+            placeholder={'Mack Ave & Van Dyke St, Detroit\nGratiot Ave & Conner St, Detroit\n…'}
+            className="h-24 w-full resize-y rounded-md border border-zinc-800 bg-zinc-950 px-2 py-1.5 text-xs text-zinc-200 placeholder:text-zinc-600 focus-visible:border-violet-700 focus-visible:outline-none"
+          />
+          <div className="flex items-center gap-2">
+            <Button size="sm" variant="outline" className="flex-1" onClick={geocodeAll} disabled={!addressInput.trim() || anyLoading}>
+              {anyLoading ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : <MapPin className="mr-1.5 h-3.5 w-3.5" />}
+              Geocode
+            </Button>
+            {vertices.length > 0 && (
+              <Button size="sm" variant="outline" onClick={clearAll} aria-label="Clear">
+                <Trash2 className="h-3.5 w-3.5" />
+              </Button>
+            )}
+          </div>
+
+          {vertices.length > 0 && (
+            <ul className="max-h-40 overflow-y-auto rounded-md border border-zinc-800 bg-zinc-950/50 divide-y divide-zinc-800">
+              {vertices.map((v, i) => (
+                <li key={i} className="flex items-start gap-2 px-2 py-1.5 text-[11px]">
+                  <span className="mt-0.5 inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-zinc-800 text-[10px] font-medium text-zinc-300">
+                    {i + 1}
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <p className={`truncate ${v.status === 'error' ? 'text-rose-400' : 'text-zinc-200'}`}>
+                      {v.label ?? v.query}
+                    </p>
+                    {v.status === 'error' && <p className="truncate text-[10px] text-rose-500">{v.error}</p>}
+                  </div>
+                  {v.status === 'loading' && <Loader2 className="h-3 w-3 shrink-0 animate-spin text-zinc-500" />}
+                  {v.status === 'ok' && <Check className="h-3 w-3 shrink-0 text-emerald-500" />}
+                  {v.status === 'error' && <X className="h-3 w-3 shrink-0 text-rose-500" />}
+                </li>
+              ))}
+            </ul>
+          )}
+
+          <Button
+            size="sm"
+            className="w-full"
+            onClick={onBuildPolygon}
+            disabled={okCount < 3}
+            title={okCount < 3 ? 'Need at least 3 successfully geocoded points to close a polygon' : undefined}
+          >
+            Build polygon ({okCount} pt{okCount === 1 ? '' : 's'})
+          </Button>
+        </div>
+      )}
     </div>
   )
 }
