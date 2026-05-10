@@ -778,27 +778,18 @@ function SetCard({ set, isSelected, onToggleSelect, onEdit, onDuplicate, onDelet
       isSelected ? 'border-violet-700/70 bg-violet-950/20' : 'border-zinc-800 hover:border-zinc-700'
     }`}>
       <Link to="/sets/$id" params={{ id: linkId }} className="flex flex-col">
-        {/* Header band: photo or color block */}
-        <div className="relative h-24 w-full overflow-hidden bg-zinc-950">
-          {set.primary_photo_thumb_url ? (
-            <img src={set.primary_photo_thumb_url} alt="" className="h-full w-full object-cover opacity-70" loading="lazy" />
-          ) : (
-            <div
-              className="h-full w-full"
-              style={set.gang_color ? gangColorStyle(set.gang_color) : setColorStyle(set.name)}
-              aria-hidden
-            />
-          )}
+        {/* Header band: gang/set color block */}
+        <div className="relative h-16 w-full overflow-hidden bg-zinc-950">
+          <div
+            className="h-full w-full"
+            style={set.gang_color ? gangColorStyle(set.gang_color) : setColorStyle(set.name)}
+            aria-hidden
+          />
           <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-zinc-950 to-transparent p-3">
-            <div className="flex items-center gap-2">
-              <SetAvatar name={set.name} thumbUrl={set.primary_photo_thumb_url} isReserved={set.is_reserved} gangColor={set.gang_color} />
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-semibold text-white group-hover:text-violet-300 transition-colors">
-                  {set.name}
-                </p>
-                {aka && <p className="truncate text-[11px] text-zinc-400">{aka}</p>}
-              </div>
-            </div>
+            <p className="truncate text-sm font-semibold text-white group-hover:text-violet-300 transition-colors">
+              {set.name}
+            </p>
+            {aka && <p className="truncate text-[11px] text-zinc-400">{aka}</p>}
           </div>
         </div>
         <div className="flex flex-wrap gap-1.5 p-3">
@@ -1224,7 +1215,6 @@ function SetsPage() {
               params={{ id: s.slug ?? s.id }}
               className="inline-flex items-center gap-1.5 rounded-full border border-zinc-700 bg-zinc-900/50 px-3 py-1 text-xs text-zinc-400 hover:border-zinc-500 hover:text-zinc-200 transition-colors"
             >
-              <SetAvatar name={s.name} thumbUrl={s.primary_photo_thumb_url} size="sm" isReserved={s.is_reserved} gangColor={s.gang_color} />
               {s.name}
             </Link>
           ))}
@@ -1318,7 +1308,6 @@ function SetsPage() {
                         </td>
                         <td className="p-0">
                           <Link to="/sets/$id" params={{ id: linkId }} className={`flex items-center gap-3 px-4 ${padY}`}>
-                            <SetAvatar name={set.name} thumbUrl={set.primary_photo_thumb_url} isReserved={set.is_reserved} gangColor={set.gang_color} />
                             <div className="min-w-0">
                               <div className="flex items-center gap-2">
                                 <p className="truncate font-medium text-white group-hover:text-violet-400 transition-colors">{set.name}</p>

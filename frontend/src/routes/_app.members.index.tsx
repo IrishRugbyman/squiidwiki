@@ -26,7 +26,6 @@ import type { MemberListItem, MemberStatus } from '@/lib/types'
 // Re-export so existing import paths keep working.
 export {
   MemberFormSheet,
-  MemberAvatar,
   familyDictToEntries,
   familyEntriesToDict,
   FAMILY_ROLES,

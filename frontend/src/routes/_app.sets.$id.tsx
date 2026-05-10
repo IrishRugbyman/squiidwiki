@@ -30,7 +30,7 @@ import { downloadText } from '@/lib/download'
 import { DetailHeaderSkeleton } from '@/components/skeletons'
 import { Skeleton } from '@/components/ui/skeleton'
 import { SetAvatar, SetFormSheet } from './_app.sets.index'
-import { MemberAvatar, MemberFormSheet } from './_app.members.index'
+import { MemberFormSheet } from './_app.members.index'
 import { AddMemberToSetDialog } from '@/components/AddMemberToSetDialog'
 import { useRecordRecent } from '@/stores/recents'
 import { useEditShortcut } from '@/hooks/useKeymap'
@@ -1138,7 +1138,6 @@ function SetDetailPage() {
                 <table className="w-full text-sm">
                   <thead className="sticky top-0 z-10">
                     <tr className="border-b border-zinc-800 bg-zinc-900">
-                      <th scope="col" className="w-10 px-3 py-2.5" aria-label="Photo" />
                       <SortHeader<'name' | 'status' | 'date_of_death'>
                         label="Name" col="name"
                         sortKey={memberSortKey} sortDir={memberSortDir} onSort={toggleMemberSort}
@@ -1161,7 +1160,6 @@ function SetDetailPage() {
                       const cellPad = memberDense ? 'py-1.5' : 'py-3'
                       return (
                         <tr key={m.id} className={`group hover:bg-zinc-900/50 transition-colors ${isDead ? 'opacity-60' : ''}`}>
-                          <td className={`px-3 ${cellPad}`}><MemberAvatar member={m} /></td>
                           <td className="p-0">
                             <Link
                               to="/members/$id"

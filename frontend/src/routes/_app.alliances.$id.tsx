@@ -31,8 +31,8 @@ import type { SetListItem } from '@/lib/types'
 import { useUniverseStore } from '@/stores/universe'
 import { useAuthStore } from '@/stores/auth'
 import { AllianceFormSheet } from './_app.alliances.index'
-import { SetAvatar, SetFormSheet } from './_app.sets.index'
-import { MemberAvatar, MemberFormSheet } from './_app.members.index'
+import { SetFormSheet } from './_app.sets.index'
+import { MemberFormSheet } from './_app.members.index'
 import { AddSetToAllianceDialog } from '@/components/AddSetToAllianceDialog'
 import { AddMemberToAllianceDialog } from '@/components/AddMemberToAllianceDialog'
 import { useRecordRecent } from '@/stores/recents'
@@ -292,7 +292,6 @@ function AllianceDetailPage() {
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="border-b border-zinc-800 bg-zinc-900/50">
-                        <th scope="col" className="w-10 px-3 py-2.5" aria-label="Photo" />
                         <th scope="col" className="px-3 py-2.5 text-left text-xs font-medium text-zinc-400">Name</th>
                         <th scope="col" className="hidden px-3 py-2.5 text-left text-xs font-medium text-zinc-400 sm:table-cell">Set</th>
                         <th scope="col" className="px-3 py-2.5 text-left text-xs font-medium text-zinc-400">Status</th>
@@ -305,7 +304,6 @@ function AllianceDetailPage() {
                         const isDead = m.status === 'DEAD'
                         return (
                           <tr key={m.id} className={`group hover:bg-zinc-900/40 transition-colors ${isDead ? 'opacity-60' : ''}`}>
-                            <td className="px-3 py-3"><MemberAvatar member={m} /></td>
                             <td className="p-0">
                               <Link
                                 to="/members/$id"
@@ -528,7 +526,6 @@ function AllianceSetRow({ set, memberCount, onRequestRemove }: AllianceSetRowPro
           params={{ id: linkId }}
           className="flex items-center gap-3 px-4 py-3"
         >
-          <SetAvatar name={set.name} size="sm" gangColor={set.gang_color} />
           <div className="min-w-0">
             <p className="font-medium text-white group-hover:text-violet-400 transition-colors">{set.name}</p>
             {(() => {
