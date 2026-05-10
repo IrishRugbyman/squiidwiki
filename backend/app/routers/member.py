@@ -3,6 +3,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, Body, Depends, HTTPException, Query
 from fastapi.responses import StreamingResponse
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.dependencies import CurrentUser, require_global_role
@@ -10,6 +11,10 @@ from app.core.database import get_session
 from app.core.enums import GlobalRole, MemberStatus
 from app.core.csv_export import to_csv_response
 from app.crud import member as crud
+from app.models.alliance import Alliance
+from app.models.gang_set import GangSet
+from app.models.incident import Incident
+from app.models.municipality import Municipality
 from app.schemas.common import CursorPage
 from app.schemas.member import (
     MemberAliasCreate,
@@ -18,6 +23,7 @@ from app.schemas.member import (
     MemberIncarcerationCreate,
     MemberIncarcerationRead,
     MemberIncarcerationUpdate,
+    MemberKilledInSummary,
     MemberListItem,
     MemberRead,
     MemberReadDetail,
@@ -109,10 +115,66 @@ async def get_member(
         obj = await crud.get_member_by_slug(session, id_or_slug, universe_id)
     if obj is None:
         raise HTTPException(404)
+
     await crud.attach_primary_photos(session, [obj])
+
     source_ids = await crud.list_member_source_ids(session, obj.id)
+    aliases_detail = await crud.list_member_aliases(session, obj.id)
+    incarcerations = await crud.list_member_incarcerations(session, obj.id)
+    stats_dict = await crud.get_member_stats(session, obj.id)
+
+    set_name = set_slug = None
+    if obj.set_id:
+        row = (await session.execute(
+            select(GangSet.name, GangSet.slug).where(GangSet.id == obj.set_id)
+        )).one_or_none()
+        if row:
+            set_name, set_slug = row
+
+    alliance_name = alliance_slug = None
+    if obj.alliance_id:
+        row = (await session.execute(
+            select(Alliance.name, Alliance.slug).where(Alliance.id == obj.alliance_id)
+        )).one_or_none()
+        if row:
+            alliance_name, alliance_slug = row
+
+    killed_in: MemberKilledInSummary | None = None
+    if obj.death_incident_id:
+        row = (await session.execute(
+            select(
+                Incident.id,
+                Incident.type,
+                Incident.date,
+                Incident.municipality_id,
+                Municipality.name,
+            )
+            .select_from(Incident)
+            .outerjoin(Municipality, Municipality.id == Incident.municipality_id)
+            .where(Incident.id == obj.death_incident_id)
+        )).one_or_none()
+        if row:
+            killed_in = MemberKilledInSummary(
+                incident_id=row[0],
+                type=row[1].value if hasattr(row[1], "value") else str(row[1]),
+                date=row[2],
+                municipality_id=row[3],
+                municipality_name=row[4],
+            )
+
     base = MemberRead.model_validate(obj)
-    return MemberReadDetail(**base.model_dump(), source_ids=source_ids)
+    return MemberReadDetail(
+        **base.model_dump(),
+        source_ids=source_ids,
+        set_name=set_name,
+        set_slug=set_slug,
+        alliance_name=alliance_name,
+        alliance_slug=alliance_slug,
+        aliases_detail=[MemberAliasRead.model_validate(a) for a in aliases_detail],
+        incarcerations=[MemberIncarcerationRead.model_validate(i) for i in incarcerations],
+        stats=MemberStats(**stats_dict) if stats_dict else None,
+        killed_in=killed_in,
+    )
 
 
 @router.patch("/{id}", response_model=MemberRead)

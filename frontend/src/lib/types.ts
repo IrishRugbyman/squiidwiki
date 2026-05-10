@@ -279,8 +279,24 @@ export interface MemberRead extends MemberListItem {
   updated_at: string
 }
 
+export interface MemberKilledInSummary {
+  incident_id: UUID
+  type: IncidentType
+  date: FuzzyDateValue | null
+  municipality_id: UUID | null
+  municipality_name: string | null
+}
+
 export interface MemberReadDetail extends MemberRead {
   source_ids: UUID[]
+  set_name: string | null
+  set_slug: string | null
+  alliance_name: string | null
+  alliance_slug: string | null
+  aliases_detail: MemberAliasRead[]
+  incarcerations: MemberIncarcerationRead[]
+  stats: MemberStats | null
+  killed_in: MemberKilledInSummary | null
 }
 
 export interface MemberStats {

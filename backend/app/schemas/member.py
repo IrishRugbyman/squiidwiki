@@ -74,8 +74,24 @@ class MemberRead(BaseModel):
     primary_photo_thumb_url: Optional[str] = None
 
 
+class MemberKilledInSummary(BaseModel):
+    incident_id: uuid.UUID
+    type: str
+    date: FuzzyDateField = None
+    municipality_id: Optional[uuid.UUID] = None
+    municipality_name: Optional[str] = None
+
+
 class MemberReadDetail(MemberRead):
     source_ids: list[uuid.UUID]
+    set_name: Optional[str] = None
+    set_slug: Optional[str] = None
+    alliance_name: Optional[str] = None
+    alliance_slug: Optional[str] = None
+    aliases_detail: list["MemberAliasRead"] = []
+    incarcerations: list["MemberIncarcerationRead"] = []
+    stats: Optional["MemberStats"] = None
+    killed_in: Optional[MemberKilledInSummary] = None
 
 
 class MemberListItem(BaseModel):
@@ -167,3 +183,6 @@ class MemberStats(BaseModel):
     assists: int
     kills: int
     times_shot_survived: int
+
+
+MemberReadDetail.model_rebuild()

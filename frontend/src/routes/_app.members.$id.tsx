@@ -23,11 +23,9 @@ import { Input } from '@/components/ui/input'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import {
-  useMember, useMemberStats, useSets, useAlliances,
+  useMember,
   useDeleteMember, useMemberIncidents, useAllMembers, useUpdateMember,
-  useIncident, useMunicipality,
-  useMemberAliases,
-  useMemberIncarcerations, useCreateMemberIncarceration, useUpdateMemberIncarceration, useDeleteMemberIncarceration,
+  useCreateMemberIncarceration, useUpdateMemberIncarceration, useDeleteMemberIncarceration,
 } from '@/lib/queries'
 import type { IncidentListItem, MemberIncarcerationRead, MemberListItem, MemberRead } from '@/lib/types'
 import type { FuzzyDateValue } from '@/components/FuzzyDate'
@@ -435,25 +433,16 @@ function MemberDetailPage() {
   const navigate = useNavigate()
 
   const { data: member, isLoading, isError, refetch } = useMember(id, universe?.id ?? null)
-  const { data: stats } = useMemberStats(member?.id ?? '', universe?.id ?? null)
-  const { data: allSets } = useSets(universe?.id ?? null)
-  const { data: allAlliances } = useAlliances(universe?.id ?? null)
+  const stats = member?.stats ?? null
   const memberUuid = member?.id ?? null
   const { data: incidents } = useMemberIncidents(memberUuid, universe?.id ?? null)
-  const { data: aliases } = useMemberAliases(memberUuid, universe?.id ?? null)
-  const { data: incarcerations } = useMemberIncarcerations(memberUuid, universe?.id ?? null)
+  const aliases = member?.aliases_detail ?? []
+  const incarcerations = member?.incarcerations ?? []
   const createIncarceration = useCreateMemberIncarceration(memberUuid ?? '', universe?.id ?? '')
   const updateIncarceration = useUpdateMemberIncarceration(memberUuid ?? '', universe?.id ?? '')
   const deleteIncarceration = useDeleteMemberIncarceration(memberUuid ?? '', universe?.id ?? '')
   const [editingSpellId, setEditingSpellId] = useState<string | null>(null)
-  const { data: killingIncident } = useIncident(
-    member?.death_incident_id ?? '',
-    member?.death_incident_id ? (universe?.id ?? null) : null,
-  )
-  const { data: killingMuni } = useMunicipality(
-    killingIncident?.municipality_id ?? '',
-    killingIncident?.municipality_id ? (universe?.id ?? null) : null,
-  )
+  const killedIn = member?.killed_in ?? null
 
   useRecordRecent(member ? { type: 'member', id: member.id, slug: member.slug, label: member.display_name } : null)
 
@@ -489,10 +478,6 @@ function MemberDetailPage() {
 
   useEditShortcut(() => member && setEditing(true))
 
-  const setName = (sid: string) => (allSets?.items ?? []).find((s) => s.id === sid)?.name ?? sid
-  const setSlug = (sid: string) => (allSets?.items ?? []).find((s) => s.id === sid)?.slug ?? sid
-  const allianceName = (aid: string) => (allAlliances?.items ?? []).find((a) => a.id === aid)?.name ?? aid
-
   async function handleDelete() {
     if (!member) return
     try {
@@ -517,12 +502,12 @@ function MemberDetailPage() {
       .map((e) => ({ role: e.role, name: memberMap[e.memberId] ?? e.memberId.slice(0, 8) + '…' }))
     const md = buildMemberMarkdown({
       member,
-      setName: member.set_id ? setName(member.set_id) : null,
-      allianceName: member.alliance_id ? allianceName(member.alliance_id) : null,
+      setName: member.set_name ?? null,
+      allianceName: member.alliance_name ?? null,
       family: familyEntries,
       incidents: incidents?.items ?? [],
-      killedIn: killingIncident
-        ? { type: killingIncident.type, date: killingIncident.date }
+      killedIn: killedIn
+        ? { type: killedIn.type, date: killedIn.date }
         : null,
     })
     const safeName = member.display_name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'member'
@@ -542,12 +527,9 @@ function MemberDetailPage() {
     <div className="space-y-5">
       <Breadcrumbs
         items={[
-          (() => {
-            const memberSet = member?.set_id ? (allSets?.items ?? []).find((s) => s.id === member.set_id) : null
-            return memberSet
-              ? { label: memberSet.name, to: `/sets/${memberSet.slug ?? memberSet.id}` }
-              : { label: 'Members', to: '/members' }
-          })(),
+          member?.set_id && member.set_name
+            ? { label: member.set_name, to: `/sets/${member.set_slug ?? member.set_id}` }
+            : { label: 'Members', to: '/members' },
           { label: member?.display_name ?? 'Member' },
         ]}
       />
@@ -595,22 +577,22 @@ function MemberDetailPage() {
                 })()}
                 <div className="mt-2 flex flex-wrap items-center gap-2">
                   <MemberStatusBadge status={member.status} />
-                  {member.set_id && (
+                  {member.set_id && member.set_name && (
                     <Link
                       to="/sets/$id"
-                      params={{ id: setSlug(member.set_id) }}
+                      params={{ id: member.set_slug ?? member.set_id }}
                       className="rounded-full bg-zinc-800/70 px-2.5 py-0.5 text-xs text-zinc-400 hover:bg-zinc-800 hover:text-violet-400 transition-colors"
                     >
-                      {setName(member.set_id)}
+                      {member.set_name}
                     </Link>
                   )}
-                  {member.alliance_id && (
+                  {member.alliance_id && member.alliance_name && (
                     <Link
                       to="/alliances/$id"
-                      params={{ id: member.alliance_id }}
+                      params={{ id: member.alliance_slug ?? member.alliance_id }}
                       className="rounded-full bg-zinc-800/70 px-2.5 py-0.5 text-xs text-zinc-400 hover:bg-zinc-800 hover:text-blue-400 transition-colors"
                     >
-                      {allianceName(member.alliance_id)}
+                      {member.alliance_name}
                     </Link>
                   )}
                   <span className="text-[11px] text-zinc-600">Updated {timeAgo(member.updated_at)}</span>
@@ -648,14 +630,14 @@ function MemberDetailPage() {
               <div className="min-w-0 flex-1">
                 <p className="text-xs uppercase tracking-wider text-rose-400">Killed in incident</p>
                 <p className="mt-0.5 text-sm text-zinc-200">
-                  {killingIncident ? (
+                  {killedIn ? (
                     <>
-                      <span className="font-medium">{killingIncident.type}</span>
-                      {killingIncident.date && (
-                        <span className="text-zinc-400"> · <FuzzyDate value={killingIncident.date} /></span>
+                      <span className="font-medium">{killedIn.type}</span>
+                      {killedIn.date && (
+                        <span className="text-zinc-400"> · <FuzzyDate value={killedIn.date} /></span>
                       )}
-                      {killingMuni && (
-                        <span className="text-zinc-400"> · {killingMuni.name}</span>
+                      {killedIn.municipality_name && (
+                        <span className="text-zinc-400"> · {killedIn.municipality_name}</span>
                       )}
                     </>
                   ) : (
@@ -738,9 +720,9 @@ function MemberDetailPage() {
                 </DetailRow>
               )}
               <DetailRow label="Alliance">
-                {member.alliance_id ? (
-                  <Link to="/alliances/$id" params={{ id: member.alliance_id }} className="text-blue-400 hover:underline">
-                    {allianceName(member.alliance_id)}
+                {member.alliance_id && member.alliance_name ? (
+                  <Link to="/alliances/$id" params={{ id: member.alliance_slug ?? member.alliance_id }} className="text-blue-400 hover:underline">
+                    {member.alliance_name}
                   </Link>
                 ) : <span className="text-zinc-600">—</span>}
               </DetailRow>
