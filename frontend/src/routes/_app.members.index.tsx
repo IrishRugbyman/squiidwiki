@@ -11,6 +11,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import {
   useMembers, useMemberSearch,
   useSets, useBulkMemberStatus,
+  useUniverseAnalytics,
 } from '@/lib/queries'
 import { useUniverseStore } from '@/stores/universe'
 import { downloadCsv } from '@/lib/download'
@@ -79,6 +80,7 @@ function MembersPage() {
   const { data, isLoading } = useMembers(universe?.id ?? null, cursor)
   const { data: searchResults, isLoading: searchLoading } = useMemberSearch(universe?.id ?? null, debouncedQ)
   const { data: setsData } = useSets(universe?.id ?? null)
+  const { data: analytics } = useUniverseAnalytics(universe?.id ?? null)
 
   const setMap = useMemo(() => {
     const m: Record<string, { name: string; slug: string | null }> = {}
@@ -89,11 +91,16 @@ function MembersPage() {
   const isSearching = debouncedQ.length >= 2
   const baseItems = isSearching ? (searchResults ?? []) : (data?.items ?? [])
 
+  // While searching, count from results; otherwise use universe-wide analytics
+  // so pills don't reflect just the current cursor page.
   const statusCounts = useMemo(() => {
-    const counts: Partial<Record<MemberStatus, number>> = {}
-    for (const m of baseItems) counts[m.status] = (counts[m.status] ?? 0) + 1
-    return counts
-  }, [baseItems])
+    if (isSearching) {
+      const counts: Partial<Record<MemberStatus, number>> = {}
+      for (const m of baseItems) counts[m.status] = (counts[m.status] ?? 0) + 1
+      return counts
+    }
+    return (analytics?.member_by_status ?? {}) as Partial<Record<MemberStatus, number>>
+  }, [analytics, baseItems, isSearching])
 
   const items: MemberListItem[] = useMemo(() => {
     let list = baseItems
