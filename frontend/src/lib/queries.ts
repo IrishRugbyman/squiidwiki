@@ -33,6 +33,7 @@ import type {
   SetListItem,
   SetRead,
   SetReadDetail,
+  SetReadDetailFull,
   SetStats,
   SourceListItem,
   SourceRead,
@@ -168,6 +169,15 @@ export const useSet = (id: UUID, universeId: UUID | null) =>
     queryKey: ['sets', id],
     queryFn: () => api.get<SetReadDetail>(`/sets/${id}?universe_id=${universeId}`),
     enabled: !!universeId,
+  })
+
+// Single denormalized fetch for the set detail page (replaces useSet +
+// useSetStats + useAlliances + useMunicipalities + relationship-target lookup).
+export const useSetDetail = (idOrSlug: string, universeId: UUID | null) =>
+  useQuery({
+    queryKey: ['sets', idOrSlug, 'detail'],
+    queryFn: () => api.get<SetReadDetailFull>(`/sets/${idOrSlug}/detail?universe_id=${universeId}`),
+    enabled: !!universeId && !!idOrSlug,
   })
 
 export const useSetStats = (id: UUID, universeId: UUID | null) =>

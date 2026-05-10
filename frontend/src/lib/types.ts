@@ -201,6 +201,43 @@ export interface SetStats {
   total_shootings: number
   total_assists: number
   total_kills: number
+  active_member_count: number
+  last_incident_year: number | null
+  first_incident_year: number | null
+}
+
+export interface SetRelatedSummary {
+  id: UUID
+  name: string
+  slug: string | null
+  status: 'ACTIVE' | 'EXTINCT'
+  member_count: number
+}
+
+export interface SetTerritorySummary {
+  id: UUID
+  name: string
+  slug: string | null
+}
+
+export interface IncidentsPerYear {
+  year: number
+  count: number
+}
+
+export interface SetReadDetailFull extends SetReadDetail {
+  alliance_name: string | null
+  alliance_slug: string | null
+  municipality_name: string | null
+  municipality_slug: string | null
+  founder_display_name: string | null
+  founder_slug: string | null
+  territories: SetTerritorySummary[]
+  allies: SetRelatedSummary[]
+  enemies: SetRelatedSummary[]
+  stats: SetStats
+  incidents_per_year: IncidentsPerYear[]
+  lede: string
 }
 
 // Member

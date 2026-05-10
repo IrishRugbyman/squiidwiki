@@ -3,10 +3,9 @@ import { Copy, Download, GitFork, MapPin, Pencil, Plus, Search, ShieldAlert, Swo
 import { useMemo, useState, lazy, Suspense } from 'react'
 import { toast } from 'sonner'
 import {
-  useSet, useSetStats, useSets, useDeleteSet, useUpdateSet,
+  useSetDetail, useDeleteSet, useUpdateSet,
   useAddSetRelationship, useRemoveSetRelationship,
-  useSetMembers, useSetIncidents, useAlliances, useMunicipalities,
-  useAllMembers,
+  useSetMembers, useSetIncidents, useSets, useMunicipalities,
 } from '@/lib/queries'
 import { useUniverseStore } from '@/stores/universe'
 import { useAuthStore } from '@/stores/auth'
@@ -33,7 +32,7 @@ import { AddMemberToSetDialog } from '@/components/AddMemberToSetDialog'
 import { useRecordRecent } from '@/stores/recents'
 import { useEditShortcut } from '@/hooks/useKeymap'
 import { INCIDENT_TYPE_CHIP } from '@/lib/incidentColors'
-import type { IncidentListItem, MemberListItem, NameVariant, SetReadDetail } from '@/lib/types'
+import type { IncidentListItem, MemberListItem, NameVariant, SetReadDetailFull } from '@/lib/types'
 
 function variantLead(v: NameVariant): 'name' | 'initials' | 'number' | null {
   if (v.lead && v[v.lead]?.trim()) return v.lead
@@ -148,7 +147,7 @@ function formatFuzzyDateText(value: FuzzyDateValue | null | undefined, fallback 
 function buildSetMarkdown({
   set, allianceName, muniName, founderName, territoryNames, members, incidents, friends, enemies,
 }: {
-  set: SetReadDetail
+  set: SetReadDetailFull
   allianceName: string | null
   muniName: string | null
   founderName: string | null
@@ -432,15 +431,16 @@ function SetDetailPage() {
   const user = useAuthStore((s) => s.user)
   const navigate = useNavigate()
 
-  const { data: set, isLoading, isError, refetch } = useSet(id, universe?.id ?? null)
+  const { data: set, isLoading, isError, refetch } = useSetDetail(id, universe?.id ?? null)
   const realId = set?.id ?? ''
-  const { data: stats } = useSetStats(realId, universe?.id ?? null)
-  const { data: allSets } = useSets(universe?.id ?? null)
-  const { data: alliancesData } = useAlliances(universe?.id ?? null)
+  const stats = set?.stats
   const { data: membersData } = useSetMembers(realId, universe?.id ?? null)
   const { data: incidentsData } = useSetIncidents(realId, universe?.id ?? null)
+  // Used only to decorate incident rows with municipality names. Will go away
+  // once IncidentListItem denormalizes municipality_name in Phase 4.
   const { data: munisData } = useMunicipalities(universe?.id ?? null)
-  const { data: allMembers } = useAllMembers(universe?.id ?? null)
+  const muniMap: Record<string, { name: string }> = {}
+  for (const m of munisData?.items ?? []) muniMap[m.id] = { name: m.name }
 
   useRecordRecent(set ? { type: 'set', id: set.id, slug: set.slug, label: set.name } : null)
 
@@ -469,24 +469,22 @@ function SetDetailPage() {
 
   useEditShortcut(() => set && setEditing(true))
 
-  const muniMap: Record<string, { name: string }> = {}
-  for (const m of munisData?.items ?? []) muniMap[m.id] = { name: m.name }
-
+  // Derive everything from the denormalized detail payload — no extra queries.
   const setMap: Record<string, { name: string; slug: string | null }> = {}
-  for (const s of allSets?.items ?? []) setMap[s.id] = { name: s.name, slug: s.slug }
+  for (const a of set?.allies ?? []) setMap[a.id] = { name: a.name, slug: a.slug }
+  for (const e of set?.enemies ?? []) setMap[e.id] = { name: e.name, slug: e.slug }
   const setName = (sid: string) => setMap[sid]?.name ?? sid
 
-  const alliance = set?.alliance_id
-    ? (alliancesData?.items ?? []).find((a) => a.id === set.alliance_id) ?? null
+  const alliance = set?.alliance_id && set.alliance_name
+    ? { id: set.alliance_id, name: set.alliance_name, slug: set.alliance_slug }
     : null
-  const muni = set?.municipality_id ? muniMap[set.municipality_id] : null
-  const territoryNames = (set?.territory_ids ?? [])
-    .map((tid) => muniMap[tid]?.name)
-    .filter((n): n is string => !!n)
+  const muni = set?.municipality_name ? { name: set.municipality_name } : null
+  const territoryNames = (set?.territories ?? [])
+    .map((t) => t.name)
     .sort((a, b) => a.localeCompare(b))
 
-  const founder = set?.founder_id
-    ? (allMembers?.items ?? []).find((m) => m.id === set.founder_id) ?? null
+  const founder = set?.founder_id && set.founder_display_name
+    ? { id: set.founder_id, display_name: set.founder_display_name, slug: set.founder_slug }
     : null
 
   const allRelIds = set ? [...set.friend_ids, ...set.enemy_ids] : []
@@ -1067,7 +1065,7 @@ function SetDetailPage() {
                       centerSetName: set.name,
                       friendIds: set.friend_ids,
                       enemyIds: set.enemy_ids,
-                      sets: allSets?.items ?? [],
+                      sets: [...set.allies, ...set.enemies],
                     }}
                   />
                 </Suspense>

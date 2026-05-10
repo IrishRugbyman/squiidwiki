@@ -11,14 +11,20 @@ import ReactFlow, {
 } from 'reactflow'
 import 'reactflow/dist/style.css'
 import { useNavigate } from '@tanstack/react-router'
-import type { SetListItem, UUID } from '@/lib/types'
+import type { UUID } from '@/lib/types'
+
+export interface SetGraphNode {
+  id: UUID
+  name: string
+  slug: string | null
+}
 
 export interface SetGraphInput {
   centerSetId: UUID
   centerSetName: string
   friendIds: UUID[]
   enemyIds: UUID[]
-  sets: SetListItem[]
+  sets: SetGraphNode[]
 }
 
 type SetNodeData = {
@@ -49,7 +55,7 @@ const nodeTypes = { set: SetNode }
 export function SetRelationshipGraph({ input }: { input: SetGraphInput }) {
   const navigate = useNavigate()
   const setMap = useMemo(() => {
-    const m: Record<string, SetListItem> = {}
+    const m: Record<string, SetGraphNode> = {}
     for (const s of input.sets) m[s.id] = s
     return m
   }, [input.sets])
