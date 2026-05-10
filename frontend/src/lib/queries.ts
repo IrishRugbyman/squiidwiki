@@ -35,7 +35,6 @@ import type {
   SetRead,
   SetReadDetail,
   SetReadDetailFull,
-  SetStats,
   SourceListItem,
   SourceRead,
   UserListItem,
@@ -189,13 +188,6 @@ export const useSetActivity = (setId: UUID, universeId: UUID | null, enabled: bo
     queryFn: () => api.get<SetActivityEntry[]>(`/sets/${setId}/activity?universe_id=${universeId}&limit=30`),
     enabled: enabled && !!universeId && !!setId,
     staleTime: 30_000,
-  })
-
-export const useSetStats = (id: UUID, universeId: UUID | null) =>
-  useQuery({
-    queryKey: ['sets', id, 'stats'],
-    queryFn: () => api.get<SetStats>(`/sets/${id}/stats?universe_id=${universeId}`),
-    enabled: !!universeId && !!id,
   })
 
 export const useCreateSet = () => {

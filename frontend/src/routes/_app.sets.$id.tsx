@@ -596,7 +596,6 @@ function SetDetailPage() {
   const [addingRel, setAddingRel] = useState(false)
   const [addingMember, setAddingMember] = useState(false)
   const [creatingMember, setCreatingMember] = useState(false)
-  const [graphOpen, setGraphOpen] = useState(false)
   const [editingBio, setEditingBio] = useState(false)
   const [bioDraft, setBioDraft] = useState('')
 
@@ -1383,29 +1382,6 @@ function SetDetailPage() {
             />
           </TabsContent>
           </Tabs>
-
-          {/* Relationship graph dialog */}
-          {!isReserved && (
-            <Dialog open={graphOpen} onOpenChange={setGraphOpen}>
-              <DialogContent className="max-w-3xl">
-                <DialogHeader>
-                  <DialogTitle>{set.name} — Relationship Network</DialogTitle>
-                  <DialogDescription>Click a set to open it. Pan with drag, zoom with the controls.</DialogDescription>
-                </DialogHeader>
-                <Suspense fallback={<Skeleton className="h-[420px] w-full" />}>
-                  <SetRelationshipGraph
-                    input={{
-                      centerSetId: set.id,
-                      centerSetName: set.name,
-                      friendIds: set.friend_ids,
-                      enemyIds: set.enemy_ids,
-                      sets: [...set.allies, ...set.enemies],
-                    }}
-                  />
-                </Suspense>
-              </DialogContent>
-            </Dialog>
-          )}
 
           {/* Dialogs */}
           {universe && (
