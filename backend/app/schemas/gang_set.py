@@ -137,3 +137,42 @@ class SetStats(BaseModel):
     total_shootings: int
     total_assists: int
     total_kills: int
+    active_member_count: int = 0
+    last_incident_year: Optional[int] = None
+    first_incident_year: Optional[int] = None
+
+
+class SetRelatedSummary(BaseModel):
+    """Lightweight ally / enemy reference for the detail payload."""
+    id: uuid.UUID
+    name: str
+    slug: Optional[str]
+    status: SetStatus
+    member_count: int = 0
+
+
+class SetTerritorySummary(BaseModel):
+    id: uuid.UUID
+    name: str
+    slug: Optional[str]
+
+
+class IncidentsPerYear(BaseModel):
+    year: int
+    count: int
+
+
+class SetReadDetailFull(SetReadDetail):
+    """Denormalized payload for the set detail page — single round-trip."""
+    alliance_name: Optional[str] = None
+    alliance_slug: Optional[str] = None
+    municipality_name: Optional[str] = None
+    municipality_slug: Optional[str] = None
+    founder_display_name: Optional[str] = None
+    founder_slug: Optional[str] = None
+    territories: list[SetTerritorySummary] = []
+    allies: list[SetRelatedSummary] = []
+    enemies: list[SetRelatedSummary] = []
+    stats: SetStats
+    incidents_per_year: list[IncidentsPerYear] = []
+    lede: str

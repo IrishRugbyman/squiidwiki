@@ -436,6 +436,120 @@ async def remove_set_relationship(
     return True
 
 
+async def list_set_territories_detail(
+    session: AsyncSession, set_id: uuid.UUID
+) -> list[dict]:
+    """Return [{id, name, slug}] for the set's claimed sub-municipalities."""
+    rows = await session.execute(
+        select(Municipality.id, Municipality.name)
+        .join(SetMunicipality, SetMunicipality.municipality_id == Municipality.id)
+        .where(SetMunicipality.set_id == set_id)
+        .order_by(Municipality.name.asc())
+    )
+    # Municipality has no slug column; routes use UUID.
+    return [{"id": r[0], "name": r[1], "slug": None} for r in rows]
+
+
+async def list_set_relationships_detail(
+    session: AsyncSession, set_id: uuid.UUID, universe_id: uuid.UUID
+) -> tuple[list[dict], list[dict]]:
+    """Return (allies, enemies) as lists of {id, name, slug, status, member_count}."""
+    rels = (await session.execute(
+        select(SetRelationship).where(
+            (SetRelationship.set_a_id == set_id) | (SetRelationship.set_b_id == set_id)
+        )
+    )).scalars().all()
+    if not rels:
+        return [], []
+
+    by_other: dict[uuid.UUID, SetRelationshipType] = {}
+    for r in rels:
+        other = r.set_b_id if r.set_a_id == set_id else r.set_a_id
+        by_other[other] = r.relationship_type
+
+    member_count_sq = (
+        select(Member.set_id, func.count(Member.id).label("c"))
+        .group_by(Member.set_id)
+        .subquery()
+    )
+    rows = (await session.execute(
+        select(
+            GangSet.id, GangSet.name, GangSet.slug, GangSet.status,
+            func.coalesce(member_count_sq.c.c, 0),
+        )
+        .select_from(GangSet)
+        .join(member_count_sq, member_count_sq.c.set_id == GangSet.id, isouter=True)
+        .where(GangSet.id.in_(by_other.keys()), GangSet.universe_id == universe_id)
+        .order_by(GangSet.name.asc())
+    )).all()
+
+    allies, enemies = [], []
+    for r in rows:
+        item = {"id": r[0], "name": r[1], "slug": r[2], "status": r[3], "member_count": int(r[4] or 0)}
+        if by_other[r[0]] == SetRelationshipType.FRIEND:
+            allies.append(item)
+        else:
+            enemies.append(item)
+    return allies, enemies
+
+
+async def list_set_incidents_per_year(
+    session: AsyncSession, set_id: uuid.UUID, since_year: int
+) -> list[dict]:
+    """Per-year incident counts (year ≥ since_year) for incidents involving any
+    member of this set OR the set itself as an IncidentSetParticipant.
+    Returns list of {year, count}, ascending by year."""
+    from app.models.incident import Incident, IncidentParticipant, IncidentSetParticipant
+
+    member_incidents = (
+        select(
+            sa.cast(Incident.date["year"].astext, sa.Integer).label("year"),
+            Incident.id.label("inc_id"),
+        )
+        .select_from(Incident)
+        .join(IncidentParticipant, IncidentParticipant.incident_id == Incident.id)
+        .join(Member, Member.id == IncidentParticipant.member_id)
+        .where(Member.set_id == set_id)
+        .where(Incident.date.isnot(None))
+        .where(Incident.date["year"].astext.op("~")(r"^\d+$"))
+    )
+    set_incidents = (
+        select(
+            sa.cast(Incident.date["year"].astext, sa.Integer).label("year"),
+            Incident.id.label("inc_id"),
+        )
+        .select_from(Incident)
+        .join(IncidentSetParticipant, IncidentSetParticipant.incident_id == Incident.id)
+        .where(IncidentSetParticipant.set_id == set_id)
+        .where(Incident.date.isnot(None))
+        .where(Incident.date["year"].astext.op("~")(r"^\d+$"))
+    )
+
+    union_sq = member_incidents.union(set_incidents).subquery()
+    distinct_sq = select(union_sq.c.year, union_sq.c.inc_id).distinct().subquery()
+    rows = (await session.execute(
+        select(distinct_sq.c.year, func.count())
+        .where(distinct_sq.c.year >= since_year)
+        .group_by(distinct_sq.c.year)
+        .order_by(distinct_sq.c.year.asc())
+    )).all()
+    return [{"year": int(r[0]), "count": int(r[1])} for r in rows]
+
+
+async def get_set_max_updated_at(
+    session: AsyncSession, set_id: uuid.UUID
+) -> Optional[datetime]:
+    """Newest updated_at across the set + its members. Used for ETag."""
+    set_ts = (await session.execute(
+        select(GangSet.updated_at).where(GangSet.id == set_id)
+    )).scalar_one_or_none()
+    member_ts = (await session.execute(
+        select(func.max(Member.updated_at)).where(Member.set_id == set_id)
+    )).scalar_one_or_none()
+    candidates = [t for t in (set_ts, member_ts) if t is not None]
+    return max(candidates) if candidates else None
+
+
 async def search_gang_sets(
     session: AsyncSession, universe_id: uuid.UUID, q: str
 ) -> list[GangSet]:
