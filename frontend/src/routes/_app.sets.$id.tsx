@@ -29,7 +29,7 @@ import { timeAgo } from '@/lib/utils'
 import { downloadText } from '@/lib/download'
 import { DetailHeaderSkeleton } from '@/components/skeletons'
 import { Skeleton } from '@/components/ui/skeleton'
-import { SetFormSheet } from './_app.sets.index'
+import { SetAvatar, SetFormSheet } from './_app.sets.index'
 import { MemberAvatar, MemberFormSheet } from './_app.members.index'
 import { AddMemberToSetDialog } from '@/components/AddMemberToSetDialog'
 import { useRecordRecent } from '@/stores/recents'
@@ -636,21 +636,13 @@ function SetDetailPage() {
           {/* Hero header */}
           <div className="flex items-start justify-between gap-4">
             <div className="flex items-start gap-4">
-              <div className="shrink-0">
-                {set.primary_photo_url ? (
-                  <img
-                    src={set.primary_photo_url}
-                    alt={`Photo of ${set.name}`}
-                    loading="lazy"
-                    decoding="async"
-                    className="h-20 w-20 rounded-xl object-cover ring-1 ring-zinc-600/80 shadow-lg shadow-black/30"
-                  />
-                ) : (
-                  <div className="flex h-20 w-20 items-center justify-center rounded-xl bg-zinc-800 text-2xl font-bold text-zinc-400 ring-1 ring-zinc-700">
-                    {set.name.slice(0, 2).toUpperCase()}
-                  </div>
-                )}
-              </div>
+              <SetAvatar
+                name={set.name}
+                thumbUrl={set.primary_photo_url}
+                size="xl"
+                isReserved={isReserved}
+              />
+              {/* Wrap text column so the avatar grid still works */}
               <div className="min-w-0">
                 <div className="flex items-center gap-2">
                   <h1 className="text-2xl font-bold leading-none text-white">{set.name}</h1>
@@ -770,54 +762,38 @@ function SetDetailPage() {
             </div>
           </div>
 
-          {/* One-line lede synthesised server-side */}
-          {set.lede && (
-            <p className="text-sm text-zinc-400">
-              {set.lede}
+          {/* One-line lede — names link to their sets so "264" reads as a name. */}
+          {(stats?.member_count || stats?.dead_members || stats?.last_incident_year || set.allies.length || set.enemies.length) ? (
+            <p className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-sm text-zinc-400">
+              {stats && stats.member_count > 0 && (
+                <span><span className="font-medium text-zinc-200 tabular-nums">{stats.member_count}</span> member{stats.member_count === 1 ? '' : 's'}</span>
+              )}
+              {stats && stats.dead_members > 0 && (
+                <><span className="text-zinc-700">·</span><span><span className="font-medium text-zinc-200 tabular-nums">{stats.dead_members}</span> dead</span></>
+              )}
+              {stats?.last_incident_year && (
+                <><span className="text-zinc-700">·</span><span>last incident <span className="font-medium text-zinc-200 tabular-nums">{stats.last_incident_year}</span></span></>
+              )}
+              {set.allies[0] && (
+                <><span className="text-zinc-700">·</span><span>allied with{' '}
+                  <Link to="/sets/$id" params={{ id: set.allies[0].slug ?? set.allies[0].id }} className="rounded bg-emerald-950/40 px-1.5 py-0.5 text-emerald-300 hover:bg-emerald-900/50">
+                    {set.allies[0].name}
+                  </Link>
+                  {set.allies.length > 1 && <span className="text-zinc-500"> +{set.allies.length - 1}</span>}
+                </span></>
+              )}
+              {set.enemies[0] && (
+                <><span className="text-zinc-700">·</span><span>at war with{' '}
+                  <Link to="/sets/$id" params={{ id: set.enemies[0].slug ?? set.enemies[0].id }} className="rounded bg-red-950/40 px-1.5 py-0.5 text-red-300 hover:bg-red-900/50">
+                    {set.enemies[0].name}
+                  </Link>
+                  {set.enemies.length > 1 && <span className="text-zinc-500"> +{set.enemies.length - 1}</span>}
+                </span></>
+              )}
             </p>
-          )}
+          ) : null}
 
-          {/* Biography — inline under hero */}
-          {editingBio ? (
-            <div className="space-y-2">
-              <Textarea
-                rows={6}
-                value={bioDraft}
-                onChange={(e) => setBioDraft(e.target.value)}
-                placeholder="What this crew is about…"
-                autoFocus
-              />
-              <div className="flex justify-end gap-2">
-                <Button size="sm" variant="outline" onClick={() => setEditingBio(false)} disabled={updateSet.isPending}>Cancel</Button>
-                <Button size="sm" onClick={saveBio} disabled={updateSet.isPending}>
-                  {updateSet.isPending ? 'Saving…' : 'Save'}
-                </Button>
-              </div>
-            </div>
-          ) : set.bio ? (
-            <div className="group relative rounded-xl border border-zinc-800 bg-zinc-900/30 p-4">
-              <p className="text-sm leading-relaxed text-zinc-300 whitespace-pre-wrap">{set.bio}</p>
-              <button type="button" onClick={startBioEdit} aria-label="Edit bio"
-                className="absolute right-2 top-2 rounded p-1.5 text-zinc-500 opacity-0 transition-opacity hover:bg-zinc-800 hover:text-zinc-200 focus-visible:opacity-100 group-hover:opacity-100">
-                <Pencil className="h-3.5 w-3.5" />
-              </button>
-            </div>
-          ) : (
-            <button type="button" onClick={startBioEdit}
-              className="flex w-full items-center gap-2 rounded-xl border border-dashed border-zinc-800 px-4 py-3 text-xs text-zinc-600 hover:border-zinc-700 hover:text-zinc-400 transition-colors">
-              <Pencil className="h-3 w-3" />Add bio
-            </button>
-          )}
-
-          {isReserved && (
-            <div className="rounded-lg border border-zinc-700 bg-zinc-900/50 px-4 py-3 text-sm text-zinc-400">
-              <span className="font-medium text-zinc-300">System set.</span>{' '}
-              Used for incident attribution when the actor is a {set.name.toLowerCase()} (not a real crew).
-              Only the bio can be edited; this set cannot be renamed, reassigned, or deleted.
-            </div>
-          )}
-
-          {/* KPI grouping — primary 3-up, secondary 4-up */}
+          {/* KPI grouping — primary 3-up cards, secondary inline strip. */}
           {stats && !allStatsZero && (
             <div className="space-y-2">
               <div className="grid grid-cols-3 gap-2">
@@ -825,15 +801,17 @@ function SetDetailPage() {
                 <StatCard icon={Crosshair} label="Shootings" value={stats.total_shootings} accent="amber" />
                 <StatCard icon={Skull} label="Kills" value={stats.total_kills} accent="red" />
               </div>
-              <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-                <StatCard label="Active" value={stats.active_member_count} hint="not dead/unknown" />
-                <StatCard label="Dead" value={stats.dead_members} accent="default" />
-                <StatCard label="Assists" value={stats.total_assists} accent="violet" />
-                <StatCard
-                  label="Last incident"
-                  value={stats.last_incident_year ?? '—'}
-                  hint={stats.first_incident_year ? `since ${stats.first_incident_year}` : undefined}
-                />
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-1 rounded-lg border border-zinc-800 bg-zinc-950 px-4 py-2 text-xs text-zinc-500">
+                <span><span className="text-zinc-300 tabular-nums">{stats.active_member_count}</span> active</span>
+                <span><span className="text-zinc-300 tabular-nums">{stats.dead_members}</span> dead</span>
+                <span><span className="text-zinc-300 tabular-nums">{stats.total_assists}</span> assists</span>
+                <span>
+                  Last incident{' '}
+                  <span className="text-zinc-300 tabular-nums">{stats.last_incident_year ?? '—'}</span>
+                  {stats.first_incident_year && stats.first_incident_year !== stats.last_incident_year && (
+                    <span className="text-zinc-600"> (since {stats.first_incident_year})</span>
+                  )}
+                </span>
               </div>
             </div>
           )}
@@ -867,51 +845,78 @@ function SetDetailPage() {
 
             {/* Overview: facts + ally/enemy strip + latest incidents + top members */}
             <TabsContent value="overview" className="mt-4 space-y-4">
-              <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1fr_280px]">
-                <div className="rounded-xl border border-zinc-800 bg-zinc-900/30 px-4 py-1">
-                  <DetailRow label="Founder">
-                    {founder ? (
-                      <Link to="/members/$id" params={{ id: founder.slug ?? founder.id }} className="text-violet-400 hover:underline">
-                        {founder.display_name}
-                      </Link>
-                    ) : <span className="text-zinc-600">—</span>}
-                  </DetailRow>
-                  <DetailRow label="Alliance">
-                    {alliance ? (
-                      <Link to="/alliances/$id" params={{ id: alliance.slug ?? alliance.id }} className="text-blue-400 hover:underline">
-                        {alliance.name}
-                      </Link>
-                    ) : <span className="text-zinc-600">—</span>}
-                  </DetailRow>
-                  <DetailRow label="Municipality">
-                    {muni && set.municipality_id ? (
-                      <Link to="/municipalities/$id" params={{ id: set.municipality_id }} className="text-violet-400 hover:underline">
-                        {muni.name}
-                      </Link>
-                    ) : <span className="text-zinc-600">—</span>}
-                  </DetailRow>
-                  <DetailRow label="Territories">
-                    {territoryNames.length > 0 ? (
-                      <span title={territoryNames.join(', ')}>
-                        {territoryNames.length} sub-district{territoryNames.length === 1 ? '' : 's'}
-                      </span>
-                    ) : <span className="text-zinc-600">—</span>}
-                  </DetailRow>
-                  <DetailRow label="Created">
-                    <span className="text-zinc-400">{timeAgo(set.created_at)}</span>
-                  </DetailRow>
-                </div>
-                {!isReserved && (
-                  <RelationshipsPanel
-                    friendIds={set.friend_ids}
-                    enemyIds={set.enemy_ids}
-                    setMap={setMap}
-                    onAdd={() => setTab('relationships')}
-                    onOpenGraph={() => setTab('relationships')}
-                    onRemove={(sid) => removeRel.mutate(sid)}
-                    removingId={removeRel.isPending ? (removeRel.variables as string | undefined) ?? null : null}
+              {/* Bio — saved bio renders as a card; empty state is a quiet CTA. */}
+              {editingBio ? (
+                <div className="space-y-2">
+                  <Textarea
+                    rows={6}
+                    value={bioDraft}
+                    onChange={(e) => setBioDraft(e.target.value)}
+                    placeholder="What this crew is about…"
+                    autoFocus
                   />
-                )}
+                  <div className="flex justify-end gap-2">
+                    <Button size="sm" variant="outline" onClick={() => setEditingBio(false)} disabled={updateSet.isPending}>Cancel</Button>
+                    <Button size="sm" onClick={saveBio} disabled={updateSet.isPending}>
+                      {updateSet.isPending ? 'Saving…' : 'Save'}
+                    </Button>
+                  </div>
+                </div>
+              ) : set.bio ? (
+                <div className="group relative rounded-xl border border-zinc-800 bg-zinc-900/30 p-4">
+                  <p className="text-sm leading-relaxed text-zinc-300 whitespace-pre-wrap">{set.bio}</p>
+                  <button type="button" onClick={startBioEdit} aria-label="Edit bio"
+                    className="absolute right-2 top-2 rounded p-1.5 text-zinc-500 opacity-0 transition-opacity hover:bg-zinc-800 hover:text-zinc-200 focus-visible:opacity-100 group-hover:opacity-100">
+                    <Pencil className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              ) : !isReserved ? (
+                <button type="button" onClick={startBioEdit}
+                  className="flex w-full items-center gap-2 rounded-xl border border-dashed border-zinc-800 px-4 py-3 text-xs text-zinc-600 hover:border-zinc-700 hover:text-zinc-400 transition-colors">
+                  <Pencil className="h-3 w-3" />Add bio
+                </button>
+              ) : null}
+
+              {isReserved && (
+                <div className="rounded-lg border border-zinc-700 bg-zinc-900/50 px-4 py-3 text-sm text-zinc-400">
+                  <span className="font-medium text-zinc-300">System set.</span>{' '}
+                  Used for incident attribution when the actor is a {set.name.toLowerCase()} (not a real crew).
+                  Only the bio can be edited; this set cannot be renamed, reassigned, or deleted.
+                </div>
+              )}
+
+              <div className="rounded-xl border border-zinc-800 bg-zinc-900/30 px-4 py-1">
+                <DetailRow label="Founder">
+                  {founder ? (
+                    <Link to="/members/$id" params={{ id: founder.slug ?? founder.id }} className="text-violet-400 hover:underline">
+                      {founder.display_name}
+                    </Link>
+                  ) : <span className="text-zinc-600">—</span>}
+                </DetailRow>
+                <DetailRow label="Alliance">
+                  {alliance ? (
+                    <Link to="/alliances/$id" params={{ id: alliance.slug ?? alliance.id }} className="text-blue-400 hover:underline">
+                      {alliance.name}
+                    </Link>
+                  ) : <span className="text-zinc-600">—</span>}
+                </DetailRow>
+                <DetailRow label="Municipality">
+                  {muni && set.municipality_id ? (
+                    <Link to="/municipalities/$id" params={{ id: set.municipality_id }} className="text-violet-400 hover:underline">
+                      {muni.name}
+                    </Link>
+                  ) : <span className="text-zinc-600">—</span>}
+                </DetailRow>
+                <DetailRow label="Territories">
+                  {territoryNames.length > 0 ? (
+                    <span title={territoryNames.join(', ')}>
+                      {territoryNames.length} sub-district{territoryNames.length === 1 ? '' : 's'}
+                    </span>
+                  ) : <span className="text-zinc-600">—</span>}
+                </DetailRow>
+                <DetailRow label="Created">
+                  <span className="text-zinc-400">{timeAgo(set.created_at)}</span>
+                </DetailRow>
               </div>
 
               {/* Top-3 latest incidents — quick digest */}

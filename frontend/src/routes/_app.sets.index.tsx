@@ -133,15 +133,18 @@ function setColorStyle(name: string): React.CSSProperties {
   }
 }
 
-export function SetAvatar({ name, thumbUrl, size = 'md', isReserved = false }: { name: string; thumbUrl?: string | null; size?: 'sm' | 'md'; isReserved?: boolean }) {
+export function SetAvatar({ name, thumbUrl, size = 'md', isReserved = false }: { name: string; thumbUrl?: string | null; size?: 'sm' | 'md' | 'xl'; isReserved?: boolean }) {
   const [imgError, setImgError] = useState(false)
-  const sz = size === 'sm' ? 'h-7 w-7 text-xs' : 'h-8 w-8 text-sm'
-  const iconSz = size === 'sm' ? 'h-3.5 w-3.5' : 'h-4 w-4'
+  const sz =
+    size === 'sm' ? 'h-7 w-7 text-xs rounded-md' :
+    size === 'xl' ? 'h-20 w-20 text-2xl rounded-xl ring-1 ring-zinc-600/80 shadow-lg shadow-black/30' :
+    'h-8 w-8 text-sm rounded-md'
+  const iconSz = size === 'sm' ? 'h-3.5 w-3.5' : size === 'xl' ? 'h-8 w-8' : 'h-4 w-4'
   if (isReserved) {
     const Icon = name === 'Police' ? Shield : User
     return (
       <div
-        className={`${sz} shrink-0 rounded-md border border-zinc-700 bg-zinc-800/60 flex items-center justify-center`}
+        className={`${sz} shrink-0 border border-zinc-700 bg-zinc-800/60 flex items-center justify-center`}
         aria-hidden
       >
         <Icon className={`${iconSz} text-zinc-400`} />
@@ -155,14 +158,14 @@ export function SetAvatar({ name, thumbUrl, size = 'md', isReserved = false }: {
         alt={name}
         loading="lazy"
         decoding="async"
-        className={`${sz} shrink-0 rounded-md object-cover ring-1 ring-zinc-700`}
+        className={`${sz} shrink-0 object-cover ring-1 ring-zinc-700`}
         onError={() => setImgError(true)}
       />
     )
   }
   return (
     <div
-      className={`${sz} shrink-0 rounded-md border flex items-center justify-center font-bold`}
+      className={`${sz} shrink-0 border flex items-center justify-center font-bold`}
       style={setColorStyle(name)}
       aria-hidden
     >
