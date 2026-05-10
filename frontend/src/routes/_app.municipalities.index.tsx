@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
-import { AlertTriangle, ChevronRight, MapPin, Pencil, Plus, Search, X } from 'lucide-react'
+import { AlertTriangle, ChevronRight, Map, MapPin, Pencil, Plus, Search, X } from 'lucide-react'
 import { useState, useMemo } from 'react'
 import { toast } from 'sonner'
 import { NoUniverse } from '@/components/NoUniverse'
@@ -335,9 +335,16 @@ function MunicipalitiesPage() {
         title="Municipalities"
         description={`${data?.total ?? 0} total`}
         action={
-          <Button size="sm" onClick={() => setCreating(true)}>
-            <Plus className="mr-1.5 h-4 w-4" />Add
-          </Button>
+          <div className="flex items-center gap-2">
+            <Link to="/municipalities/map" search={{ focus: undefined }}>
+              <Button size="sm" variant="outline">
+                <Map className="mr-1.5 h-4 w-4" />Map view
+              </Button>
+            </Link>
+            <Button size="sm" onClick={() => setCreating(true)}>
+              <Plus className="mr-1.5 h-4 w-4" />Add
+            </Button>
+          </div>
         }
       />
 

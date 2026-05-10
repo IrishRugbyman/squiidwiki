@@ -35,6 +35,7 @@ import type {
   SetRead,
   SetReadDetail,
   SetReadDetailFull,
+  SetTerritoryPolygon,
   SourceListItem,
   SourceRead,
   UserListItem,
@@ -164,11 +165,11 @@ export const useMunicipalitySearch = (universeId: UUID | null, q: string) =>
     enabled: !!universeId && q.length >= 2,
   })
 
-export const useSet = (id: UUID, universeId: UUID | null) =>
+export const useSet = (id: UUID, universeId: UUID | null, enabled = true) =>
   useQuery({
     queryKey: ['sets', id],
     queryFn: () => api.get<SetReadDetail>(`/sets/${id}?universe_id=${universeId}`),
-    enabled: !!universeId,
+    enabled: !!universeId && !!id && enabled,
   })
 
 // Single denormalized fetch for the set detail page (replaces useSet +
@@ -209,9 +210,27 @@ export const useUpdateSet = (id: UUID) => {
       qc.invalidateQueries({ queryKey: ['sets', id] })
       qc.invalidateQueries({ queryKey: ['sets'] })
       qc.invalidateQueries({ queryKey: ['alliances'] })
+      qc.invalidateQueries({ queryKey: ['set-territory-polygons'] })
     },
   })
 }
+
+// All sets in a universe with non-null territory_polygon. Optionally narrow
+// to those anchored at `municipalityId`. Used by the territory map.
+export const useSetTerritoryPolygons = (
+  universeId: UUID | null,
+  municipalityId: UUID | null = null,
+) =>
+  useQuery({
+    queryKey: ['set-territory-polygons', universeId, municipalityId],
+    enabled: !!universeId,
+    staleTime: 30_000,
+    queryFn: () => {
+      const qs = new URLSearchParams({ universe_id: universeId! })
+      if (municipalityId) qs.set('municipality_id', municipalityId)
+      return api.get<SetTerritoryPolygon[]>(`/sets/territory-polygons?${qs.toString()}`)
+    },
+  })
 
 // Restore each cache to its captured pre-mutation value (per-key).
 function restoreSnapshot(qc: QueryClient, prev: ReturnType<QueryClient['getQueriesData']>) {

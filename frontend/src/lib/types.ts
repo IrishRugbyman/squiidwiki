@@ -186,12 +186,23 @@ export interface SetRead extends SetListItem {
   founder_id: UUID | null
   created_at: string
   updated_at: string
+  territory_polygon: GeoJSON.Polygon | null
 }
 
 export interface SetReadDetail extends SetRead {
   territory_ids: UUID[]
   friend_ids: UUID[]
   enemy_ids: UUID[]
+}
+
+export interface SetTerritoryPolygon {
+  id: UUID
+  name: string
+  slug: string | null
+  status: 'ACTIVE' | 'EXTINCT'
+  municipality_id: UUID | null
+  alliance_id: UUID | null
+  territory_polygon: GeoJSON.Polygon
 }
 
 export interface SetStats {

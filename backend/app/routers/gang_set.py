@@ -24,6 +24,7 @@ from app.schemas.gang_set import (
     SetActivityEntry,
     SetCreate,
     SetListItem,
+    SetPolygonItem,
     SetRead,
     SetReadDetail,
     SetReadDetailFull,
@@ -115,6 +116,19 @@ async def create_set(
     session: Annotated[AsyncSession, Depends(get_session)],
 ):
     return await crud.create_gang_set(session, data, current_user.id)
+
+
+@router.get("/territory-polygons", response_model=list[SetPolygonItem])
+async def list_territory_polygons(
+    universe_id: uuid.UUID,
+    _: CurrentUser,
+    session: Annotated[AsyncSession, Depends(get_session)],
+    municipality_id: uuid.UUID | None = Query(None),
+):
+    """Return every set in `universe_id` that has a drawn territory polygon.
+    The territory map calls this once per universe (or per municipality drill-in)."""
+    rows = await crud.list_set_polygons(session, universe_id, municipality_id)
+    return [SetPolygonItem(**r) for r in rows]
 
 
 @router.get("/search", response_model=list[SetListItem])

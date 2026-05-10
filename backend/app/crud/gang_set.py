@@ -319,6 +319,10 @@ async def update_gang_set(
     dump = data.model_dump(exclude_unset=True, exclude={"territory_ids", "friend_ids", "enemy_ids"})
     for k, v in dump.items():
         setattr(obj, k, v)
+    # SQLModel/SQLAlchemy doesn't auto-detect mutations on JSONB dicts assigned
+    # via setattr; flag_modified ensures a polygon update actually gets flushed.
+    if "territory_polygon" in dump:
+        sa.orm.attributes.flag_modified(obj, "territory_polygon")
     if "name" in dump:
         obj.slug = await _unique_slug(session, obj.universe_id, obj.name, exclude_id=obj.id)
     obj.updated_at = datetime.utcnow()
@@ -363,6 +367,46 @@ async def seed_reserved_sets(session: AsyncSession, universe_id: uuid.UUID) -> N
         obj = GangSet(universe_id=universe_id, name=name, slug=slug, is_reserved=True)
         session.add(obj)
     await session.commit()
+
+
+async def list_set_polygons(
+    session: AsyncSession,
+    universe_id: uuid.UUID,
+    municipality_id: uuid.UUID | None = None,
+) -> list[dict]:
+    """Return all sets in `universe_id` that have a non-null territory_polygon.
+    Optionally narrow to those anchored at `municipality_id`."""
+    # Exclude both SQL NULL and JSONB null (asyncpg may store None as the
+    # JSONB scalar 'null' rather than SQL NULL — both should be filtered).
+    stmt = (
+        select(
+            GangSet.id,
+            GangSet.name,
+            GangSet.slug,
+            GangSet.status,
+            GangSet.municipality_id,
+            GangSet.alliance_id,
+            GangSet.territory_polygon,
+        )
+        .where(GangSet.universe_id == universe_id)
+        .where(GangSet.territory_polygon.isnot(None))
+        .where(sa.cast(GangSet.territory_polygon, sa.Text) != "null")
+    )
+    if municipality_id is not None:
+        stmt = stmt.where(GangSet.municipality_id == municipality_id)
+    rows = (await session.execute(stmt)).all()
+    return [
+        {
+            "id": r[0],
+            "name": r[1],
+            "slug": r[2],
+            "status": r[3],
+            "municipality_id": r[4],
+            "alliance_id": r[5],
+            "territory_polygon": r[6],
+        }
+        for r in rows
+    ]
 
 
 async def list_set_territory_ids(

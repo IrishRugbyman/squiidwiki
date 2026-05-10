@@ -70,6 +70,7 @@ class SetUpdate(BaseModel):
     territory_ids: Optional[list[uuid.UUID]] = None
     friend_ids: Optional[list[uuid.UUID]] = None
     enemy_ids: Optional[list[uuid.UUID]] = None
+    territory_polygon: Optional[dict] = None
 
     @model_validator(mode="after")
     def _normalize(self):
@@ -96,12 +97,26 @@ class SetRead(BaseModel):
     updated_at: datetime
     primary_photo_url: Optional[str] = None
     primary_photo_thumb_url: Optional[str] = None
+    territory_polygon: Optional[dict] = None
 
 
 class SetReadDetail(SetRead):
     territory_ids: list[uuid.UUID]
     friend_ids: list[uuid.UUID]
     enemy_ids: list[uuid.UUID]
+
+
+class SetPolygonItem(BaseModel):
+    """Lightweight polygon row for the territory map."""
+    model_config = {"from_attributes": True}
+
+    id: uuid.UUID
+    name: str
+    slug: Optional[str]
+    status: SetStatus
+    municipality_id: Optional[uuid.UUID]
+    alliance_id: Optional[uuid.UUID]
+    territory_polygon: dict
 
 
 class SetListItem(BaseModel):

@@ -28,6 +28,7 @@ import { Route as AppAlliancesIndexRouteImport } from './routes/_app.alliances.i
 import { Route as AppSourcesIdRouteImport } from './routes/_app.sources.$id'
 import { Route as AppSetsIdRouteImport } from './routes/_app.sets.$id'
 import { Route as AppResearchIdRouteImport } from './routes/_app.research.$id'
+import { Route as AppMunicipalitiesMapRouteImport } from './routes/_app.municipalities.map'
 import { Route as AppMunicipalitiesIdRouteImport } from './routes/_app.municipalities.$id'
 import { Route as AppMembersIdRouteImport } from './routes/_app.members.$id'
 import { Route as AppIncidentsIdRouteImport } from './routes/_app.incidents.$id'
@@ -129,6 +130,11 @@ const AppResearchIdRoute = AppResearchIdRouteImport.update({
   path: '/research/$id',
   getParentRoute: () => AppRoute,
 } as any)
+const AppMunicipalitiesMapRoute = AppMunicipalitiesMapRouteImport.update({
+  id: '/municipalities/map',
+  path: '/municipalities/map',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppMunicipalitiesIdRoute = AppMunicipalitiesIdRouteImport.update({
   id: '/municipalities/$id',
   path: '/municipalities/$id',
@@ -175,6 +181,7 @@ export interface FileRoutesByFullPath {
   '/incidents/$id': typeof AppIncidentsIdRoute
   '/members/$id': typeof AppMembersIdRoute
   '/municipalities/$id': typeof AppMunicipalitiesIdRoute
+  '/municipalities/map': typeof AppMunicipalitiesMapRoute
   '/research/$id': typeof AppResearchIdRoute
   '/sets/$id': typeof AppSetsIdRoute
   '/sources/$id': typeof AppSourcesIdRoute
@@ -201,6 +208,7 @@ export interface FileRoutesByTo {
   '/incidents/$id': typeof AppIncidentsIdRoute
   '/members/$id': typeof AppMembersIdRoute
   '/municipalities/$id': typeof AppMunicipalitiesIdRoute
+  '/municipalities/map': typeof AppMunicipalitiesMapRoute
   '/research/$id': typeof AppResearchIdRoute
   '/sets/$id': typeof AppSetsIdRoute
   '/sources/$id': typeof AppSourcesIdRoute
@@ -229,6 +237,7 @@ export interface FileRoutesById {
   '/_app/incidents/$id': typeof AppIncidentsIdRoute
   '/_app/members/$id': typeof AppMembersIdRoute
   '/_app/municipalities/$id': typeof AppMunicipalitiesIdRoute
+  '/_app/municipalities/map': typeof AppMunicipalitiesMapRoute
   '/_app/research/$id': typeof AppResearchIdRoute
   '/_app/sets/$id': typeof AppSetsIdRoute
   '/_app/sources/$id': typeof AppSourcesIdRoute
@@ -257,6 +266,7 @@ export interface FileRouteTypes {
     | '/incidents/$id'
     | '/members/$id'
     | '/municipalities/$id'
+    | '/municipalities/map'
     | '/research/$id'
     | '/sets/$id'
     | '/sources/$id'
@@ -283,6 +293,7 @@ export interface FileRouteTypes {
     | '/incidents/$id'
     | '/members/$id'
     | '/municipalities/$id'
+    | '/municipalities/map'
     | '/research/$id'
     | '/sets/$id'
     | '/sources/$id'
@@ -310,6 +321,7 @@ export interface FileRouteTypes {
     | '/_app/incidents/$id'
     | '/_app/members/$id'
     | '/_app/municipalities/$id'
+    | '/_app/municipalities/map'
     | '/_app/research/$id'
     | '/_app/sets/$id'
     | '/_app/sources/$id'
@@ -462,6 +474,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppResearchIdRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/municipalities/map': {
+      id: '/_app/municipalities/map'
+      path: '/municipalities/map'
+      fullPath: '/municipalities/map'
+      preLoaderRoute: typeof AppMunicipalitiesMapRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/municipalities/$id': {
       id: '/_app/municipalities/$id'
       path: '/municipalities/$id'
@@ -521,6 +540,7 @@ interface AppRouteChildren {
   AppIncidentsIdRoute: typeof AppIncidentsIdRoute
   AppMembersIdRoute: typeof AppMembersIdRoute
   AppMunicipalitiesIdRoute: typeof AppMunicipalitiesIdRoute
+  AppMunicipalitiesMapRoute: typeof AppMunicipalitiesMapRoute
   AppResearchIdRoute: typeof AppResearchIdRoute
   AppSetsIdRoute: typeof AppSetsIdRoute
   AppSourcesIdRoute: typeof AppSourcesIdRoute
@@ -547,6 +567,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppIncidentsIdRoute: AppIncidentsIdRoute,
   AppMembersIdRoute: AppMembersIdRoute,
   AppMunicipalitiesIdRoute: AppMunicipalitiesIdRoute,
+  AppMunicipalitiesMapRoute: AppMunicipalitiesMapRoute,
   AppResearchIdRoute: AppResearchIdRoute,
   AppSetsIdRoute: AppSetsIdRoute,
   AppSourcesIdRoute: AppSourcesIdRoute,
