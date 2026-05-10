@@ -86,7 +86,6 @@ function initialVariants(initial?: SetReadDetail | null, copyFrom?: SetReadDetai
 
 type SortKey = 'name' | 'status' | 'member_count' | 'updated_at' | 'created_at'
 type ViewMode = 'table' | 'cards'
-type Density = 'compact' | 'comfortable'
 
 interface SetsSearch {
   q?: string
@@ -97,7 +96,6 @@ interface SetsSearch {
   sort?: SortKey
   order?: 'asc' | 'desc'
   view?: ViewMode
-  density?: Density
   page?: number
   size?: number
 }
@@ -114,7 +112,6 @@ export const Route = createFileRoute('/_app/sets/')({
     sort: typeof s.sort === 'string' && (SORT_KEYS as string[]).includes(s.sort) ? (s.sort as SortKey) : undefined,
     order: s.order === 'desc' ? 'desc' : s.order === 'asc' ? 'asc' : undefined,
     view: s.view === 'cards' ? 'cards' : s.view === 'table' ? 'table' : undefined,
-    density: s.density === 'comfortable' ? 'comfortable' : s.density === 'compact' ? 'compact' : undefined,
     page: typeof s.page === 'number' && s.page > 0 ? Math.floor(s.page) : undefined,
     size: typeof s.size === 'number' && [20, 50, 100].includes(s.size) ? s.size : undefined,
   }),
@@ -850,7 +847,6 @@ function SetsPage() {
 
   // Settings — persisted defaults via URL (sharable). Effective values:
   const view: ViewMode = search.view ?? 'table'
-  const density: Density = search.density ?? 'compact'
   const sort: SortKey = search.sort ?? 'name'
   const order: 'asc' | 'desc' = search.order ?? 'asc'
   const pageSize = search.size ?? 20
@@ -916,7 +912,7 @@ function SetsPage() {
   function patchSearch(patch: Partial<SetsSearch>) {
     navigate({ search: (prev) => {
       const next: SetsSearch = { ...prev, ...patch }
-      // Reset to page 1 when filters or sort change (but NOT for view/density/page/size itself).
+      // Reset to page 1 when filters or sort change (but NOT for view/page/size itself).
       const filterKeys: (keyof SetsSearch)[] = ['q', 'status', 'alliance', 'gang', 'muni', 'sort', 'order', 'size']
       if (filterKeys.some((k) => k in patch)) next.page = undefined
       // Strip undefineds to keep URLs clean.
@@ -936,7 +932,7 @@ function SetsPage() {
   }
   function clearAllFilters() {
     setQInput('')
-    navigate({ search: (prev) => ({ view: prev.view, density: prev.density, size: prev.size }) })
+    navigate({ search: (prev) => ({ view: prev.view, size: prev.size }) })
   }
 
   function toggleSelectSet(id: UUID) {
@@ -1146,22 +1142,6 @@ function SetsPage() {
             </div>
           )}
 
-          {/* Density (table view only) */}
-          {effectiveView === 'table' && (
-            <Select
-              value={density}
-              onValueChange={(v) => patchSearch({ density: v as Density })}
-            >
-              <SelectTrigger className="h-8 w-auto min-w-24 text-xs">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="comfortable">Comfortable</SelectItem>
-                <SelectItem value="compact">Compact</SelectItem>
-              </SelectContent>
-            </Select>
-          )}
-
           <Button
             variant="outline" size="sm"
             onClick={() => {
@@ -1288,11 +1268,11 @@ function SetsPage() {
             </thead>
             <tbody className="divide-y divide-zinc-800">
               {isLoading
-                ? Array.from({ length: 5 }).map((_, i) => <TableRowSkeleton key={i} cols={8} height={density === 'compact' ? 44 : 56} />)
+                ? Array.from({ length: 5 }).map((_, i) => <TableRowSkeleton key={i} cols={8} height={44} />)
                 : items.map((set) => {
                     const linkId = set.slug ?? set.id
                     const isSelected = selected.has(set.id)
-                    const padY = density === 'compact' ? 'py-1.5' : 'py-3'
+                    const padY = 'py-1.5'
                     return (
                       <tr key={set.id} className={`group hover:bg-zinc-900/50 transition-colors ${isSelected ? 'bg-violet-950/20' : ''}`}>
                         <td className={`px-3 ${padY}`}>
@@ -1317,10 +1297,6 @@ function SetsPage() {
                                   </span>
                                 )}
                               </div>
-                              {density === 'comfortable' && (() => {
-                                const aka = nonPrimaryVariantsText(set.name_variants)
-                                return aka ? <p className="truncate text-xs text-zinc-500">{aka}</p> : null
-                              })()}
                             </div>
                           </Link>
                         </td>
