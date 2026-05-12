@@ -400,7 +400,8 @@ export function MemberFormSheet({ universeId, open, onClose, initial, defaultSet
         status: 'ACTIVE',
         territory_ids: [],
       })
-      setSetId(created.id)
+      const isPrimary = affiliations.length === 0
+      setAffiliations((prev) => [...prev, { set_id: created.id, rank: '', is_primary: isPrimary || prev.every((a) => !a.is_primary) }])
       toast.success(`Created set "${name}"`)
     } catch (err) {
       toast.error(err instanceof Error ? err.message : `Couldn't create set "${name}"`)
@@ -433,8 +434,16 @@ export function MemberFormSheet({ universeId, open, onClose, initial, defaultSet
   const [legalName, setLegalName] = useState(initial?.legal_name ?? copyFrom?.legal_name ?? '')
   const [nicknameUnknown, setNicknameUnknown] = useState(initial?.nickname_unknown ?? copyFrom?.nickname_unknown ?? false)
   const [status, setStatus] = useState<MemberStatus>(initial?.status ?? copyFrom?.status ?? 'UNKNOWN')
-  const [setId, setSetId] = useState<string>(initial?.set_id ?? copyFrom?.set_id ?? defaultSetId ?? '')
-  const [setRank, setSetRank] = useState<SetRank | ''>(initial?.set_rank ?? copyFrom?.set_rank ?? '')
+  type AffRow = { set_id: string; rank: SetRank | ''; is_primary: boolean }
+  const seedAffiliations = (): AffRow[] => {
+    const src = initial ?? copyFrom
+    if (src?.affiliations && src.affiliations.length > 0) {
+      return src.affiliations.map((a) => ({ set_id: a.set_id, rank: a.rank ?? '', is_primary: a.is_primary }))
+    }
+    if (defaultSetId) return [{ set_id: defaultSetId, rank: '', is_primary: true }]
+    return []
+  }
+  const [affiliations, setAffiliations] = useState<AffRow[]>(seedAffiliations)
   const [allianceId, setAllianceId] = useState<string>(initial?.alliance_id ?? copyFrom?.alliance_id ?? defaultAllianceId ?? '')
   const [gangId, setGangId] = useState<string>(initial?.gang_id ?? copyFrom?.gang_id ?? '')
   const [biography, setBiography] = useState(initial?.biography ?? copyFrom?.biography ?? '')
@@ -497,8 +506,11 @@ export function MemberFormSheet({ universeId, open, onClose, initial, defaultSet
       legal_name: legalName || null,
       nickname_unknown: nicknameUnknown,
       status,
-      set_id: setId || null,
-      set_rank: setId && setRank ? setRank : null,
+      affiliations: affiliations.filter((a) => a.set_id).map((a) => ({
+        set_id: a.set_id,
+        rank: a.rank || null,
+        is_primary: a.is_primary,
+      })),
       alliance_id: allianceId || null,
       gang_id: gangId || null,
       biography,
@@ -605,8 +617,7 @@ export function MemberFormSheet({ universeId, open, onClose, initial, defaultSet
     setLegalName('')
     setNicknameUnknown(false)
     setStatus('UNKNOWN')
-    setSetId(defaultSetId ?? '')
-    setSetRank('')
+    setAffiliations(defaultSetId ? [{ set_id: defaultSetId, rank: '', is_primary: true }] : [])
     setAllianceId(defaultAllianceId ?? '')
     setGangId('')
     setBiography('')
@@ -735,30 +746,72 @@ export function MemberFormSheet({ universeId, open, onClose, initial, defaultSet
                 </Select>
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="m-set">Set</Label>
-                <AffiliationCombobox
-                  label="Set"
-                  value={setId}
-                  onChange={(v) => { setSetId(v); if (!v) setSetRank('') }}
-                  items={setItems}
-                  onCreateRequest={handleCreateSet}
-                  creating={createSet.isPending}
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label>Set rank</Label>
-                <Select
-                  value={setRank || 'none'}
-                  onValueChange={(v) => setSetRank(v === 'none' ? '' : (v as SetRank))}
-                  disabled={!setId}
-                >
-                  <SelectTrigger><SelectValue placeholder={setId ? 'None' : 'Pick a set first'} /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">— None —</SelectItem>
-                    <SelectItem value="CEO">CEO</SelectItem>
-                    <SelectItem value="CO_CEO">Co-CEO</SelectItem>
-                  </SelectContent>
-                </Select>
+                <div className="flex items-center justify-between">
+                  <Label>Sets</Label>
+                  <button
+                    type="button"
+                    onClick={() => setAffiliations((prev) => {
+                      const isFirst = prev.length === 0
+                      return [...prev, { set_id: '', rank: '', is_primary: isFirst }]
+                    })}
+                    className="text-xs text-violet-400 hover:text-violet-300 transition-colors"
+                  >
+                    + Add
+                  </button>
+                </div>
+                {affiliations.length === 0 && (
+                  <p className="text-xs text-zinc-600 italic">No set affiliation</p>
+                )}
+                {affiliations.map((aff, idx) => {
+                  const usedSetIds = new Set(affiliations.filter((_, i) => i !== idx).map((a) => a.set_id).filter(Boolean))
+                  const availableItems = setItems.filter((s) => !usedSetIds.has(s.id))
+                  return (
+                    <div key={idx} className="flex items-center gap-2">
+                      <div className="flex-1">
+                        <AffiliationCombobox
+                          label="Set"
+                          value={aff.set_id}
+                          onChange={(v) => setAffiliations((prev) => prev.map((a, i) => i === idx ? { ...a, set_id: v } : a))}
+                          items={availableItems}
+                          onCreateRequest={handleCreateSet}
+                          creating={createSet.isPending}
+                        />
+                      </div>
+                      <Select
+                        value={aff.rank || 'none'}
+                        onValueChange={(v) => setAffiliations((prev) => prev.map((a, i) => i === idx ? { ...a, rank: v === 'none' ? '' : v as SetRank } : a))}
+                        disabled={!aff.set_id}
+                      >
+                        <SelectTrigger className="w-28 shrink-0"><SelectValue placeholder="Rank" /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">— None —</SelectItem>
+                          <SelectItem value="CEO">CEO</SelectItem>
+                          <SelectItem value="CO_CEO">Co-CEO</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <button
+                        type="button"
+                        title={aff.is_primary ? 'Primary set' : 'Make primary'}
+                        onClick={() => setAffiliations((prev) => prev.map((a, i) => ({ ...a, is_primary: i === idx })))}
+                        className={`shrink-0 rounded p-1 text-xs transition-colors ${aff.is_primary ? 'text-violet-400' : 'text-zinc-600 hover:text-violet-400'}`}
+                      >
+                        ★
+                      </button>
+                      <button
+                        type="button"
+                        aria-label="Remove affiliation"
+                        onClick={() => setAffiliations((prev) => {
+                          const next = prev.filter((_, i) => i !== idx)
+                          if (aff.is_primary && next.length > 0) next[0].is_primary = true
+                          return next
+                        })}
+                        className="shrink-0 rounded p-1 text-zinc-600 hover:text-red-400 transition-colors"
+                      >
+                        <X size={12} />
+                      </button>
+                    </div>
+                  )
+                })}
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="m-alliance">Alliance</Label>

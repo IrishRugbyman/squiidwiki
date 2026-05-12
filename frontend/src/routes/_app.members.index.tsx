@@ -82,12 +82,6 @@ function MembersPage() {
   const { data: setsData } = useSets(universe?.id ?? null)
   const { data: analytics } = useUniverseAnalytics(universe?.id ?? null)
 
-  const setMap = useMemo(() => {
-    const m: Record<string, { name: string; slug: string | null }> = {}
-    for (const s of setsData?.items ?? []) m[s.id] = { name: s.name, slug: s.slug }
-    return m
-  }, [setsData])
-
   const isSearching = debouncedQ.length >= 2
   const baseItems = isSearching ? (searchResults ?? []) : (data?.items ?? [])
 
@@ -105,7 +99,7 @@ function MembersPage() {
   const items: MemberListItem[] = useMemo(() => {
     let list = baseItems
     if (statusFilter) list = list.filter((m) => m.status === statusFilter)
-    if (setFilter) list = list.filter((m) => m.set_id === setFilter)
+    if (setFilter) list = list.filter((m) => m.affiliations.some((a) => a.set_id === setFilter))
     if (!sortKey) return list
     return [...list].sort((a, b) => {
       const av = String((a as unknown as Record<string, unknown>)[sortKey] ?? '')
@@ -286,7 +280,8 @@ function MembersPage() {
                 : null}
             {!listLoading && (isVirtualized ? virtualRows.map((vRow) => items[vRow.index]) : items).map((member, idx) => {
                   const linkId = member.slug ?? member.id
-                  const setInfo = member.set_id ? setMap[member.set_id] : null
+                  const primaryAff = member.affiliations.find((a) => a.is_primary) ?? member.affiliations[0] ?? null
+                  const extraCount = member.affiliations.length - 1
                   const isDead = member.status === 'DEAD'
                   const measureRef = isVirtualized ? rowVirtualizer.measureElement : undefined
                   const dataIndex = isVirtualized ? virtualRows[idx]?.index : undefined
@@ -312,10 +307,17 @@ function MembersPage() {
                         </Link>
                       </td>
                       <td className="hidden px-3 py-3 sm:table-cell">
-                        {setInfo ? (
-                          <Link to="/sets/$id" params={{ id: setInfo.slug ?? member.set_id! }} className="inline-flex items-center rounded-full bg-zinc-800/60 px-2 py-0.5 text-xs text-zinc-400 hover:bg-zinc-800 hover:text-violet-400 transition-colors">
-                            {setInfo.name}
-                          </Link>
+                        {primaryAff ? (
+                          <span className="inline-flex flex-wrap items-center gap-1">
+                            <Link to="/sets/$id" params={{ id: primaryAff.set_slug ?? primaryAff.set_id }} className="inline-flex items-center rounded-full bg-zinc-800/60 px-2 py-0.5 text-xs text-zinc-400 hover:bg-zinc-800 hover:text-violet-400 transition-colors ring-1 ring-transparent ring-inset [.is-primary_&]:ring-violet-700/40">
+                              {primaryAff.set_name}
+                            </Link>
+                            {extraCount > 0 && (
+                              <span className="inline-flex items-center rounded-full bg-zinc-800/40 px-1.5 py-0.5 text-[10px] text-zinc-500" title={member.affiliations.filter((a) => !a.is_primary).map((a) => a.set_name).join(', ')}>
+                                +{extraCount}
+                              </span>
+                            )}
+                          </span>
                         ) : <span className="text-xs text-zinc-700">—</span>}
                       </td>
                       <td className="px-3 py-3">
@@ -379,7 +381,8 @@ function MembersPage() {
         ) : (
           items.map((member) => {
             const linkId = member.slug ?? member.id
-            const setInfo = member.set_id ? setMap[member.set_id] : null
+            const primaryAffMobile = member.affiliations.find((a) => a.is_primary) ?? member.affiliations[0] ?? null
+            const extraCountMobile = member.affiliations.length - 1
             const isDead = member.status === 'DEAD'
             const isSelected = selected.has(member.id)
             return (
@@ -414,14 +417,21 @@ function MembersPage() {
                     </Link>
                     <div className="mt-2 flex flex-wrap items-center gap-2">
                       <MemberStatusBadge status={member.status} />
-                      {setInfo && (
-                        <Link
-                          to="/sets/$id"
-                          params={{ id: setInfo.slug ?? member.set_id! }}
-                          className="inline-flex items-center rounded-full bg-zinc-800/60 px-2 py-0.5 text-xs text-zinc-400 hover:bg-zinc-800 hover:text-violet-400 transition-colors"
-                        >
-                          {setInfo.name}
-                        </Link>
+                      {primaryAffMobile && (
+                        <>
+                          <Link
+                            to="/sets/$id"
+                            params={{ id: primaryAffMobile.set_slug ?? primaryAffMobile.set_id }}
+                            className="inline-flex items-center rounded-full bg-zinc-800/60 px-2 py-0.5 text-xs text-zinc-400 hover:bg-zinc-800 hover:text-violet-400 transition-colors"
+                          >
+                            {primaryAffMobile.set_name}
+                          </Link>
+                          {extraCountMobile > 0 && (
+                            <span className="inline-flex items-center rounded-full bg-zinc-800/40 px-1.5 py-0.5 text-[10px] text-zinc-500" title={member.affiliations.filter((a) => !a.is_primary).map((a) => a.set_name).join(', ')}>
+                              +{extraCountMobile}
+                            </span>
+                          )}
+                        </>
                       )}
                     </div>
                   </div>

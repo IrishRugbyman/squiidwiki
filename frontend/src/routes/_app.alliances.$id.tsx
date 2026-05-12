@@ -91,7 +91,9 @@ function AllianceDetailPage() {
   const memberCountBySetId = useMemo(() => {
     const m: Record<string, number> = {}
     for (const x of memberItems) {
-      if (x.set_id) m[x.set_id] = (m[x.set_id] ?? 0) + 1
+      for (const aff of x.affiliations) {
+        m[aff.set_id] = (m[aff.set_id] ?? 0) + 1
+      }
     }
     return m
   }, [memberItems])
@@ -252,7 +254,7 @@ function AllianceDetailPage() {
                     </thead>
                     <tbody className="divide-y divide-zinc-800">
                       {allianceSets.map((s) => {
-                        const memberCount = memberItems.filter((m) => m.set_id === s.id).length
+                        const memberCount = memberItems.filter((m) => m.affiliations.some((a) => a.set_id === s.id)).length
                         return (
                           <AllianceSetRow
                             key={s.id}
@@ -300,7 +302,7 @@ function AllianceDetailPage() {
                     </thead>
                     <tbody className="divide-y divide-zinc-800">
                       {memberItems.map((m) => {
-                        const setInfo = m.set_id ? allianceSets.find((s) => s.id === m.set_id) : null
+                        const setInfos = m.affiliations.filter((a) => allianceSets.some((s) => s.id === a.set_id))
                         const isDead = m.status === 'DEAD'
                         return (
                           <tr key={m.id} className={`group hover:bg-zinc-900/40 transition-colors ${isDead ? 'opacity-60' : ''}`}>
@@ -321,14 +323,23 @@ function AllianceDetailPage() {
                               </Link>
                             </td>
                             <td className="hidden px-3 py-3 sm:table-cell">
-                              {setInfo ? (
-                                <Link
-                                  to="/sets/$id"
-                                  params={{ id: setInfo.slug ?? setInfo.id }}
-                                  className="inline-flex items-center rounded-full bg-zinc-800/60 px-2 py-0.5 text-xs text-zinc-400 hover:bg-zinc-800 hover:text-violet-400 transition-colors"
-                                >
-                                  {setInfo.name}
-                                </Link>
+                              {setInfos.length > 0 ? (
+                                <span className="inline-flex flex-wrap gap-1">
+                                  {setInfos.map((aff) => {
+                                    const s = allianceSets.find((x) => x.id === aff.set_id)
+                                    if (!s) return null
+                                    return (
+                                      <Link
+                                        key={aff.set_id}
+                                        to="/sets/$id"
+                                        params={{ id: s.slug ?? s.id }}
+                                        className="inline-flex items-center rounded-full bg-zinc-800/60 px-2 py-0.5 text-xs text-zinc-400 hover:bg-zinc-800 hover:text-violet-400 transition-colors"
+                                      >
+                                        {s.name}
+                                      </Link>
+                                    )
+                                  })}
+                                </span>
                               ) : (
                                 <span className="text-xs text-zinc-700">—</span>
                               )}
@@ -497,7 +508,7 @@ function AllianceDetailPage() {
             <RemoveSetConfirm
               set={removingSet}
               universeId={universe.id}
-              memberCount={memberItems.filter((m) => m.set_id === removingSet.id).length}
+              memberCount={memberItems.filter((m) => m.affiliations.some((a) => a.set_id === removingSet.id)).length}
               onClose={() => setRemovingSetId(null)}
             />
           )}

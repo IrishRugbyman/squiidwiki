@@ -296,10 +296,10 @@ export const useRemoveSetRelationship = (setId: UUID, universeId: UUID) => {
   })
 }
 
-export const useSetMembers = (setId: UUID, universeId: UUID | null) =>
+export const useSetMembers = (setId: UUID, universeId: UUID | null, primaryOnly = false) =>
   useQuery({
-    queryKey: ['members', 'set', setId],
-    queryFn: () => api.get<CursorPage<MemberListItem>>(`/members/?universe_id=${universeId}&set_id=${setId}`),
+    queryKey: ['members', 'set', setId, primaryOnly],
+    queryFn: () => api.get<CursorPage<MemberListItem>>(`/members/?universe_id=${universeId}&set_id=${setId}${primaryOnly ? '&primary_only=true' : ''}`),
     enabled: !!universeId && !!setId,
   })
 
@@ -462,13 +462,31 @@ export const useCreateMember = () => {
   })
 }
 
+export const useAddMembersToSet = (setId: UUID, universeId: UUID) => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async (members: { id: UUID; affiliations: { set_id: UUID; rank: string | null; is_primary: boolean }[] }[]) => {
+      await Promise.all(
+        members.map(({ id, affiliations }) =>
+          api.patch<MemberRead>(`/members/${id}?universe_id=${universeId}`, { affiliations }),
+        ),
+      )
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['members'] })
+      qc.invalidateQueries({ queryKey: ['sets', setId, 'stats'] })
+    },
+  })
+}
+
+/** @deprecated use useAddMembersToSet */
 export const useReassignMembersToSet = (setId: UUID, universeId: UUID) => {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: async (memberIds: UUID[]) => {
       await Promise.all(
         memberIds.map((id) =>
-          api.patch<MemberRead>(`/members/${id}?universe_id=${universeId}`, { set_id: setId }),
+          api.patch<MemberRead>(`/members/${id}?universe_id=${universeId}`, { affiliations: [{ set_id: setId, rank: null, is_primary: true }] }),
         ),
       )
     },

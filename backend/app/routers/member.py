@@ -30,6 +30,7 @@ from app.schemas.member import (
     MemberReleaseEvent,
     MemberStats,
     MemberUpdate,
+    MemberSetAffiliationOut,
 )
 
 router = APIRouter(prefix="/members", tags=["members"])
@@ -43,6 +44,7 @@ async def list_members(
     limit: int = Query(50, ge=1, le=200),
     cursor: str | None = None,
     set_id: uuid.UUID | None = None,
+    primary_only: bool = False,
     alliance_id: uuid.UUID | None = None,
     format: str = Query("json"),
 ):
@@ -50,7 +52,8 @@ async def list_members(
         items, _ = await crud.list_members(session, universe_id, limit=1000)
         return to_csv_response(items, "members.csv")
     items, next_cursor = await crud.list_members(
-        session, universe_id, limit=limit, cursor=cursor, set_id=set_id, alliance_id=alliance_id
+        session, universe_id, limit=limit, cursor=cursor,
+        set_id=set_id, primary_only=primary_only, alliance_id=alliance_id,
     )
     return CursorPage(items=items, next_cursor=next_cursor, total=None)
 
@@ -123,13 +126,8 @@ async def get_member(
     incarcerations = await crud.list_member_incarcerations(session, obj.id)
     stats_dict = await crud.get_member_stats(session, obj.id)
 
-    set_name = set_slug = None
-    if obj.set_id:
-        row = (await session.execute(
-            select(GangSet.name, GangSet.slug).where(GangSet.id == obj.set_id)
-        )).one_or_none()
-        if row:
-            set_name, set_slug = row
+    aff_map = await crud.load_member_affiliations(session, [obj.id])
+    crud._attach_affiliations(obj, aff_map.get(obj.id, []))
 
     alliance_name = alliance_slug = None
     if obj.alliance_id:
@@ -162,12 +160,38 @@ async def get_member(
                 municipality_name=row[4],
             )
 
-    base = MemberRead.model_validate(obj)
+    affiliations: list[MemberSetAffiliationOut] = getattr(obj, "affiliations", [])
+    primary = next((a for a in affiliations if a.is_primary), affiliations[0] if affiliations else None)
+    base = MemberRead(
+        id=obj.id,
+        universe_id=obj.universe_id,
+        nickname=obj.nickname,
+        legal_name=obj.legal_name,
+        nickname_unknown=obj.nickname_unknown,
+        aliases=obj.aliases,
+        biography=obj.biography,
+        affiliations=affiliations,
+        primary_set_id=primary.set_id if primary else None,
+        primary_set_name=primary.set_name if primary else None,
+        primary_set_slug=primary.set_slug if primary else None,
+        primary_set_rank=primary.rank if primary else None,
+        alliance_id=obj.alliance_id,
+        gang_id=obj.gang_id,
+        status=obj.status,
+        dob=obj.dob,
+        date_of_death=obj.date_of_death,
+        family=obj.family,
+        social_media=obj.social_media,
+        death_incident_id=obj.death_incident_id,
+        created_at=obj.created_at,
+        updated_at=obj.updated_at,
+        display_name=obj.display_name,
+        primary_photo_url=getattr(obj, "primary_photo_url", None),
+        primary_photo_thumb_url=getattr(obj, "primary_photo_thumb_url", None),
+    )
     return MemberReadDetail(
         **base.model_dump(),
         source_ids=source_ids,
-        set_name=set_name,
-        set_slug=set_slug,
         alliance_name=alliance_name,
         alliance_slug=alliance_slug,
         aliases_detail=[MemberAliasRead.model_validate(a) for a in aliases_detail],

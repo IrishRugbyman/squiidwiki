@@ -268,12 +268,23 @@ export interface SetReadDetailFull extends SetReadDetail {
 }
 
 // Member
+export interface MemberSetAffiliation {
+  set_id: UUID
+  set_name: string | null
+  set_slug: string | null
+  rank: SetRank | null
+  is_primary: boolean
+}
+
 export interface MemberListItem {
   id: UUID
   display_name: string
   status: MemberStatus
-  set_id: UUID | null
-  set_rank: SetRank | null
+  affiliations: MemberSetAffiliation[]
+  primary_set_id: UUID | null
+  primary_set_name: string | null
+  primary_set_slug: string | null
+  primary_set_rank: SetRank | null
   alliance_id: UUID | null
   gang_id: UUID | null
   universe_id: UUID
@@ -353,8 +364,6 @@ export interface MemberKilledInSummary {
 
 export interface MemberReadDetail extends MemberRead {
   source_ids: UUID[]
-  set_name: string | null
-  set_slug: string | null
   alliance_name: string | null
   alliance_slug: string | null
   aliases_detail: MemberAliasRead[]

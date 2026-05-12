@@ -2,10 +2,24 @@ import uuid
 from datetime import datetime
 from typing import Any, Optional
 
-from pydantic import BaseModel, computed_field
+from pydantic import BaseModel, computed_field, model_validator
 
 from app.core.enums import MemberStatus, SetRank
 from app.schemas.common import FuzzyDateField
+
+
+class MemberSetAffiliationIn(BaseModel):
+    set_id: uuid.UUID
+    rank: Optional[SetRank] = None
+    is_primary: bool = False
+
+
+class MemberSetAffiliationOut(BaseModel):
+    set_id: uuid.UUID
+    set_name: Optional[str] = None
+    set_slug: Optional[str] = None
+    rank: Optional[SetRank] = None
+    is_primary: bool = False
 
 
 class MemberCreate(BaseModel):
@@ -15,8 +29,7 @@ class MemberCreate(BaseModel):
     nickname_unknown: bool = False
     aliases: Optional[list[str]] = None
     biography: str = ""
-    set_id: Optional[uuid.UUID] = None
-    set_rank: Optional[SetRank] = None
+    affiliations: list[MemberSetAffiliationIn] = []
     alliance_id: Optional[uuid.UUID] = None
     gang_id: Optional[uuid.UUID] = None
     status: MemberStatus = MemberStatus.UNKNOWN
@@ -27,6 +40,11 @@ class MemberCreate(BaseModel):
     death_incident_id: Optional[uuid.UUID] = None
     source_ids: list[uuid.UUID] = []
 
+    @model_validator(mode="after")
+    def _fix_primary(self) -> "MemberCreate":
+        _ensure_single_primary(self.affiliations)
+        return self
+
 
 class MemberUpdate(BaseModel):
     nickname: Optional[str] = None
@@ -34,8 +52,7 @@ class MemberUpdate(BaseModel):
     nickname_unknown: Optional[bool] = None
     aliases: Optional[list[str]] = None
     biography: Optional[str] = None
-    set_id: Optional[uuid.UUID] = None
-    set_rank: Optional[SetRank] = None
+    affiliations: Optional[list[MemberSetAffiliationIn]] = None
     alliance_id: Optional[uuid.UUID] = None
     gang_id: Optional[uuid.UUID] = None
     status: Optional[MemberStatus] = None
@@ -45,6 +62,21 @@ class MemberUpdate(BaseModel):
     social_media: Optional[dict[str, Any]] = None
     death_incident_id: Optional[uuid.UUID] = None
     source_ids: Optional[list[uuid.UUID]] = None
+
+    @model_validator(mode="after")
+    def _fix_primary(self) -> "MemberUpdate":
+        if self.affiliations is not None:
+            _ensure_single_primary(self.affiliations)
+        return self
+
+
+def _ensure_single_primary(affiliations: list[MemberSetAffiliationIn]) -> None:
+    """Auto-promote first affiliation to primary if none is marked."""
+    if not affiliations:
+        return
+    primaries = [a for a in affiliations if a.is_primary]
+    if not primaries:
+        affiliations[0].is_primary = True
 
 
 class MemberRead(BaseModel):
@@ -57,8 +89,11 @@ class MemberRead(BaseModel):
     nickname_unknown: bool
     aliases: Optional[list[str]]
     biography: str
-    set_id: Optional[uuid.UUID]
-    set_rank: Optional[SetRank] = None
+    affiliations: list[MemberSetAffiliationOut] = []
+    primary_set_id: Optional[uuid.UUID] = None
+    primary_set_name: Optional[str] = None
+    primary_set_slug: Optional[str] = None
+    primary_set_rank: Optional[SetRank] = None
     alliance_id: Optional[uuid.UUID]
     gang_id: Optional[uuid.UUID] = None
     status: MemberStatus
@@ -84,8 +119,6 @@ class MemberKilledInSummary(BaseModel):
 
 class MemberReadDetail(MemberRead):
     source_ids: list[uuid.UUID]
-    set_name: Optional[str] = None
-    set_slug: Optional[str] = None
     alliance_name: Optional[str] = None
     alliance_slug: Optional[str] = None
     aliases_detail: list["MemberAliasRead"] = []
@@ -100,8 +133,11 @@ class MemberListItem(BaseModel):
     id: uuid.UUID
     display_name: str
     status: MemberStatus
-    set_id: Optional[uuid.UUID]
-    set_rank: Optional[SetRank] = None
+    affiliations: list[MemberSetAffiliationOut] = []
+    primary_set_id: Optional[uuid.UUID] = None
+    primary_set_name: Optional[str] = None
+    primary_set_slug: Optional[str] = None
+    primary_set_rank: Optional[SetRank] = None
     alliance_id: Optional[uuid.UUID] = None
     gang_id: Optional[uuid.UUID] = None
     universe_id: uuid.UUID

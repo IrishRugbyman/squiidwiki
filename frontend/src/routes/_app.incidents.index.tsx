@@ -84,7 +84,7 @@ export interface SetParticipantDraft {
 const ROLES: ParticipantRole[] = ['SHOOTER', 'ASSISTED', 'BYSTANDER', 'VICTIM']
 const OUTCOMES: ParticipantOutcome[] = ['KILLED', 'INJURED', 'UNHARMED', 'UNKNOWN']
 
-function ParticipantsSection({ universeId, participants, onChangeParticipants, setParticipants, onChangeSetParticipants, allMembers, allSets, setNameById }: {
+function ParticipantsSection({ universeId, participants, onChangeParticipants, setParticipants, onChangeSetParticipants, allMembers, allSets }: {
   universeId: string
   participants: ParticipantDraft[]
   onChangeParticipants: (p: ParticipantDraft[]) => void
@@ -92,7 +92,6 @@ function ParticipantsSection({ universeId, participants, onChangeParticipants, s
   onChangeSetParticipants: (p: SetParticipantDraft[]) => void
   allMembers: MemberListItem[]
   allSets: SetListItem[]
-  setNameById: Record<string, string>
 }) {
   const [mode, setMode] = useState<'member' | 'set'>('member')
 
@@ -114,21 +113,21 @@ function ParticipantsSection({ universeId, participants, onChangeParticipants, s
   const memberSetNameById = useMemo(() => {
     const out: Record<string, string> = {}
     for (const m of allMembers) {
-      if (m.set_id && setNameById[m.set_id]) out[m.id] = setNameById[m.set_id]
+      const primary = m.affiliations.find((a) => a.is_primary) ?? m.affiliations[0]
+      if (primary?.set_name) out[m.id] = primary.set_name
     }
     return out
-  }, [allMembers, setNameById])
+  }, [allMembers])
 
   const suggestions = useMemo(() => {
     if (participants.length === 0 || allMembers.length === 0) return [] as MemberListItem[]
     const memberMap = Object.fromEntries(allMembers.map((m) => [m.id, m]))
     const setIds = new Set<string>()
     for (const p of participants) {
-      const sid = memberMap[p.member_id]?.set_id
-      if (sid) setIds.add(sid)
+      for (const aff of (memberMap[p.member_id]?.affiliations ?? [])) setIds.add(aff.set_id)
     }
     if (setIds.size === 0) return []
-    return allMembers.filter((m) => m.set_id && setIds.has(m.set_id) && !addedMemberIds.has(m.id)).slice(0, 8)
+    return allMembers.filter((m) => m.affiliations.some((a) => setIds.has(a.set_id)) && !addedMemberIds.has(m.id)).slice(0, 8)
   }, [allMembers, participants, addedMemberIds])
 
   const filteredSets = useMemo(() => {
@@ -202,8 +201,8 @@ function ParticipantsSection({ universeId, participants, onChangeParticipants, s
                 <button key={m.id} type="button" onClick={() => addMember(m.id, m.display_name)}
                   className="w-full px-3 py-2 text-left text-sm text-zinc-300 hover:bg-zinc-800 transition-colors flex items-center justify-between gap-2">
                   <span className="truncate">{m.display_name}</span>
-                  {m.set_id && setNameById[m.set_id] && (
-                    <span className="text-[10px] text-zinc-500 shrink-0 truncate max-w-[40%]">{setNameById[m.set_id]}</span>
+                  {memberSetNameById[m.id] && (
+                    <span className="text-[10px] text-zinc-500 shrink-0 truncate max-w-[40%]">{memberSetNameById[m.id]}</span>
                   )}
                 </button>
               ))}
@@ -217,8 +216,8 @@ function ParticipantsSection({ universeId, participants, onChangeParticipants, s
                   <button key={m.id} type="button" onClick={() => addMember(m.id, m.display_name)}
                     className="w-full px-3 py-2 text-left text-sm text-zinc-300 hover:bg-zinc-800 transition-colors flex items-center justify-between gap-2">
                     <span className="truncate">{m.display_name}</span>
-                    {m.set_id && setNameById[m.set_id] && (
-                      <span className="text-[10px] text-zinc-500 shrink-0 truncate max-w-[40%]">{setNameById[m.set_id]}</span>
+                    {memberSetNameById[m.id] && (
+                      <span className="text-[10px] text-zinc-500 shrink-0 truncate max-w-[40%]">{memberSetNameById[m.id]}</span>
                     )}
                   </button>
                 ))}
@@ -660,7 +659,6 @@ export function IncidentFormSheet({ universeId, open, onClose, initial, defaultP
             onChangeSetParticipants={updateSetLevelParticipants}
             allMembers={allMembersList}
             allSets={allSetsData?.items ?? []}
-            setNameById={setNameById}
           />
           <div className="space-y-1.5">
             <Label htmlFor="inc-narrative">Narrative</Label>

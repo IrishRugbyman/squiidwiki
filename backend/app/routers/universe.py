@@ -145,7 +145,8 @@ async def get_universe_analytics(
             """
             SELECT s.id, s.name, count(DISTINCT ip.incident_id) AS incident_count
             FROM sets s
-            JOIN member m ON m.set_id = s.id
+            JOIN member_set ms ON ms.set_id = s.id
+            JOIN member m ON m.id = ms.member_id
             JOIN incident_participant ip ON ip.member_id = m.id
             JOIN incident i ON i.id = ip.incident_id AND i.universe_id = :uid
             WHERE s.universe_id = :uid

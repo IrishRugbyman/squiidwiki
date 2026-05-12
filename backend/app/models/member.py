@@ -2,6 +2,7 @@ import uuid
 from datetime import date, datetime
 from typing import Optional
 
+import sqlalchemy as sa
 from sqlalchemy import Column, ForeignKey, String
 from sqlalchemy.dialects.postgresql import JSONB, UUID as PG_UUID
 from sqlmodel import Field, SQLModel
@@ -14,6 +15,15 @@ class MemberSource(SQLModel, table=True):
 
     member_id: uuid.UUID = Field(foreign_key="member.id", primary_key=True)
     source_id: uuid.UUID = Field(foreign_key="source.id", primary_key=True)
+
+
+class MemberSet(SQLModel, table=True):
+    __tablename__ = "member_set"
+
+    member_id: uuid.UUID = Field(foreign_key="member.id", primary_key=True)
+    set_id: uuid.UUID = Field(foreign_key="sets.id", primary_key=True)
+    rank: Optional[SetRank] = Field(default=None, sa_column=Column(String, nullable=True))
+    is_primary: bool = Field(default=False, sa_column=Column("is_primary", sa.Boolean, nullable=False, server_default="false"))
 
 
 class MemberAlias(SQLModel, table=True):
@@ -57,8 +67,6 @@ class Member(SQLModel, table=True):
 
     biography: str = ""
 
-    set_id: Optional[uuid.UUID] = Field(default=None, foreign_key="sets.id", index=True)
-    set_rank: Optional[SetRank] = Field(default=None, sa_column=Column(String, nullable=True))
     alliance_id: Optional[uuid.UUID] = Field(default=None, foreign_key="alliance.id", index=True)
     gang_id: Optional[uuid.UUID] = Field(default=None, foreign_key="gang.id", index=True)
 

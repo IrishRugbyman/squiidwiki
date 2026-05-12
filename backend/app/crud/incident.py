@@ -7,7 +7,7 @@ from sqlmodel import select
 
 from app.core.enums import MemberStatus, ParticipantOutcome
 from app.models.incident import Incident, IncidentParticipant, IncidentSetParticipant, IncidentSource
-from app.models.member import Member, MemberSource
+from app.models.member import Member, MemberSet, MemberSource
 from app.models.gang_set import GangSet
 from app.schemas.common import make_cursor, parse_cursor
 from app.schemas.incident import IncidentCreate, IncidentUpdate, ParticipantCreate, SetParticipantCreate
@@ -289,7 +289,8 @@ async def list_incidents_by_set(
         select(Incident)
         .join(IncidentParticipant, IncidentParticipant.incident_id == Incident.id)
         .join(Member, Member.id == IncidentParticipant.member_id)
-        .where(Member.set_id == set_id, Incident.universe_id == universe_id)
+        .join(MemberSet, (MemberSet.member_id == Member.id) & (MemberSet.set_id == set_id))
+        .where(Incident.universe_id == universe_id)
         .distinct()
         .order_by(Incident.sortable_date.desc(), Incident.created_at.desc())
         .limit(limit)

@@ -9,12 +9,20 @@ from sqlmodel import select
 
 from app.core import storage
 from app.core.enums import MediaKind
-from app.models.member import Member, MemberAlias, MemberIncarceration, MemberSource
+from app.models.member import Member, MemberAlias, MemberIncarceration, MemberSet, MemberSource
 from app.models.incident import IncidentParticipant
 from app.models.gang_set import GangSet
 from app.models.media import Media
 from app.schemas.common import make_cursor, parse_cursor
-from app.schemas.member import MemberAliasCreate, MemberCreate, MemberIncarcerationCreate, MemberIncarcerationUpdate, MemberUpdate
+from app.schemas.member import (
+    MemberAliasCreate,
+    MemberCreate,
+    MemberIncarcerationCreate,
+    MemberIncarcerationUpdate,
+    MemberSetAffiliationIn,
+    MemberSetAffiliationOut,
+    MemberUpdate,
+)
 
 
 INVERSE_REL: dict[str, str] = {
@@ -153,10 +161,62 @@ async def _sync_member_sources(
         session.add(MemberSource(member_id=member_id, source_id=sid))
 
 
+async def _sync_member_sets(
+    session: AsyncSession, member_id: uuid.UUID, affiliations: list[MemberSetAffiliationIn]
+) -> None:
+    await session.execute(
+        MemberSet.__table__.delete().where(MemberSet.member_id == member_id)
+    )
+    for aff in affiliations:
+        session.add(MemberSet(
+            member_id=member_id,
+            set_id=aff.set_id,
+            rank=aff.rank,
+            is_primary=aff.is_primary,
+        ))
+
+
+async def load_member_affiliations(
+    session: AsyncSession, member_ids: list[uuid.UUID]
+) -> dict[uuid.UUID, list[MemberSetAffiliationOut]]:
+    """Batch-load affiliations for a list of member ids. Returns a dict keyed by member_id."""
+    if not member_ids:
+        return {}
+    rows = (await session.execute(
+        select(MemberSet.member_id, MemberSet.set_id, MemberSet.rank, MemberSet.is_primary,
+               GangSet.name, GangSet.slug)
+        .join(GangSet, GangSet.id == MemberSet.set_id)
+        .where(MemberSet.member_id.in_(member_ids))
+        .order_by(MemberSet.is_primary.desc())
+    )).all()
+    result: dict[uuid.UUID, list[MemberSetAffiliationOut]] = {}
+    for mid, set_id, rank, is_primary, set_name, set_slug in rows:
+        result.setdefault(mid, []).append(
+            MemberSetAffiliationOut(
+                set_id=set_id,
+                set_name=set_name,
+                set_slug=set_slug,
+                rank=rank,
+                is_primary=is_primary,
+            )
+        )
+    return result
+
+
+def _attach_affiliations(obj: Member, affiliations: list[MemberSetAffiliationOut]) -> None:
+    """Attach pre-loaded affiliations + primary_set_* convenience fields onto a Member instance."""
+    primary = next((a for a in affiliations if a.is_primary), affiliations[0] if affiliations else None)
+    object.__setattr__(obj, "affiliations", affiliations)
+    object.__setattr__(obj, "primary_set_id", primary.set_id if primary else None)
+    object.__setattr__(obj, "primary_set_name", primary.set_name if primary else None)
+    object.__setattr__(obj, "primary_set_slug", primary.set_slug if primary else None)
+    object.__setattr__(obj, "primary_set_rank", primary.rank if primary else None)
+
+
 async def create_member(
     session: AsyncSession, data: MemberCreate, actor_id: uuid.UUID
 ) -> Member:
-    dump = data.model_dump(exclude={"source_ids", "dob", "date_of_death"})
+    dump = data.model_dump(exclude={"source_ids", "affiliations", "dob", "date_of_death"})
     dump["dob"] = _fuzzy_to_dict(data.dob)
     dump["date_of_death"] = _fuzzy_to_dict(data.date_of_death)
     display = data.nickname if not data.nickname_unknown and data.nickname else data.legal_name
@@ -167,6 +227,7 @@ async def create_member(
     session.add(obj)
     await session.flush()
     await _sync_member_sources(session, obj.id, data.source_ids)
+    await _sync_member_sets(session, obj.id, data.affiliations)
     if data.family:
         await _sync_bilateral_family(session, obj.id, data.universe_id, None, data.family)
     await session.commit()
@@ -198,11 +259,15 @@ async def list_members(
     limit: int = 50,
     cursor: str | None = None,
     set_id: uuid.UUID | None = None,
+    primary_only: bool = False,
     alliance_id: uuid.UUID | None = None,
 ) -> tuple[list[Member], str | None]:
     stmt = select(Member).where(Member.universe_id == universe_id)
     if set_id is not None:
-        stmt = stmt.where(Member.set_id == set_id)
+        ms_sq = select(MemberSet.member_id).where(MemberSet.set_id == set_id)
+        if primary_only:
+            ms_sq = ms_sq.where(MemberSet.is_primary.is_(True))
+        stmt = stmt.where(Member.id.in_(ms_sq))
     if alliance_id is not None:
         stmt = stmt.where(Member.alliance_id == alliance_id)
 
@@ -215,13 +280,18 @@ async def list_members(
 
     stmt = stmt.order_by(Member.created_at.desc(), Member.id.desc()).limit(limit + 1)
     result = await session.execute(stmt)
-    items = result.scalars().all()
+    items = list(result.scalars().all())
 
     next_cursor = None
     if len(items) > limit:
         items = items[:limit]
         last = items[-1]
         next_cursor = make_cursor(last.created_at, last.id)
+
+    # Attach affiliations to avoid N+1 in the serialization layer
+    aff_map = await load_member_affiliations(session, [m.id for m in items])
+    for m in items:
+        _attach_affiliations(m, aff_map.get(m.id, []))
 
     return items, next_cursor
 
@@ -233,7 +303,7 @@ async def update_member(
     if obj is None:
         return None
     dump = data.model_dump(
-        exclude_unset=True, exclude={"source_ids", "dob", "date_of_death"}
+        exclude_unset=True, exclude={"source_ids", "affiliations", "dob", "date_of_death"}
     )
     if "dob" in data.model_fields_set:
         dump["dob"] = _fuzzy_to_dict(data.dob)
@@ -258,6 +328,8 @@ async def update_member(
     session.add(obj)
     if data.source_ids is not None:
         await _sync_member_sources(session, obj.id, data.source_ids)
+    if data.affiliations is not None:
+        await _sync_member_sets(session, obj.id, data.affiliations)
     if "family" in data.model_fields_set:
         await _sync_bilateral_family(session, obj.id, universe_id, old_family, dump.get("family"))
     await session.commit()
@@ -292,6 +364,10 @@ async def delete_member(
     # Remove incident participations (no cascade on member_id FK)
     await session.execute(
         IncidentParticipant.__table__.delete().where(IncidentParticipant.member_id == id)
+    )
+    # Remove set affiliations
+    await session.execute(
+        MemberSet.__table__.delete().where(MemberSet.member_id == id)
     )
     # Remove source citations (no cascade on member_id FK)
     await session.execute(

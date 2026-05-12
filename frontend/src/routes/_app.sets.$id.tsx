@@ -576,10 +576,11 @@ function SetDetailPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id])
 
+  const [primaryOnly, setPrimaryOnly] = useState(false)
   const { data: set, isLoading, isError, refetch } = useSetDetail(id, universe?.id ?? null)
   const realId = set?.id ?? ''
   const stats = set?.stats
-  const { data: membersData } = useSetMembers(realId, universe?.id ?? null)
+  const { data: membersData } = useSetMembers(realId, universe?.id ?? null, primaryOnly)
   const { data: incidentsData } = useSetIncidents(realId, universe?.id ?? null)
   // Lazy-load the activity feed only when the Activity tab is open.
   const { data: activityData, isLoading: activityLoading } = useSetActivity(realId, universe?.id ?? null, tab === 'activity')
@@ -1093,6 +1094,13 @@ function SetDetailPage() {
                   </span>
                 )}
               </div>
+              <button
+                  type="button"
+                  onClick={() => setPrimaryOnly((v) => !v)}
+                  className={`shrink-0 rounded-full border px-2.5 py-0.5 text-[11px] font-medium transition-colors ${primaryOnly ? 'border-violet-500/60 bg-violet-500/10 text-violet-200' : 'border-zinc-800 bg-zinc-900/40 text-zinc-500 hover:text-zinc-300'}`}
+                >
+                  Primary only
+                </button>
               <Button size="sm" variant="outline" onClick={() => setAddingMember(true)}>
                 <Plus className="mr-1.5 h-3.5 w-3.5" />Add Member
               </Button>
@@ -1139,6 +1147,7 @@ function SetDetailPage() {
                       const isDead = m.status === 'DEAD'
                       const linkId = m.slug ?? m.id
                       const cellPad = 'py-1.5'
+                      const thisSetRank = m.affiliations.find((a) => a.set_id === realId)?.rank ?? null
                       return (
                         <tr key={m.id} className={`group hover:bg-zinc-900/50 transition-colors ${isDead ? 'opacity-60' : ''}`}>
                           <td className="p-0">
@@ -1151,7 +1160,7 @@ function SetDetailPage() {
                                 <span className={`font-medium ${isDead ? 'text-zinc-400 line-through decoration-zinc-600' : 'text-white'}`}>
                                   {m.display_name}
                                 </span>
-                                {m.set_rank === 'CEO' && (
+                                {thisSetRank === 'CEO' && (
                                   <span
                                     title="CEO"
                                     className="inline-flex items-center rounded-md border border-amber-500/40 bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-amber-300"
@@ -1159,7 +1168,7 @@ function SetDetailPage() {
                                     CEO
                                   </span>
                                 )}
-                                {m.set_rank === 'CO_CEO' && (
+                                {thisSetRank === 'CO_CEO' && (
                                   <span
                                     title="Co-CEO"
                                     className="inline-flex items-center rounded-md border border-amber-600/30 bg-amber-600/10 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-amber-400"

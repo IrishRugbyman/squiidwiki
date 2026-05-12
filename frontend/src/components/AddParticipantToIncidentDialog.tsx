@@ -147,13 +147,13 @@ export function AddParticipantToIncidentDialog({
                       key={m.id}
                       type="button"
                       disabled={already}
-                      onClick={() => addPending(m.id, m.display_name, m.set_id)}
+                      onClick={() => { const pa = m.affiliations.find((a) => a.is_primary) ?? m.affiliations[0]; addPending(m.id, m.display_name, pa?.set_id) }}
                       className="w-full px-3 py-2 text-left text-sm text-zinc-300 hover:bg-zinc-800 transition-colors disabled:opacity-40 disabled:hover:bg-transparent disabled:cursor-not-allowed flex items-center justify-between gap-2"
                     >
                       <span className="truncate">{m.display_name}</span>
                       <span className="flex items-center gap-2 shrink-0">
-                        {m.set_id && setNameById[m.set_id] && (
-                          <span className="text-[10px] text-zinc-500 truncate max-w-[120px]">{setNameById[m.set_id]}</span>
+                        {m.primary_set_name && (
+                          <span className="text-[10px] text-zinc-500 truncate max-w-[120px]">{m.primary_set_name}</span>
                         )}
                         {already && <span className="text-xs text-zinc-500">already added</span>}
                       </span>

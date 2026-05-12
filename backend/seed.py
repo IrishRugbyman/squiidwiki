@@ -31,6 +31,7 @@ from app.models import (
     Incident,
     IncidentParticipant,
     Member,
+    MemberSet,
     MemberSource,
     Municipality,
     SetRelationship,
@@ -185,33 +186,41 @@ async def seed(session: AsyncSession, is_test: bool) -> None:
     # Members
     ghost = Member(
         universe_id=universe.id, nickname="Ghost", slug=slugify("Ghost"),
-        legal_name="Marcus Williams", set_id=ghost_gang.id, status=MemberStatus.FREE,
+        legal_name="Marcus Williams", status=MemberStatus.FREE,
         dob=FuzzyDate.year_only(1995).model_dump(), created_by_id=admin_id,
     )
     dice = Member(
         universe_id=universe.id, nickname="Dice", slug=slugify("Dice"),
-        set_id=ghost_gang.id, status=MemberStatus.LOCKED,
-        created_by_id=admin_id,
+        status=MemberStatus.LOCKED, created_by_id=admin_id,
     )
     lil_ray = Member(
         universe_id=universe.id, nickname="Lil Ray", slug=slugify("Lil Ray"),
-        set_id=seven_mile.id, status=MemberStatus.DEAD,
+        status=MemberStatus.DEAD,
         date_of_death=FuzzyDate(year=2023, month=8, precision=DatePrecision.YM).model_dump(),
         created_by_id=admin_id,
     )
     ko = Member(
         universe_id=universe.id, nickname="KO", slug=slugify("KO"),
-        legal_name="Kevin Odom", set_id=seven_mile.id, status=MemberStatus.FREE,
+        legal_name="Kevin Odom", status=MemberStatus.FREE,
         dob=FuzzyDate.year_only(1998).model_dump(), created_by_id=admin_id,
     )
     shadow = Member(
         universe_id=universe.id, nickname="Shadow", slug=slugify("Shadow"),
-        set_id=river_crew.id, status=MemberStatus.UNKNOWN, created_by_id=admin_id,
+        status=MemberStatus.UNKNOWN, created_by_id=admin_id,
     )
     session.add_all([ghost, dice, lil_ray, ko, shadow])
     await session.flush()
 
     ghost_gang.founder_id = ghost.id
+
+    # Set affiliations (M2M)
+    session.add(MemberSet(member_id=ghost.id, set_id=ghost_gang.id, is_primary=True))
+    session.add(MemberSet(member_id=lil_ray.id, set_id=seven_mile.id, is_primary=True))
+    session.add(MemberSet(member_id=ko.id, set_id=seven_mile.id, is_primary=True))
+    session.add(MemberSet(member_id=shadow.id, set_id=river_crew.id, is_primary=True))
+    # Dice has two affiliations: primary in GG, secondary in 7MB (dual-claimed)
+    session.add(MemberSet(member_id=dice.id, set_id=ghost_gang.id, is_primary=True))
+    session.add(MemberSet(member_id=dice.id, set_id=seven_mile.id, is_primary=False))
 
     # Incidents
     murder1 = Incident(

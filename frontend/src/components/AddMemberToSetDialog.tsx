@@ -3,7 +3,7 @@ import { useMemo, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Command, CommandEmpty, CommandInput, CommandItem, CommandList } from '@/components/ui/command'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { useAllMembers, useReassignMembersToSet } from '@/lib/queries'
+import { useAllMembers, useAddMembersToSet } from '@/lib/queries'
 
 interface AddMemberToSetDialogProps {
   setId: string
@@ -18,12 +18,13 @@ export function AddMemberToSetDialog({
   setId, setName, universeId, open, onClose, onCreateNew,
 }: AddMemberToSetDialogProps) {
   const { data: allMembers, isLoading } = useAllMembers(universeId)
-  const reassign = useReassignMembersToSet(setId, universeId)
+  const addToSet = useAddMembersToSet(setId, universeId)
   const [selected, setSelected] = useState<Set<string>>(new Set())
 
+  // All members that don't already have this set in their affiliations
   const candidates = useMemo(
-    () => (allMembers?.items ?? []).filter((m) => m.set_id === null),
-    [allMembers],
+    () => (allMembers?.items ?? []).filter((m) => !m.affiliations.some((a) => a.set_id === setId)),
+    [allMembers, setId],
   )
 
   function toggle(id: string) {
@@ -42,7 +43,21 @@ export function AddMemberToSetDialog({
 
   async function handleSubmit() {
     if (selected.size === 0) return
-    await reassign.mutateAsync(Array.from(selected))
+    const membersList = allMembers?.items ?? []
+    await addToSet.mutateAsync(
+      Array.from(selected).map((id) => {
+        const m = membersList.find((x) => x.id === id)
+        const existing = m?.affiliations ?? []
+        const isPrimary = existing.length === 0
+        return {
+          id,
+          affiliations: [
+            ...existing.map((a) => ({ set_id: a.set_id, rank: a.rank ?? null, is_primary: a.is_primary })),
+            { set_id: setId, rank: null, is_primary: isPrimary },
+          ],
+        }
+      }),
+    )
     handleClose()
   }
 
@@ -60,7 +75,7 @@ export function AddMemberToSetDialog({
             Add Member to {setName}
           </DialogTitle>
           <DialogDescription>
-            Pick from members not yet assigned to a set, or create a new one.
+            Pick members to add to this set, or create a new one.
           </DialogDescription>
         </DialogHeader>
 
@@ -81,12 +96,12 @@ export function AddMemberToSetDialog({
           </div>
           <div className="rounded-md border border-zinc-800">
             <Command>
-              <CommandInput placeholder="Search unassigned members…" />
+              <CommandInput placeholder="Search members…" />
               <CommandList className="max-h-[260px]">
                 {isLoading ? (
                   <div className="py-6 text-center text-sm text-zinc-500">Loading…</div>
                 ) : candidates.length === 0 ? (
-                  <CommandEmpty>No unassigned members in this universe.</CommandEmpty>
+                  <CommandEmpty>All members are already affiliated with this set.</CommandEmpty>
                 ) : (
                   candidates.map((m) => {
                     const isSelected = selected.has(m.id)
@@ -112,10 +127,10 @@ export function AddMemberToSetDialog({
           <Button type="button" variant="outline" onClick={handleClose}>Cancel</Button>
           <Button
             type="button"
-            disabled={selected.size === 0 || reassign.isPending}
+            disabled={selected.size === 0 || addToSet.isPending}
             onClick={handleSubmit}
           >
-            {reassign.isPending
+            {addToSet.isPending
               ? 'Adding…'
               : selected.size === 0
                 ? 'Add Selected'

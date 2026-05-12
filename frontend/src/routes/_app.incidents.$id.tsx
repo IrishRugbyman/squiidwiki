@@ -80,7 +80,9 @@ function IncidentDetailPage() {
     if (!incident) return undefined
     const counts: Record<string, number> = {}
     for (const p of incident.participants) {
-      const sid = memberMap[p.member_id]?.set_id
+      const m = memberMap[p.member_id]
+      const primary = m?.affiliations.find((a) => a.is_primary) ?? m?.affiliations[0]
+      const sid = primary?.set_id
       if (sid) counts[sid] = (counts[sid] ?? 0) + 1
     }
     const top = Object.entries(counts).sort((a, b) => b[1] - a[1])[0]

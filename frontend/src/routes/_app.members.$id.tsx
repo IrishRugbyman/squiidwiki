@@ -502,7 +502,7 @@ function MemberDetailPage() {
       .map((e) => ({ role: e.role, name: memberMap[e.memberId] ?? e.memberId.slice(0, 8) + '…' }))
     const md = buildMemberMarkdown({
       member,
-      setName: member.set_name ?? null,
+      setName: member.primary_set_name ?? null,
       allianceName: member.alliance_name ?? null,
       family: familyEntries,
       incidents: incidents?.items ?? [],
@@ -527,8 +527,8 @@ function MemberDetailPage() {
     <div className="space-y-5">
       <Breadcrumbs
         items={[
-          member?.set_id && member.set_name
-            ? { label: member.set_name, to: `/sets/${member.set_slug ?? member.set_id}` }
+          member?.primary_set_id && member.primary_set_name
+            ? { label: member.primary_set_name, to: `/sets/${member.primary_set_slug ?? member.primary_set_id}` }
             : { label: 'Members', to: '/members' },
           { label: member?.display_name ?? 'Member' },
         ]}
@@ -577,15 +577,16 @@ function MemberDetailPage() {
                 })()}
                 <div className="mt-2 flex flex-wrap items-center gap-2">
                   <MemberStatusBadge status={member.status} />
-                  {member.set_id && member.set_name && (
+                  {(member.affiliations ?? []).map((aff) => (
                     <Link
+                      key={aff.set_id}
                       to="/sets/$id"
-                      params={{ id: member.set_slug ?? member.set_id }}
-                      className="rounded-full bg-zinc-800/70 px-2.5 py-0.5 text-xs text-zinc-400 hover:bg-zinc-800 hover:text-violet-400 transition-colors"
+                      params={{ id: aff.set_slug ?? aff.set_id }}
+                      className={`rounded-full px-2.5 py-0.5 text-xs text-zinc-400 hover:text-violet-400 transition-colors ${aff.is_primary ? 'bg-zinc-800/70 ring-1 ring-violet-700/30 hover:bg-zinc-800' : 'bg-zinc-900/50 hover:bg-zinc-800/60'}`}
                     >
-                      {member.set_name}
+                      {aff.set_name}
                     </Link>
-                  )}
+                  ))}
                   {member.alliance_id && member.alliance_name && (
                     <Link
                       to="/alliances/$id"

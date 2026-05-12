@@ -12,7 +12,7 @@ from app.core.enums import SetRelationshipType, SetStatus
 from app.models.alliance import Alliance
 from app.models.gang import Gang
 from app.models.gang_set import GangSet, SetMunicipality, SetRelationship
-from app.models.member import Member
+from app.models.member import Member, MemberSet
 from app.models.municipality import Municipality
 from app.schemas.gang_set import SetCreate, SetUpdate
 
@@ -240,8 +240,8 @@ async def list_gang_sets(
     total = (await session.execute(count_stmt)).scalar_one()
 
     member_count_sq = (
-        select(Member.set_id, func.count(Member.id).label("member_count"))
-        .group_by(Member.set_id)
+        select(MemberSet.set_id, func.count(func.distinct(MemberSet.member_id)).label("member_count"))
+        .group_by(MemberSet.set_id)
         .subquery()
     )
 
@@ -520,8 +520,8 @@ async def list_set_relationships_detail(
         by_other[other] = r.relationship_type
 
     member_count_sq = (
-        select(Member.set_id, func.count(Member.id).label("c"))
-        .group_by(Member.set_id)
+        select(MemberSet.set_id, func.count(func.distinct(MemberSet.member_id)).label("c"))
+        .group_by(MemberSet.set_id)
         .subquery()
     )
     rows = (await session.execute(
@@ -561,7 +561,7 @@ async def list_set_incidents_per_year(
         .select_from(Incident)
         .join(IncidentParticipant, IncidentParticipant.incident_id == Incident.id)
         .join(Member, Member.id == IncidentParticipant.member_id)
-        .where(Member.set_id == set_id)
+        .join(MemberSet, (MemberSet.member_id == Member.id) & (MemberSet.set_id == set_id))
         .where(Incident.date.isnot(None))
         .where(Incident.date["year"].astext.op("~")(r"^\d+$"))
     )
@@ -597,7 +597,7 @@ async def list_set_activity(
 
     # Fetch the set's current member ids in one query.
     member_ids = (await session.execute(
-        select(Member.id).where(Member.set_id == set_id)
+        select(MemberSet.member_id).where(MemberSet.set_id == set_id)
     )).scalars().all()
 
     cond = (AuditLog.entity_type == "set") & (AuditLog.entity_id == set_id)
@@ -678,7 +678,8 @@ async def get_set_max_updated_at(
         select(GangSet.updated_at).where(GangSet.id == set_id)
     )).scalar_one_or_none()
     member_ts = (await session.execute(
-        select(func.max(Member.updated_at)).where(Member.set_id == set_id)
+        select(func.max(Member.updated_at))
+        .join(MemberSet, (MemberSet.member_id == Member.id) & (MemberSet.set_id == set_id))
     )).scalar_one_or_none()
     candidates = [t for t in (set_ts, member_ts) if t is not None]
     return max(candidates) if candidates else None
