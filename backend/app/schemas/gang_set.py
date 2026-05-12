@@ -37,6 +37,27 @@ def _normalize_variants(variants: Optional[list[NameVariant]]) -> Optional[list[
     return variants
 
 
+def _validate_point(value: Optional[dict]) -> Optional[dict]:
+    """A territory_point must be a GeoJSON Point with valid [lng, lat] coordinates."""
+    if value is None:
+        return None
+    if not isinstance(value, dict):
+        raise ValueError("territory_point must be a GeoJSON Point object")
+    if value.get("type") != "Point":
+        raise ValueError("territory_point.type must be 'Point'")
+    coords = value.get("coordinates")
+    if not isinstance(coords, list) or len(coords) < 2:
+        raise ValueError("territory_point.coordinates must be [lng, lat]")
+    lng, lat = coords[0], coords[1]
+    if not isinstance(lng, (int, float)) or not isinstance(lat, (int, float)):
+        raise ValueError("territory_point coordinates must be numbers")
+    if not (-180 <= lng <= 180):
+        raise ValueError("territory_point longitude must be between -180 and 180")
+    if not (-90 <= lat <= 90):
+        raise ValueError("territory_point latitude must be between -90 and 90")
+    return value
+
+
 def _validate_polygon(value: Optional[dict]) -> Optional[dict]:
     """A territory_polygon must be a closed GeoJSON Polygon.
 
@@ -97,6 +118,7 @@ class SetUpdate(BaseModel):
     friend_ids: Optional[list[uuid.UUID]] = None
     enemy_ids: Optional[list[uuid.UUID]] = None
     territory_polygon: Optional[dict] = None
+    territory_point: Optional[dict] = None
 
     @model_validator(mode="after")
     def _normalize(self):
@@ -108,6 +130,8 @@ class SetUpdate(BaseModel):
             self.name_variants = _normalize_variants(self.name_variants)
         if "territory_polygon" in fields_set:
             self.territory_polygon = _validate_polygon(self.territory_polygon)
+        if "territory_point" in fields_set:
+            self.territory_point = _validate_point(self.territory_point)
         return self
 
 
@@ -131,6 +155,7 @@ class SetRead(BaseModel):
     primary_photo_url: Optional[str] = None
     primary_photo_thumb_url: Optional[str] = None
     territory_polygon: Optional[dict] = None
+    territory_point: Optional[dict] = None
 
 
 class SetReadDetail(SetRead):
@@ -140,7 +165,7 @@ class SetReadDetail(SetRead):
 
 
 class SetPolygonItem(BaseModel):
-    """Lightweight polygon row for the territory map."""
+    """Lightweight territory row for the territory map (polygon and/or point)."""
     model_config = {"from_attributes": True}
 
     id: uuid.UUID
@@ -151,7 +176,8 @@ class SetPolygonItem(BaseModel):
     alliance_id: Optional[uuid.UUID]
     gang_id: Optional[uuid.UUID] = None
     gang_color: Optional[str] = None
-    territory_polygon: dict
+    territory_polygon: Optional[dict] = None
+    territory_point: Optional[dict] = None
 
 
 class SetListItem(BaseModel):

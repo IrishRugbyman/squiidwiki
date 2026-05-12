@@ -181,6 +181,7 @@ export interface SetListItem {
   is_reserved: boolean
   primary_photo_url: string | null
   primary_photo_thumb_url: string | null
+  territory_ids: UUID[]
 }
 
 export interface SetRead extends SetListItem {
@@ -189,6 +190,7 @@ export interface SetRead extends SetListItem {
   created_at: string
   updated_at: string
   territory_polygon: GeoJSON.Polygon | null
+  territory_point: { type: 'Point'; coordinates: [number, number] } | null
 }
 
 export interface SetReadDetail extends SetRead {
@@ -206,7 +208,8 @@ export interface SetTerritoryPolygon {
   alliance_id: UUID | null
   gang_id: UUID | null
   gang_color: string | null
-  territory_polygon: GeoJSON.Polygon
+  territory_polygon: GeoJSON.Polygon | null
+  territory_point: { type: 'Point'; coordinates: [number, number] } | null
 }
 
 export interface SetStats {

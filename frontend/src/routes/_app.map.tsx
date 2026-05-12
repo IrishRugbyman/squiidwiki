@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
-import { Check, Crosshair, Layers, Loader2, MapPin, Pencil, Save, Search, Trash2, X } from 'lucide-react'
-import { Suspense, lazy, useEffect, useMemo, useState } from 'react'
+import { Check, Copy, Crosshair, Layers, Loader2, MapPin, Pencil, Save, Search, Trash2, X } from 'lucide-react'
+import { Suspense, lazy, useEffect, useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { NoUniverse } from '@/components/NoUniverse'
 import { Button } from '@/components/ui/button'
@@ -15,7 +15,7 @@ import {
   useSetTerritoryPolygons,
   useUpdateSet,
 } from '@/lib/queries'
-import type { SetListItem, UUID } from '@/lib/types'
+import type { SetListItem, SetTerritoryPolygon, UUID } from '@/lib/types'
 import { useUniverseStore } from '@/stores/universe'
 import intersect from '@turf/intersect'
 import area from '@turf/area'
@@ -46,7 +46,7 @@ interface OverlapCandidate {
   overlapPct: number
 }
 
-type EditTab = 'draw' | 'address'
+type EditTab = 'draw' | 'address' | 'pin'
 
 interface AddressVertex {
   query: string
@@ -107,6 +107,8 @@ function TerritoryMapPage() {
 
   // The polygon the user just drew, awaiting confirmation.
   const [pendingPolygon, setPendingPolygon] = useState<GeoJSON.Polygon | null>(null)
+  // The pin the user clicked in pin mode, awaiting save.
+  const [pendingPoint, setPendingPoint] = useState<{ lng: number; lat: number } | null>(null)
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [candidates, setCandidates] = useState<OverlapCandidate[]>([])
   const [checkedIds, setCheckedIds] = useState<Set<UUID>>(new Set())
@@ -128,6 +130,8 @@ function TerritoryMapPage() {
   // Polygons: when a set is selected, scope to its municipality (its neighbors).
   // Otherwise show every drawn polygon in the universe.
   const { data: setPolygons } = useSetTerritoryPolygons(universeId, selectedMuniId)
+  // All polygons universe-wide — used for the "copy boundary from" picker.
+  const { data: allPolygons } = useSetTerritoryPolygons(universeId, null)
   // Sub-districts of the selected set's primary municipality (only loaded when
   // outlines toggle is on, or when needed for auto-detect on save).
   const { data: subDistrictGeoJSON } = useMunicipalityGeoJSON(universeId, selectedMuniId ?? undefined)
@@ -178,11 +182,17 @@ function TerritoryMapPage() {
     setFitSignal((n) => n + 1)
   }
   function startEditing() {
+    setEditTab('draw')
+    navigate({ search: (prev) => ({ ...prev, edit: '1' as const }) })
+  }
+  function startPinEditing() {
+    setEditTab('pin')
     navigate({ search: (prev) => ({ ...prev, edit: '1' as const }) })
   }
   function cancelEditing() {
     navigate({ search: (prev) => ({ ...prev, edit: undefined }) })
     setPendingPolygon(null)
+    setPendingPoint(null)
     setVertices([])
     setAddressInput('')
     setEditTab('draw')
@@ -250,6 +260,17 @@ function TerritoryMapPage() {
     })
   }
 
+  function handleCopyFromSet(sourceId: UUID) {
+    const source = (allPolygons ?? []).find((s) => s.id === sourceId)
+    if (!source?.territory_polygon) return
+    const poly = source.territory_polygon
+    setPendingPolygon(poly)
+    const cands = computeOverlapCandidates(poly)
+    setCandidates(cands)
+    setCheckedIds(new Set(cands.filter((c) => c.overlapPct >= 0.1).map((c) => c.id)))
+    setConfirmOpen(true)
+  }
+
   async function confirmSave() {
     if (!pendingPolygon || !universeId || !selected) return
     try {
@@ -265,6 +286,30 @@ function TerritoryMapPage() {
     } catch {
       // Global mutation onError already toasts the error.
     }
+  }
+
+  async function savePinMarker() {
+    if (!pendingPoint || !universeId || !selected) return
+    try {
+      await updateMutation.mutateAsync({
+        universe_id: universeId,
+        territory_point: { type: 'Point', coordinates: [pendingPoint.lng, pendingPoint.lat] },
+      })
+      toast.success('Location marker saved')
+      setPendingPoint(null)
+      cancelEditing()
+    } catch { /* global toast handles error */ }
+  }
+
+  async function clearPinMarker() {
+    if (!universeId || !selected) return
+    try {
+      await updateMutation.mutateAsync({
+        universe_id: universeId,
+        territory_point: null,
+      })
+      toast.success('Location marker removed')
+    } catch { /* global toast handles error */ }
   }
 
   // Auto-open the editor if URL says so (deep-link).
@@ -356,16 +401,14 @@ function TerritoryMapPage() {
                 <X className="h-3.5 w-3.5" />
               </button>
             </div>
-            {!selectedSet.municipality_id ? (
-              <p className="text-xs text-zinc-500">Set a primary municipality before drawing a boundary.</p>
-            ) : drawingFor ? (
+            {drawingFor ? (
               <EditorTabs
                 tab={editTab}
                 onTabChange={(t) => {
                   setEditTab(t)
-                  // Switching tabs invalidates the in-progress polygon from the
-                  // other mode so the user has a single clear pending state.
+                  // Switching tabs invalidates any in-progress state from the other mode.
                   setPendingPolygon(null)
+                  setPendingPoint(null)
                 }}
                 addressInput={addressInput}
                 onAddressInputChange={setAddressInput}
@@ -375,12 +418,31 @@ function TerritoryMapPage() {
                   const poly = buildPolygonFromVertices(vertices)
                   if (poly) setPendingPolygon(poly)
                 }}
+                existingPoint={selectedSet.territory_point ?? null}
+                pendingPoint={pendingPoint}
+                onClearPin={clearPinMarker}
+                onClearPendingPin={() => setPendingPoint(null)}
               />
             ) : (
-              <Button size="sm" variant="outline" className="w-full" onClick={startEditing}>
-                <Pencil className="mr-1.5 h-3.5 w-3.5" />
-                {selectedSet.territory_polygon ? 'Edit boundary' : 'Draw boundary'}
-              </Button>
+              <div className="space-y-1.5">
+                {selectedSet.municipality_id ? (
+                  <Button size="sm" variant="outline" className="w-full" onClick={startEditing}>
+                    <Pencil className="mr-1.5 h-3.5 w-3.5" />
+                    {selectedSet.territory_polygon ? 'Edit boundary' : 'Draw boundary'}
+                  </Button>
+                ) : (
+                  <p className="text-xs text-zinc-500">Set a primary municipality to draw a polygon boundary.</p>
+                )}
+                <Button size="sm" variant="outline" className="w-full" onClick={startPinEditing}>
+                  <MapPin className="mr-1.5 h-3.5 w-3.5" />
+                  {selectedSet.territory_point ? 'Edit location pin' : 'Set location pin'}
+                </Button>
+                <CopyFromSelect
+                  currentSetId={selected ?? null}
+                  polygons={allPolygons ?? []}
+                  onCopy={handleCopyFromSet}
+                />
+              </div>
             )}
           </div>
         )}
@@ -393,7 +455,7 @@ function TerritoryMapPage() {
           <div>
             <h1 className="text-xl font-semibold text-white">Territory map</h1>
             <p className="text-sm text-zinc-400">
-              {(setPolygons?.length ?? 0)} set{(setPolygons?.length ?? 0) === 1 ? '' : 's'} with a drawn boundary
+              {(setPolygons?.length ?? 0)} set{(setPolygons?.length ?? 0) === 1 ? '' : 's'} with territory marked
               {selectedSet ? ` · viewing ${selectedSet.name}` : ''}
             </p>
           </div>
@@ -419,11 +481,21 @@ function TerritoryMapPage() {
                 </Button>
                 <Button
                   size="sm"
-                  onClick={openConfirm}
-                  disabled={!isPolygonClosed(pendingPolygon)}
-                  title={isPolygonClosed(pendingPolygon) ? undefined : 'Polygon must be closed (≥3 vertices, first = last)'}
+                  onClick={editTab === 'pin' ? savePinMarker : openConfirm}
+                  disabled={
+                    updateMutation.isPending ||
+                    (editTab === 'pin' ? !pendingPoint : !isPolygonClosed(pendingPolygon))
+                  }
+                  title={
+                    editTab === 'pin'
+                      ? (!pendingPoint ? 'Click on the map to place a marker first' : undefined)
+                      : (!isPolygonClosed(pendingPolygon) ? 'Polygon must be closed (≥3 vertices, first = last)' : undefined)
+                  }
                 >
-                  <Save className="mr-1.5 h-3.5 w-3.5" />Save boundary
+                  <Save className="mr-1.5 h-3.5 w-3.5" />
+                  {editTab === 'pin'
+                    ? (updateMutation.isPending ? 'Saving…' : 'Save marker')
+                    : 'Save boundary'}
                 </Button>
               </>
             )}
@@ -446,6 +518,10 @@ function TerritoryMapPage() {
               onPolygonComplete={handlePolygonComplete}
               onSelectSet={selectSet}
               fitSignal={fitSignal}
+              pinMode={editTab === 'pin' && !!drawingFor}
+              pendingPoint={editTab === 'pin' ? pendingPoint : null}
+              pendingPointColor={selectedSet?.gang_color ?? null}
+              onPinPlaced={(lng, lat) => setPendingPoint({ lng, lat })}
             />
           </Suspense>
         </div>
@@ -500,6 +576,7 @@ function TerritoryMapPage() {
 
 function EditorTabs({
   tab, onTabChange, addressInput, onAddressInputChange, vertices, onVerticesChange, onBuildPolygon,
+  existingPoint, pendingPoint, onClearPin, onClearPendingPin,
 }: {
   tab: EditTab
   onTabChange: (t: EditTab) => void
@@ -508,6 +585,10 @@ function EditorTabs({
   vertices: AddressVertex[]
   onVerticesChange: (v: AddressVertex[]) => void
   onBuildPolygon: () => void
+  existingPoint: { type: 'Point'; coordinates: [number, number] } | null
+  pendingPoint: { lng: number; lat: number } | null
+  onClearPin: () => void
+  onClearPendingPin: () => void
 }) {
   const okCount = vertices.filter((v) => v.status === 'ok').length
   const anyLoading = vertices.some((v) => v.status === 'loading')
@@ -545,7 +626,7 @@ function EditorTabs({
   return (
     <div className="space-y-2">
       <div className="inline-flex w-full items-center gap-1 rounded-lg border border-zinc-800 bg-zinc-900/50 p-1" role="tablist">
-        {(['draw', 'address'] as const).map((t) => (
+        {(['draw', 'address', 'pin'] as const).map((t) => (
           <button
             key={t}
             role="tab"
@@ -555,12 +636,41 @@ function EditorTabs({
               tab === t ? 'bg-zinc-700 text-white' : 'text-zinc-500 hover:text-zinc-300'
             }`}
           >
-            {t === 'draw' ? 'Draw' : 'By address'}
+            {t === 'draw' ? 'Draw' : t === 'address' ? 'Address' : 'Pin'}
           </button>
         ))}
       </div>
 
-      {tab === 'draw' ? (
+      {tab === 'pin' ? (
+        <div className="space-y-2">
+          {existingPoint && !pendingPoint && (
+            <div className="rounded-md border border-zinc-800 bg-zinc-950/50 px-2 py-1.5 text-[11px]">
+              <p className="text-zinc-400">Current marker:</p>
+              <p className="font-mono text-zinc-300">
+                {existingPoint.coordinates[1].toFixed(5)}, {existingPoint.coordinates[0].toFixed(5)}
+              </p>
+              <Button size="sm" variant="destructive" className="mt-2 w-full text-[11px]" onClick={onClearPin}>
+                <Trash2 className="mr-1.5 h-3 w-3" />Remove marker
+              </Button>
+            </div>
+          )}
+          {pendingPoint ? (
+            <div className="rounded-md border border-violet-800/50 bg-violet-950/30 px-2 py-1.5 text-[11px]">
+              <p className="text-violet-400">New marker position:</p>
+              <p className="font-mono text-violet-200">
+                {pendingPoint.lat.toFixed(5)}, {pendingPoint.lng.toFixed(5)}
+              </p>
+              <Button size="sm" variant="outline" className="mt-2 w-full text-[11px]" onClick={onClearPendingPin}>
+                <X className="mr-1.5 h-3 w-3" />Cancel placement
+              </Button>
+            </div>
+          ) : (
+            <p className="text-xs text-zinc-400">
+              Click anywhere on the map to place a marker. Click again to move it.
+            </p>
+          )}
+        </div>
+      ) : tab === 'draw' ? (
         <p className="text-xs text-zinc-400">
           Click on the map to drop polygon vertices, double-click the last point to finish.
         </p>
@@ -681,6 +791,86 @@ function renderGroupedByAlliance(
           <ul className="space-y-0.5">
             {unaffiliated.map((s) => (
               <SetRow key={s.id} set={s} selected={selected === s.id} hasPolygon={polygonSetIds.has(s.id)} onClick={() => onSelect(s.id)} />
+            ))}
+          </ul>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function CopyFromSelect({
+  currentSetId,
+  polygons,
+  onCopy,
+}: {
+  currentSetId: UUID | null
+  polygons: SetTerritoryPolygon[]
+  onCopy: (id: UUID) => void
+}) {
+  const [open, setOpen] = useState(false)
+  const [q, setQ] = useState('')
+  const ref = useRef<HTMLDivElement>(null)
+
+  const polyPolygons = useMemo(
+    () => polygons.filter((p) => p.territory_polygon != null),
+    [polygons],
+  )
+
+  const choices = useMemo(
+    () => polyPolygons
+      .filter((p) => p.id !== currentSetId)
+      .filter((p) => !q || p.name.toLowerCase().includes(q.toLowerCase()))
+      .sort((a, b) => a.name.localeCompare(b.name)),
+    [polyPolygons, currentSetId, q],
+  )
+
+  // Close on outside click.
+  useEffect(() => {
+    if (!open) return
+    function handler(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [open])
+
+  if (polyPolygons.filter((p) => p.id !== currentSetId).length === 0) return null
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        type="button"
+        onClick={() => { setOpen((v) => !v); setQ('') }}
+        className="flex w-full items-center justify-center gap-1.5 rounded-md border border-zinc-700 bg-transparent px-2 py-1 text-xs text-zinc-400 hover:border-zinc-500 hover:text-zinc-200 transition-colors"
+      >
+        <Copy className="h-3 w-3" />
+        Copy boundary from…
+      </button>
+      {open && (
+        <div className="absolute bottom-full left-0 right-0 mb-1 z-50 rounded-md border border-zinc-700 bg-zinc-900 shadow-xl">
+          <div className="p-1.5 border-b border-zinc-800">
+            <input
+              autoFocus
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              placeholder="Search sets…"
+              className="w-full rounded bg-zinc-800 px-2 py-1 text-xs text-zinc-200 placeholder:text-zinc-500 outline-none"
+            />
+          </div>
+          <ul className="max-h-48 overflow-y-auto py-1">
+            {choices.length === 0 ? (
+              <li className="px-3 py-2 text-xs text-zinc-500">No sets found.</li>
+            ) : choices.map((p) => (
+              <li key={p.id}>
+                <button
+                  type="button"
+                  onClick={() => { onCopy(p.id); setOpen(false) }}
+                  className="w-full px-3 py-1.5 text-left text-xs text-zinc-300 hover:bg-zinc-800 transition-colors truncate"
+                >
+                  {p.name}
+                </button>
+              </li>
             ))}
           </ul>
         </div>

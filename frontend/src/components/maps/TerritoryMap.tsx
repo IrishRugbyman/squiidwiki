@@ -6,7 +6,8 @@ import { TerraDraw, TerraDrawPolygonMode } from 'terra-draw'
 import { TerraDrawMapLibreGLAdapter } from 'terra-draw-maplibre-gl-adapter'
 import { Home } from 'lucide-react'
 import unionFeatures from '@turf/union'
-import { featureCollection } from '@turf/helpers'
+import intersect from '@turf/intersect'
+import { featureCollection, feature } from '@turf/helpers'
 import type { Feature, Polygon, MultiPolygon } from 'geojson'
 import type { MunicipalityGeoJSON, SetTerritoryPolygon, UUID } from '@/lib/types'
 import type { IncidentPoint } from './MunicipalityMap'
@@ -35,6 +36,14 @@ export interface TerritoryMapProps {
   /** Reset/zoom signal — when this id changes, refit to the relevant bounds. */
   fitSignal: number
   fallbackCenter?: { longitude: number; latitude: number; zoom: number }
+  /** When true, map clicks place a territory pin instead of selecting a set. */
+  pinMode?: boolean
+  /** Pending pin preview (while user hasn't saved yet). */
+  pendingPoint?: { lng: number; lat: number } | null
+  /** Color to use for the pending pin preview. Defaults to violet. */
+  pendingPointColor?: string | null
+  /** Fired when the user clicks to place a pin (only when pinMode=true). */
+  onPinPlaced?: (lng: number, lat: number) => void
 }
 
 // ─── helpers ────────────────────────────────────────────────────────────────
@@ -91,6 +100,10 @@ export default function TerritoryMap({
   onSelectSet,
   fitSignal,
   fallbackCenter = { longitude: -83.0458, latitude: 42.3314, zoom: 10 },
+  pinMode = false,
+  pendingPoint,
+  pendingPointColor,
+  onPinPlaced,
 }: TerritoryMapProps) {
   const mapRef = useRef<MapRef | null>(null)
   const drawRef = useRef<TerraDraw | null>(null)
@@ -115,12 +128,14 @@ export default function TerritoryMap({
       }
       const features: Feature<Polygon | MultiPolygon>[] = []
       for (const [allianceId, members] of byAlliance) {
-        const memberFeatures = members.map((m) => ({
+        const polyMembers = members.filter((m) => m.territory_polygon)
+        if (polyMembers.length === 0) continue
+        const memberFeatures = polyMembers.map((m) => ({
           type: 'Feature' as const,
           properties: {},
-          geometry: m.territory_polygon,
+          geometry: m.territory_polygon!,
         }))
-        let geom: Polygon | MultiPolygon = members[0].territory_polygon
+        let geom: Polygon | MultiPolygon = polyMembers[0].territory_polygon!
         if (memberFeatures.length > 1) {
           // @turf/union takes a FeatureCollection in newer versions.
           const unioned = unionFeatures(featureCollection(memberFeatures as Feature<Polygon>[]))
@@ -143,6 +158,7 @@ export default function TerritoryMap({
         })
       }
       for (const s of ungrouped) {
+        if (!s.territory_polygon) continue
         features.push({
           type: 'Feature',
           id: s.id,
@@ -162,7 +178,7 @@ export default function TerritoryMap({
     // Sets view: one feature per set, gang-tinted (status fallback).
     return {
       type: 'FeatureCollection',
-      features: setPolygons.map((s) => ({
+      features: setPolygons.filter((s) => s.territory_polygon).map((s) => ({
         type: 'Feature',
         id: s.id,
         properties: {
@@ -173,10 +189,69 @@ export default function TerritoryMap({
           color: setColorOf(s),
           isSelected: s.id === selectedSetId,
         },
-        geometry: s.territory_polygon,
+        geometry: s.territory_polygon!,
       })),
     }
   }, [setPolygons, viewMode, selectedSetId])
+
+  // ─── set point markers FeatureCollection ────────────────────────────────
+  const setPointsFC = useMemo<GeoJSON.FeatureCollection>(() => ({
+    type: 'FeatureCollection',
+    features: setPolygons
+      .filter((s) => s.territory_point)
+      .map((s) => ({
+        type: 'Feature' as const,
+        id: s.id,
+        properties: {
+          id: s.id,
+          firstSetId: s.id,
+          name: s.name,
+          color: setColorOf(s),
+          isSelected: s.id === selectedSetId,
+        },
+        geometry: s.territory_point!,
+      })),
+  }), [setPolygons, selectedSetId])
+
+  const pendingPointFC = useMemo<GeoJSON.FeatureCollection | null>(() => {
+    if (!pendingPoint) return null
+    return {
+      type: 'FeatureCollection',
+      features: [{
+        type: 'Feature' as const,
+        properties: {},
+        geometry: { type: 'Point' as const, coordinates: [pendingPoint.lng, pendingPoint.lat] },
+      }],
+    }
+  }, [pendingPoint])
+
+  // Detect pairwise polygon intersections (sets view only) to highlight shared territory.
+  const sharedFC = useMemo<GeoJSON.FeatureCollection | null>(() => {
+    if (viewMode !== 'sets') return null
+    const polySets = setPolygons.filter((s) => s.territory_polygon)
+    const intersections: Feature<Polygon | MultiPolygon>[] = []
+    for (let i = 0; i < polySets.length; i++) {
+      for (let j = i + 1; j < polySets.length; j++) {
+        try {
+          const a = feature(polySets[i].territory_polygon)
+          const b = feature(polySets[j].territory_polygon)
+          const ix = intersect(featureCollection([a, b]))
+          if (ix && (ix.geometry.type === 'Polygon' || ix.geometry.type === 'MultiPolygon')) {
+            intersections.push({
+              type: 'Feature',
+              properties: {
+                nameA: polySets[i].name,
+                nameB: polySets[j].name,
+              },
+              geometry: ix.geometry as Polygon | MultiPolygon,
+            })
+          }
+        } catch { /* skip degenerate geometries */ }
+      }
+    }
+    if (intersections.length === 0) return null
+    return { type: 'FeatureCollection', features: intersections }
+  }, [setPolygons, viewMode])
 
   const incidentFC = useMemo<GeoJSON.FeatureCollection | null>(() => {
     if (!incidentPoints.length) return null
@@ -218,8 +293,22 @@ export default function TerritoryMap({
   // ─── bounds + initial view ───────────────────────────────────────────────
 
   const allBounds = useMemo<LngLatBounds | null>(() => {
-    const polys: GeoJSON.Polygon[] = setPolygons.map((s) => s.territory_polygon)
-    return polygonBounds(polys)
+    const polys = setPolygons.filter((s) => s.territory_polygon).map((s) => s.territory_polygon!)
+    const pb = polygonBounds(polys)
+    let [minLng, minLat, maxLng, maxLat] = pb
+      ? [pb[0][0], pb[0][1], pb[1][0], pb[1][1]]
+      : [Infinity, Infinity, -Infinity, -Infinity]
+    let found = !!pb
+    for (const s of setPolygons) {
+      if (!s.territory_point) continue
+      const [lng, lat] = s.territory_point.coordinates
+      if (lng < minLng) minLng = lng
+      if (lat < minLat) minLat = lat
+      if (lng > maxLng) maxLng = lng
+      if (lat > maxLat) maxLat = lat
+      found = true
+    }
+    return found ? [[minLng, minLat], [maxLng, maxLat]] : null
   }, [setPolygons])
 
   const initialViewState = useMemo(() => {
@@ -263,6 +352,39 @@ export default function TerritoryMap({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mapReady])
 
+  // Register a custom SDF pin icon once the map is ready.
+  useEffect(() => {
+    if (!mapReady) return
+    const map = mapRef.current?.getMap()
+    if (!map || map.hasImage('set-territory-pin')) return
+    const w = 22, h = 30
+    const canvas = document.createElement('canvas')
+    canvas.width = w
+    canvas.height = h
+    const ctx = canvas.getContext('2d')
+    if (!ctx) return
+    // Pin head (circle)
+    ctx.fillStyle = 'white'
+    ctx.beginPath()
+    ctx.arc(w / 2, w / 2 - 1, w / 2 - 1, 0, Math.PI * 2)
+    ctx.fill()
+    // Pin tail (downward triangle)
+    ctx.beginPath()
+    ctx.moveTo(w / 2 - 5, w / 2 + 4)
+    ctx.lineTo(w / 2, h - 2)
+    ctx.lineTo(w / 2 + 5, w / 2 + 4)
+    ctx.fill()
+    // Inner hole (transparent) — destination-out punches through the white
+    ctx.globalCompositeOperation = 'destination-out'
+    ctx.beginPath()
+    ctx.arc(w / 2, w / 2 - 1, 4, 0, Math.PI * 2)
+    ctx.fillStyle = 'rgba(0,0,0,1)'
+    ctx.fill()
+    ctx.globalCompositeOperation = 'source-over'
+    const imageData = ctx.getImageData(0, 0, w, h)
+    map.addImage('set-territory-pin', imageData, { sdf: true })
+  }, [mapReady])
+
   // Toggle drawing on/off when `drawingFor` flips, and seed initial polygon.
   useEffect(() => {
     const draw = drawRef.current
@@ -289,7 +411,10 @@ export default function TerritoryMap({
   const onMouseMove = useCallback((e: MapLayerMouseEvent) => {
     if (drawingFor) return
     const f = e.features?.[0]
-    if (f && f.properties && f.properties.firstSetId) {
+    if (f?.layer?.id === 'shared-territory-fill' && f.properties) {
+      const { nameA, nameB } = f.properties as { nameA: string; nameB: string }
+      setHovered({ id: '' as UUID, name: `${nameA} + ${nameB}`, lng: e.lngLat.lng, lat: e.lngLat.lat })
+    } else if (f && f.properties && f.properties.firstSetId) {
       setHovered({
         id: f.properties.firstSetId as UUID,
         name: f.properties.name as string,
@@ -304,12 +429,29 @@ export default function TerritoryMap({
   const onMouseLeave = useCallback(() => setHovered(null), [])
 
   const onClick = useCallback((e: MapLayerMouseEvent) => {
+    if (pinMode) {
+      onPinPlaced?.(e.lngLat.lng, e.lngLat.lat)
+      return
+    }
     if (drawingFor) return
     const f = e.features?.[0]
+    if (f?.layer?.id === 'incident-clusters') {
+      const map = mapRef.current?.getMap()
+      const clusterId = (f.properties as { cluster_id?: number }).cluster_id
+      if (!map || clusterId == null) return
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const src = map.getSource('incident-points') as any
+      src?.getClusterExpansionZoom?.(clusterId, (err: unknown, zoom: number) => {
+        if (err) return
+        const [lng, lat] = (f.geometry as unknown as { coordinates: [number, number] }).coordinates
+        map.easeTo({ center: [lng, lat], zoom: zoom + 0.2, duration: 500 })
+      })
+      return
+    }
     if (f?.properties?.firstSetId) {
       onSelectSet(f.properties.firstSetId as UUID)
     }
-  }, [drawingFor, onSelectSet])
+  }, [drawingFor, pinMode, onPinPlaced, onSelectSet])
 
   const resetView = useCallback(() => {
     if (mapRef.current && allBounds) {
@@ -326,12 +468,12 @@ export default function TerritoryMap({
         initialViewState={initialViewState}
         style={{ width: '100%', height: '100%' }}
         mapStyle={TILE_STYLE}
-        interactiveLayerIds={drawingFor ? [] : ['set-polygons-fill']}
+        interactiveLayerIds={drawingFor || pinMode ? [] : ['set-polygons-fill', 'shared-territory-fill', 'incident-clusters', 'set-points-layer']}
         onMouseMove={onMouseMove}
         onMouseLeave={onMouseLeave}
         onClick={onClick}
         onLoad={() => setMapReady(true)}
-        cursor={drawingFor ? 'crosshair' : hovered ? 'pointer' : 'grab'}
+        cursor={drawingFor || pinMode ? 'crosshair' : hovered ? 'pointer' : 'grab'}
       >
         <NavigationControl position="top-right" />
 
@@ -380,13 +522,81 @@ export default function TerritoryMap({
           />
         </Source>
 
+        {/* Shared territory overlay — rendered on top of set polygons */}
+        {sharedFC && (
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          <Source id="shared-territory" type="geojson" data={sharedFC as any}>
+            <Layer
+              id="shared-territory-fill"
+              type="fill"
+              paint={{
+                'fill-color': '#ffffff',
+                'fill-opacity': 0.08,
+              }}
+            />
+            <Layer
+              id="shared-territory-line"
+              type="line"
+              paint={{
+                'line-color': '#ffffff',
+                'line-width': 1.5,
+                'line-opacity': 0.5,
+                'line-dasharray': [3, 3],
+              }}
+            />
+          </Source>
+        )}
+
         {/* Incident points (on top of polygons, below draw) */}
         {incidentFC && (
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          <Source id="incident-points" type="geojson" data={incidentFC as any}>
+          <Source
+            id="incident-points"
+            type="geojson"
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            data={incidentFC as any}
+            cluster
+            clusterMaxZoom={13}
+            clusterRadius={45}
+          >
+            <Layer
+              id="incident-clusters"
+              type="circle"
+              filter={['has', 'point_count']}
+              paint={{
+                'circle-color': [
+                  'step', ['get', 'point_count'],
+                  '#fbbf24', 10,
+                  '#fb923c', 50,
+                  '#fb7185',
+                ] as unknown as string,
+                'circle-radius': [
+                  'step', ['get', 'point_count'],
+                  14, 10,
+                  18, 50,
+                  24,
+                ] as unknown as number,
+                'circle-stroke-width': 1.25,
+                'circle-stroke-color': '#18181b',
+                'circle-opacity': 0.9,
+              }}
+            />
+            <Layer
+              id="incident-cluster-count"
+              type="symbol"
+              filter={['has', 'point_count']}
+              layout={{
+                'text-field': ['get', 'point_count_abbreviated'] as unknown as string,
+                'text-font': ['Open Sans Semibold', 'Arial Unicode MS Bold'],
+                'text-size': 12,
+              }}
+              paint={{
+                'text-color': '#18181b',
+              }}
+            />
             <Layer
               id="incident-points-layer"
               type="circle"
+              filter={['!', ['has', 'point_count']]}
               paint={{
                 'circle-radius': 5,
                 'circle-color': [
@@ -398,6 +608,56 @@ export default function TerritoryMap({
                 'circle-stroke-width': 1.25,
                 'circle-stroke-color': '#18181b',
                 'circle-opacity': 0.85,
+              }}
+            />
+          </Source>
+        )}
+
+        {/* Set territory point markers — teardrop pins above polygon layers */}
+        {setPointsFC.features.length > 0 && (
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          <Source id="set-points" type="geojson" data={setPointsFC as any}>
+            <Layer
+              id="set-points-layer"
+              type="symbol"
+              layout={{
+                'icon-image': 'set-territory-pin',
+                'icon-size': [
+                  'case',
+                  ['boolean', ['get', 'isSelected'], false], 1.5,
+                  1.2,
+                ] as unknown as number,
+                'icon-anchor': 'bottom',
+                'icon-allow-overlap': true,
+                'icon-ignore-placement': true,
+              }}
+              paint={{
+                'icon-color': ['get', 'color'] as unknown as string,
+                'icon-halo-color': '#ffffff',
+                'icon-halo-width': 1,
+              }}
+            />
+          </Source>
+        )}
+
+        {/* Pending pin preview (pin mode, before save) */}
+        {pendingPointFC && (
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          <Source id="pending-point" type="geojson" data={pendingPointFC as any}>
+            <Layer
+              id="pending-point-layer"
+              type="symbol"
+              layout={{
+                'icon-image': 'set-territory-pin',
+                'icon-size': 1.4,
+                'icon-anchor': 'bottom',
+                'icon-allow-overlap': true,
+              }}
+              paint={{
+                'icon-color': pendingPointColor ?? '#7c3aed',
+                'icon-opacity': 0.75,
+                'icon-halo-color': '#ffffff',
+                'icon-halo-width': 1.5,
               }}
             />
           </Source>

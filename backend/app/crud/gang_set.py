@@ -325,6 +325,8 @@ async def update_gang_set(
     # via setattr; flag_modified ensures a polygon update actually gets flushed.
     if "territory_polygon" in dump:
         sa.orm.attributes.flag_modified(obj, "territory_polygon")
+    if "territory_point" in dump:
+        sa.orm.attributes.flag_modified(obj, "territory_point")
     if "name" in dump:
         obj.slug = await _unique_slug(session, obj.universe_id, obj.name, exclude_id=obj.id)
     obj.updated_at = datetime.utcnow()
@@ -376,10 +378,15 @@ async def list_set_polygons(
     universe_id: uuid.UUID,
     municipality_id: uuid.UUID | None = None,
 ) -> list[dict]:
-    """Return all sets in `universe_id` that have a non-null territory_polygon.
+    """Return all sets in `universe_id` that have a non-null territory_polygon or territory_point.
     Optionally narrow to those anchored at `municipality_id`."""
-    # Exclude both SQL NULL and JSONB null (asyncpg may store None as the
-    # JSONB scalar 'null' rather than SQL NULL — both should be filtered).
+    # Exclude both SQL NULL and JSONB null for each spatial field.
+    polygon_present = GangSet.territory_polygon.isnot(None) & (
+        sa.cast(GangSet.territory_polygon, sa.Text) != "null"
+    )
+    point_present = GangSet.territory_point.isnot(None) & (
+        sa.cast(GangSet.territory_point, sa.Text) != "null"
+    )
     stmt = (
         select(
             GangSet.id,
@@ -391,12 +398,12 @@ async def list_set_polygons(
             GangSet.gang_id,
             Gang.color,
             GangSet.territory_polygon,
+            GangSet.territory_point,
         )
         .select_from(GangSet)
         .join(Gang, Gang.id == GangSet.gang_id, isouter=True)
         .where(GangSet.universe_id == universe_id)
-        .where(GangSet.territory_polygon.isnot(None))
-        .where(sa.cast(GangSet.territory_polygon, sa.Text) != "null")
+        .where(polygon_present | point_present)
     )
     if municipality_id is not None:
         stmt = stmt.where(GangSet.municipality_id == municipality_id)
@@ -412,6 +419,7 @@ async def list_set_polygons(
             "gang_id": r[6],
             "gang_color": r[7],
             "territory_polygon": r[8],
+            "territory_point": r[9],
         }
         for r in rows
     ]
@@ -424,6 +432,21 @@ async def list_set_territory_ids(
         select(SetMunicipality.municipality_id).where(SetMunicipality.set_id == set_id)
     )
     return result.scalars().all()
+
+
+async def batch_load_set_territory_ids(
+    session: AsyncSession, set_ids: list[uuid.UUID]
+) -> dict[uuid.UUID, list[uuid.UUID]]:
+    if not set_ids:
+        return {}
+    result = await session.execute(
+        select(SetMunicipality.set_id, SetMunicipality.municipality_id)
+        .where(SetMunicipality.set_id.in_(set_ids))
+    )
+    out: dict[uuid.UUID, list[uuid.UUID]] = {sid: [] for sid in set_ids}
+    for row in result.all():
+        out[row.set_id].append(row.municipality_id)
+    return out
 
 
 async def list_set_relationships(
