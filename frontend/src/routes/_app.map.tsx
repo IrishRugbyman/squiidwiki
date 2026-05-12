@@ -422,6 +422,7 @@ function TerritoryMapPage() {
                 pendingPoint={pendingPoint}
                 onClearPin={clearPinMarker}
                 onClearPendingPin={() => setPendingPoint(null)}
+                onPinPlaced={(lng, lat) => setPendingPoint({ lng, lat })}
               />
             ) : (
               <div className="space-y-1.5">
@@ -576,7 +577,7 @@ function TerritoryMapPage() {
 
 function EditorTabs({
   tab, onTabChange, addressInput, onAddressInputChange, vertices, onVerticesChange, onBuildPolygon,
-  existingPoint, pendingPoint, onClearPin, onClearPendingPin,
+  existingPoint, pendingPoint, onClearPin, onClearPendingPin, onPinPlaced,
 }: {
   tab: EditTab
   onTabChange: (t: EditTab) => void
@@ -589,9 +590,32 @@ function EditorTabs({
   pendingPoint: { lng: number; lat: number } | null
   onClearPin: () => void
   onClearPendingPin: () => void
+  onPinPlaced: (lng: number, lat: number) => void
 }) {
   const okCount = vertices.filter((v) => v.status === 'ok').length
   const anyLoading = vertices.some((v) => v.status === 'loading')
+
+  const [pinAddressInput, setPinAddressInput] = useState('')
+  const [pinGeocodeState, setPinGeocodeState] = useState<'idle' | 'loading' | 'error'>('idle')
+  const [pinGeocodeError, setPinGeocodeError] = useState('')
+  const [pinGeocodeLabel, setPinGeocodeLabel] = useState('')
+
+  async function geocodePin() {
+    const q = pinAddressInput.trim()
+    if (!q) return
+    setPinGeocodeState('loading')
+    setPinGeocodeError('')
+    setPinGeocodeLabel('')
+    try {
+      const { lng, lat, label } = await geocodeOne(q, new AbortController().signal)
+      setPinGeocodeLabel(label)
+      setPinGeocodeState('idle')
+      onPinPlaced(lng, lat)
+    } catch (e) {
+      setPinGeocodeState('error')
+      setPinGeocodeError(e instanceof Error ? e.message : 'Geocode failed')
+    }
+  }
 
   async function geocodeAll() {
     const lines = addressInput
@@ -643,6 +667,29 @@ function EditorTabs({
 
       {tab === 'pin' ? (
         <div className="space-y-2">
+          {/* Address geocoder */}
+          <p className="text-[11px] text-zinc-500">Search an address or intersection (US only).</p>
+          <div className="flex items-center gap-1.5">
+            <input
+              value={pinAddressInput}
+              onChange={(e) => { setPinAddressInput(e.target.value); setPinGeocodeState('idle') }}
+              onKeyDown={(e) => e.key === 'Enter' && geocodePin()}
+              placeholder="E. Seven Mile & Hayes, Detroit"
+              className="flex-1 min-w-0 rounded-md border border-zinc-800 bg-zinc-950 px-2 py-1 text-[11px] text-zinc-200 placeholder:text-zinc-600 focus-visible:border-violet-700 focus-visible:outline-none"
+            />
+            <Button size="sm" variant="outline" onClick={geocodePin} disabled={!pinAddressInput.trim() || pinGeocodeState === 'loading'} className="shrink-0 px-2">
+              {pinGeocodeState === 'loading' ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <MapPin className="h-3.5 w-3.5" />}
+            </Button>
+          </div>
+          {pinGeocodeState === 'error' && (
+            <p className="text-[10px] text-rose-400">{pinGeocodeError}</p>
+          )}
+          {pinGeocodeLabel && pinGeocodeState === 'idle' && (
+            <p className="truncate text-[10px] text-emerald-400">{pinGeocodeLabel}</p>
+          )}
+
+          <p className="text-[10px] text-zinc-600">— or click anywhere on the map —</p>
+
           {existingPoint && !pendingPoint && (
             <div className="rounded-md border border-zinc-800 bg-zinc-950/50 px-2 py-1.5 text-[11px]">
               <p className="text-zinc-400">Current marker:</p>
@@ -654,7 +701,7 @@ function EditorTabs({
               </Button>
             </div>
           )}
-          {pendingPoint ? (
+          {pendingPoint && (
             <div className="rounded-md border border-violet-800/50 bg-violet-950/30 px-2 py-1.5 text-[11px]">
               <p className="text-violet-400">New marker position:</p>
               <p className="font-mono text-violet-200">
@@ -664,10 +711,6 @@ function EditorTabs({
                 <X className="mr-1.5 h-3 w-3" />Cancel placement
               </Button>
             </div>
-          ) : (
-            <p className="text-xs text-zinc-400">
-              Click anywhere on the map to place a marker. Click again to move it.
-            </p>
           )}
         </div>
       ) : tab === 'draw' ? (
