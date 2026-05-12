@@ -13,7 +13,7 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Textarea } from '@/components/ui/textarea'
-import { useAlliances, useCreateSet, useDeleteSet, useGangs, useMunicipalities, useSet, useSets, useUpdateSet, type SetsListParams } from '@/lib/queries'
+import { useAlliances, useAllSets, useCreateSet, useDeleteSet, useGangs, useMunicipalities, useSet, useSets, useUpdateSet, type SetsListParams } from '@/lib/queries'
 import { BulkActionBar } from '@/components/BulkActionBar'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { useUniverseStore } from '@/stores/universe'
@@ -221,6 +221,7 @@ export function SetFormSheet({ universeId, open, onClose, initial, onSaved, defa
   const { data: alliancesData } = useAlliances(universeId)
   const { data: munisData } = useMunicipalities(universeId)
   const { data: gangsData } = useGangs(universeId)
+  const { data: allSetsData } = useAllSets(universeId)
   const isEdit = !!initial
 
   const [variants, setVariants] = useState<NameVariant[]>(() => initialVariants(initial, copyFrom))
@@ -246,6 +247,19 @@ export function SetFormSheet({ universeId, open, onClose, initial, onSaved, defa
       .sort((a, b) => a.name.localeCompare(b.name)),
     [allMunis, municipalityId],
   )
+
+  // Map from sub-district id → sets that also claim it (excluding this set).
+  const coClaimMap = useMemo(() => {
+    const out: Record<string, Array<{ id: string; name: string }>> = {}
+    for (const s of allSetsData?.items ?? []) {
+      if (s.id === initial?.id) continue
+      for (const tid of s.territory_ids ?? []) {
+        if (!out[tid]) out[tid] = []
+        out[tid].push({ id: s.id, name: s.name })
+      }
+    }
+    return out
+  }, [allSetsData, initial?.id])
 
   // When the primary municipality changes, drop any territory selections that
   // are no longer children of the new parent (or all of them, if user picked
@@ -531,6 +545,7 @@ export function SetFormSheet({ universeId, open, onClose, initial, onSaved, defa
               <div className="max-h-48 overflow-y-auto rounded-md border border-zinc-800 bg-zinc-950/50">
                 {subDistricts.map((m) => {
                   const checked = territoryIds.includes(m.id)
+                  const coClaims = coClaimMap[m.id] ?? []
                   return (
                     <label
                       key={m.id}
@@ -540,11 +555,27 @@ export function SetFormSheet({ universeId, open, onClose, initial, onSaved, defa
                         type="checkbox"
                         checked={checked}
                         onChange={() => toggleTerritory(m.id)}
-                        className="h-3.5 w-3.5 accent-violet-500"
+                        className="h-3.5 w-3.5 shrink-0 accent-violet-500"
                       />
-                      <span className={checked ? 'text-white' : 'text-zinc-400'}>
+                      <span className={`flex-1 ${checked ? 'text-white' : 'text-zinc-400'}`}>
                         {m.name}
                       </span>
+                      {coClaims.length > 0 && (
+                        <span className="flex items-center gap-1 shrink-0">
+                          {coClaims.slice(0, 2).map((s) => (
+                            <span
+                              key={s.id}
+                              className="rounded bg-amber-950/60 px-1.5 py-0.5 text-[10px] text-amber-300 border border-amber-800/50"
+                              title={`Also claimed by ${s.name}`}
+                            >
+                              {s.name}
+                            </span>
+                          ))}
+                          {coClaims.length > 2 && (
+                            <span className="text-[10px] text-zinc-500">+{coClaims.length - 2}</span>
+                          )}
+                        </span>
+                      )}
                     </label>
                   )
                 })}
