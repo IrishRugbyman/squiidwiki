@@ -735,7 +735,7 @@ export function MemberFormSheet({ universeId, open, onClose, initial, defaultSet
           </FormSection>
 
           <FormSection title="Status & Affiliation">
-            <div className="grid gap-3 grid-cols-2 sm:grid-cols-4">
+            <div className="grid gap-3 grid-cols-1 sm:grid-cols-3">
               <div className="space-y-1.5">
                 <Label>Status</Label>
                 <Select value={status} onValueChange={(v) => setStatus(v as MemberStatus)}>
@@ -744,74 +744,6 @@ export function MemberFormSheet({ universeId, open, onClose, initial, defaultSet
                     {ALL_STATUSES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
                   </SelectContent>
                 </Select>
-              </div>
-              <div className="space-y-1.5">
-                <div className="flex items-center justify-between">
-                  <Label>Sets</Label>
-                  <button
-                    type="button"
-                    onClick={() => setAffiliations((prev) => {
-                      const isFirst = prev.length === 0
-                      return [...prev, { set_id: '', rank: '', is_primary: isFirst }]
-                    })}
-                    className="text-xs text-violet-400 hover:text-violet-300 transition-colors"
-                  >
-                    + Add
-                  </button>
-                </div>
-                {affiliations.length === 0 && (
-                  <p className="text-xs text-zinc-600 italic">No set affiliation</p>
-                )}
-                {affiliations.map((aff, idx) => {
-                  const usedSetIds = new Set(affiliations.filter((_, i) => i !== idx).map((a) => a.set_id).filter(Boolean))
-                  const availableItems = setItems.filter((s) => !usedSetIds.has(s.id))
-                  return (
-                    <div key={idx} className="flex items-center gap-2">
-                      <div className="flex-1">
-                        <AffiliationCombobox
-                          label="Set"
-                          value={aff.set_id}
-                          onChange={(v) => setAffiliations((prev) => prev.map((a, i) => i === idx ? { ...a, set_id: v } : a))}
-                          items={availableItems}
-                          onCreateRequest={handleCreateSet}
-                          creating={createSet.isPending}
-                        />
-                      </div>
-                      <Select
-                        value={aff.rank || 'none'}
-                        onValueChange={(v) => setAffiliations((prev) => prev.map((a, i) => i === idx ? { ...a, rank: v === 'none' ? '' : v as SetRank } : a))}
-                        disabled={!aff.set_id}
-                      >
-                        <SelectTrigger className="w-28 shrink-0"><SelectValue placeholder="Rank" /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="none">— None —</SelectItem>
-                          <SelectItem value="CEO">CEO</SelectItem>
-                          <SelectItem value="CO_CEO">Co-CEO</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <button
-                        type="button"
-                        title={aff.is_primary ? 'Primary set' : 'Make primary'}
-                        onClick={() => setAffiliations((prev) => prev.map((a, i) => ({ ...a, is_primary: i === idx })))}
-                        className={`shrink-0 rounded p-1 text-xs transition-colors ${aff.is_primary ? 'text-violet-400' : 'text-zinc-600 hover:text-violet-400'}`}
-                      >
-                        ★
-                      </button>
-                      <button
-                        type="button"
-                        aria-label="Remove affiliation"
-                        onClick={() => setAffiliations((prev) => {
-                          const next = prev.filter((_, i) => i !== idx)
-                          if (aff.is_primary && next.length > 0) next[0].is_primary = true
-                          return next
-                        })}
-                        className="shrink-0 rounded p-1 text-zinc-600 hover:text-red-400 transition-colors"
-                      >
-                        <X size={12} />
-                      </button>
-                    </div>
-                  )
-                })}
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="m-alliance">Alliance</Label>
@@ -835,6 +767,74 @@ export function MemberFormSheet({ universeId, open, onClose, initial, defaultSet
                   creating={createGang.isPending}
                 />
               </div>
+            </div>
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <Label>Sets</Label>
+                <button
+                  type="button"
+                  onClick={() => setAffiliations((prev) => {
+                    const isFirst = prev.length === 0
+                    return [...prev, { set_id: '', rank: '', is_primary: isFirst }]
+                  })}
+                  className="text-xs text-violet-400 hover:text-violet-300 transition-colors"
+                >
+                  + Add
+                </button>
+              </div>
+              {affiliations.length === 0 && (
+                <p className="text-xs text-zinc-600 italic">No set affiliation</p>
+              )}
+              {affiliations.map((aff, idx) => {
+                const usedSetIds = new Set(affiliations.filter((_, i) => i !== idx).map((a) => a.set_id).filter(Boolean))
+                const availableItems = setItems.filter((s) => !usedSetIds.has(s.id))
+                return (
+                  <div key={idx} className="flex items-center gap-2">
+                    <div className="flex-1">
+                      <AffiliationCombobox
+                        label="Set"
+                        value={aff.set_id}
+                        onChange={(v) => setAffiliations((prev) => prev.map((a, i) => i === idx ? { ...a, set_id: v } : a))}
+                        items={availableItems}
+                        onCreateRequest={handleCreateSet}
+                        creating={createSet.isPending}
+                      />
+                    </div>
+                    <Select
+                      value={aff.rank || 'none'}
+                      onValueChange={(v) => setAffiliations((prev) => prev.map((a, i) => i === idx ? { ...a, rank: v === 'none' ? '' : v as SetRank } : a))}
+                      disabled={!aff.set_id}
+                    >
+                      <SelectTrigger className="w-32 shrink-0 whitespace-nowrap"><SelectValue placeholder="Rank" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">None</SelectItem>
+                        <SelectItem value="CEO">CEO</SelectItem>
+                        <SelectItem value="CO_CEO">Co-CEO</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <button
+                      type="button"
+                      title={aff.is_primary ? 'Primary set' : 'Make primary'}
+                      onClick={() => setAffiliations((prev) => prev.map((a, i) => ({ ...a, is_primary: i === idx })))}
+                      className={`shrink-0 rounded p-1 text-xs transition-colors ${aff.is_primary ? 'text-violet-400' : 'text-zinc-600 hover:text-violet-400'}`}
+                    >
+                      ★
+                    </button>
+                    <button
+                      type="button"
+                      aria-label="Remove affiliation"
+                      onClick={() => setAffiliations((prev) => {
+                        const next = prev.filter((_, i) => i !== idx)
+                        if (aff.is_primary && next.length > 0) next[0].is_primary = true
+                        return next
+                      })}
+                      className="shrink-0 rounded p-1 text-zinc-600 hover:text-red-400 transition-colors"
+                    >
+                      <X size={12} />
+                    </button>
+                  </div>
+                )
+              })}
             </div>
             {status === 'DEAD' && (
               <div className="rounded-lg border border-zinc-800 bg-zinc-900/50 p-3">
