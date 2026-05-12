@@ -693,9 +693,10 @@ function MemberDetailPage() {
           )}
 
           {/* Two-column wiki layout: identity facts + right panels */}
-          <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1fr_280px]">
-            {/* Left: identity facts */}
-            <div className="rounded-xl border border-zinc-800 bg-zinc-900/30 px-4 py-1">
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1fr_280px] lg:items-start">
+            {/* Left: identity facts + incidents */}
+            <div className="flex flex-col gap-4">
+              <div className="rounded-xl border border-zinc-800 bg-zinc-900/30 px-4 py-1">
               <DetailRow label="Date of Birth">
                 {member.dob ? (
                   <span className="flex items-center gap-2 flex-wrap">
@@ -727,6 +728,79 @@ function MemberDetailPage() {
                   </Link>
                 ) : <span className="text-zinc-600">—</span>}
               </DetailRow>
+              </div>
+
+              {/* Incidents section */}
+              <section>
+                <div className="mb-3 flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-xs font-medium uppercase tracking-wider text-zinc-500">Incidents</h2>
+                    {incidentCount > 0 && (
+                      <Badge variant="secondary" className="px-1.5 py-0 text-xs">{incidentCount}</Badge>
+                    )}
+                    {incidentCount > 0 && (
+                      <div className="flex items-center gap-1 rounded-md border border-zinc-800 bg-zinc-900/60 p-1">
+                        {(['list', 'timeline'] as const).map((v) => (
+                          <button key={v} type="button" onClick={() => setIncidentsView(v)}
+                            className={`rounded px-2.5 py-0.5 text-[11px] font-medium transition-colors ${incidentsView === v ? 'bg-zinc-700 text-white' : 'text-zinc-500 hover:text-zinc-300'}`}>
+                            {v === 'list' ? 'List' : 'Timeline'}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  <Button size="sm" variant="outline" onClick={() => setCreatingIncident(true)}>
+                    <Plus className="mr-1.5 h-3.5 w-3.5" />Add Incident
+                  </Button>
+                </div>
+                {incidentCount === 0 ? (
+                  <p className="py-4 text-sm text-zinc-600">No incidents recorded.</p>
+                ) : incidentsView === 'timeline' ? (
+                  <Suspense fallback={<Skeleton className="h-40 w-full" />}>
+                    <MemberTimeline incidents={incidents!.items} dob={member.dob} dateOfDeath={member.date_of_death} />
+                  </Suspense>
+                ) : (
+                  <div className="overflow-hidden rounded-xl border border-zinc-800">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b border-zinc-800 bg-zinc-900/50">
+                          <th className="px-4 py-2.5 text-left text-xs font-medium text-zinc-400">Date</th>
+                          <th className="px-4 py-2.5 text-left text-xs font-medium text-zinc-400">Type</th>
+                          <th className="px-4 py-2.5 text-left text-xs font-medium text-zinc-400">Victims</th>
+                          <th className="px-4 py-2.5 text-left text-xs font-medium text-zinc-400">Verified</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-zinc-800">
+                        {incidents!.items.map((inc) => (
+                          <tr key={inc.id} className="hover:bg-zinc-900/50 transition-colors">
+                            <td className="p-0">
+                              <Link to="/incidents/$id" params={{ id: inc.id }} className="block px-4 py-3 text-zinc-300 hover:text-violet-400">
+                                {inc.date ? <FuzzyDate value={inc.date} /> : '—'}
+                              </Link>
+                            </td>
+                            <td className="px-4 py-3">
+                              <Badge variant="outline" className={`text-xs ${inc.type === 'MURDER' ? 'border-rose-800 text-rose-400' : inc.type === 'FIGHT' ? 'border-violet-800 text-violet-400' : 'border-amber-800 text-amber-400'}`}>
+                                {inc.type}
+                              </Badge>
+                            </td>
+                            <td className="px-4 py-3 text-xs text-zinc-500">
+                              {inc.victim_names.length > 0 ? inc.victim_names.join(', ') : '—'}
+                            </td>
+                            <td className="px-4 py-3">
+                              {inc.verified ? (
+                                <Tooltip>
+                                  <TooltipTrigger asChild><CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" /></TooltipTrigger>
+                                  <TooltipContent side="left">Verified incident</TooltipContent>
+                                </Tooltip>
+                              ) : <span className="text-zinc-600 text-xs">—</span>}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </section>
             </div>
 
             {/* Right: incarceration (top for LOCKED) + family + social */}
@@ -934,78 +1008,6 @@ function MemberDetailPage() {
               </div>
             )}
           </div>
-
-          {/* Incidents section */}
-          <section>
-            <div className="mb-3 flex items-center justify-between gap-2">
-              <div className="flex items-center gap-2">
-                <h2 className="text-xs font-medium uppercase tracking-wider text-zinc-500">Incidents</h2>
-                {incidentCount > 0 && (
-                  <Badge variant="secondary" className="px-1.5 py-0 text-xs">{incidentCount}</Badge>
-                )}
-                {incidentCount > 0 && (
-                  <div className="flex items-center gap-1 rounded-md border border-zinc-800 bg-zinc-900/60 p-1">
-                    {(['list', 'timeline'] as const).map((v) => (
-                      <button key={v} type="button" onClick={() => setIncidentsView(v)}
-                        className={`rounded px-2.5 py-0.5 text-[11px] font-medium transition-colors ${incidentsView === v ? 'bg-zinc-700 text-white' : 'text-zinc-500 hover:text-zinc-300'}`}>
-                        {v === 'list' ? 'List' : 'Timeline'}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-              <Button size="sm" variant="outline" onClick={() => setCreatingIncident(true)}>
-                <Plus className="mr-1.5 h-3.5 w-3.5" />Add Incident
-              </Button>
-            </div>
-            {incidentCount === 0 ? (
-              <p className="py-4 text-sm text-zinc-600">No incidents recorded.</p>
-            ) : incidentsView === 'timeline' ? (
-              <Suspense fallback={<Skeleton className="h-40 w-full" />}>
-                <MemberTimeline incidents={incidents!.items} dob={member.dob} dateOfDeath={member.date_of_death} />
-              </Suspense>
-            ) : (
-              <div className="overflow-hidden rounded-xl border border-zinc-800">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b border-zinc-800 bg-zinc-900/50">
-                      <th className="px-4 py-2.5 text-left text-xs font-medium text-zinc-400">Date</th>
-                      <th className="px-4 py-2.5 text-left text-xs font-medium text-zinc-400">Type</th>
-                      <th className="px-4 py-2.5 text-left text-xs font-medium text-zinc-400">Victims</th>
-                      <th className="px-4 py-2.5 text-left text-xs font-medium text-zinc-400">Verified</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-zinc-800">
-                    {incidents!.items.map((inc) => (
-                      <tr key={inc.id} className="hover:bg-zinc-900/50 transition-colors">
-                        <td className="p-0">
-                          <Link to="/incidents/$id" params={{ id: inc.id }} className="block px-4 py-3 text-zinc-300 hover:text-violet-400">
-                            {inc.date ? <FuzzyDate value={inc.date} /> : '—'}
-                          </Link>
-                        </td>
-                        <td className="px-4 py-3">
-                          <Badge variant="outline" className={`text-xs ${inc.type === 'MURDER' ? 'border-rose-800 text-rose-400' : inc.type === 'FIGHT' ? 'border-violet-800 text-violet-400' : 'border-amber-800 text-amber-400'}`}>
-                            {inc.type}
-                          </Badge>
-                        </td>
-                        <td className="px-4 py-3 text-xs text-zinc-500">
-                          {inc.victim_names.length > 0 ? inc.victim_names.join(', ') : '—'}
-                        </td>
-                        <td className="px-4 py-3">
-                          {inc.verified ? (
-                            <Tooltip>
-                              <TooltipTrigger asChild><CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" /></TooltipTrigger>
-                              <TooltipContent side="left">Verified incident</TooltipContent>
-                            </Tooltip>
-                          ) : <span className="text-zinc-600 text-xs">—</span>}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </section>
 
           {/* Photos section */}
           {universe && (
