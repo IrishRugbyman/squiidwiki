@@ -397,6 +397,7 @@ async def list_set_polygons(
             GangSet.alliance_id,
             GangSet.gang_id,
             Gang.color,
+            Gang.color_secondary,
             GangSet.territory_polygon,
             GangSet.territory_point,
         )
@@ -418,8 +419,9 @@ async def list_set_polygons(
             "alliance_id": r[5],
             "gang_id": r[6],
             "gang_color": r[7],
-            "territory_polygon": r[8],
-            "territory_point": r[9],
+            "gang_color_secondary": r[8],
+            "territory_polygon": r[9],
+            "territory_point": r[10],
         }
         for r in rows
     ]

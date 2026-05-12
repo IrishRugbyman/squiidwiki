@@ -79,9 +79,40 @@ function statusColor(status: 'ACTIVE' | 'EXTINCT'): string {
   return status === 'ACTIVE' ? '#7c3aed' : '#52525b'
 }
 
-// Pick the per-set color: gang nation color if set, else status fallback.
+// Pick the per-set primary fill color: gang nation color if set, else status fallback.
 function setColorOf(s: SetTerritoryPolygon): string {
   return s.gang_color ?? statusColor(s.status)
+}
+
+// Secondary stroke color: gang secondary if set, else same as primary.
+function setStrokeOf(s: SetTerritoryPolygon): string {
+  return s.gang_color_secondary ?? setColorOf(s)
+}
+
+// Stripe pattern image id for this set (null when only one color available).
+function stripePatternId(s: SetTerritoryPolygon): string | null {
+  if (!s.gang_color || !s.gang_color_secondary) return null
+  return `stripe-${s.gang_color.replace('#', '')}-${s.gang_color_secondary.replace('#', '')}`
+}
+
+// Build a 16×16 diagonal-stripe tile: primary-color lines over secondary fill.
+function buildStripeCanvas(primary: string, secondary: string): ImageData {
+  const size = 16
+  const canvas = document.createElement('canvas')
+  canvas.width = size
+  canvas.height = size
+  const ctx = canvas.getContext('2d')!
+  ctx.fillStyle = secondary
+  ctx.fillRect(0, 0, size, size)
+  ctx.strokeStyle = primary
+  ctx.lineWidth = 5
+  for (let i = -size; i < size * 2; i += 8) {
+    ctx.beginPath()
+    ctx.moveTo(i, 0)
+    ctx.lineTo(i + size, size)
+    ctx.stroke()
+  }
+  return ctx.getImageData(0, 0, size, size)
 }
 
 // ─── component ───────────────────────────────────────────────────────────────
@@ -107,6 +138,7 @@ export default function TerritoryMap({
 }: TerritoryMapProps) {
   const mapRef = useRef<MapRef | null>(null)
   const drawRef = useRef<TerraDraw | null>(null)
+  const registeredPatternsRef = useRef<Set<string>>(new Set())
   const [hovered, setHovered] = useState<{ id: UUID; name: string; lng: number; lat: number } | null>(null)
   const [mapReady, setMapReady] = useState(false)
 
@@ -141,6 +173,7 @@ export default function TerritoryMap({
           const unioned = unionFeatures(featureCollection(memberFeatures as Feature<Polygon>[]))
           if (unioned) geom = unioned.geometry as Polygon | MultiPolygon
         }
+        const allianceColor = `hsl(${hashHue(allianceId)} 70% 55%)`
         features.push({
           type: 'Feature',
           id: `alliance:${allianceId}`,
@@ -151,7 +184,9 @@ export default function TerritoryMap({
             // For click → select first member set; sidebar handles alliance-level UI.
             firstSetId: members[0].id,
             name: members.map((m) => m.name).join(' / '),
-            color: `hsl(${hashHue(allianceId)} 70% 55%)`,
+            color: allianceColor,
+            strokeColor: allianceColor,
+            patternId: null,
             isSelected: members.some((m) => m.id === selectedSetId),
           },
           geometry: geom,
@@ -168,6 +203,8 @@ export default function TerritoryMap({
             firstSetId: s.id,
             name: s.name,
             color: setColorOf(s),
+            strokeColor: setStrokeOf(s),
+            patternId: stripePatternId(s),
             isSelected: s.id === selectedSetId,
           },
           geometry: s.territory_polygon,
@@ -187,6 +224,8 @@ export default function TerritoryMap({
           firstSetId: s.id,
           name: s.name,
           color: setColorOf(s),
+          strokeColor: setStrokeOf(s),
+          patternId: stripePatternId(s),
           isSelected: s.id === selectedSetId,
         },
         geometry: s.territory_polygon!,
@@ -385,6 +424,20 @@ export default function TerritoryMap({
     map.addImage('set-territory-pin', imageData, { sdf: true })
   }, [mapReady])
 
+  // Register diagonal stripe patterns for each unique gang color pair.
+  useEffect(() => {
+    if (!mapReady) return
+    const map = mapRef.current?.getMap()
+    if (!map) return
+    for (const s of setPolygons) {
+      const id = stripePatternId(s)
+      if (!id) continue
+      if (registeredPatternsRef.current.has(id) || map.hasImage(id)) continue
+      map.addImage(id, buildStripeCanvas(s.gang_color!, s.gang_color_secondary!))
+      registeredPatternsRef.current.add(id)
+    }
+  }, [mapReady, setPolygons])
+
   // Toggle drawing on/off when `drawingFor` flips, and seed initial polygon.
   useEffect(() => {
     const draw = drawRef.current
@@ -468,7 +521,7 @@ export default function TerritoryMap({
         initialViewState={initialViewState}
         style={{ width: '100%', height: '100%' }}
         mapStyle={TILE_STYLE}
-        interactiveLayerIds={drawingFor || pinMode ? [] : ['set-polygons-fill', 'shared-territory-fill', 'incident-clusters', 'set-points-layer']}
+        interactiveLayerIds={drawingFor || pinMode ? [] : ['set-polygons-fill', 'set-polygons-pattern', 'shared-territory-fill', 'incident-clusters', 'set-points-layer']}
         onMouseMove={onMouseMove}
         onMouseLeave={onMouseLeave}
         onClick={onClick}
@@ -495,9 +548,11 @@ export default function TerritoryMap({
 
         {/* Set polygons */}
         <Source id="set-polygons" type="geojson" data={setsFC} promoteId="id">
+          {/* Solid fill — only for sets without a stripe pattern (no gang, or gang with one color) */}
           <Layer
             id="set-polygons-fill"
             type="fill"
+            filter={['==', ['get', 'patternId'], null] as unknown as boolean}
             paint={{
               'fill-color': ['get', 'color'] as unknown as string,
               'fill-opacity': [
@@ -507,11 +562,25 @@ export default function TerritoryMap({
               ] as unknown as number,
             }}
           />
+          {/* Diagonal stripe fill — for gang sets with two colors */}
+          <Layer
+            id="set-polygons-pattern"
+            type="fill"
+            filter={['!=', ['get', 'patternId'], null] as unknown as boolean}
+            paint={{
+              'fill-pattern': ['get', 'patternId'] as unknown as string,
+              'fill-opacity': [
+                'case',
+                ['boolean', ['get', 'isSelected'], false], 0.65,
+                0.4,
+              ] as unknown as number,
+            }}
+          />
           <Layer
             id="set-polygons-line"
             type="line"
             paint={{
-              'line-color': ['get', 'color'] as unknown as string,
+              'line-color': ['get', 'strokeColor'] as unknown as string,
               'line-width': [
                 'case',
                 ['boolean', ['get', 'isSelected'], false], 2.5,

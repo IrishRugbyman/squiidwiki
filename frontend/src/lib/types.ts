@@ -122,6 +122,7 @@ export interface GangListItem {
   aliases: string[] | null
   description: string | null
   color: string | null
+  color_secondary: string | null
 }
 
 export interface GangRead extends GangListItem {
@@ -208,6 +209,7 @@ export interface SetTerritoryPolygon {
   alliance_id: UUID | null
   gang_id: UUID | null
   gang_color: string | null
+  gang_color_secondary: string | null
   territory_polygon: GeoJSON.Polygon | null
   territory_point: { type: 'Point'; coordinates: [number, number] } | null
 }

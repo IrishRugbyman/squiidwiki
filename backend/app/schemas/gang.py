@@ -23,8 +23,9 @@ class GangCreate(BaseModel):
     aliases: Optional[list[str]] = None
     description: Optional[str] = None
     color: Optional[str] = None
+    color_secondary: Optional[str] = None
 
-    @field_validator("color")
+    @field_validator("color", "color_secondary")
     @classmethod
     def _color(cls, v):
         return _validate_color(v)
@@ -35,8 +36,9 @@ class GangUpdate(BaseModel):
     aliases: Optional[list[str]] = None
     description: Optional[str] = None
     color: Optional[str] = None
+    color_secondary: Optional[str] = None
 
-    @field_validator("color")
+    @field_validator("color", "color_secondary")
     @classmethod
     def _color(cls, v):
         return _validate_color(v)
@@ -52,6 +54,7 @@ class GangRead(BaseModel):
     aliases: Optional[list[str]] = None
     description: Optional[str] = None
     color: Optional[str] = None
+    color_secondary: Optional[str] = None
     created_at: datetime
     updated_at: datetime
 
@@ -66,3 +69,4 @@ class GangListItem(BaseModel):
     aliases: Optional[list[str]] = None
     description: Optional[str] = None
     color: Optional[str] = None
+    color_secondary: Optional[str] = None

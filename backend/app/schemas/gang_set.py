@@ -176,6 +176,7 @@ class SetPolygonItem(BaseModel):
     alliance_id: Optional[uuid.UUID]
     gang_id: Optional[uuid.UUID] = None
     gang_color: Optional[str] = None
+    gang_color_secondary: Optional[str] = None
     territory_polygon: Optional[dict] = None
     territory_point: Optional[dict] = None
 
