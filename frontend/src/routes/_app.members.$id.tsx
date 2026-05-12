@@ -696,9 +696,10 @@ function MemberDetailPage() {
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1fr_280px] lg:items-start">
             {/* Left: identity facts + incidents */}
             <div className="flex flex-col gap-4">
+              {(member.dob || member.status === 'DEAD' || member.alliance_id) && (
               <div className="rounded-xl border border-zinc-800 bg-zinc-900/30 px-4 py-1">
-              <DetailRow label="Date of Birth">
-                {member.dob ? (
+              {member.dob && (
+                <DetailRow label="Date of Birth">
                   <span className="flex items-center gap-2 flex-wrap">
                     <FuzzyDate value={member.dob} />
                     {member.dob.year && (() => {
@@ -711,8 +712,8 @@ function MemberDetailPage() {
                       )
                     })()}
                   </span>
-                ) : <span className="text-zinc-600">Unknown</span>}
-              </DetailRow>
+                </DetailRow>
+              )}
               {member.status === 'DEAD' && (
                 <DetailRow label="Date of Death">
                   <span className="flex items-center gap-2">
@@ -721,14 +722,15 @@ function MemberDetailPage() {
                   </span>
                 </DetailRow>
               )}
-              <DetailRow label="Alliance">
-                {member.alliance_id && member.alliance_name ? (
+              {member.alliance_id && member.alliance_name && (
+                <DetailRow label="Alliance">
                   <Link to="/alliances/$id" params={{ id: member.alliance_slug ?? member.alliance_id }} className="text-blue-400 hover:underline">
                     {member.alliance_name}
                   </Link>
-                ) : <span className="text-zinc-600">—</span>}
-              </DetailRow>
+                </DetailRow>
+              )}
               </div>
+              )}
 
               {/* Incidents section */}
               <section>
