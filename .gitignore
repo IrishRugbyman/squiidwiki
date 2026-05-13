@@ -64,3 +64,6 @@ Thumbs.db
 # Server shortcuts
 ssh-prod.sh
 ssh-tunnel.sh
+
+# Playwright
+.playwright-mcp/

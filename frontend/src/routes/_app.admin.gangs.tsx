@@ -42,6 +42,7 @@ function GangFormSheet({
   const [aliases, setAliases] = useState((initial?.aliases ?? []).join(', '))
   const [description, setDescription] = useState(initial?.description ?? '')
   const [color, setColor] = useState(initial?.color ?? '')
+  const [colorSecondary, setColorSecondary] = useState(initial?.color_secondary ?? '')
 
   const isEdit = !!initial
 
@@ -56,6 +57,7 @@ function GangFormSheet({
       aliases: aliasList.length ? aliasList : null,
       description: description.trim() || null,
       color: color.trim() || null,
+      color_secondary: colorSecondary.trim() || null,
     }
     if (isEdit && initial) {
       await update.mutateAsync({ id: initial.id, ...body })
@@ -94,29 +96,59 @@ function GangFormSheet({
             />
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="gang-color">Color</Label>
-            <div className="flex items-center gap-2">
-              <input
-                id="gang-color"
-                type="color"
-                value={color || '#7c3aed'}
-                onChange={(e) => setColor(e.target.value)}
-                className="h-9 w-12 cursor-pointer rounded border border-zinc-700 bg-zinc-900 p-0.5"
-              />
-              <Input
-                value={color}
-                onChange={(e) => setColor(e.target.value)}
-                placeholder="#7c3aed"
-                className="font-mono text-xs"
-              />
-              {color && (
-                <Button type="button" variant="ghost" size="sm" onClick={() => setColor('')}>
-                  Clear
-                </Button>
-              )}
+            <Label>Colors</Label>
+            <div className="grid grid-cols-2 gap-3">
+              {/* Primary color */}
+              <div className="space-y-1">
+                <p className="text-[11px] text-zinc-500">Primary (fill)</p>
+                <div className="flex items-center gap-1.5">
+                  <input
+                    id="gang-color"
+                    type="color"
+                    value={color || '#7c3aed'}
+                    onChange={(e) => setColor(e.target.value)}
+                    className="h-8 w-10 shrink-0 cursor-pointer rounded border border-zinc-700 bg-zinc-900 p-0.5"
+                  />
+                  <Input
+                    value={color}
+                    onChange={(e) => setColor(e.target.value)}
+                    placeholder="#7c3aed"
+                    className="font-mono text-xs"
+                  />
+                </div>
+                {color && (
+                  <button type="button" onClick={() => setColor('')} className="text-[10px] text-zinc-500 hover:text-zinc-300">
+                    Clear
+                  </button>
+                )}
+              </div>
+              {/* Secondary color */}
+              <div className="space-y-1">
+                <p className="text-[11px] text-zinc-500">Secondary (stripe)</p>
+                <div className="flex items-center gap-1.5">
+                  <input
+                    id="gang-color-secondary"
+                    type="color"
+                    value={colorSecondary || '#000000'}
+                    onChange={(e) => setColorSecondary(e.target.value)}
+                    className="h-8 w-10 shrink-0 cursor-pointer rounded border border-zinc-700 bg-zinc-900 p-0.5"
+                  />
+                  <Input
+                    value={colorSecondary}
+                    onChange={(e) => setColorSecondary(e.target.value)}
+                    placeholder="#000000"
+                    className="font-mono text-xs"
+                  />
+                </div>
+                {colorSecondary && (
+                  <button type="button" onClick={() => setColorSecondary('')} className="text-[10px] text-zinc-500 hover:text-zinc-300">
+                    Clear
+                  </button>
+                )}
+              </div>
             </div>
             <p className="text-[11px] text-zinc-500">
-              Tints sets, alliances, and the territory map for everything tagged with this gang.
+              Territory polygons show diagonal stripes of both colors. Primary also tints pins and alliance cards.
             </p>
           </div>
           <div className="space-y-1.5">
