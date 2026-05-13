@@ -8,14 +8,11 @@ Open items only. Implemented ideas are in git history.
 
 *Schema changes that unlock multiple downstream features.*
 
-- [ ] **Street-level incident location** — `incidents.lat` / `incidents.lng` in addition to municipality FK. Municipality is too coarse for cluster analysis, heatmaps, or "all shootings within 200 m of X."
 - [ ] **Set lineage / splinter relationships** — directional edge type on the existing set-relationship table (`SPLINTERED_FROM`, `MERGED_INTO`, `RENAMED_TO`). Sets are not static; the macro alliance graph misses this dimension.
 - [ ] **Conflict / beef entity** — a `Conflict` row (set_a, set_b, started_on, ended_on?, summary) that incidents can link to. Lets you tell the story rather than scroll an incident list.
 - [ ] **Court case entity** — links one or more incidents to charges, verdicts, sentence length. Many incidents map to one case (co-defendants); one incident can spawn many cases.
 - [ ] **Funeral / memorial events** — sub-type of incident. Frequent retaliation triggers and often the only public photo of a network in one place at one time.
-- [ ] **Set territory polygon** — optional GeoJSON polygon on `sets`, rendered on the map alongside the municipality choropleth. Hand-drawn or derived from K-means over incident lat/lng.
 - [ ] **Member-to-member direct links (non-family)** — generic `MemberRelationship` (e.g., "co-defendants", "childhood friends", "direct rivals") that the reactflow graph can render independent of set boundaries.
-- [x] **Gang affiliation field** — new `Gang` entity (name + aliases) referenced by sets, alliances, and members. Alliances and sets can be `None` or any single gang; members cannot be `Mixed`. Needs a gang admin page and pickers on the set/alliance/member forms. Chicago-centric seed values to start (Black Disciples, Gangster Disciples, Bloods, etc.) but the model is generic.
 
 ---
 
@@ -67,16 +64,9 @@ Open items only. Implemented ideas are in git history.
 - [ ] **Cluster markers** — when zoomed out, collapse nearby incident dots into cluster bubbles. Current "every incident as its own dot" doesn't scale past a few hundred points.
 - [ ] **Geospatial incident playback** — time-slider on the map that animates incidents over a selected date range, showing how conflicts migrate geographically over months or years.
 - [ ] **Territory mapping** — draw polygons on the map to define gang territories with overlap detection; complement or replace the set territory polygon derived from incident clustering.
-- [ ] **Address autofill** — integrate geocoding API (Nominatim / Google) to auto-populate lat/lng from a street address when creating or editing an incident.
 - [ ] **Pinned route between linked incidents** — when an incident links to a retaliation, draw the directional path between them on the map. Visual storytelling once lat/lng exists.
 - [ ] **Geofenced alerts** — notify when new incidents or members are added within a custom geographic boundary.
 - [ ] **Municipality boundary overlay** — shapefile import of official city/district borders displayed on the map.
-
-# Bug
-
-- adding a set on an alliance page should put this allaince by default in the creation form
-
----
 
 ## Admin & governance
 
@@ -121,7 +111,6 @@ Open items only. Implemented ideas are in git history.
 
 - [ ] **Quick-capture mobile form** — strip the member create form to 3 essential fields (nickname, set, status) with a "more details" expand. Field research won't happen on the full sheet.
 - [ ] **PWA / offline mode** — installable shell, cached universe data, queued mutations replayed on reconnect. The JSON API surface is clean enough for a service worker.
-- [ ] **Keyboard shortcut help overlay** — `?` opens a modal listing every shortcut. Enough have accumulated (`g`-prefix nav, `e` to edit, ⌘K) that they need a discoverability surface.
 - [ ] **Entity comparison view** — side-by-side diff of two members or incidents to spot discrepancies.
 - [ ] **Column visibility presets** — save which columns are visible in tables (e.g., "Minimal" vs. "Detailed").
 - [ ] **Customizable dashboards** — drag-and-drop widgets (recent incidents, member stats, map) per user.
@@ -139,7 +128,6 @@ Open items only. Implemented ideas are in git history.
 - [ ] **External ID mapping** — link entities to records in other databases (e.g., "FBI ID: 12345").
 - [ ] **Background job queue** — for long-running tasks (OCR, image processing, report generation) that currently block the request thread.
 - [ ] **JSON-LD export** — semantic web-compatible exports for interoperability.
-- [ ] **Health check endpoint** — `/health` verifying Postgres, Redis, and R2 connectivity for monitoring/uptime tools.
 
 ---
 
@@ -156,7 +144,7 @@ Open items only. Implemented ideas are in git history.
 ## Quick wins *(low effort, high value)*
 
 - [ ] **Entity references in text** — auto-link `@MemberName` or `#SetName` in biographies and notes to their pages.
-- [ ] **Recent edits feed** — dashboard widget showing the latest changes across the universe.
+- [ ] **Recent edits feed (global)** *(partial)* — per-set activity feed shipped. Remaining: a universe-wide dashboard widget aggregating latest changes across all entities.
 
 create a test db where you test alembic migration always before applying on prod, to verify it does not alter the data 
 

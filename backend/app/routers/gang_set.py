@@ -72,6 +72,7 @@ def _to_list_item(obj) -> SetListItem:
         is_reserved=obj.is_reserved,
         primary_photo_url=getattr(obj, "primary_photo_url", None),
         primary_photo_thumb_url=getattr(obj, "primary_photo_thumb_url", None),
+        territory_ids=getattr(obj, "_territory_ids", []),
     )
 
 
@@ -104,10 +105,16 @@ async def list_sets(
         items, _total = await crud.list_gang_sets(
             session, universe_id, offset=0, limit=1000, **filters
         )
+        csv_territory_map = await crud.batch_load_set_territory_ids(session, [o.id for o in items])
+        for o in items:
+            object.__setattr__(o, "_territory_ids", csv_territory_map.get(o.id, []))
         return to_csv_response([_to_list_item(o) for o in items], "sets.csv")
     items, total = await crud.list_gang_sets(
         session, universe_id, offset=offset, limit=limit, **filters
     )
+    territory_map = await crud.batch_load_set_territory_ids(session, [o.id for o in items])
+    for o in items:
+        object.__setattr__(o, "_territory_ids", territory_map.get(o.id, []))
     return OffsetPage(items=[_to_list_item(o) for o in items], total=total)
 
 

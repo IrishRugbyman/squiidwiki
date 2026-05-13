@@ -250,8 +250,8 @@ export default function MunicipalityMap({
   }, [])
 
   const onMouseMove = useCallback((e: MapLayerMouseEvent) => {
-    if (e.features && e.features.length > 0) {
-      const f = e.features[0]
+    const f = e.features?.find((feat) => feat.layer?.id === 'municipalities-fill')
+    if (f) {
       const id = f.properties.id as string
       setHoverState(id)
       setHovered({
@@ -275,11 +275,27 @@ export default function MunicipalityMap({
 
   const onClick = useCallback((e: MapLayerMouseEvent) => {
     if (!e.features || e.features.length === 0) return
-    const id = e.features[0].properties.id as string
-    if (onPreview) {
-      onPreview(id)
-    } else {
-      navigate({ to: '/municipalities/$id', params: { id } })
+    const f = e.features[0]
+    if (f.layer?.id === 'incident-clusters') {
+      const map = mapRef.current?.getMap()
+      const clusterId = (f.properties as { cluster_id?: number }).cluster_id
+      if (!map || clusterId == null) return
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const src = map.getSource('incident-points') as any
+      src?.getClusterExpansionZoom?.(clusterId, (err: unknown, zoom: number) => {
+        if (err) return
+        const [lng, lat] = (f.geometry as unknown as { coordinates: [number, number] }).coordinates
+        map.easeTo({ center: [lng, lat], zoom: zoom + 0.2, duration: 500 })
+      })
+      return
+    }
+    if (f.layer?.id === 'municipalities-fill') {
+      const id = f.properties.id as string
+      if (onPreview) {
+        onPreview(id)
+      } else {
+        navigate({ to: '/municipalities/$id', params: { id } })
+      }
     }
   }, [navigate, onPreview])
 
@@ -298,7 +314,7 @@ export default function MunicipalityMap({
         initialViewState={initialViewState}
         style={{ width: '100%', height: '100%' }}
         mapStyle={TILE_STYLE}
-        interactiveLayerIds={['municipalities-fill']}
+        interactiveLayerIds={['municipalities-fill', 'incident-clusters']}
         onMouseMove={onMouseMove}
         onMouseLeave={onMouseLeave}
         onClick={onClick}
@@ -334,11 +350,54 @@ export default function MunicipalityMap({
         )}
 
         {incidentGeoJSON && (
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          <Source id="incident-points" type="geojson" data={incidentGeoJSON as any}>
+          <Source
+            id="incident-points"
+            type="geojson"
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            data={incidentGeoJSON as any}
+            cluster
+            clusterMaxZoom={13}
+            clusterRadius={45}
+          >
+            <Layer
+              id="incident-clusters"
+              type="circle"
+              filter={['has', 'point_count']}
+              paint={{
+                'circle-color': [
+                  'step', ['get', 'point_count'],
+                  '#fbbf24', 10,
+                  '#fb923c', 50,
+                  '#fb7185',
+                ] as unknown as string,
+                'circle-radius': [
+                  'step', ['get', 'point_count'],
+                  14, 10,
+                  18, 50,
+                  24,
+                ] as unknown as number,
+                'circle-stroke-width': 1.5,
+                'circle-stroke-color': '#18181b',
+                'circle-opacity': 0.9,
+              }}
+            />
+            <Layer
+              id="incident-cluster-count"
+              type="symbol"
+              filter={['has', 'point_count']}
+              layout={{
+                'text-field': ['get', 'point_count_abbreviated'] as unknown as string,
+                'text-font': ['Open Sans Semibold', 'Arial Unicode MS Bold'],
+                'text-size': 12,
+              }}
+              paint={{
+                'text-color': '#18181b',
+              }}
+            />
             <Layer
               id="incident-points-layer"
               type="circle"
+              filter={['!', ['has', 'point_count']]}
               paint={{
                 'circle-radius': 6,
                 'circle-color': [
