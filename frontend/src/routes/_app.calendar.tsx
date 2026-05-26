@@ -435,7 +435,8 @@ function CalendarPage() {
       <div className={`grid gap-4 ${selectedDay && selectedEvents.length ? 'lg:grid-cols-[1fr_240px]' : 'grid-cols-1'}`}>
 
         {/* Calendar grid */}
-        <div className="overflow-hidden rounded-xl border border-zinc-800">
+        <div className="overflow-x-auto rounded-xl border border-zinc-800">
+          <div className="min-w-[320px]">
           {/* Day-of-week headers */}
           <div className="grid grid-cols-7 border-b border-zinc-800 bg-zinc-900/50">
             {WEEKDAYS.map((d) => (
@@ -533,6 +534,7 @@ function CalendarPage() {
               })}
             </div>
           ))}
+          </div>
         </div>
 
         {/* Day detail sidebar */}

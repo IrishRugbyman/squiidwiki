@@ -232,13 +232,13 @@ function AdminGangsPage() {
         }
       />
 
-      <div className="overflow-hidden rounded-lg border border-zinc-800">
+      <div className="overflow-x-auto rounded-lg border border-zinc-800">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-zinc-800 bg-zinc-900/50">
               <th className="px-4 py-2.5 text-left font-medium text-zinc-400">Name</th>
-              <th className="px-4 py-2.5 text-left font-medium text-zinc-400">Aliases</th>
-              <th className="px-4 py-2.5 text-left font-medium text-zinc-400">Description</th>
+              <th className="hidden px-4 py-2.5 text-left font-medium text-zinc-400 sm:table-cell">Aliases</th>
+              <th className="hidden px-4 py-2.5 text-left font-medium text-zinc-400 md:table-cell">Description</th>
               <th className="px-4 py-2.5 text-right font-medium text-zinc-400">Actions</th>
             </tr>
           </thead>
@@ -270,10 +270,10 @@ function AdminGangsPage() {
                       {g.name}
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-xs text-zinc-400">
+                  <td className="hidden px-4 py-3 text-xs text-zinc-400 sm:table-cell">
                     {g.aliases?.length ? g.aliases.join(', ') : '—'}
                   </td>
-                  <td className="px-4 py-3 text-xs text-zinc-500 max-w-md truncate">
+                  <td className="hidden px-4 py-3 text-xs text-zinc-500 max-w-md truncate md:table-cell">
                     {g.description || '—'}
                   </td>
                   <td className="px-4 py-3 text-right">

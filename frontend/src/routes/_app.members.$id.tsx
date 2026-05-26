@@ -684,7 +684,7 @@ function MemberDetailPage() {
 
           {/* Stats row */}
           {stats && !allStatsZero && (
-            <div className="grid grid-cols-4 gap-2">
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
               <StatPill label="Shootings" value={stats.shootings} accent="text-amber-400" />
               <StatPill label="Assists" value={stats.assists} accent="text-violet-400" />
               <StatPill label="Kills" value={stats.kills} accent="text-rose-400" />

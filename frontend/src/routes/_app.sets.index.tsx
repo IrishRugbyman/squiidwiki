@@ -1296,7 +1296,7 @@ function SetsPage() {
           }
         </div>
       ) : (
-        <div className="overflow-hidden rounded-lg border border-zinc-800">
+        <div className="overflow-x-auto rounded-lg border border-zinc-800">
           <table className="w-full text-sm">
             <thead className="sticky top-0 z-10 bg-zinc-900/90 backdrop-blur">
               <tr className="border-b border-zinc-800">
@@ -1310,9 +1310,9 @@ function SetsPage() {
                   />
                 </th>
                 <SortHeader label="Set" col="name" sort={sort} order={order} onSort={toggleSort} />
-                <th className="px-4 py-2.5 text-left text-xs font-medium text-zinc-400">Gang</th>
-                <th className="px-4 py-2.5 text-left text-xs font-medium text-zinc-400">Alliance</th>
-                <th className="px-4 py-2.5 text-left text-xs font-medium text-zinc-400">Municipality</th>
+                <th className="hidden px-4 py-2.5 text-left text-xs font-medium text-zinc-400 md:table-cell">Gang</th>
+                <th className="hidden px-4 py-2.5 text-left text-xs font-medium text-zinc-400 md:table-cell">Alliance</th>
+                <th className="hidden px-4 py-2.5 text-left text-xs font-medium text-zinc-400 md:table-cell">Municipality</th>
                 <SortHeader label="Members" col="member_count" sort={sort} order={order} onSort={toggleSort} align="right" />
                 <SortHeader label="Status" col="status" sort={sort} order={order} onSort={toggleSort} />
                 <th className="w-8" aria-label="Actions" />
@@ -1351,15 +1351,15 @@ function SetsPage() {
                             </div>
                           </Link>
                         </td>
-                        <td className={`px-4 ${padY}`}>
+                        <td className={`hidden px-4 ${padY} md:table-cell`}>
                           {set.gang_name ? <GangPill name={set.gang_name} /> : <span className="text-xs text-zinc-700">—</span>}
                         </td>
-                        <td className={`px-4 ${padY}`}>
+                        <td className={`hidden px-4 ${padY} md:table-cell`}>
                           {set.alliance_id && set.alliance_name ? (
                             <AlliancePill name={set.alliance_name} slug={null} id={set.alliance_id} />
                           ) : <span className="text-xs text-zinc-700">—</span>}
                         </td>
-                        <td className={`px-4 ${padY}`}>
+                        <td className={`hidden px-4 ${padY} md:table-cell`}>
                           {set.municipality_name ? <MunicipalityPill name={set.municipality_name} /> : <span className="text-xs text-zinc-700">—</span>}
                         </td>
                         <td className={`px-4 ${padY} text-right`}>

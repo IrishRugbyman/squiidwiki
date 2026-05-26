@@ -1122,10 +1122,10 @@ function IncidentsPage() {
       {/* Table */}
       <div
         ref={tableScrollRef}
-        className="rounded-lg border border-zinc-800"
+        className="overflow-x-auto rounded-lg border border-zinc-800"
         style={isVirtualized
           ? { maxHeight: 'calc(100vh - 22rem)', overflowY: 'auto' }
-          : { overflow: 'hidden' }}
+          : { overflowY: 'hidden' }}
       >
         <table className="w-full text-sm">
           <thead className="sticky top-0 z-10 bg-zinc-900/90 backdrop-blur">

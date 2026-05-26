@@ -325,9 +325,9 @@ function TerritoryMapPage() {
   const isLoadingShell = setsLoading
 
   return (
-    <div className="flex h-[calc(100vh-3.5rem-3rem)] gap-4">
+    <div className="flex flex-col gap-4 lg:h-[calc(100vh-3.5rem-3rem)] lg:flex-row">
       {/* Sidebar */}
-      <aside className="flex w-[280px] shrink-0 flex-col gap-3 overflow-hidden rounded-xl border border-zinc-800 bg-zinc-950 p-3">
+      <aside className="flex max-h-[40vh] w-full shrink-0 flex-col gap-3 overflow-hidden rounded-xl border border-zinc-800 bg-zinc-950 p-3 lg:max-h-none lg:w-[280px]">
         {/* View toggle */}
         <div className="inline-flex items-center gap-1 rounded-lg border border-zinc-800 bg-zinc-900/50 p-1" role="tablist">
           {(['sets', 'alliances'] as const).map((v) => (
@@ -504,7 +504,7 @@ function TerritoryMapPage() {
         </div>
 
         {/* Map */}
-        <div className="relative flex-1 overflow-hidden rounded-xl border border-zinc-800">
+        <div className="relative h-[55vh] overflow-hidden rounded-xl border border-zinc-800 lg:h-auto lg:flex-1">
           <Suspense fallback={<MapPlaceholder />}>
             <TerritoryMap
               setPolygons={setPolygons ?? []}

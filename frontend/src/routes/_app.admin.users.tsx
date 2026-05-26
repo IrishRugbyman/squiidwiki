@@ -260,14 +260,14 @@ function AdminUsersPage() {
         </Select>
       </div>
 
-      <div className="overflow-hidden rounded-lg border border-zinc-800">
+      <div className="overflow-x-auto rounded-lg border border-zinc-800">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-zinc-800 bg-zinc-900/50">
               <th className="px-4 py-2.5 text-left font-medium text-zinc-400" scope="col">Email</th>
               <th className="px-4 py-2.5 text-left font-medium text-zinc-400" scope="col">Role</th>
-              <th className="px-4 py-2.5 text-left font-medium text-zinc-400" scope="col">Joined</th>
-              <th className="px-4 py-2.5 text-left font-medium text-zinc-400" scope="col">Last login</th>
+              <th className="hidden px-4 py-2.5 text-left font-medium text-zinc-400 sm:table-cell" scope="col">Joined</th>
+              <th className="hidden px-4 py-2.5 text-left font-medium text-zinc-400 sm:table-cell" scope="col">Last login</th>
               <th className="px-4 py-2.5 text-right font-medium text-zinc-400" scope="col">Access</th>
             </tr>
           </thead>
@@ -300,12 +300,12 @@ function AdminUsersPage() {
                         </SelectContent>
                       </Select>
                     </td>
-                    <td className="px-4 py-3 text-xs text-zinc-500">
+                    <td className="hidden px-4 py-3 text-xs text-zinc-500 sm:table-cell">
                       <span title={new Date(u.created_at).toLocaleString()}>
                         {new Date(u.created_at).toLocaleDateString()}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-xs text-zinc-500">
+                    <td className="hidden px-4 py-3 text-xs text-zinc-500 sm:table-cell">
                       {u.last_login_at ? (
                         <span title={new Date(u.last_login_at).toLocaleString()}>
                           {relativeTime(u.last_login_at)}
