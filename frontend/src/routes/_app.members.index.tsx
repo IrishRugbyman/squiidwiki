@@ -169,7 +169,7 @@ function MembersPage() {
   return (
     <div className={hasSelection ? 'pb-28' : 'pb-20'}>
       {/* Header */}
-      <div className="mb-5 flex items-start justify-between">
+      <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h1 className="text-xl font-bold text-white">Members</h1>
           <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-zinc-500">

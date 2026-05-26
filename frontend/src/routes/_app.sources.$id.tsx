@@ -78,7 +78,7 @@ function SourceDetailPage() {
         <DetailHeaderSkeleton />
       ) : source ? (
         <>
-          <div className="mb-6 flex items-start justify-between gap-4">
+          <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <div>
               <div className="flex items-center gap-1.5">
                 <h1 className="text-2xl font-bold text-white">{source.title}</h1>
