@@ -118,7 +118,7 @@ function ResearchDetailPage() {
         <DetailHeaderSkeleton />
       ) : note ? (
         <>
-          <div className="mb-4 flex items-start justify-between gap-4">
+          <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <div className="min-w-0 flex-1">
               {editing ? (
                 <Input
