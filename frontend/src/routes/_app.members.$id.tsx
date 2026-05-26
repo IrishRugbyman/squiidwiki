@@ -539,7 +539,7 @@ function MemberDetailPage() {
       ) : member ? (
         <>
           {/* Hero header */}
-          <div className="flex items-start justify-between gap-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <div className="flex items-start gap-4">
               <div className="shrink-0">
                 {member.primary_photo_url ? (
