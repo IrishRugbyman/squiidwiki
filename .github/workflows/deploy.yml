@@ -1,0 +1,33 @@
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to VPS
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          script: |
+            set -e
+            cd ~/squiidwiki
+            git pull origin main
+
+            echo "=== Backend ==="
+            cd backend
+            .venv/bin/pip install -r requirements.txt -q
+            sudo systemctl restart squiidwiki
+
+            echo "=== Frontend ==="
+            cd ../frontend
+            npm ci --silent
+            npm run build
+
+            echo "=== Done ==="
+            sudo systemctl is-active squiidwiki
