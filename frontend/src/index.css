@@ -1,4 +1,9 @@
-@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap");
+@import "@fontsource/geist-sans/400.css";
+@import "@fontsource/geist-sans/500.css";
+@import "@fontsource/geist-sans/600.css";
+@import "@fontsource/geist-sans/700.css";
+@import "@fontsource/geist-mono/400.css";
+@import "@fontsource/geist-mono/500.css";
 @import "tailwindcss";
 
 @theme {
@@ -8,7 +13,7 @@
   --color-card-foreground: hsl(0 0% 98%);
   --color-popover: hsl(240 5% 8%);
   --color-popover-foreground: hsl(0 0% 98%);
-  --color-primary: hsl(258 90% 66%);
+  --color-primary: hsl(258 68% 62%);
   --color-primary-foreground: hsl(0 0% 98%);
   --color-secondary: hsl(240 3.7% 15.9%);
   --color-secondary-foreground: hsl(0 0% 98%);
@@ -20,10 +25,10 @@
   --color-destructive-foreground: hsl(0 0% 98%);
   --color-border: hsl(240 3.7% 15.9%);
   --color-input: hsl(240 3.7% 15.9%);
-  --color-ring: hsl(258 90% 66%);
+  --color-ring: hsl(258 68% 62%);
 
-  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
-  --font-mono: 'JetBrains Mono', 'Cascadia Code', monospace;
+  --font-sans: 'Geist Sans', system-ui, -apple-system, sans-serif;
+  --font-mono: 'Geist Mono', 'JetBrains Mono', monospace;
 
   --radius: 0.5rem;
   --radius-sm: calc(var(--radius) - 4px);
@@ -39,7 +44,7 @@
   --card-foreground: 0 0% 98%;
   --popover: 240 5% 8%;
   --popover-foreground: 0 0% 98%;
-  --primary: 258 90% 66%;
+  --primary: 258 68% 62%;
   --primary-foreground: 0 0% 98%;
   --secondary: 240 3.7% 15.9%;
   --secondary-foreground: 0 0% 98%;
@@ -51,7 +56,7 @@
   --destructive-foreground: 0 0% 98%;
   --border: 240 3.7% 15.9%;
   --input: 240 3.7% 15.9%;
-  --ring: 258 90% 66%;
+  --ring: 258 68% 62%;
 }
 
 * {
