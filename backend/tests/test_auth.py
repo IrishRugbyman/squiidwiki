@@ -1,11 +1,10 @@
 import uuid
 
 import pytest
-from httpx import AsyncClient
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from app.auth.crud import create_user
 from app.core.enums import GlobalRole
+from httpx import AsyncClient
+from sqlalchemy.ext.asyncio import AsyncSession
 
 pytestmark = pytest.mark.asyncio(loop_scope="session")
 
@@ -15,8 +14,20 @@ def _uid() -> str:
 
 
 async def test_register_and_login(client: AsyncClient, db_session: AsyncSession):
+    # Registration requires an admin once any user exists in the DB.
+    admin_email = f"admin_{_uid()}@example.com"
+    await create_user(db_session, admin_email, "adminpass", GlobalRole.ADMIN)
+    login = await client.post(
+        "/api/v1/auth/login", json={"email": admin_email, "password": "adminpass"}
+    )
+    admin_token = login.json()["access_token"]
+
     email = f"reg_{_uid()}@example.com"
-    resp = await client.post("/api/v1/auth/register", json={"email": email, "password": "secret123"})
+    resp = await client.post(
+        "/api/v1/auth/register",
+        json={"email": email, "password": "secret123"},
+        headers={"Authorization": f"Bearer {admin_token}"},
+    )
     assert resp.status_code == 201
     assert resp.json()["email"] == email
 
@@ -49,7 +60,18 @@ async def test_me_returns_user(client: AsyncClient, db_session: AsyncSession):
 
 
 async def test_duplicate_register(client: AsyncClient, db_session: AsyncSession):
+    admin_email = f"admin_{_uid()}@example.com"
+    await create_user(db_session, admin_email, "adminpass", GlobalRole.ADMIN)
+    login = await client.post(
+        "/api/v1/auth/login", json={"email": admin_email, "password": "adminpass"}
+    )
+    admin_token = login.json()["access_token"]
+
     email = f"dup_{_uid()}@example.com"
     await create_user(db_session, email, "pass")
-    resp = await client.post("/api/v1/auth/register", json={"email": email, "password": "pass"})
+    resp = await client.post(
+        "/api/v1/auth/register",
+        json={"email": email, "password": "pass"},
+        headers={"Authorization": f"Bearer {admin_token}"},
+    )
     assert resp.status_code == 409
