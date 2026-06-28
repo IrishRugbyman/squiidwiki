@@ -1,8 +1,7 @@
 import uuid
-from datetime import datetime
-from typing import Optional
+from datetime import UTC, datetime
 
-from sqlalchemy import Column
+from sqlalchemy import Column, DateTime
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlmodel import Field, SQLModel
 
@@ -30,12 +29,16 @@ class Alliance(SQLModel, table=True):
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
     universe_id: uuid.UUID = Field(foreign_key="universe.id", index=True)
     name: str = Field(index=True)
-    aliases: Optional[list] = Field(default=None, sa_column=Column(JSONB))
-    description: Optional[str] = None
+    aliases: list | None = Field(default=None, sa_column=Column(JSONB))
+    description: str | None = None
     status: AllianceStatus = AllianceStatus.ACTIVE
-    gang_id: Optional[uuid.UUID] = Field(default=None, foreign_key="gang.id", index=True)
-    founded_at: Optional[dict] = Field(default=None, sa_column=Column(JSONB))
-    slug: Optional[str] = Field(default=None, index=True)
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-    updated_at: datetime = Field(default_factory=datetime.utcnow)
-    created_by_id: Optional[uuid.UUID] = Field(default=None, foreign_key="users.id")
+    gang_id: uuid.UUID | None = Field(default=None, foreign_key="gang.id", index=True)
+    founded_at: dict | None = Field(default=None, sa_column=Column(JSONB))
+    slug: str | None = Field(default=None, index=True)
+    created_at: datetime = Field(
+        sa_type=DateTime(timezone=True), default_factory=lambda: datetime.now(UTC)
+    )
+    updated_at: datetime = Field(
+        sa_type=DateTime(timezone=True), default_factory=lambda: datetime.now(UTC)
+    )
+    created_by_id: uuid.UUID | None = Field(default=None, foreign_key="users.id")

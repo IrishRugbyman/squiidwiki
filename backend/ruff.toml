@@ -1,0 +1,15 @@
+extend = "~/.config/ruff/ruff.toml"
+
+[lint]
+ignore = [
+    "D",     # no docstrings in this codebase
+    "C901",  # complexity — some CRUD functions are intentionally long
+    "SIM102", # nested if statements — sometimes clearer than combined
+    "UP045",  # X | None style — Optional[X] is fine
+    "C408",   # dict() literal — sometimes needed for keyword clarity
+    "B904",   # raise from — not consistently used in existing code
+    "C414",   # list() in sorted() — pre-existing style
+]
+
+[lint.per-file-ignores]
+"**/alembic/*" = ["E402"]  # migration files import after module-level statements

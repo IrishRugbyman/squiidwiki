@@ -1,13 +1,13 @@
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select
 
+from app.auth.security import hash_password, verify_password
 from app.core.config import settings
 from app.core.enums import UniverseRole
 from app.models.auth import RefreshToken, User, UserUniverseAccess
-from app.auth.security import hash_password, verify_password
 
 
 async def get_user_by_email(session: AsyncSession, email: str) -> User | None:
@@ -29,6 +29,7 @@ async def authenticate_user(session: AsyncSession, email: str, password: str) ->
 
 async def create_user(session: AsyncSession, email: str, password: str, global_role=None) -> User:
     from app.core.enums import GlobalRole
+
     user = User(
         email=email,
         hashed_password=hash_password(password),
@@ -41,16 +42,14 @@ async def create_user(session: AsyncSession, email: str, password: str, global_r
 
 
 async def set_last_login(session: AsyncSession, user: User) -> None:
-    user.last_login_at = datetime.now(timezone.utc).replace(tzinfo=None)
+    user.last_login_at = datetime.now(UTC)
     session.add(user)
     await session.commit()
 
 
-async def create_refresh_token_record(
-    session: AsyncSession, user_id: uuid.UUID
-) -> RefreshToken:
+async def create_refresh_token_record(session: AsyncSession, user_id: uuid.UUID) -> RefreshToken:
     jti = uuid.uuid4()
-    expires_at = datetime.utcnow() + timedelta(days=settings.refresh_token_expire_days)
+    expires_at = datetime.now(UTC) + timedelta(days=settings.refresh_token_expire_days)
     token = RefreshToken(jti=jti, user_id=user_id, expires_at=expires_at)
     session.add(token)
     await session.commit()

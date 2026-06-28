@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime
+from datetime import UTC, datetime
 
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import func, select
@@ -14,9 +14,7 @@ def _fuzzy_to_dict(fd) -> dict | None:
     return fd.model_dump()
 
 
-async def create_source(
-    session: AsyncSession, data: SourceCreate, actor_id: uuid.UUID
-) -> Source:
+async def create_source(session: AsyncSession, data: SourceCreate, actor_id: uuid.UUID) -> Source:
     dump = data.model_dump()
     dump["published_at"] = _fuzzy_to_dict(data.published_at)
     obj = Source(**dump, created_by_id=actor_id)
@@ -26,9 +24,7 @@ async def create_source(
     return obj
 
 
-async def get_source(
-    session: AsyncSession, id: uuid.UUID, universe_id: uuid.UUID
-) -> Source | None:
+async def get_source(session: AsyncSession, id: uuid.UUID, universe_id: uuid.UUID) -> Source | None:
     result = await session.execute(
         select(Source).where(Source.id == id, Source.universe_id == universe_id)
     )
@@ -59,16 +55,14 @@ async def update_source(
         dump["published_at"] = _fuzzy_to_dict(data.published_at)
     for k, v in dump.items():
         setattr(obj, k, v)
-    obj.updated_at = datetime.utcnow()
+    obj.updated_at = datetime.now(UTC)
     session.add(obj)
     await session.commit()
     await session.refresh(obj)
     return obj
 
 
-async def delete_source(
-    session: AsyncSession, id: uuid.UUID, universe_id: uuid.UUID
-) -> bool:
+async def delete_source(session: AsyncSession, id: uuid.UUID, universe_id: uuid.UUID) -> bool:
     obj = await get_source(session, id, universe_id)
     if obj is None:
         return False
@@ -77,9 +71,7 @@ async def delete_source(
     return True
 
 
-async def search_sources(
-    session: AsyncSession, universe_id: uuid.UUID, q: str
-) -> list[Source]:
+async def search_sources(session: AsyncSession, universe_id: uuid.UUID, q: str) -> list[Source]:
     result = await session.execute(
         select(Source).where(
             Source.universe_id == universe_id,

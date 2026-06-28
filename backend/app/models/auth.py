@@ -1,8 +1,7 @@
 import uuid
-from datetime import datetime
-from typing import Optional
+from datetime import UTC, datetime
 
-from sqlalchemy import Column
+from sqlalchemy import Column, DateTime
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlmodel import Field, SQLModel
 
@@ -16,8 +15,10 @@ class User(SQLModel, table=True):
     email: str = Field(unique=True, index=True)
     hashed_password: str
     global_role: GlobalRole = GlobalRole.USER
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-    last_login_at: Optional[datetime] = None
+    created_at: datetime = Field(
+        sa_type=DateTime(timezone=True), default_factory=lambda: datetime.now(UTC)
+    )
+    last_login_at: datetime | None = Field(default=None, sa_type=DateTime(timezone=True))
 
 
 class UserUniverseAccess(SQLModel, table=True):
@@ -33,18 +34,22 @@ class RefreshToken(SQLModel, table=True):
 
     jti: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
     user_id: uuid.UUID = Field(foreign_key="users.id", index=True)
-    expires_at: datetime
+    expires_at: datetime = Field(sa_type=DateTime(timezone=True))
     revoked: bool = Field(default=False)
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(
+        sa_type=DateTime(timezone=True), default_factory=lambda: datetime.now(UTC)
+    )
 
 
 class AuditLog(SQLModel, table=True):
     __tablename__ = "audit_log"
 
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
-    user_id: Optional[uuid.UUID] = Field(default=None, foreign_key="users.id")
+    user_id: uuid.UUID | None = Field(default=None, foreign_key="users.id")
     entity_type: str = Field(index=True)
     entity_id: uuid.UUID = Field(index=True)
     action: AuditAction
-    diff_json: Optional[dict] = Field(default=None, sa_column=Column(JSONB))
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    diff_json: dict | None = Field(default=None, sa_column=Column(JSONB))
+    created_at: datetime = Field(
+        sa_type=DateTime(timezone=True), default_factory=lambda: datetime.now(UTC)
+    )

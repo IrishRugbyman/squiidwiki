@@ -1,9 +1,8 @@
 import uuid
-from datetime import datetime
-from typing import Optional
+from datetime import UTC, datetime
 
 import sqlalchemy as sa
-from sqlalchemy import CheckConstraint, Column, UniqueConstraint
+from sqlalchemy import CheckConstraint, Column, DateTime, UniqueConstraint
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlmodel import Field, SQLModel
 
@@ -24,6 +23,7 @@ class SetRelationship(SQLModel, table=True):
     Stored once: set_a_id < set_b_id enforced by CHECK constraint + Postgres trigger.
     Application CRUD must normalize (min, max) before insert.
     """
+
     __tablename__ = "set_relationships"
     __table_args__ = (
         CheckConstraint("set_a_id < set_b_id", name="ck_set_relationship_ordering"),
@@ -44,16 +44,18 @@ class GangSet(SQLModel, table=True):
     # list of {name?: str, initials?: str, number?: str, is_primary: bool}
     # Replaces the prior flat `aliases: list[str]`. Each entry is a triplet
     # encoding one variant of the set's name; exactly one entry is primary.
-    name_variants: Optional[list] = Field(default=None, sa_column=Column(JSONB))
-    bio: Optional[str] = None
+    name_variants: list | None = Field(default=None, sa_column=Column(JSONB))
+    bio: str | None = None
     status: SetStatus = SetStatus.ACTIVE
-    gang_id: Optional[uuid.UUID] = Field(default=None, foreign_key="gang.id", index=True)
-    alliance_id: Optional[uuid.UUID] = Field(default=None, foreign_key="alliance.id")
+    gang_id: uuid.UUID | None = Field(default=None, foreign_key="gang.id", index=True)
+    alliance_id: uuid.UUID | None = Field(default=None, foreign_key="alliance.id")
     # The single primary municipality this set is anchored to (top-level: Detroit,
     # Warren, Hamtramck, …). Nullable for legacy/uncategorised sets. Sub-district
     # claims live in the set_municipality M2M and must all be children of this id.
-    municipality_id: Optional[uuid.UUID] = Field(default=None, foreign_key="municipality.id", index=True)
-    founder_id: Optional[uuid.UUID] = Field(
+    municipality_id: uuid.UUID | None = Field(
+        default=None, foreign_key="municipality.id", index=True
+    )
+    founder_id: uuid.UUID | None = Field(
         default=None,
         sa_column=Column(
             "founder_id",
@@ -62,10 +64,14 @@ class GangSet(SQLModel, table=True):
             nullable=True,
         ),
     )
-    slug: Optional[str] = Field(default=None, index=True)
+    slug: str | None = Field(default=None, index=True)
     is_reserved: bool = Field(default=False)
-    territory_polygon: Optional[dict] = Field(default=None, sa_column=Column(JSONB))
-    territory_point: Optional[dict] = Field(default=None, sa_column=Column(JSONB))
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-    updated_at: datetime = Field(default_factory=datetime.utcnow)
-    created_by_id: Optional[uuid.UUID] = Field(default=None, foreign_key="users.id")
+    territory_polygon: dict | None = Field(default=None, sa_column=Column(JSONB))
+    territory_point: dict | None = Field(default=None, sa_column=Column(JSONB))
+    created_at: datetime = Field(
+        sa_type=DateTime(timezone=True), default_factory=lambda: datetime.now(UTC)
+    )
+    updated_at: datetime = Field(
+        sa_type=DateTime(timezone=True), default_factory=lambda: datetime.now(UTC)
+    )
+    created_by_id: uuid.UUID | None = Field(default=None, foreign_key="users.id")

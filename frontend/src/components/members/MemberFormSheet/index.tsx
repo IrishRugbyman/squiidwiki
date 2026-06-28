@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { UserPlus, X } from 'lucide-react'
 import { toast } from 'sonner'
 import { FacebookIcon, InstagramIcon, TwitterIcon } from '@/components/icons/SocialIcons'
@@ -12,10 +12,11 @@ import { Textarea } from '@/components/ui/textarea'
 import { FuzzyDateInput } from '@/components/FuzzyDateInput'
 import {
   useCreateMember, useUpdateMember,
-  useSets, useAlliances, useGangs, useMember, useAllMembers,
+  useSets, useAlliances, useGangs, useMember, useMemberSearch,
   useMdocLookup, useMdocImportPhoto,
   useCreateSet, useCreateAlliance, useCreateGang,
 } from '@/lib/queries'
+import { useDebounce } from '@/hooks/useDebounce'
 import { api } from '@/lib/api'
 import { UrlPasteBanner, useUrlPasteBanner } from '@/components/UrlPasteBanner'
 import { SourceFormSheet } from '@/routes/_app.sources.index'
@@ -144,21 +145,32 @@ function FamilyEditor({
   universeId: string
   excludeMemberId?: string
 }) {
-  const { data: allMembersData } = useAllMembers(universeId)
-  const allMembers = (allMembersData?.items ?? []).filter((m) => m.id !== excludeMemberId)
-
   const [newRole, setNewRole] = useState<FamilyRole>('brother')
   const [newMemberId, setNewMemberId] = useState('')
   const [memberSearch, setMemberSearch] = useState('')
   const [showDropdown, setShowDropdown] = useState(false)
+  // Accumulates display_name by member id as search results arrive and members are picked.
+  const [nameCache, setNameCache] = useState<Record<string, string>>({})
 
-  const filteredMembers = useMemo(() => {
-    if (!memberSearch.trim()) return allMembers.slice(0, 8)
-    const q = memberSearch.toLowerCase()
-    return allMembers.filter((m) => m.display_name.toLowerCase().includes(q)).slice(0, 8)
-  }, [allMembers, memberSearch])
+  const debouncedSearch = useDebounce(memberSearch, 300)
+  const { data: searchResults } = useMemberSearch(universeId, debouncedSearch)
 
-  const selectedMember = allMembers.find((m) => m.id === newMemberId)
+  useEffect(() => {
+    const results = searchResults ?? []
+    if (!results.length) return
+    setNameCache((prev) => {
+      const next = { ...prev }
+      for (const m of results) next[m.id] = m.display_name
+      return next
+    })
+  }, [searchResults])
+
+  const filteredMembers = useMemo(
+    () => (searchResults ?? []).filter((m) => m.id !== excludeMemberId).slice(0, 8),
+    [searchResults, excludeMemberId],
+  )
+
+  const selectedName = newMemberId ? (nameCache[newMemberId] ?? undefined) : undefined
 
   function addEntry() {
     if (!newMemberId) return
@@ -176,7 +188,7 @@ function FamilyEditor({
     onChange(entries.filter((_, i) => i !== idx))
   }
 
-  const memberName = (id: string) => allMembers.find((m) => m.id === id)?.display_name ?? id.slice(0, 8) + '…'
+  const memberName = (id: string) => nameCache[id] ?? id.slice(0, 8) + '…'
 
   const groupedEntries = FAMILY_ROLES.map((role) => ({
     role,
@@ -231,7 +243,7 @@ function FamilyEditor({
           <div className="relative flex-1">
             <Input
               className="h-9 text-xs"
-              placeholder={selectedMember ? selectedMember.display_name : 'Search member by name…'}
+              placeholder={selectedName ?? 'Search member by name…'}
               value={memberSearch}
               onChange={(e) => {
                 setMemberSearch(e.target.value)
@@ -249,6 +261,7 @@ function FamilyEditor({
                     type="button"
                     className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs hover:bg-zinc-800"
                     onMouseDown={() => {
+                      setNameCache((prev) => ({ ...prev, [m.id]: m.display_name }))
                       setNewMemberId(m.id)
                       setMemberSearch(m.display_name)
                       setShowDropdown(false)

@@ -1,6 +1,6 @@
+import logging
 import uuid
 from io import BytesIO
-from typing import Optional
 
 from PIL import Image
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -12,6 +12,7 @@ from app.core.enums import MediaKind
 from app.models.media import Media
 from app.schemas.media import MediaUpdate
 
+logger = logging.getLogger(__name__)
 
 THUMB_MAX_WIDTH = 400
 THUMB_QUALITY = 85
@@ -20,7 +21,9 @@ THUMB_QUALITY = 85
 def _ensure_exactly_one(member_id, incident_id, source_id, set_id, alliance_id) -> str:
     set_count = sum(x is not None for x in (member_id, incident_id, source_id, set_id, alliance_id))
     if set_count != 1:
-        raise ValueError("Exactly one of member_id, incident_id, source_id, set_id, alliance_id must be set")
+        raise ValueError(
+            "Exactly one of member_id, incident_id, source_id, set_id, alliance_id must be set"
+        )
     if member_id is not None:
         return "member"
     if incident_id is not None:
@@ -33,7 +36,9 @@ def _ensure_exactly_one(member_id, incident_id, source_id, set_id, alliance_id) 
 
 
 def _entity_id(media: Media) -> uuid.UUID:
-    return media.member_id or media.incident_id or media.source_id or media.set_id or media.alliance_id  # type: ignore[return-value]
+    return (
+        media.member_id or media.incident_id or media.source_id or media.set_id or media.alliance_id
+    )  # type: ignore[return-value]
 
 
 _ENTITY_COL = {
@@ -91,7 +96,7 @@ def _ext_from_content_type(content_type: str) -> str:
 
 async def _existing_primary(
     session: AsyncSession, entity_type: str, entity_id: uuid.UUID
-) -> Optional[Media]:
+) -> Media | None:
     result = await session.execute(
         select(Media).where(
             _entity_filter(entity_type, entity_id),
@@ -105,15 +110,15 @@ async def create_media(
     session: AsyncSession,
     *,
     universe_id: uuid.UUID,
-    member_id: Optional[uuid.UUID] = None,
-    incident_id: Optional[uuid.UUID] = None,
-    source_id: Optional[uuid.UUID] = None,
-    set_id: Optional[uuid.UUID] = None,
-    alliance_id: Optional[uuid.UUID] = None,
+    member_id: uuid.UUID | None = None,
+    incident_id: uuid.UUID | None = None,
+    source_id: uuid.UUID | None = None,
+    set_id: uuid.UUID | None = None,
+    alliance_id: uuid.UUID | None = None,
     file_bytes: bytes,
-    original_filename: Optional[str],
+    original_filename: str | None,
     content_type: str,
-    caption: Optional[str],
+    caption: str | None,
     actor_id: uuid.UUID,
 ) -> Media:
     entity_type = _ensure_exactly_one(member_id, incident_id, source_id, set_id, alliance_id)
@@ -159,9 +164,7 @@ async def create_media(
     return obj
 
 
-async def get_media(
-    session: AsyncSession, id: uuid.UUID, universe_id: uuid.UUID
-) -> Optional[Media]:
+async def get_media(session: AsyncSession, id: uuid.UUID, universe_id: uuid.UUID) -> Media | None:
     result = await session.execute(
         select(Media).where(Media.id == id, Media.universe_id == universe_id)
     )
@@ -172,11 +175,11 @@ async def list_media(
     session: AsyncSession,
     universe_id: uuid.UUID,
     *,
-    member_id: Optional[uuid.UUID] = None,
-    incident_id: Optional[uuid.UUID] = None,
-    source_id: Optional[uuid.UUID] = None,
-    set_id: Optional[uuid.UUID] = None,
-    alliance_id: Optional[uuid.UUID] = None,
+    member_id: uuid.UUID | None = None,
+    incident_id: uuid.UUID | None = None,
+    source_id: uuid.UUID | None = None,
+    set_id: uuid.UUID | None = None,
+    alliance_id: uuid.UUID | None = None,
 ) -> list[Media]:
     entity_type = _ensure_exactly_one(member_id, incident_id, source_id, set_id, alliance_id)
     entity_id = member_id or incident_id or source_id or set_id or alliance_id
@@ -193,7 +196,7 @@ async def update_media(
     id: uuid.UUID,
     universe_id: uuid.UUID,
     data: MediaUpdate,
-) -> Optional[Media]:
+) -> Media | None:
     obj = await get_media(session, id, universe_id)
     if obj is None:
         return None
@@ -216,9 +219,7 @@ async def update_media(
     return obj
 
 
-async def delete_media(
-    session: AsyncSession, id: uuid.UUID, universe_id: uuid.UUID
-) -> bool:
+async def delete_media(session: AsyncSession, id: uuid.UUID, universe_id: uuid.UUID) -> bool:
     obj = await get_media(session, id, universe_id)
     if obj is None:
         return False
@@ -232,12 +233,16 @@ async def delete_media(
             try:
                 await storage.delete_object(obj.r2_key)
             except Exception:
-                pass  # don't block deletion of the row on a stale R2 object
+                logger.warning(
+                    "R2 delete failed for key %s (media %s)", obj.r2_key, id, exc_info=True
+                )
         if obj.thumb_r2_key:
             try:
                 await storage.delete_object(obj.thumb_r2_key)
             except Exception:
-                pass
+                logger.warning(
+                    "R2 delete failed for key %s (media %s)", obj.thumb_r2_key, id, exc_info=True
+                )
 
     await session.delete(obj)
     await session.flush()
@@ -281,9 +286,7 @@ async def _attach_photos_generic(
         else:
             url = await storage.signed_get_url(primary.r2_key) if primary.r2_key else None
             thumb = (
-                await storage.signed_get_url(primary.thumb_r2_key)
-                if primary.thumb_r2_key
-                else url
+                await storage.signed_get_url(primary.thumb_r2_key) if primary.thumb_r2_key else url
             )
         object.__setattr__(item, "primary_photo_url", url)
         object.__setattr__(item, "primary_photo_thumb_url", thumb)
