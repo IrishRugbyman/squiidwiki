@@ -1,6 +1,6 @@
 import re
 import uuid
-from datetime import datetime
+from datetime import UTC, datetime
 
 import sqlalchemy as sa
 from sqlalchemy import text
@@ -9,10 +9,10 @@ from sqlmodel import select
 
 from app.core import storage
 from app.core.enums import MediaKind
-from app.models.member import Member, MemberAlias, MemberIncarceration, MemberSet, MemberSource
-from app.models.incident import IncidentParticipant
 from app.models.gang_set import GangSet
+from app.models.incident import IncidentParticipant
 from app.models.media import Media
+from app.models.member import Member, MemberAlias, MemberIncarceration, MemberSet, MemberSource
 from app.schemas.common import make_cursor, parse_cursor
 from app.schemas.member import (
     MemberAliasCreate,
@@ -23,7 +23,6 @@ from app.schemas.member import (
     MemberSetAffiliationOut,
     MemberUpdate,
 )
-
 
 INVERSE_REL: dict[str, str] = {
     "father": "son",
@@ -65,26 +64,58 @@ async def _sync_bilateral_family(
 ) -> None:
     old_family = old_family or {}
     new_family = new_family or {}
+
+    # Collect all (rid, rel, inv_rel, is_added) tuples across all relation types.
+    changes: list[tuple[str, str, str, bool]] = []
     for rel, inv_rel in INVERSE_REL.items():
         added = _family_ids(new_family, rel) - _family_ids(old_family, rel)
         removed = _family_ids(old_family, rel) - _family_ids(new_family, rel)
-        for rid in added | removed:
+        for rid in added:
             try:
-                related = await get_member(session, uuid.UUID(rid), universe_id)
+                uuid.UUID(rid)
             except ValueError:
                 continue
-            if not related:
+            changes.append((rid, rel, inv_rel, True))
+        for rid in removed:
+            try:
+                uuid.UUID(rid)
+            except ValueError:
                 continue
-            rel_family = dict(related.family or {})
-            inv_ids = _family_ids(rel_family, inv_rel)
-            if rid in added:
-                inv_ids.add(str(member_id))
-            else:
-                inv_ids.discard(str(member_id))
-            _set_family_ids(rel_family, inv_rel, inv_ids)
-            related.family = rel_family or None
-            related.updated_at = datetime.utcnow()
-            session.add(related)
+            changes.append((rid, rel, inv_rel, False))
+
+    if not changes:
+        return
+
+    # Batch-fetch all relatives in one query instead of one round-trip per relative.
+    unique_ids = {uuid.UUID(rid) for rid, _, _, _ in changes}
+    rows = (
+        (
+            await session.execute(
+                select(Member).where(
+                    Member.id.in_(unique_ids),
+                    Member.universe_id == universe_id,
+                )
+            )
+        )
+        .scalars()
+        .all()
+    )
+    relatives: dict[str, Member] = {str(m.id): m for m in rows}
+
+    for rid, _rel, inv_rel, is_added in changes:
+        related = relatives.get(rid)
+        if not related:
+            continue
+        rel_family = dict(related.family or {})
+        inv_ids = _family_ids(rel_family, inv_rel)
+        if is_added:
+            inv_ids.add(str(member_id))
+        else:
+            inv_ids.discard(str(member_id))
+        _set_family_ids(rel_family, inv_rel, inv_ids)
+        related.family = rel_family or None
+        related.updated_at = datetime.now(UTC)
+        session.add(related)
 
 
 def _fuzzy_to_dict(fd) -> dict | None:
@@ -143,12 +174,10 @@ async def attach_primary_photos(session: AsyncSession, members: list[Member]) ->
         else:  # R2
             url = await storage.signed_get_url(primary.r2_key) if primary.r2_key else None
             thumb = (
-                await storage.signed_get_url(primary.thumb_r2_key)
-                if primary.thumb_r2_key
-                else url
+                await storage.signed_get_url(primary.thumb_r2_key) if primary.thumb_r2_key else url
             )
-        object.__setattr__(m, 'primary_photo_url', url)
-        object.__setattr__(m, 'primary_photo_thumb_url', thumb)
+        object.__setattr__(m, "primary_photo_url", url)
+        object.__setattr__(m, "primary_photo_thumb_url", thumb)
 
 
 async def _sync_member_sources(
@@ -164,16 +193,16 @@ async def _sync_member_sources(
 async def _sync_member_sets(
     session: AsyncSession, member_id: uuid.UUID, affiliations: list[MemberSetAffiliationIn]
 ) -> None:
-    await session.execute(
-        MemberSet.__table__.delete().where(MemberSet.member_id == member_id)
-    )
+    await session.execute(MemberSet.__table__.delete().where(MemberSet.member_id == member_id))
     for aff in affiliations:
-        session.add(MemberSet(
-            member_id=member_id,
-            set_id=aff.set_id,
-            rank=aff.rank,
-            is_primary=aff.is_primary,
-        ))
+        session.add(
+            MemberSet(
+                member_id=member_id,
+                set_id=aff.set_id,
+                rank=aff.rank,
+                is_primary=aff.is_primary,
+            )
+        )
 
 
 async def load_member_affiliations(
@@ -182,13 +211,21 @@ async def load_member_affiliations(
     """Batch-load affiliations for a list of member ids. Returns a dict keyed by member_id."""
     if not member_ids:
         return {}
-    rows = (await session.execute(
-        select(MemberSet.member_id, MemberSet.set_id, MemberSet.rank, MemberSet.is_primary,
-               GangSet.name, GangSet.slug)
-        .join(GangSet, GangSet.id == MemberSet.set_id)
-        .where(MemberSet.member_id.in_(member_ids))
-        .order_by(MemberSet.is_primary.desc())
-    )).all()
+    rows = (
+        await session.execute(
+            select(
+                MemberSet.member_id,
+                MemberSet.set_id,
+                MemberSet.rank,
+                MemberSet.is_primary,
+                GangSet.name,
+                GangSet.slug,
+            )
+            .join(GangSet, GangSet.id == MemberSet.set_id)
+            .where(MemberSet.member_id.in_(member_ids))
+            .order_by(MemberSet.is_primary.desc())
+        )
+    ).all()
     result: dict[uuid.UUID, list[MemberSetAffiliationOut]] = {}
     for mid, set_id, rank, is_primary, set_name, set_slug in rows:
         result.setdefault(mid, []).append(
@@ -205,7 +242,9 @@ async def load_member_affiliations(
 
 def _attach_affiliations(obj: Member, affiliations: list[MemberSetAffiliationOut]) -> None:
     """Attach pre-loaded affiliations + primary_set_* convenience fields onto a Member instance."""
-    primary = next((a for a in affiliations if a.is_primary), affiliations[0] if affiliations else None)
+    primary = next(
+        (a for a in affiliations if a.is_primary), affiliations[0] if affiliations else None
+    )
     object.__setattr__(obj, "affiliations", affiliations)
     object.__setattr__(obj, "primary_set_id", primary.set_id if primary else None)
     object.__setattr__(obj, "primary_set_name", primary.set_name if primary else None)
@@ -213,9 +252,7 @@ def _attach_affiliations(obj: Member, affiliations: list[MemberSetAffiliationOut
     object.__setattr__(obj, "primary_set_rank", primary.rank if primary else None)
 
 
-async def create_member(
-    session: AsyncSession, data: MemberCreate, actor_id: uuid.UUID
-) -> Member:
+async def create_member(session: AsyncSession, data: MemberCreate, actor_id: uuid.UUID) -> Member:
     dump = data.model_dump(exclude={"source_ids", "affiliations", "dob", "date_of_death"})
     dump["dob"] = _fuzzy_to_dict(data.dob)
     dump["date_of_death"] = _fuzzy_to_dict(data.date_of_death)
@@ -235,9 +272,7 @@ async def create_member(
     return obj
 
 
-async def get_member(
-    session: AsyncSession, id: uuid.UUID, universe_id: uuid.UUID
-) -> Member | None:
+async def get_member(session: AsyncSession, id: uuid.UUID, universe_id: uuid.UUID) -> Member | None:
     result = await session.execute(
         select(Member).where(Member.id == id, Member.universe_id == universe_id)
     )
@@ -309,9 +344,11 @@ async def update_member(
         dump["dob"] = _fuzzy_to_dict(data.dob)
     if "date_of_death" in data.model_fields_set:
         dump["date_of_death"] = _fuzzy_to_dict(data.date_of_death)
-    dump["updated_at"] = datetime.utcnow()
+    dump["updated_at"] = datetime.now(UTC)
 
-    nickname_changed = "nickname" in data.model_fields_set or "nickname_unknown" in data.model_fields_set
+    nickname_changed = (
+        "nickname" in data.model_fields_set or "nickname_unknown" in data.model_fields_set
+    )
     legal_changed = "legal_name" in data.model_fields_set
     if nickname_changed or legal_changed:
         new_nickname = dump.get("nickname", obj.nickname)
@@ -348,16 +385,14 @@ async def bulk_update_member_status(
         obj = await get_member(session, mid, universe_id)
         if obj:
             obj.status = status
-            obj.updated_at = datetime.utcnow()
+            obj.updated_at = datetime.now(UTC)
             session.add(obj)
             count += 1
     await session.commit()
     return count
 
 
-async def delete_member(
-    session: AsyncSession, id: uuid.UUID, universe_id: uuid.UUID
-) -> bool:
+async def delete_member(session: AsyncSession, id: uuid.UUID, universe_id: uuid.UUID) -> bool:
     obj = await get_member(session, id, universe_id)
     if obj is None:
         return False
@@ -366,17 +401,11 @@ async def delete_member(
         IncidentParticipant.__table__.delete().where(IncidentParticipant.member_id == id)
     )
     # Remove set affiliations
-    await session.execute(
-        MemberSet.__table__.delete().where(MemberSet.member_id == id)
-    )
+    await session.execute(MemberSet.__table__.delete().where(MemberSet.member_id == id))
     # Remove source citations (no cascade on member_id FK)
-    await session.execute(
-        MemberSource.__table__.delete().where(MemberSource.member_id == id)
-    )
+    await session.execute(MemberSource.__table__.delete().where(MemberSource.member_id == id))
     # Remove aliases (no cascade on member_id FK)
-    await session.execute(
-        MemberAlias.__table__.delete().where(MemberAlias.member_id == id)
-    )
+    await session.execute(MemberAlias.__table__.delete().where(MemberAlias.member_id == id))
     # Remove incarceration spells (no cascade on member_id FK)
     await session.execute(
         MemberIncarceration.__table__.delete().where(MemberIncarceration.member_id == id)
@@ -392,9 +421,7 @@ async def delete_member(
     return True
 
 
-async def list_member_source_ids(
-    session: AsyncSession, member_id: uuid.UUID
-) -> list[uuid.UUID]:
+async def list_member_source_ids(session: AsyncSession, member_id: uuid.UUID) -> list[uuid.UUID]:
     result = await session.execute(
         select(MemberSource.source_id).where(MemberSource.member_id == member_id)
     )
@@ -414,26 +441,24 @@ async def list_members_by_source(
     return result.scalars().all()
 
 
-async def search_members(
-    session: AsyncSession, universe_id: uuid.UUID, q: str
-) -> list[Member]:
+async def search_members(session: AsyncSession, universe_id: uuid.UUID, q: str) -> list[Member]:
     pattern = f"%{q}%"
     alias_match = select(MemberAlias.member_id).where(MemberAlias.alias.ilike(pattern))
     result = await session.execute(
-        select(Member).where(
+        select(Member)
+        .where(
             Member.universe_id == universe_id,
             Member.nickname.ilike(pattern)
             | Member.legal_name.ilike(pattern)
             | sa.cast(Member.aliases, sa.Text).ilike(pattern)
             | Member.id.in_(alias_match),
-        ).distinct()
+        )
+        .distinct()
     )
     return result.scalars().all()
 
 
-async def list_member_aliases(
-    session: AsyncSession, member_id: uuid.UUID
-) -> list[MemberAlias]:
+async def list_member_aliases(session: AsyncSession, member_id: uuid.UUID) -> list[MemberAlias]:
     result = await session.execute(
         select(MemberAlias)
         .where(MemberAlias.member_id == member_id)
@@ -512,7 +537,9 @@ async def create_member_incarceration(
     obj = MemberIncarceration(
         member_id=member_id,
         from_date=_fuzzy_to_dict(data.from_date),
-        earliest_release_date=None if data.life_sentence else _fuzzy_to_dict(data.earliest_release_date),
+        earliest_release_date=None
+        if data.life_sentence
+        else _fuzzy_to_dict(data.earliest_release_date),
         max_discharge_date=None if data.life_sentence else _fuzzy_to_dict(data.max_discharge_date),
         life_sentence=data.life_sentence,
         facility=data.facility,
@@ -526,7 +553,10 @@ async def create_member_incarceration(
 
 
 async def update_member_incarceration(
-    session: AsyncSession, spell_id: uuid.UUID, member_id: uuid.UUID, data: MemberIncarcerationUpdate
+    session: AsyncSession,
+    spell_id: uuid.UUID,
+    member_id: uuid.UUID,
+    data: MemberIncarcerationUpdate,
 ) -> MemberIncarceration | None:
     result = await session.execute(
         select(MemberIncarceration).where(
@@ -577,16 +607,18 @@ async def list_universe_release_events(
     result = await session.execute(stmt)
     rows: list[dict] = []
     for spell, member in result.all():
-        rows.append({
-            "spell_id": spell.id,
-            "member_id": member.id,
-            "member_display_name": member.display_name,
-            "member_slug": member.slug,
-            "facility": spell.facility,
-            "earliest_release_date": spell.earliest_release_date,
-            "max_discharge_date": spell.max_discharge_date,
-            "life_sentence": spell.life_sentence,
-        })
+        rows.append(
+            {
+                "spell_id": spell.id,
+                "member_id": member.id,
+                "member_display_name": member.display_name,
+                "member_slug": member.slug,
+                "facility": spell.facility,
+                "earliest_release_date": spell.earliest_release_date,
+                "max_discharge_date": spell.max_discharge_date,
+                "life_sentence": spell.life_sentence,
+            }
+        )
     return rows
 
 

@@ -1,7 +1,7 @@
 import re
 import uuid
-from datetime import datetime
-from typing import Literal, Optional
+from datetime import UTC, datetime
+from typing import Literal
 
 import sqlalchemy as sa
 from fastapi import HTTPException, status
@@ -20,7 +20,7 @@ SortKey = Literal["name", "status", "member_count", "updated_at", "created_at"]
 SortOrder = Literal["asc", "desc"]
 NoneSentinel = Literal["none"]
 # A filter value can be a UUID, the literal "none" (match NULL), or None (no filter).
-FilterId = Optional[uuid.UUID | NoneSentinel]
+FilterId = uuid.UUID | NoneSentinel | None
 
 
 def _slugify(name: str) -> str:
@@ -72,10 +72,9 @@ async def _validate_territory_ids(
             detail="territory_ids requires a municipality_id (the parent)",
         )
     from app.models.municipality import Municipality
+
     rows = await session.execute(
-        select(Municipality.id, Municipality.parent_id).where(
-            Municipality.id.in_(territory_ids)
-        )
+        select(Municipality.id, Municipality.parent_id).where(Municipality.id.in_(territory_ids))
     )
     by_id = {r[0]: r[1] for r in rows}
     bad = [str(tid) for tid in territory_ids if by_id.get(tid) != municipality_id]
@@ -102,11 +101,15 @@ async def _sync_set_relationships(
 
     for fid in friend_ids:
         a, b = (set_id, fid) if set_id < fid else (fid, set_id)
-        session.add(SetRelationship(set_a_id=a, set_b_id=b, relationship_type=SetRelationshipType.FRIEND))
+        session.add(
+            SetRelationship(set_a_id=a, set_b_id=b, relationship_type=SetRelationshipType.FRIEND)
+        )
 
     for eid in enemy_ids:
         a, b = (set_id, eid) if set_id < eid else (eid, set_id)
-        session.add(SetRelationship(set_a_id=a, set_b_id=b, relationship_type=SetRelationshipType.ENEMY))
+        session.add(
+            SetRelationship(set_a_id=a, set_b_id=b, relationship_type=SetRelationshipType.ENEMY)
+        )
 
 
 async def _sync_alliance_auto_allies(
@@ -125,17 +128,17 @@ async def _sync_alliance_auto_allies(
             )
         )
         if existing.scalar_one_or_none() is None:
-            session.add(SetRelationship(
-                set_a_id=a, set_b_id=b, relationship_type=SetRelationshipType.FRIEND
-            ))
+            session.add(
+                SetRelationship(
+                    set_a_id=a, set_b_id=b, relationship_type=SetRelationshipType.FRIEND
+                )
+            )
 
 
 _RESERVED_NAMES = {"civilian", "police"}
 
 
-async def create_gang_set(
-    session: AsyncSession, data: SetCreate, actor_id: uuid.UUID
-) -> GangSet:
+async def create_gang_set(session: AsyncSession, data: SetCreate, actor_id: uuid.UUID) -> GangSet:
     if data.name.strip().lower() in _RESERVED_NAMES:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
@@ -188,8 +191,7 @@ def _apply_set_filters(
     if q and len(q.strip()) >= 2:
         pattern = f"%{q.strip()}%"
         stmt = stmt.where(
-            GangSet.name.ilike(pattern)
-            | sa.cast(GangSet.name_variants, sa.Text).ilike(pattern)
+            GangSet.name.ilike(pattern) | sa.cast(GangSet.name_variants, sa.Text).ilike(pattern)
         )
     if status_filter is not None:
         stmt = stmt.where(GangSet.status == status_filter)
@@ -240,7 +242,9 @@ async def list_gang_sets(
     total = (await session.execute(count_stmt)).scalar_one()
 
     member_count_sq = (
-        select(MemberSet.set_id, func.count(func.distinct(MemberSet.member_id)).label("member_count"))
+        select(
+            MemberSet.set_id, func.count(func.distinct(MemberSet.member_id)).label("member_count")
+        )
         .group_by(MemberSet.set_id)
         .subquery()
     )
@@ -313,7 +317,7 @@ async def update_gang_set(
             )
         if "bio" in dump:
             obj.bio = dump["bio"]
-            obj.updated_at = datetime.utcnow()
+            obj.updated_at = datetime.now(UTC)
             session.add(obj)
             await session.commit()
             await session.refresh(obj)
@@ -329,7 +333,7 @@ async def update_gang_set(
         sa.orm.attributes.flag_modified(obj, "territory_point")
     if "name" in dump:
         obj.slug = await _unique_slug(session, obj.universe_id, obj.name, exclude_id=obj.id)
-    obj.updated_at = datetime.utcnow()
+    obj.updated_at = datetime.now(UTC)
     session.add(obj)
     if data.territory_ids is not None:
         # Validate against the post-update municipality_id (we may be updating
@@ -347,9 +351,7 @@ async def update_gang_set(
     return obj
 
 
-async def delete_gang_set(
-    session: AsyncSession, id: uuid.UUID, universe_id: uuid.UUID
-) -> bool:
+async def delete_gang_set(session: AsyncSession, id: uuid.UUID, universe_id: uuid.UUID) -> bool:
     obj = await get_gang_set(session, id, universe_id)
     if obj is None:
         return False
@@ -427,9 +429,7 @@ async def list_set_polygons(
     ]
 
 
-async def list_set_territory_ids(
-    session: AsyncSession, set_id: uuid.UUID
-) -> list[uuid.UUID]:
+async def list_set_territory_ids(session: AsyncSession, set_id: uuid.UUID) -> list[uuid.UUID]:
     result = await session.execute(
         select(SetMunicipality.municipality_id).where(SetMunicipality.set_id == set_id)
     )
@@ -442,8 +442,9 @@ async def batch_load_set_territory_ids(
     if not set_ids:
         return {}
     result = await session.execute(
-        select(SetMunicipality.set_id, SetMunicipality.municipality_id)
-        .where(SetMunicipality.set_id.in_(set_ids))
+        select(SetMunicipality.set_id, SetMunicipality.municipality_id).where(
+            SetMunicipality.set_id.in_(set_ids)
+        )
     )
     out: dict[uuid.UUID, list[uuid.UUID]] = {sid: [] for sid in set_ids}
     for row in result.all():
@@ -480,9 +481,7 @@ async def add_set_relationship(
 ) -> None:
     a, b = (set_a_id, set_b_id) if set_a_id < set_b_id else (set_b_id, set_a_id)
     existing = await session.execute(
-        select(SetRelationship).where(
-            SetRelationship.set_a_id == a, SetRelationship.set_b_id == b
-        )
+        select(SetRelationship).where(SetRelationship.set_a_id == a, SetRelationship.set_b_id == b)
     )
     ex = existing.scalar_one_or_none()
     if ex is not None:
@@ -501,9 +500,7 @@ async def remove_set_relationship(
 ) -> bool:
     a, b = (set_a_id, set_b_id) if set_a_id < set_b_id else (set_b_id, set_a_id)
     result = await session.execute(
-        select(SetRelationship).where(
-            SetRelationship.set_a_id == a, SetRelationship.set_b_id == b
-        )
+        select(SetRelationship).where(SetRelationship.set_a_id == a, SetRelationship.set_b_id == b)
     )
     obj = result.scalar_one_or_none()
     if obj is None:
@@ -513,9 +510,7 @@ async def remove_set_relationship(
     return True
 
 
-async def list_set_territories_detail(
-    session: AsyncSession, set_id: uuid.UUID
-) -> list[dict]:
+async def list_set_territories_detail(session: AsyncSession, set_id: uuid.UUID) -> list[dict]:
     """Return [{id, name, slug}] for the set's claimed sub-municipalities."""
     rows = await session.execute(
         select(Municipality.id, Municipality.name)
@@ -531,11 +526,17 @@ async def list_set_relationships_detail(
     session: AsyncSession, set_id: uuid.UUID, universe_id: uuid.UUID
 ) -> tuple[list[dict], list[dict]]:
     """Return (allies, enemies) as lists of {id, name, slug, status, member_count}."""
-    rels = (await session.execute(
-        select(SetRelationship).where(
-            (SetRelationship.set_a_id == set_id) | (SetRelationship.set_b_id == set_id)
+    rels = (
+        (
+            await session.execute(
+                select(SetRelationship).where(
+                    (SetRelationship.set_a_id == set_id) | (SetRelationship.set_b_id == set_id)
+                )
+            )
         )
-    )).scalars().all()
+        .scalars()
+        .all()
+    )
     if not rels:
         return [], []
 
@@ -549,20 +550,31 @@ async def list_set_relationships_detail(
         .group_by(MemberSet.set_id)
         .subquery()
     )
-    rows = (await session.execute(
-        select(
-            GangSet.id, GangSet.name, GangSet.slug, GangSet.status,
-            func.coalesce(member_count_sq.c.c, 0),
+    rows = (
+        await session.execute(
+            select(
+                GangSet.id,
+                GangSet.name,
+                GangSet.slug,
+                GangSet.status,
+                func.coalesce(member_count_sq.c.c, 0),
+            )
+            .select_from(GangSet)
+            .join(member_count_sq, member_count_sq.c.set_id == GangSet.id, isouter=True)
+            .where(GangSet.id.in_(by_other.keys()), GangSet.universe_id == universe_id)
+            .order_by(GangSet.name.asc())
         )
-        .select_from(GangSet)
-        .join(member_count_sq, member_count_sq.c.set_id == GangSet.id, isouter=True)
-        .where(GangSet.id.in_(by_other.keys()), GangSet.universe_id == universe_id)
-        .order_by(GangSet.name.asc())
-    )).all()
+    ).all()
 
     allies, enemies = [], []
     for r in rows:
-        item = {"id": r[0], "name": r[1], "slug": r[2], "status": r[3], "member_count": int(r[4] or 0)}
+        item = {
+            "id": r[0],
+            "name": r[1],
+            "slug": r[2],
+            "status": r[3],
+            "member_count": int(r[4] or 0),
+        }
         if by_other[r[0]] == SetRelationshipType.FRIEND:
             allies.append(item)
         else:
@@ -604,12 +616,14 @@ async def list_set_incidents_per_year(
 
     union_sq = member_incidents.union(set_incidents).subquery()
     distinct_sq = select(union_sq.c.year, union_sq.c.inc_id).distinct().subquery()
-    rows = (await session.execute(
-        select(distinct_sq.c.year, func.count())
-        .where(distinct_sq.c.year >= since_year)
-        .group_by(distinct_sq.c.year)
-        .order_by(distinct_sq.c.year.asc())
-    )).all()
+    rows = (
+        await session.execute(
+            select(distinct_sq.c.year, func.count())
+            .where(distinct_sq.c.year >= since_year)
+            .group_by(distinct_sq.c.year)
+            .order_by(distinct_sq.c.year.asc())
+        )
+    ).all()
     return [{"year": int(r[0]), "count": int(r[1])} for r in rows]
 
 
@@ -621,26 +635,34 @@ async def list_set_activity(
     from app.models.auth import AuditLog, User
 
     # Fetch the set's current member ids in one query.
-    member_ids = (await session.execute(
-        select(MemberSet.member_id).where(MemberSet.set_id == set_id)
-    )).scalars().all()
+    member_ids = (
+        (await session.execute(select(MemberSet.member_id).where(MemberSet.set_id == set_id)))
+        .scalars()
+        .all()
+    )
 
     cond = (AuditLog.entity_type == "set") & (AuditLog.entity_id == set_id)
     if member_ids:
         cond = cond | ((AuditLog.entity_type == "member") & (AuditLog.entity_id.in_(member_ids)))
 
-    rows = (await session.execute(
-        select(
-            AuditLog.id, AuditLog.entity_type, AuditLog.entity_id, AuditLog.action,
-            AuditLog.diff_json, AuditLog.created_at,
-            User.email,
+    rows = (
+        await session.execute(
+            select(
+                AuditLog.id,
+                AuditLog.entity_type,
+                AuditLog.entity_id,
+                AuditLog.action,
+                AuditLog.diff_json,
+                AuditLog.created_at,
+                User.email,
+            )
+            .select_from(AuditLog)
+            .outerjoin(User, User.id == AuditLog.user_id)
+            .where(cond)
+            .order_by(AuditLog.created_at.desc())
+            .limit(limit)
         )
-        .select_from(AuditLog)
-        .outerjoin(User, User.id == AuditLog.user_id)
-        .where(cond)
-        .order_by(AuditLog.created_at.desc())
-        .limit(limit)
-    )).all()
+    ).all()
 
     if not rows:
         return []
@@ -656,18 +678,28 @@ async def list_set_activity(
 
     set_labels: dict[uuid.UUID, tuple[str, str | None]] = {}
     if set_ids_to_label:
-        srows = (await session.execute(
-            select(GangSet.id, GangSet.name, GangSet.slug)
-            .where(GangSet.id.in_(set_ids_to_label))
-        )).all()
+        srows = (
+            await session.execute(
+                select(GangSet.id, GangSet.name, GangSet.slug).where(
+                    GangSet.id.in_(set_ids_to_label)
+                )
+            )
+        ).all()
         set_labels = {s[0]: (s[1], s[2]) for s in srows}
 
     member_labels: dict[uuid.UUID, tuple[str, str | None]] = {}
     if member_ids_to_label:
-        mrows = (await session.execute(
-            select(Member.id, Member.nickname, Member.legal_name, Member.nickname_unknown, Member.slug)
-            .where(Member.id.in_(member_ids_to_label))
-        )).all()
+        mrows = (
+            await session.execute(
+                select(
+                    Member.id,
+                    Member.nickname,
+                    Member.legal_name,
+                    Member.nickname_unknown,
+                    Member.slug,
+                ).where(Member.id.in_(member_ids_to_label))
+            )
+        ).all()
         for m in mrows:
             mid, nick, legal, nick_unknown, mslug = m
             display = (legal or "Unknown") if (nick_unknown or not nick) else nick
@@ -681,44 +713,44 @@ async def list_set_activity(
         else:
             label, slug = member_labels.get(ent_id, (None, None))
         diff_keys = sorted(list(diff_json.keys())) if isinstance(diff_json, dict) else []
-        out.append({
-            "id": log_id,
-            "entity_type": ent_type,
-            "entity_id": ent_id,
-            "action": action.value if hasattr(action, "value") else str(action),
-            "actor_email": email,
-            "target_label": label,
-            "target_slug": slug,
-            "diff_keys": diff_keys,
-            "created_at": created_at,
-        })
+        out.append(
+            {
+                "id": log_id,
+                "entity_type": ent_type,
+                "entity_id": ent_id,
+                "action": action.value if hasattr(action, "value") else str(action),
+                "actor_email": email,
+                "target_label": label,
+                "target_slug": slug,
+                "diff_keys": diff_keys,
+                "created_at": created_at,
+            }
+        )
     return out
 
 
-async def get_set_max_updated_at(
-    session: AsyncSession, set_id: uuid.UUID
-) -> Optional[datetime]:
+async def get_set_max_updated_at(session: AsyncSession, set_id: uuid.UUID) -> datetime | None:
     """Newest updated_at across the set + its members. Used for ETag."""
-    set_ts = (await session.execute(
-        select(GangSet.updated_at).where(GangSet.id == set_id)
-    )).scalar_one_or_none()
-    member_ts = (await session.execute(
-        select(func.max(Member.updated_at))
-        .join(MemberSet, (MemberSet.member_id == Member.id) & (MemberSet.set_id == set_id))
-    )).scalar_one_or_none()
+    set_ts = (
+        await session.execute(select(GangSet.updated_at).where(GangSet.id == set_id))
+    ).scalar_one_or_none()
+    member_ts = (
+        await session.execute(
+            select(func.max(Member.updated_at)).join(
+                MemberSet, (MemberSet.member_id == Member.id) & (MemberSet.set_id == set_id)
+            )
+        )
+    ).scalar_one_or_none()
     candidates = [t for t in (set_ts, member_ts) if t is not None]
     return max(candidates) if candidates else None
 
 
-async def search_gang_sets(
-    session: AsyncSession, universe_id: uuid.UUID, q: str
-) -> list[GangSet]:
+async def search_gang_sets(session: AsyncSession, universe_id: uuid.UUID, q: str) -> list[GangSet]:
     pattern = f"%{q}%"
     result = await session.execute(
         select(GangSet).where(
             GangSet.universe_id == universe_id,
-            GangSet.name.ilike(pattern)
-            | sa.cast(GangSet.name_variants, sa.Text).ilike(pattern),
+            GangSet.name.ilike(pattern) | sa.cast(GangSet.name_variants, sa.Text).ilike(pattern),
         )
     )
     return result.scalars().all()

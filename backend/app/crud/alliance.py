@@ -1,6 +1,6 @@
 import re
 import uuid
-from datetime import datetime
+from datetime import UTC, datetime
 
 import sqlalchemy as sa
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -77,12 +77,10 @@ async def _sync_alliance_friend_relationships(
     session: AsyncSession, alliance_id: uuid.UUID
 ) -> None:
     """Create FRIEND relationships between all sets in alliance_id (pairwise)."""
-    result = await session.execute(
-        select(GangSet.id).where(GangSet.alliance_id == alliance_id)
-    )
+    result = await session.execute(select(GangSet.id).where(GangSet.alliance_id == alliance_id))
     set_ids = result.scalars().all()
     for i, a_id in enumerate(set_ids):
-        for b_id in set_ids[i + 1:]:
+        for b_id in set_ids[i + 1 :]:
             a, b = (a_id, b_id) if a_id < b_id else (b_id, a_id)
             existing = await session.execute(
                 select(SetRelationship).where(
@@ -90,9 +88,11 @@ async def _sync_alliance_friend_relationships(
                 )
             )
             if existing.scalar_one_or_none() is None:
-                session.add(SetRelationship(
-                    set_a_id=a, set_b_id=b, relationship_type=SetRelationshipType.FRIEND
-                ))
+                session.add(
+                    SetRelationship(
+                        set_a_id=a, set_b_id=b, relationship_type=SetRelationshipType.FRIEND
+                    )
+                )
 
 
 async def create_alliance(
@@ -159,7 +159,7 @@ async def update_alliance(
         dump["slug"] = await _unique_slug(session, universe_id, base, exclude_id=id)
     for k, v in dump.items():
         setattr(obj, k, v)
-    obj.updated_at = datetime.utcnow()
+    obj.updated_at = datetime.now(UTC)
     session.add(obj)
     if data.territory_ids is not None:
         await _sync_alliance_municipalities(session, obj.id, data.territory_ids)
@@ -172,17 +172,13 @@ async def update_alliance(
     return obj
 
 
-async def delete_alliance(
-    session: AsyncSession, id: uuid.UUID, universe_id: uuid.UUID
-) -> bool:
+async def delete_alliance(session: AsyncSession, id: uuid.UUID, universe_id: uuid.UUID) -> bool:
     obj = await get_alliance(session, id, universe_id)
     if obj is None:
         return False
     # Detach sets pointing to this alliance to avoid FK constraint violation
     await session.execute(
-        GangSet.__table__.update()
-        .where(GangSet.alliance_id == id)
-        .values(alliance_id=None)
+        GangSet.__table__.update().where(GangSet.alliance_id == id).values(alliance_id=None)
     )
     await session.delete(obj)
     await session.commit()
@@ -200,24 +196,17 @@ async def list_alliance_territory_ids(
     return result.scalars().all()
 
 
-async def list_alliance_set_ids(
-    session: AsyncSession, alliance_id: uuid.UUID
-) -> list[uuid.UUID]:
-    result = await session.execute(
-        select(GangSet.id).where(GangSet.alliance_id == alliance_id)
-    )
+async def list_alliance_set_ids(session: AsyncSession, alliance_id: uuid.UUID) -> list[uuid.UUID]:
+    result = await session.execute(select(GangSet.id).where(GangSet.alliance_id == alliance_id))
     return result.scalars().all()
 
 
-async def search_alliances(
-    session: AsyncSession, universe_id: uuid.UUID, q: str
-) -> list[Alliance]:
+async def search_alliances(session: AsyncSession, universe_id: uuid.UUID, q: str) -> list[Alliance]:
     pattern = f"%{q}%"
     result = await session.execute(
         select(Alliance).where(
             Alliance.universe_id == universe_id,
-            Alliance.name.ilike(pattern)
-            | sa.cast(Alliance.aliases, sa.Text).ilike(pattern),
+            Alliance.name.ilike(pattern) | sa.cast(Alliance.aliases, sa.Text).ilike(pattern),
         )
     )
     return result.scalars().all()

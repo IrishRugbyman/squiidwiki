@@ -1,8 +1,8 @@
 import uuid
-from datetime import datetime, timezone
-from typing import Annotated, Optional
+from datetime import UTC, datetime
+from typing import Annotated
 
-from fastapi import APIRouter, Body, Cookie, Depends, HTTPException, Query, Response, status
+from fastapi import APIRouter, Cookie, Depends, HTTPException, Query, Response, status
 from fastapi.security import OAuth2PasswordRequestForm
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -20,7 +20,11 @@ from app.auth.crud import (
     set_last_login,
     upsert_user_universe_access,
 )
-from app.auth.dependencies import CurrentUser, get_current_user, get_current_user_optional, require_global_role
+from app.auth.dependencies import (
+    CurrentUser,
+    get_current_user_optional,
+    require_global_role,
+)
 from app.auth.schemas import CreateUserRequest, LoginRequest, TokenResponse, UserRead
 from app.auth.security import create_access_token, create_refresh_token, decode_token, hash_password
 from app.core.config import settings
@@ -87,7 +91,9 @@ async def refresh(
     session: Annotated[AsyncSession, Depends(get_session)],
     refresh_token: Annotated[str | None, Cookie(alias=REFRESH_COOKIE)] = None,
 ) -> TokenResponse:
-    invalid_exc = HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid refresh token")
+    invalid_exc = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid refresh token"
+    )
     if not refresh_token:
         raise invalid_exc
     try:
@@ -100,7 +106,7 @@ async def refresh(
         raise invalid_exc
 
     record = await get_refresh_token(session, jti)
-    if not record or record.expires_at < datetime.utcnow():
+    if not record or record.expires_at < datetime.now(UTC):
         raise invalid_exc
 
     await revoke_refresh_token(session, jti)
@@ -140,8 +146,9 @@ async def register(
     current_user: Annotated[User | None, Depends(get_current_user_optional)],
 ) -> UserRead:
     """Create a user. Open only when the DB has no users (bootstrap); otherwise requires ADMIN."""
-    from app.auth.crud import get_user_by_email
     from sqlmodel import func as _func
+
+    from app.auth.crud import get_user_by_email
 
     user_count = (await session.execute(select(_func.count()).select_from(User))).scalar_one()
     if user_count > 0:
@@ -158,6 +165,7 @@ async def register(
 
 # ─── User Management (admin) ──────────────────────────────────────────────────
 
+
 class UserListItem(BaseModel):
     model_config = {"from_attributes": True}
 
@@ -165,7 +173,7 @@ class UserListItem(BaseModel):
     email: str
     global_role: GlobalRole
     created_at: datetime
-    last_login_at: Optional[datetime]
+    last_login_at: datetime | None
 
 
 class UpdateRoleRequest(BaseModel):
@@ -185,9 +193,11 @@ async def list_users(
     limit: int = Query(50, ge=1, le=200),
 ):
     total = (await session.execute(select(func.count()).select_from(User))).scalar_one()
-    items = (await session.execute(
-        select(User).order_by(User.created_at).offset(offset).limit(limit)
-    )).scalars().all()
+    items = (
+        (await session.execute(select(User).order_by(User.created_at).offset(offset).limit(limit)))
+        .scalars()
+        .all()
+    )
     return OffsetPage(items=items, total=total)
 
 
@@ -216,6 +226,7 @@ async def change_password(
     session: Annotated[AsyncSession, Depends(get_session)],
 ):
     from app.auth.security import verify_password
+
     if not verify_password(body.current_password, current_user.hashed_password):
         raise HTTPException(status_code=400, detail="Current password is incorrect")
     current_user.hashed_password = hash_password(body.new_password)

@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
 import { CheckCircle2, ChevronLeft, ChevronRight, Flame, Keyboard, ShieldAlert, Skull, Swords, Unlock } from 'lucide-react'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { NoUniverse } from '@/components/NoUniverse'
 import { Button } from '@/components/ui/button'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
@@ -236,113 +236,116 @@ function CalendarPage() {
   const members   = memberData?.items ?? []
   const releases  = releaseData ?? []
 
-  // Collect all events for this month
-  const allMonthEvents: CalendarEvent[] = []
+  // All three derived collections depend only on data + year/month, not selectedDay.
+  // Memoising prevents re-building on every cell click.
+  const allMonthEvents = useMemo<CalendarEvent[]>(() => {
+    const evs: CalendarEvent[] = []
 
-  for (const inc of incidents) {
-    if (!fuzzyMatchesMonth(inc.date, year, month)) continue
-    const victims = inc.victim_names ?? []
-    const label = victims.length > 0
-      ? victims.slice(0, 2).join(', ') + (victims.length > 2 ? ` +${victims.length - 2}` : '')
-      : (KIND_CONFIG[inc.type as EventKind]?.label ?? inc.type)
-    allMonthEvents.push({
-      id: inc.id,
-      kind: inc.type as EventKind,
-      label,
-      sublabel: victims.length > 0 ? (KIND_CONFIG[inc.type as EventKind]?.label ?? inc.type) : undefined,
-      href: `/incidents/${inc.id}`,
-      date: inc.date,
-      verified: inc.verified,
-    })
-  }
-
-  for (const m of members) {
-    if (m.status !== 'DEAD' || !m.date_of_death) continue
-    const dod = m.date_of_death
-
-    // Original death event — only in the actual year of death.
-    if (fuzzyMatchesMonth(dod, year, month)) {
-      allMonthEvents.push({
-        id: m.id + '-death',
-        kind: 'DEATH',
-        label: m.display_name,
-        sublabel: 'Died',
-        href: `/members/${m.slug ?? m.id}`,
-        date: dod,
+    for (const inc of incidents) {
+      if (!fuzzyMatchesMonth(inc.date, year, month)) continue
+      const victims = inc.victim_names ?? []
+      const label = victims.length > 0
+        ? victims.slice(0, 2).join(', ') + (victims.length > 2 ? ` +${victims.length - 2}` : '')
+        : (KIND_CONFIG[inc.type as EventKind]?.label ?? inc.type)
+      evs.push({
+        id: inc.id,
+        kind: inc.type as EventKind,
+        label,
+        sublabel: victims.length > 0 ? (KIND_CONFIG[inc.type as EventKind]?.label ?? inc.type) : undefined,
+        href: `/incidents/${inc.id}`,
+        date: inc.date,
+        verified: inc.verified,
       })
     }
 
-    // Memorial / "XXX Day" — recurs every year after the death.
-    // Needs full Y-M-D precision so we can pin it to a specific cell.
-    if (
-      dod.year && dod.month && dod.day &&
-      dod.month === month &&
-      year > dod.year
-    ) {
-      const years = year - dod.year
-      allMonthEvents.push({
-        id: `${m.id}-memorial-${year}`,
-        kind: 'MEMORIAL',
-        label: `${m.display_name} Day`,
-        sublabel: `Memorial · ${years} year${years === 1 ? '' : 's'}`,
-        href: `/members/${m.slug ?? m.id}`,
-        date: { year, month, day: dod.day, precision: 'YMD', approx: false },
-      })
+    for (const m of members) {
+      if (m.status !== 'DEAD' || !m.date_of_death) continue
+      const dod = m.date_of_death
+
+      if (fuzzyMatchesMonth(dod, year, month)) {
+        evs.push({
+          id: m.id + '-death',
+          kind: 'DEATH',
+          label: m.display_name,
+          sublabel: 'Died',
+          href: `/members/${m.slug ?? m.id}`,
+          date: dod,
+        })
+      }
+
+      // Memorial recurs every year after the actual death year.
+      if (dod.year && dod.month && dod.day && dod.month === month && year > dod.year) {
+        const years = year - dod.year
+        evs.push({
+          id: `${m.id}-memorial-${year}`,
+          kind: 'MEMORIAL',
+          label: `${m.display_name} Day`,
+          sublabel: `Memorial · ${years} year${years === 1 ? '' : 's'}`,
+          href: `/members/${m.slug ?? m.id}`,
+          date: { year, month, day: dod.day, precision: 'YMD', approx: false },
+        })
+      }
     }
-  }
 
-  for (const r of releases) {
-    if (r.life_sentence) continue
-    const memberHref = `/members/${r.member_slug ?? r.member_id}`
-    const facilityNote = r.facility ? ` · ${r.facility}` : ''
-    if (r.earliest_release_date && fuzzyMatchesMonth(r.earliest_release_date, year, month)) {
-      allMonthEvents.push({
-        id: `${r.spell_id}-earliest`,
-        kind: 'RELEASE',
-        label: r.member_display_name,
-        sublabel: `Earliest release${facilityNote}`,
-        href: memberHref,
-        date: r.earliest_release_date,
-      })
+    for (const r of releases) {
+      if (r.life_sentence) continue
+      const memberHref = `/members/${r.member_slug ?? r.member_id}`
+      const facilityNote = r.facility ? ` · ${r.facility}` : ''
+      if (r.earliest_release_date && fuzzyMatchesMonth(r.earliest_release_date, year, month)) {
+        evs.push({
+          id: `${r.spell_id}-earliest`,
+          kind: 'RELEASE',
+          label: r.member_display_name,
+          sublabel: `Earliest release${facilityNote}`,
+          href: memberHref,
+          date: r.earliest_release_date,
+        })
+      }
+      if (r.max_discharge_date && fuzzyMatchesMonth(r.max_discharge_date, year, month)) {
+        evs.push({
+          id: `${r.spell_id}-max`,
+          kind: 'RELEASE',
+          label: r.member_display_name,
+          sublabel: `Max discharge${facilityNote}`,
+          href: memberHref,
+          date: r.max_discharge_date,
+        })
+      }
     }
-    if (r.max_discharge_date && fuzzyMatchesMonth(r.max_discharge_date, year, month)) {
-      allMonthEvents.push({
-        id: `${r.spell_id}-max`,
-        kind: 'RELEASE',
-        label: r.member_display_name,
-        sublabel: `Max discharge${facilityNote}`,
-        href: memberHref,
-        date: r.max_discharge_date,
-      })
+
+    return evs
+  }, [incidents, members, releases, year, month])
+
+  // day → events (only YMD-precise events land in a cell)
+  const dayEvents = useMemo<Record<number, CalendarEvent[]>>(() => {
+    const map: Record<number, CalendarEvent[]> = {}
+    for (const ev of allMonthEvents) {
+      const d = fuzzyToDay(ev.date)
+      if (!d || d.year !== year || d.month !== month) continue
+      ;(map[d.day] ??= []).push(ev)
     }
-  }
+    return map
+  }, [allMonthEvents, year, month])
 
-  // day → events (only precise-day events go on the grid)
-  const dayEvents: Record<number, CalendarEvent[]> = {}
-  for (const ev of allMonthEvents) {
-    const d = fuzzyToDay(ev.date)
-    if (!d || d.year !== year || d.month !== month) continue
-    dayEvents[d.day] ??= []
-    dayEvents[d.day].push(ev)
-  }
+  // Month-level events: year+month precision but no day
+  const monthLevelEvents = useMemo(
+    () => allMonthEvents.filter((ev) => ev.date && ev.date.year === year && ev.date.month === month && !ev.date.day),
+    [allMonthEvents, year, month],
+  )
 
-  // Month-level events (year+month precision, no day)
-  const monthLevelEvents = allMonthEvents.filter((ev) => {
-    const v = ev.date
-    return v && v.year === year && v.month === month && !v.day
-  })
-
-  // Calendar grid
-  const firstDay   = new Date(year, month - 1, 1).getDay()
-  const daysInMonth = new Date(year, month, 0).getDate()
-
-  const cells: (number | null)[] = [
-    ...Array.from({ length: firstDay }, () => null),
-    ...Array.from({ length: daysInMonth }, (_, i) => i + 1),
-  ]
-  while (cells.length % 7 !== 0) cells.push(null)
-  const weeks: (number | null)[][] = []
-  for (let i = 0; i < cells.length; i += 7) weeks.push(cells.slice(i, i + 7))
+  // Calendar grid shape — only depends on year/month
+  const weeks = useMemo<(number | null)[][]>(() => {
+    const firstDay   = new Date(year, month - 1, 1).getDay()
+    const daysInMonth = new Date(year, month, 0).getDate()
+    const cells: (number | null)[] = [
+      ...Array.from({ length: firstDay }, () => null),
+      ...Array.from({ length: daysInMonth }, (_, i) => i + 1),
+    ]
+    while (cells.length % 7 !== 0) cells.push(null)
+    const grid: (number | null)[][] = []
+    for (let i = 0; i < cells.length; i += 7) grid.push(cells.slice(i, i + 7))
+    return grid
+  }, [year, month])
 
   const isToday = (d: number) =>
     d === today.getDate() && month === today.getMonth() + 1 && year === today.getFullYear()

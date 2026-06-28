@@ -1,16 +1,25 @@
 import uuid
-from datetime import datetime
+from datetime import UTC, datetime
 
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select
 
 from app.core.enums import MemberStatus, ParticipantOutcome
-from app.models.incident import Incident, IncidentParticipant, IncidentSetParticipant, IncidentSource
-from app.models.member import Member, MemberSet, MemberSource
-from app.models.gang_set import GangSet
+from app.models.incident import (
+    Incident,
+    IncidentParticipant,
+    IncidentSetParticipant,
+    IncidentSource,
+)
+from app.models.member import Member, MemberSet
 from app.schemas.common import make_cursor, parse_cursor
-from app.schemas.incident import IncidentCreate, IncidentUpdate, ParticipantCreate, SetParticipantCreate
+from app.schemas.incident import (
+    IncidentCreate,
+    IncidentUpdate,
+    ParticipantCreate,
+    SetParticipantCreate,
+)
 
 
 def _fuzzy_to_dict(fd) -> dict | None:
@@ -23,9 +32,7 @@ async def _sync_participants(
     session: AsyncSession, incident_id: uuid.UUID, participants: list[ParticipantCreate]
 ) -> None:
     await session.execute(
-        IncidentParticipant.__table__.delete().where(
-            IncidentParticipant.incident_id == incident_id
-        )
+        IncidentParticipant.__table__.delete().where(IncidentParticipant.incident_id == incident_id)
     )
     for p in participants:
         session.add(
@@ -73,7 +80,9 @@ async def _unsync_killed_participants(
     session: AsyncSession, incident: Incident, new_participants: list[ParticipantCreate]
 ) -> None:
     """On incident update, clear death linkage for members who are no longer KILLED."""
-    new_killed_ids = {p.member_id for p in new_participants if p.outcome == ParticipantOutcome.KILLED}
+    new_killed_ids = {
+        p.member_id for p in new_participants if p.outcome == ParticipantOutcome.KILLED
+    }
 
     result = await session.execute(
         select(Member).where(
@@ -83,7 +92,7 @@ async def _unsync_killed_participants(
     )
     prev_linked = result.scalars().all()
 
-    now = datetime.utcnow()
+    now = datetime.now(UTC)
     for m in prev_linked:
         if m.id not in new_killed_ids:
             m.death_incident_id = None
@@ -112,16 +121,14 @@ async def _sync_killed_participants(
         return
 
     result = await session.execute(
-        select(Member).where(
-            Member.id.in_(killed_ids), Member.universe_id == incident.universe_id
-        )
+        select(Member).where(Member.id.in_(killed_ids), Member.universe_id == incident.universe_id)
     )
     members = result.scalars().all()
 
     incident_date = incident.date
     incident_has_date = bool(incident_date and incident_date.get("year"))
 
-    now = datetime.utcnow()
+    now = datetime.now(UTC)
     for m in members:
         if m.status != MemberStatus.DEAD:
             m.status = MemberStatus.DEAD
@@ -142,6 +149,7 @@ async def create_incident(
         sd = fd.to_sortable_date()
         if sd is not None:
             from datetime import datetime
+
             sortable = datetime(sd.year, sd.month, sd.day)
 
     dump = data.model_dump(exclude={"date", "participants", "set_participants", "source_ids"})
@@ -202,14 +210,15 @@ async def update_incident(
     obj = await get_incident(session, id, universe_id)
     if obj is None:
         return None
-    dump = data.model_dump(exclude_unset=True, exclude={"date", "participants", "set_participants", "source_ids"})
+    dump = data.model_dump(
+        exclude_unset=True, exclude={"date", "participants", "set_participants", "source_ids"}
+    )
     if "date" in data.model_fields_set:
         fd = data.date
         dump["date"] = _fuzzy_to_dict(fd)
         if fd is not None:
             sd = fd.to_sortable_date()
             if sd is not None:
-                from datetime import datetime
                 dump["sortable_date"] = datetime(sd.year, sd.month, sd.day)
             else:
                 dump["sortable_date"] = None
@@ -217,8 +226,7 @@ async def update_incident(
             dump["sortable_date"] = None
     for k, v in dump.items():
         setattr(obj, k, v)
-    from datetime import datetime as _dt
-    obj.updated_at = _dt.utcnow()
+    obj.updated_at = datetime.now(UTC)
     session.add(obj)
     if data.participants is not None:
         await _unsync_killed_participants(session, obj, data.participants)
@@ -233,9 +241,7 @@ async def update_incident(
     return obj
 
 
-async def delete_incident(
-    session: AsyncSession, id: uuid.UUID, universe_id: uuid.UUID
-) -> bool:
+async def delete_incident(session: AsyncSession, id: uuid.UUID, universe_id: uuid.UUID) -> bool:
     obj = await get_incident(session, id, universe_id)
     if obj is None:
         return False
@@ -360,9 +366,7 @@ async def list_incident_source_ids(
     return result.scalars().all()
 
 
-async def search_incidents(
-    session: AsyncSession, universe_id: uuid.UUID, q: str
-) -> list[Incident]:
+async def search_incidents(session: AsyncSession, universe_id: uuid.UUID, q: str) -> list[Incident]:
     result = await session.execute(
         select(Incident).where(
             Incident.universe_id == universe_id,

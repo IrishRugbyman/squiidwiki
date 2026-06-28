@@ -1,13 +1,13 @@
 import re
 import uuid
-from datetime import datetime
+from datetime import UTC, datetime
 
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import func, select
 
+from app.models.alliance import Alliance
 from app.models.gang import Gang
 from app.models.gang_set import GangSet
-from app.models.alliance import Alliance
 from app.models.member import Member
 from app.schemas.gang import GangCreate, GangUpdate
 
@@ -93,7 +93,7 @@ async def update_gang(
         dump["slug"] = await _unique_slug(session, universe_id, base, exclude_id=id)
     for k, v in dump.items():
         setattr(obj, k, v)
-    obj.updated_at = datetime.utcnow()
+    obj.updated_at = datetime.now(UTC)
     session.add(obj)
     await session.commit()
     await session.refresh(obj)
@@ -120,16 +120,18 @@ async def delete_gang(session: AsyncSession, id: uuid.UUID, universe_id: uuid.UU
     return True
 
 
-async def gang_usage_counts(
-    session: AsyncSession, id: uuid.UUID
-) -> dict[str, int]:
-    sets_count = (await session.execute(
-        select(func.count()).select_from(GangSet).where(GangSet.gang_id == id)
-    )).scalar_one()
-    alliances_count = (await session.execute(
-        select(func.count()).select_from(Alliance).where(Alliance.gang_id == id)
-    )).scalar_one()
-    members_count = (await session.execute(
-        select(func.count()).select_from(Member).where(Member.gang_id == id)
-    )).scalar_one()
+async def gang_usage_counts(session: AsyncSession, id: uuid.UUID) -> dict[str, int]:
+    sets_count = (
+        await session.execute(
+            select(func.count()).select_from(GangSet).where(GangSet.gang_id == id)
+        )
+    ).scalar_one()
+    alliances_count = (
+        await session.execute(
+            select(func.count()).select_from(Alliance).where(Alliance.gang_id == id)
+        )
+    ).scalar_one()
+    members_count = (
+        await session.execute(select(func.count()).select_from(Member).where(Member.gang_id == id))
+    ).scalar_one()
     return {"sets": sets_count, "alliances": alliances_count, "members": members_count}
