@@ -123,7 +123,7 @@ function NavLink({ to, icon: Icon, label, exact, onClick }: { to: string; icon: 
       to={to}
       activeOptions={exact ? { exact: true } : undefined}
       className="flex items-center gap-2.5 rounded-md px-2.5 py-2 text-sm text-zinc-400 transition-colors hover:bg-zinc-800 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/50 lg:py-1.5"
-      activeProps={{ className: 'bg-zinc-800 !text-white' }}
+      activeProps={{ className: 'bg-zinc-800/70 !text-white shadow-[inset_2px_0_0_hsl(258_68%_62%)]' }}
       onClick={onClick}
     >
       <Icon className="h-4 w-4 shrink-0" />

@@ -48,13 +48,16 @@ function LoginPage() {
 
   return (
     <div className="relative flex min-h-screen items-center justify-center bg-zinc-950 p-4">
-      {/* Subtle background glow */}
+      {/* Subtle grid texture */}
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-0 overflow-hidden"
-      >
-        <div className="absolute left-1/2 top-0 h-[400px] w-[600px] -translate-x-1/2 rounded-full bg-violet-600/10 blur-3xl" />
-      </div>
+        className="pointer-events-none absolute inset-0"
+        style={{
+          backgroundImage:
+            'linear-gradient(hsl(240 3.7% 13% / 0.6) 1px, transparent 1px), linear-gradient(90deg, hsl(240 3.7% 13% / 0.6) 1px, transparent 1px)',
+          backgroundSize: '48px 48px',
+        }}
+      />
 
       <div className="relative w-full max-w-sm">
         <div className="mb-8 flex flex-col items-center text-center">

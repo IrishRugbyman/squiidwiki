@@ -75,7 +75,7 @@ function Card({ title, hint, action, children }: { title: string; hint?: string;
     <div className="rounded-xl border border-zinc-800 bg-zinc-900/30">
       <div className="flex items-center justify-between border-b border-zinc-800 px-3 py-1.5">
         <div className="flex items-baseline gap-2">
-          <h2 className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500">{title}</h2>
+          <h2 className="text-xs font-semibold text-zinc-400">{title}</h2>
           {hint && <span className="text-[10px] text-zinc-600">{hint}</span>}
         </div>
         {action}
@@ -117,7 +117,7 @@ function Dashboard() {
             <h1 className="text-lg font-bold text-white leading-none">{universe.name}</h1>
             <span className="font-mono text-[11px] text-zinc-600 leading-none">/{universe.slug}</span>
           </div>
-          <Link to="/incidents" className="inline-flex items-center gap-1.5 rounded-md bg-violet-600 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-violet-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400">
+          <Link to="/incidents" className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50">
             <AlertTriangle className="h-3 w-3" />
             Record Incident
           </Link>
