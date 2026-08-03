@@ -113,12 +113,12 @@ function QueueDropzone({ files, onChange }: { files: File[]; onChange: (files: F
             </>
           ) : (
             <>
-              <ImagePlus className="h-6 w-6 text-zinc-500" />
+              <ImagePlus className="h-6 w-6 text-zinc-400" />
               <span>Drop, click, or paste an image</span>
-              <span className="text-xs text-zinc-600">
+              <span className="text-xs text-zinc-400">
                 {previews.length > 0
-                  ? `${previews.length} queued — first becomes primary on save`
-                  : 'JPEG / PNG / WebP / GIF — up to 10 MB'}
+                  ? `${previews.length} queued, first becomes primary on save`
+                  : 'JPEG / PNG / WebP / GIF, up to 10 MB'}
               </span>
             </>
           )}
@@ -177,7 +177,7 @@ export async function flushPhotoQueue(opts: {
     toast.success(uploaded === 1 ? 'Uploaded photo' : `Uploaded ${uploaded} photos`)
   }
   if (failed > 0) {
-    toast.error(`${failed} photo${failed === 1 ? '' : 's'} failed to upload — retry from the Photos tab`)
+    toast.error(`${failed} photo${failed === 1 ? '' : 's'} failed to upload. Retry from the Photos tab`)
   }
   return { uploaded, failed }
 }

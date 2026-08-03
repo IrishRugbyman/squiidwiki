@@ -134,7 +134,7 @@ function ResearchDetailPage() {
                   <CopyButton value={window.location.href} label="Copy link to this note" className="opacity-60 hover:opacity-100" />
                 </div>
               )}
-              <p className="mt-1 text-xs text-zinc-600">
+              <p className="mt-1 text-xs text-zinc-400">
                 Updated {new Date(note.updated_at).toLocaleString()}
               </p>
             </div>
@@ -167,7 +167,7 @@ function ResearchDetailPage() {
             <Textarea
               value={content}
               onChange={(e) => setContent(e.target.value)}
-              placeholder="Type or paste anything — text, links, observations… URLs become clickable when you save."
+              placeholder="Type or paste anything: text, links, observations… URLs become clickable when you save."
               className="min-h-[60vh] font-mono text-sm leading-relaxed"
             />
           ) : note.content.trim() ? (
@@ -176,7 +176,7 @@ function ResearchDetailPage() {
             </div>
           ) : (
             <div className="rounded-lg border border-dashed border-zinc-800 p-8 text-center">
-              <p className="text-sm text-zinc-500">This note is empty.</p>
+              <p className="text-sm text-zinc-400">This note is empty.</p>
               <Button size="sm" variant="outline" className="mt-3" onClick={() => setEditing(true)}>
                 <Pencil className="mr-1.5 h-3.5 w-3.5" />Start writing
               </Button>

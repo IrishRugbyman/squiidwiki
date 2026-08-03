@@ -61,7 +61,7 @@ function ResearchIndexPage() {
         <div className="flex items-center gap-2.5">
           <NotebookText className="h-5 w-5 text-violet-500" />
           <h1 className="text-xl font-bold text-white">Research</h1>
-          <span className="text-xs text-zinc-600">scratchpad for {universe.name}</span>
+          <span className="text-xs text-zinc-400">scratchpad for {universe.name}</span>
         </div>
         <Button size="sm" onClick={handleNew} disabled={create.isPending}>
           <Plus className="mr-1.5 h-3.5 w-3.5" />
@@ -71,7 +71,7 @@ function ResearchIndexPage() {
 
       <div className="mb-3 flex flex-wrap items-center gap-2">
         <div className="relative max-w-sm flex-1 min-w-[200px]">
-          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" />
           <Input
             className="pl-8 h-8 text-sm"
             placeholder="Search notes…"
@@ -114,12 +114,12 @@ function ResearchIndexPage() {
                 <h3 className="font-medium text-white group-hover:text-violet-400 transition-colors truncate">
                   {n.title || 'Untitled'}
                 </h3>
-                <span className="shrink-0 text-[11px] text-zinc-600 tabular-nums">
+                <span className="shrink-0 text-[11px] text-zinc-400 tabular-nums">
                   {formatDate(n.updated_at)}
                 </span>
               </div>
               {n.content && (
-                <p className="mt-1 text-sm text-zinc-500 line-clamp-2">
+                <p className="mt-1 text-sm text-zinc-400 line-clamp-2">
                   {preview(n.content)}
                 </p>
               )}

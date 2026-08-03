@@ -92,7 +92,7 @@ export function AttachMembersToSourceDialog({
           {search.length >= 2 && results && (
             <div className="max-h-48 overflow-y-auto rounded border border-zinc-800 bg-zinc-950">
               {results.length === 0 ? (
-                <div className="px-3 py-2 text-sm text-zinc-500">No matching members.</div>
+                <div className="px-3 py-2 text-sm text-zinc-400">No matching members.</div>
               ) : (
                 results.map((m) => {
                   const already = attachedIds.has(m.id) || pendingIds.has(m.id)
@@ -107,7 +107,7 @@ export function AttachMembersToSourceDialog({
                       <span className="truncate text-zinc-300">{m.display_name}</span>
                       <div className="flex items-center gap-2 shrink-0">
                         <MemberStatusBadge status={m.status} />
-                        {already && <span className="text-xs text-zinc-500">already cited</span>}
+                        {already && <span className="text-xs text-zinc-400">already cited</span>}
                       </div>
                     </button>
                   )
@@ -119,7 +119,7 @@ export function AttachMembersToSourceDialog({
 
         {pending.length > 0 && (
           <div className="space-y-1.5 pt-2">
-            <div className="text-xs font-medium text-zinc-500 uppercase tracking-wider">
+            <div className="text-xs font-medium text-zinc-400 uppercase tracking-wider">
               Staged ({pending.length})
             </div>
             {pending.map((m) => (
@@ -133,7 +133,7 @@ export function AttachMembersToSourceDialog({
                   <button
                     type="button"
                     onClick={() => removePending(m.id)}
-                    className="text-zinc-600 hover:text-red-400 transition-colors text-xs"
+                    className="text-zinc-400 hover:text-red-400 transition-colors text-xs"
                   >
                     ✕
                   </button>

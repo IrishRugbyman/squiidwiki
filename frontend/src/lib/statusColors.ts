@@ -5,6 +5,7 @@ import type {
   SourceReliability,
   IncidentType,
 } from './types'
+import { BRAND } from './brand'
 
 export const MEMBER_STATUS_HEX: Record<MemberStatus, string> = {
   FREE: '#10b981',
@@ -45,7 +46,7 @@ export const RELIABILITY_HEX: Record<SourceReliability, string> = {
 export const INCIDENT_TYPE_HEX: Record<IncidentType, string> = {
   SHOOTING: '#f97316',
   MURDER: '#ef4444',
-  FIGHT: '#8b5cf6',
+  FIGHT: BRAND.base,
 }
 
 export const RELIABILITY_DESCRIPTION: Record<SourceReliability, string> = {

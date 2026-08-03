@@ -9,6 +9,7 @@ import unionFeatures from '@turf/union'
 import intersect from '@turf/intersect'
 import { featureCollection, feature } from '@turf/helpers'
 import type { Feature, Polygon, MultiPolygon } from 'geojson'
+import { BRAND } from '@/lib/brand'
 import type { MunicipalityGeoJSON, SetTerritoryPolygon, UUID } from '@/lib/types'
 import type { IncidentPoint } from './MunicipalityMap'
 
@@ -76,7 +77,7 @@ function hashHue(id: string): number {
 }
 
 function statusColor(status: 'ACTIVE' | 'EXTINCT'): string {
-  return status === 'ACTIVE' ? '#7c3aed' : '#52525b'
+  return status === 'ACTIVE' ? BRAND.strong : '#52525b'
 }
 
 // Pick the per-set primary fill color: gang nation color if set, else status fallback.
@@ -671,7 +672,7 @@ export default function TerritoryMap({
                 'circle-color': [
                   'match', ['get', 'incidentType'],
                   'MURDER', '#fb7185',
-                  'FIGHT', '#a78bfa',
+                  'FIGHT', BRAND.light,
                   '#fbbf24',
                 ] as unknown as string,
                 'circle-stroke-width': 1.25,
@@ -723,7 +724,7 @@ export default function TerritoryMap({
                 'icon-allow-overlap': true,
               }}
               paint={{
-                'icon-color': pendingPointColor ?? '#7c3aed',
+                'icon-color': pendingPointColor ?? BRAND.strong,
                 'icon-opacity': 0.75,
                 'icon-halo-color': '#ffffff',
                 'icon-halo-width': 1.5,
@@ -740,7 +741,7 @@ export default function TerritoryMap({
               id="address-line-layer"
               type="line"
               paint={{
-                'line-color': '#7c3aed',
+                'line-color': BRAND.strong,
                 'line-width': 2,
                 'line-dasharray': [2, 2],
                 'line-opacity': 0.9,
@@ -756,7 +757,7 @@ export default function TerritoryMap({
               type="circle"
               paint={{
                 'circle-radius': 10,
-                'circle-color': '#7c3aed',
+                'circle-color': BRAND.strong,
                 'circle-stroke-width': 2,
                 'circle-stroke-color': '#ffffff',
               }}

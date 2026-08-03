@@ -208,7 +208,7 @@ export function MemberFamilyGraph({ centerMember, universeId, allMembers }: Memb
   )
 
   if (hop1.length === 0) {
-    return <p className="py-6 text-sm text-zinc-600">No family links to graph.</p>
+    return <p className="py-6 text-sm text-zinc-400">No family links to graph.</p>
   }
 
   const hop2Loading = hop1Queries.some((q) => q.isLoading)
@@ -231,7 +231,7 @@ export function MemberFamilyGraph({ centerMember, universeId, allMembers }: Memb
         <Background color="#27272a" gap={20} size={1} />
         <Controls className="!bg-zinc-900 !border-zinc-700 [&>button]:!bg-zinc-900 [&>button]:!border-zinc-700 [&>button]:!text-zinc-400 [&>button:hover]:!bg-zinc-800" />
       </ReactFlow>
-      <div className="pointer-events-none absolute bottom-2 right-2 rounded-md border border-zinc-800 bg-zinc-950/90 px-2 py-1 text-[10px] text-zinc-500">
+      <div className="pointer-events-none absolute bottom-2 right-2 rounded-md border border-zinc-800 bg-zinc-950/90 px-2 py-1 text-[10px] text-zinc-400">
         {hop2Loading ? 'Loading hop 2…' : 'Solid = direct · Dashed = grand-relation'}
       </div>
     </div>

@@ -104,7 +104,7 @@ export function AddFamilyRelativeDialog({
                 const disabled = r === 'father' && hasFather
                 return (
                   <SelectItem key={r} value={r} disabled={disabled}>
-                    {ROLE_LABEL[r]}{disabled ? ' — already set' : ''}
+                    {ROLE_LABEL[r]}{disabled ? ' (already set)' : ''}
                   </SelectItem>
                 )
               })}
@@ -121,7 +121,7 @@ export function AddFamilyRelativeDialog({
           {search.length >= 2 && results && (
             <div className="max-h-40 overflow-y-auto rounded border border-zinc-800 bg-zinc-950">
               {results.length === 0 ? (
-                <div className="px-3 py-2 text-sm text-zinc-500">No matching members.</div>
+                <div className="px-3 py-2 text-sm text-zinc-400">No matching members.</div>
               ) : (
                 results.map((m) => {
                   const isSelf = m.id === member.id
@@ -144,7 +144,7 @@ export function AddFamilyRelativeDialog({
                       className="w-full px-3 py-2 text-left text-sm text-zinc-300 hover:bg-zinc-800 transition-colors disabled:opacity-40 disabled:hover:bg-transparent disabled:cursor-not-allowed flex items-center justify-between gap-3"
                     >
                       <span className="truncate">{m.display_name}</span>
-                      {note && <span className="text-xs text-zinc-500 shrink-0">{note}</span>}
+                      {note && <span className="text-xs text-zinc-400 shrink-0">{note}</span>}
                     </button>
                   )
                 })
@@ -155,7 +155,7 @@ export function AddFamilyRelativeDialog({
 
         {pending.length > 0 && (
           <div className="space-y-1.5 pt-2">
-            <div className="text-xs font-medium text-zinc-500 uppercase tracking-wider">
+            <div className="text-xs font-medium text-zinc-400 uppercase tracking-wider">
               Staged ({pending.length})
             </div>
             {pending.map((p) => (
@@ -172,7 +172,7 @@ export function AddFamilyRelativeDialog({
                   <button
                     type="button"
                     onClick={() => removePending(p.member_id, p.role)}
-                    className="text-zinc-600 hover:text-red-400 transition-colors text-xs"
+                    className="text-zinc-400 hover:text-red-400 transition-colors text-xs"
                   >
                     ✕
                   </button>

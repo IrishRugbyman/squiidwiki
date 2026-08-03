@@ -89,11 +89,11 @@ export function PhotoUploadDropzone({ entityType, entityId, universeId }: PhotoU
           </>
         ) : (
           <>
-            <ImagePlus className="h-6 w-6 text-zinc-500" />
+            <ImagePlus className="h-6 w-6 text-zinc-400" />
             <span>
               Drop, click, {pasteHover ? <span className="text-violet-300">or paste (⌘/Ctrl-V)</span> : 'or paste an image'}
             </span>
-            <span className="text-xs text-zinc-600">JPEG / PNG / WebP / GIF — up to 10 MB</span>
+            <span className="text-xs text-zinc-400">JPEG / PNG / WebP / GIF, up to 10 MB</span>
           </>
         )}
       </div>

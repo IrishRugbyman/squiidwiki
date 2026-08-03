@@ -51,12 +51,12 @@ const SheetContent = React.forwardRef<React.ElementRef<typeof DialogPrimitive.Co
           <div>
             <DialogPrimitive.Title className="text-base font-semibold text-white">{title}</DialogPrimitive.Title>
             {description && (
-              <DialogPrimitive.Description id="sheet-description" className="mt-0.5 text-xs text-zinc-500">
+              <DialogPrimitive.Description id="sheet-description" className="mt-0.5 text-xs text-zinc-400">
                 {description}
               </DialogPrimitive.Description>
             )}
           </div>
-          <DialogPrimitive.Close className="rounded-sm text-zinc-500 hover:text-white transition-colors focus:outline-none focus:ring-2 focus:ring-violet-500">
+          <DialogPrimitive.Close className="rounded-md text-zinc-400 hover:text-white transition-colors focus:outline-none focus:ring-2 focus:ring-violet-500">
             <X className="h-4 w-4" />
             <span className="sr-only">Close</span>
           </DialogPrimitive.Close>

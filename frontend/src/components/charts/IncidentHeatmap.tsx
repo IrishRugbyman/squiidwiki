@@ -132,11 +132,11 @@ export function IncidentHeatmap({ incidents }: IncidentHeatmapProps) {
   }, [weeks])
 
   return (
-    <div className="rounded-xl border border-zinc-800 bg-zinc-900/30 p-4">
+    <div className="rounded-lg border border-zinc-800 bg-zinc-900/30 p-4">
       <div className="mb-3 flex items-center justify-between gap-3">
         <div>
-          <h2 className="text-xs font-semibold uppercase tracking-wider text-zinc-500">Calendar density</h2>
-          <p className="mt-0.5 text-xs text-zinc-600">
+          <h2 className="text-xs font-semibold uppercase tracking-wider text-zinc-400">Calendar density</h2>
+          <p className="mt-0.5 text-xs text-zinc-400">
             {yearTotal.total} dated incident{yearTotal.total === 1 ? '' : 's'} in {year}
             {yearTotal.murders > 0 ? ` · ${yearTotal.murders} murder${yearTotal.murders === 1 ? '' : 's'}` : ''}
           </p>
@@ -148,7 +148,7 @@ export function IncidentHeatmap({ incidents }: IncidentHeatmapProps) {
               type="button"
               onClick={() => setYear(y)}
               className={`rounded px-2 py-0.5 text-[11px] font-medium tabular-nums transition-colors ${
-                y === year ? 'bg-zinc-700 text-white' : 'text-zinc-500 hover:text-zinc-300'
+                y === year ? 'bg-zinc-700 text-white' : 'text-zinc-400 hover:text-zinc-300'
               }`}
             >
               {y}
@@ -164,7 +164,7 @@ export function IncidentHeatmap({ incidents }: IncidentHeatmapProps) {
             {weeks.map((_, col) => {
               const label = monthLabels.find((l) => l.col === col)
               return (
-                <div key={col} className="text-[9px] text-zinc-500" style={{ width: 12 }}>
+                <div key={col} className="text-[9px] text-zinc-400" style={{ width: 12 }}>
                   {label ? MONTH_LABELS[label.month] : ''}
                 </div>
               )
@@ -172,7 +172,7 @@ export function IncidentHeatmap({ incidents }: IncidentHeatmapProps) {
           </div>
           <div className="flex gap-[2px]">
             {/* Weekday labels column */}
-            <div className="mr-1 flex flex-col justify-between text-[9px] text-zinc-500" style={{ paddingTop: 1 }}>
+            <div className="mr-1 flex flex-col justify-between text-[9px] text-zinc-400" style={{ paddingTop: 1 }}>
               {WEEKDAY_LABELS.map((d, i) => (
                 <div key={i} style={{ height: 10 }}>{d}</div>
               ))}
@@ -188,7 +188,7 @@ export function IncidentHeatmap({ incidents }: IncidentHeatmapProps) {
                         ? `${fmtTooltip(d.date)} · ${d.count} incident${d.count === 1 ? '' : 's'}${d.murders > 0 ? ` (${d.murders} murder${d.murders === 1 ? '' : 's'})` : ''}`
                         : ''
                     }
-                    className={`h-[10px] w-[10px] rounded-sm ${d.inYear ? colorFor(d.count, d.murders) : 'bg-transparent'}`}
+                    className={`h-[10px] w-[10px] rounded-md ${d.inYear ? colorFor(d.count, d.murders) : 'bg-transparent'}`}
                   />
                 ))}
               </div>
@@ -198,13 +198,13 @@ export function IncidentHeatmap({ incidents }: IncidentHeatmapProps) {
       </div>
 
       {/* Legend */}
-      <div className="mt-3 flex items-center justify-end gap-1.5 text-[10px] text-zinc-500">
+      <div className="mt-3 flex items-center justify-end gap-1.5 text-[10px] text-zinc-400">
         <span>Less</span>
-        <span className="h-[10px] w-[10px] rounded-sm bg-zinc-900/70" />
-        <span className="h-[10px] w-[10px] rounded-sm bg-amber-800/80" />
-        <span className="h-[10px] w-[10px] rounded-sm bg-amber-600" />
-        <span className="h-[10px] w-[10px] rounded-sm bg-amber-400" />
-        <span className="h-[10px] w-[10px] rounded-sm bg-rose-500" />
+        <span className="h-[10px] w-[10px] rounded-md bg-zinc-900/70" />
+        <span className="h-[10px] w-[10px] rounded-md bg-amber-800/80" />
+        <span className="h-[10px] w-[10px] rounded-md bg-amber-600" />
+        <span className="h-[10px] w-[10px] rounded-md bg-amber-400" />
+        <span className="h-[10px] w-[10px] rounded-md bg-rose-500" />
         <span>More · murders shown red</span>
       </div>
     </div>

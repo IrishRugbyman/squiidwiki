@@ -38,7 +38,7 @@ function RouteError({ error, reset }: { error: Error; reset: () => void }) {
     : 'Something went wrong'
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-zinc-950 p-6 text-center">
+    <div className="flex min-h-dvh flex-col items-center justify-center bg-zinc-950 p-6 text-center">
       <div className="flex h-14 w-14 items-center justify-center rounded-full bg-red-950/60 text-red-400">
         <AlertTriangle className="h-6 w-6" />
       </div>
@@ -66,8 +66,8 @@ function RouteError({ error, reset }: { error: Error; reset: () => void }) {
 
 function RouteNotFound() {
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-zinc-950 p-6 text-center">
-      <div className="flex h-14 w-14 items-center justify-center rounded-full bg-zinc-900 text-zinc-500">
+    <div className="flex min-h-dvh flex-col items-center justify-center bg-zinc-950 p-6 text-center">
+      <div className="flex h-14 w-14 items-center justify-center rounded-full bg-zinc-900 text-zinc-400">
         <span className="text-xl font-semibold">404</span>
       </div>
       <h1 className="mt-6 text-xl font-semibold text-white">Page not found</h1>

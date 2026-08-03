@@ -94,7 +94,7 @@ function MunicipalityDetailPage() {
       ) : municipality ? (
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div className="flex items-center gap-3">
-            <div className="rounded-xl bg-zinc-800/80 p-3">
+            <div className="rounded-lg bg-zinc-800/80 p-3">
               <MapPin className="h-6 w-6 text-zinc-400" />
             </div>
             <div>
@@ -103,7 +103,7 @@ function MunicipalityDetailPage() {
                 <CopyButton value={window.location.href} label="Copy link to this municipality" className="opacity-60 hover:opacity-100" />
               </div>
               {parent && (
-                <p className="mt-0.5 text-sm text-zinc-500">
+                <p className="mt-0.5 text-sm text-zinc-400">
                   District of{' '}
                   <Link to="/municipalities/$id" params={{ id: parent.id }} className="text-zinc-400 hover:text-white transition-colors">
                     {parent.name}
@@ -144,22 +144,22 @@ function MunicipalityDetailPage() {
       {/* Stats row */}
       {municipality && (
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-2">
-          <div className="rounded-xl border border-zinc-800 bg-zinc-900/30 p-4 text-center">
+          <div className="rounded-lg border border-zinc-800 bg-zinc-900/30 p-4 text-center">
             <div className="text-2xl font-bold tabular-nums text-white">{incidents.length}</div>
-            <div className="mt-0.5 text-xs text-zinc-500">Incidents</div>
+            <div className="mt-0.5 text-xs text-zinc-400">Incidents</div>
           </div>
-          <div className="rounded-xl border border-zinc-800 bg-zinc-900/30 p-4 text-center">
+          <div className="rounded-lg border border-zinc-800 bg-zinc-900/30 p-4 text-center">
             <div className="text-2xl font-bold tabular-nums text-white">{children.length}</div>
-            <div className="mt-0.5 text-xs text-zinc-500">Sub-districts</div>
+            <div className="mt-0.5 text-xs text-zinc-400">Sub-districts</div>
           </div>
         </div>
       )}
 
       {/* Sub-districts map — only when at least one child has geometry */}
       {childrenGeoJSON && childrenGeoJSON.features.length > 0 && (
-        <div className="rounded-xl border border-zinc-800 bg-zinc-900/30 overflow-hidden">
+        <div className="rounded-lg border border-zinc-800 bg-zinc-900/30 overflow-hidden">
           <div className="border-b border-zinc-800 px-4 py-3 flex items-center justify-between gap-3">
-            <h2 className="text-xs font-semibold uppercase tracking-wider text-zinc-500">
+            <h2 className="text-xs font-semibold uppercase tracking-wider text-zinc-400">
               Districts map
             </h2>
             <div className="flex items-center gap-3">
@@ -171,14 +171,14 @@ function MunicipalityDetailPage() {
                     aria-selected={districtMetric === key}
                     onClick={() => setDistrictMetric(key)}
                     className={`rounded-md px-2.5 py-0.5 text-[11px] font-medium capitalize transition-colors ${
-                      districtMetric === key ? 'bg-zinc-700 text-white' : 'text-zinc-500 hover:text-zinc-300'
+                      districtMetric === key ? 'bg-zinc-700 text-white' : 'text-zinc-400 hover:text-zinc-300'
                     }`}
                   >
                     {key}
                   </button>
                 ))}
               </div>
-              <span className="text-[11px] text-zinc-600">
+              <span className="text-[11px] text-zinc-400">
                 {childrenGeoJSON.features.length} of {children.length} mapped · click to zoom
               </span>
             </div>
@@ -186,7 +186,7 @@ function MunicipalityDetailPage() {
           <div className="h-[420px] relative">
             <Suspense fallback={
               <div className="flex h-full items-center justify-center bg-zinc-900">
-                <div className="flex flex-col items-center gap-2 text-zinc-500">
+                <div className="flex flex-col items-center gap-2 text-zinc-400">
                   <MapPin className="h-8 w-8 animate-pulse" />
                   <span className="text-sm">Loading map…</span>
                 </div>
@@ -200,9 +200,9 @@ function MunicipalityDetailPage() {
 
       {/* Sub-districts */}
       {children.length > 0 && (
-        <div className="rounded-xl border border-zinc-800 bg-zinc-900/30">
+        <div className="rounded-lg border border-zinc-800 bg-zinc-900/30">
           <div className="border-b border-zinc-800 px-4 py-3">
-            <h2 className="text-xs font-semibold uppercase tracking-wider text-zinc-500">Sub-districts ({children.length})</h2>
+            <h2 className="text-xs font-semibold uppercase tracking-wider text-zinc-400">Sub-districts ({children.length})</h2>
           </div>
           <div className="grid grid-cols-1 gap-1 p-2 sm:grid-cols-2 lg:grid-cols-3">
             {children.map((child) => (
@@ -212,12 +212,12 @@ function MunicipalityDetailPage() {
                 params={{ id: child.id }}
                 className="group flex items-center gap-2 rounded-md border border-transparent px-3 py-2 transition-colors hover:border-zinc-700 hover:bg-zinc-800/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/50"
               >
-                <MapPin className="h-3.5 w-3.5 shrink-0 text-zinc-600 group-hover:text-zinc-400" />
+                <MapPin className="h-3.5 w-3.5 shrink-0 text-zinc-400 group-hover:text-zinc-200" />
                 <span className="flex-1 truncate text-sm text-zinc-300 group-hover:text-white">{child.name}</span>
-                <span className={`text-xs tabular-nums ${child.incident_count > 0 ? 'text-amber-400' : 'text-zinc-600'}`}>
+                <span className={`text-xs tabular-nums ${child.incident_count > 0 ? 'text-amber-400' : 'text-zinc-400'}`}>
                   {child.incident_count}
                 </span>
-                <ChevronRight className="h-3.5 w-3.5 text-zinc-700 group-hover:text-zinc-500" />
+                <ChevronRight className="h-3.5 w-3.5 text-zinc-500 group-hover:text-zinc-400" />
               </Link>
             ))}
           </div>
@@ -226,9 +226,9 @@ function MunicipalityDetailPage() {
 
       {/* Incidents */}
       <TooltipProvider delayDuration={250}>
-        <div className="rounded-xl border border-zinc-800 bg-zinc-900/30">
+        <div className="rounded-lg border border-zinc-800 bg-zinc-900/30">
           <div className="border-b border-zinc-800 px-4 py-3 flex items-center justify-between gap-3">
-            <h2 className="text-xs font-semibold uppercase tracking-wider text-zinc-500">Incidents</h2>
+            <h2 className="text-xs font-semibold uppercase tracking-wider text-zinc-400">Incidents</h2>
             <div className="flex items-center gap-3">
               <Link
                 to="/incidents"
@@ -237,7 +237,7 @@ function MunicipalityDetailPage() {
               >
                 Filter incidents here →
               </Link>
-              <Link to="/incidents" className="text-xs text-zinc-500 hover:text-violet-400 transition-colors">
+              <Link to="/incidents" className="text-xs text-zinc-400 hover:text-violet-400 transition-colors">
                 All incidents →
               </Link>
             </div>
@@ -248,7 +248,7 @@ function MunicipalityDetailPage() {
                 {Array.from({ length: 3 }).map((_, i) => <div key={i} className="h-10 w-full animate-pulse rounded-md bg-zinc-800" />)}
               </div>
             ) : incidents.length === 0 ? (
-              <p className="px-4 py-6 text-sm text-zinc-600">No incidents recorded in {municipality?.name}.</p>
+              <p className="px-4 py-6 text-sm text-zinc-400">No incidents recorded in {municipality?.name}.</p>
             ) : (
               incidents.map((inc) => (
                 <Link
@@ -260,9 +260,9 @@ function MunicipalityDetailPage() {
                   <AlertTriangle className={`h-3.5 w-3.5 shrink-0 ${inc.type === 'MURDER' ? 'text-rose-500' : 'text-amber-500'}`} />
                   <span className="text-sm font-medium text-zinc-300 group-hover:text-white">{inc.type}</span>
                   {inc.victim_names.length > 0 && (
-                    <span className="text-sm text-zinc-500">— {inc.victim_names.slice(0, 2).join(', ')}{inc.victim_names.length > 2 ? ` +${inc.victim_names.length - 2}` : ''}</span>
+                    <span className="text-sm text-zinc-400">victims: {inc.victim_names.slice(0, 2).join(', ')}{inc.victim_names.length > 2 ? ` +${inc.victim_names.length - 2}` : ''}</span>
                   )}
-                  <span className="ml-auto text-xs text-zinc-600">
+                  <span className="ml-auto text-xs text-zinc-400">
                     {inc.date ? <FuzzyDate value={inc.date} /> : 'Unknown date'}
                   </span>
                   {inc.verified && (

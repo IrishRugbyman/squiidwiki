@@ -93,11 +93,11 @@ function SourceDetailPage() {
                   <TooltipContent side="right">{RELIABILITY_DESCRIPTION[source.reliability]}</TooltipContent>
                 </Tooltip>
                 {source.published_at && (
-                  <span className="text-xs text-zinc-500">
+                  <span className="text-xs text-zinc-400">
                     Published <FuzzyDate value={source.published_at} />
                   </span>
                 )}
-                <span className="text-[11px] text-zinc-600">Updated {timeAgo(source.updated_at)}</span>
+                <span className="text-[11px] text-zinc-400">Updated {timeAgo(source.updated_at)}</span>
               </div>
             </div>
             <div className="flex shrink-0 items-center gap-2">
@@ -126,7 +126,7 @@ function SourceDetailPage() {
 
           {source.notes && (
             <div className="mb-6 rounded-lg border border-zinc-800 bg-zinc-900/30 p-4">
-              <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-zinc-500">Notes</h3>
+              <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-zinc-400">Notes</h3>
               <p className="text-sm text-zinc-300 leading-relaxed whitespace-pre-wrap">{source.notes}</p>
             </div>
           )}
@@ -155,7 +155,7 @@ function SourceDetailPage() {
                 </Button>
               </div>
               {!incidents || incidents.items.length === 0 ? (
-                <p className="text-sm text-zinc-600">No incidents cite this source.</p>
+                <p className="text-sm text-zinc-400">No incidents cite this source.</p>
               ) : (
                 <div className="overflow-hidden rounded-lg border border-zinc-800">
                   <table className="w-full text-sm">
@@ -191,7 +191,7 @@ function SourceDetailPage() {
                 </Button>
               </div>
               {!members || members.items.length === 0 ? (
-                <p className="text-sm text-zinc-600">No members cite this source.</p>
+                <p className="text-sm text-zinc-400">No members cite this source.</p>
               ) : (
                 <div className="overflow-hidden rounded-lg border border-zinc-800">
                   <table className="w-full text-sm">

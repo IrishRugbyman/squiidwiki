@@ -4,6 +4,7 @@ import type { MapLayerMouseEvent, MapRef } from 'react-map-gl/maplibre'
 import { useNavigate } from '@tanstack/react-router'
 import { Home } from 'lucide-react'
 import 'maplibre-gl/dist/maplibre-gl.css'
+import { BRAND } from '@/lib/brand'
 import type { GeoJSONGeometry, MunicipalityGeoJSON } from '@/lib/types'
 
 export interface IncidentPoint {
@@ -187,7 +188,7 @@ export default function MunicipalityMap({
         'fill-color': [
           'case',
           ['==', ['get', 'id'], focusId ?? ''],
-          '#7c3aed',
+          BRAND.strong,
           ['interpolate', ['linear'],
             ['get', metricKey],
             0, '#27272a',
@@ -215,9 +216,9 @@ export default function MunicipalityMap({
         'line-color': [
           'case',
           ['boolean', ['feature-state', 'hover'], false],
-          '#a78bfa',
+          BRAND.light,
           ['==', ['get', 'id'], focusId ?? ''],
-          '#a78bfa',
+          BRAND.light,
           '#52525b',
         ] as unknown as string,
         'line-width': [
@@ -338,7 +339,7 @@ export default function MunicipalityMap({
                 'circle-radius': 5,
                 'circle-color': [
                   'match', ['get', 'setStatus'],
-                  'ACTIVE', '#7c3aed',
+                  'ACTIVE', BRAND.strong,
                   '#52525b',
                 ] as unknown as string,
                 'circle-stroke-width': 1.5,
@@ -403,7 +404,7 @@ export default function MunicipalityMap({
                 'circle-color': [
                   'match', ['get', 'incidentType'],
                   'MURDER', '#fb7185',
-                  'FIGHT', '#a78bfa',
+                  'FIGHT', BRAND.light,
                   '#fbbf24',
                 ] as unknown as string,
                 'circle-stroke-width': 1.5,
@@ -426,7 +427,7 @@ export default function MunicipalityMap({
               <p className="font-medium text-sm text-white">{hovered.name}</p>
               <p className="text-xs text-zinc-400 mt-0.5 tabular-nums">
                 <span className="text-zinc-200">{hovered.setCount}</span> set{hovered.setCount !== 1 ? 's' : ''}
-                <span className="text-zinc-700"> · </span>
+                <span className="text-zinc-500"> · </span>
                 <span className="text-zinc-200">{hovered.incidentCount}</span> incident{hovered.incidentCount !== 1 ? 's' : ''}
               </p>
             </div>
@@ -453,7 +454,7 @@ export default function MunicipalityMap({
           className="h-1.5 w-32 rounded-full"
           style={{ background: 'linear-gradient(to right, #27272a, #5b21b6)' }}
         />
-        <div className="mt-1 flex justify-between text-zinc-500">
+        <div className="mt-1 flex justify-between text-zinc-400">
           <span>0</span>
           <span className="tabular-nums">{maxCount}</span>
         </div>

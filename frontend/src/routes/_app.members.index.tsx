@@ -172,7 +172,7 @@ function MembersPage() {
       <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h1 className="text-xl font-bold text-white">Members</h1>
-          <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-zinc-500">
+          <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-zinc-400">
             {total != null && <span>{total} total</span>}
             {(statusCounts.FREE ?? 0) > 0 && <span className="text-emerald-500">{statusCounts.FREE} free</span>}
             {(statusCounts.LOCKED ?? 0) > 0 && <span className="text-orange-400">{statusCounts.LOCKED} locked</span>}
@@ -195,7 +195,7 @@ function MembersPage() {
                 key={s}
                 onClick={() => setStatusFilter(active ? null : s)}
                 className={`flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium transition-all ${
-                  active ? STATUS_CHIP_ACTIVE[s] : 'border-zinc-800 bg-zinc-900/40 text-zinc-500 hover:border-zinc-700 hover:text-zinc-300'
+                  active ? STATUS_CHIP_ACTIVE[s] : 'border-zinc-800 bg-zinc-900/40 text-zinc-400 hover:border-zinc-700 hover:text-zinc-300'
                 }`}
               >
                 <span className={`h-1.5 w-1.5 rounded-full ${STATUS_DOT[s]}`} />
@@ -207,7 +207,7 @@ function MembersPage() {
           {hasFilters && (
             <button
               onClick={() => { setStatusFilter(null); setSetFilter('') }}
-              className="flex items-center gap-1 rounded-full border border-zinc-700 px-2.5 py-1 text-xs text-zinc-500 hover:text-white transition-colors"
+              className="flex items-center gap-1 rounded-full border border-zinc-700 px-2.5 py-1 text-xs text-zinc-400 hover:text-white transition-colors"
             >
               <X className="h-3 w-3" /> Clear filters
             </button>
@@ -218,7 +218,7 @@ function MembersPage() {
       {/* Toolbar */}
       <div className="mb-3 flex flex-wrap items-center gap-2">
         <div className="relative flex-1 min-w-[200px] max-w-sm">
-          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" />
           <Input className="pl-8 h-8 text-sm" placeholder="Search members…" value={q} onChange={(e) => { setQ(e.target.value); setCursor(undefined) }} />
         </div>
         <Select value={setFilter || 'all'} onValueChange={(v) => setSetFilter(v === 'all' ? '' : v)}>
@@ -258,7 +258,7 @@ function MembersPage() {
               </th>
               <th className="px-3 py-2.5 text-left" scope="col" aria-sort={sortKey === 'display_name' ? (sortDir === 'asc' ? 'ascending' : 'descending') : 'none'}>
                 <button onClick={() => toggleSort('display_name')} className="flex items-center gap-1 text-xs font-medium text-zinc-400 hover:text-white transition-colors focus-visible:outline-none focus-visible:text-white">
-                  Name <span className="text-zinc-600" aria-hidden>{sortKey === 'display_name' ? (sortDir === 'asc' ? '↑' : '↓') : '↕'}</span>
+                  Name <span className="text-zinc-400" aria-hidden>{sortKey === 'display_name' ? (sortDir === 'asc' ? '↑' : '↓') : '↕'}</span>
                 </button>
               </th>
               <th className="hidden px-3 py-2.5 text-left sm:table-cell" scope="col">
@@ -266,7 +266,7 @@ function MembersPage() {
               </th>
               <th className="px-3 py-2.5 text-left" scope="col" aria-sort={sortKey === 'status' ? (sortDir === 'asc' ? 'ascending' : 'descending') : 'none'}>
                 <button onClick={() => toggleSort('status')} className="flex items-center gap-1 text-xs font-medium text-zinc-400 hover:text-white transition-colors focus-visible:outline-none focus-visible:text-white">
-                  Status <span className="text-zinc-600" aria-hidden>{sortKey === 'status' ? (sortDir === 'asc' ? '↑' : '↓') : '↕'}</span>
+                  Status <span className="text-zinc-400" aria-hidden>{sortKey === 'status' ? (sortDir === 'asc' ? '↑' : '↓') : '↕'}</span>
                 </button>
               </th>
               <th className="w-8 px-3 py-2.5" scope="col" aria-label="Actions" />
@@ -300,7 +300,7 @@ function MembersPage() {
                         <Link to="/members/$id" params={{ id: linkId }} className="block px-3 py-3 transition-colors group-hover:text-violet-400">
                           <span className={`font-medium ${isDead ? 'text-zinc-400 line-through decoration-zinc-600' : 'text-white'}`}>{member.display_name}</span>
                           {member.aliases && member.aliases.length > 0 && (
-                            <span className="mt-0.5 block text-[11px] text-zinc-600 group-hover:text-zinc-500 transition-colors">
+                            <span className="mt-0.5 block text-[11px] text-zinc-400 group-hover:text-zinc-200 transition-colors">
                               {member.aliases.slice(0, 3).join(' · ')}
                             </span>
                           )}
@@ -313,12 +313,12 @@ function MembersPage() {
                               {primaryAff.set_name}
                             </Link>
                             {extraCount > 0 && (
-                              <span className="inline-flex items-center rounded-full bg-zinc-800/40 px-1.5 py-0.5 text-[10px] text-zinc-500" title={member.affiliations.filter((a) => !a.is_primary).map((a) => a.set_name).join(', ')}>
+                              <span className="inline-flex items-center rounded-full bg-zinc-800/40 px-1.5 py-0.5 text-[10px] text-zinc-400" title={member.affiliations.filter((a) => !a.is_primary).map((a) => a.set_name).join(', ')}>
                                 +{extraCount}
                               </span>
                             )}
                           </span>
-                        ) : <span className="text-xs text-zinc-700">—</span>}
+                        ) : <span className="text-xs text-zinc-500">—</span>}
                       </td>
                       <td className="px-3 py-3">
                         <MemberStatusBadge status={member.status} />
@@ -328,7 +328,7 @@ function MembersPage() {
                           type="button"
                           aria-label={`Edit ${member.display_name}`}
                           onClick={(e) => { e.preventDefault(); e.stopPropagation(); setEditingMemberId(member.id) }}
-                          className="rounded p-1.5 text-zinc-600 transition-colors hover:bg-zinc-800 hover:text-violet-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/50 lg:opacity-0 lg:group-hover:opacity-100 lg:group-focus-within:opacity-100"
+                          className="rounded p-1.5 text-zinc-400 transition-colors hover:bg-zinc-800 hover:text-violet-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/50 lg:opacity-0 lg:group-hover:opacity-100 lg:group-focus-within:opacity-100"
                         >
                           <Pencil className="h-3.5 w-3.5" />
                         </button>
@@ -343,8 +343,8 @@ function MembersPage() {
               <tr>
                 <td colSpan={5}>
                   <div className="flex flex-col items-center py-14 text-center">
-                    <Users className="mb-3 h-8 w-8 text-zinc-700" />
-                    <p className="text-sm text-zinc-500">
+                    <Users className="mb-3 h-8 w-8 text-zinc-500" />
+                    <p className="text-sm text-zinc-400">
                       {q ? 'No members match your search' : hasFilters ? 'No members match these filters' : 'No members yet'}
                     </p>
                     {!q && !hasFilters && (
@@ -367,8 +367,8 @@ function MembersPage() {
           Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-20 w-full rounded-lg" />)
         ) : items.length === 0 ? (
           <div className="flex flex-col items-center rounded-lg border border-zinc-800 py-12 text-center">
-            <Users className="mb-3 h-8 w-8 text-zinc-700" />
-            <p className="text-sm text-zinc-500">
+            <Users className="mb-3 h-8 w-8 text-zinc-500" />
+            <p className="text-sm text-zinc-400">
               {q ? 'No members match your search' : hasFilters ? 'No members match these filters' : 'No members yet'}
             </p>
             {!q && !hasFilters && (
@@ -410,7 +410,7 @@ function MembersPage() {
                         {member.display_name}
                       </span>
                       {member.aliases && member.aliases.length > 0 && (
-                        <span className="mt-0.5 block text-[11px] text-zinc-600">
+                        <span className="mt-0.5 block text-[11px] text-zinc-400">
                           {member.aliases.slice(0, 3).join(' · ')}
                         </span>
                       )}
@@ -427,7 +427,7 @@ function MembersPage() {
                             {primaryAffMobile.set_name}
                           </Link>
                           {extraCountMobile > 0 && (
-                            <span className="inline-flex items-center rounded-full bg-zinc-800/40 px-1.5 py-0.5 text-[10px] text-zinc-500" title={member.affiliations.filter((a) => !a.is_primary).map((a) => a.set_name).join(', ')}>
+                            <span className="inline-flex items-center rounded-full bg-zinc-800/40 px-1.5 py-0.5 text-[10px] text-zinc-400" title={member.affiliations.filter((a) => !a.is_primary).map((a) => a.set_name).join(', ')}>
                               +{extraCountMobile}
                             </span>
                           )}
@@ -439,7 +439,7 @@ function MembersPage() {
                     type="button"
                     aria-label={`Edit ${member.display_name}`}
                     onClick={(e) => { e.preventDefault(); e.stopPropagation(); setEditingMemberId(member.id) }}
-                    className="rounded p-1.5 text-zinc-600 transition-colors hover:bg-zinc-800 hover:text-violet-400"
+                    className="rounded p-1.5 text-zinc-400 transition-colors hover:bg-zinc-800 hover:text-violet-400"
                   >
                     <Pencil className="h-3.5 w-3.5" />
                   </button>
@@ -452,7 +452,7 @@ function MembersPage() {
 
       {/* Load more */}
       {!q && data?.next_cursor && (
-        <div className="mt-4 flex items-center justify-between text-xs text-zinc-500">
+        <div className="mt-4 flex items-center justify-between text-xs text-zinc-400">
           {total != null && items.length > 0 && <span>Showing {items.length} of {total}</span>}
           <Button variant="outline" size="sm" onClick={() => setCursor(data.next_cursor ?? undefined)}>Load more</Button>
         </div>
@@ -461,14 +461,14 @@ function MembersPage() {
       {/* Bulk action bar */}
       {selected.size > 0 && (
         <div
-          className="fixed left-1/2 -translate-x-1/2 z-40 flex items-center gap-3 rounded-xl border border-zinc-700 bg-zinc-900 px-4 py-2.5 shadow-2xl shadow-black/50"
+          className="fixed left-1/2 -translate-x-1/2 z-40 flex items-center gap-3 rounded-lg border border-zinc-700 bg-zinc-900 px-4 py-2.5 shadow-2xl shadow-black/50"
           style={{ bottom: 'max(1.5rem, env(safe-area-inset-bottom))' }}
           role="region"
           aria-label="Bulk actions for selected members"
         >
           <span className="text-sm font-medium text-white">{selected.size} selected</span>
           <div className="h-4 w-px bg-zinc-700" />
-          <span className="text-xs text-zinc-500">Set status:</span>
+          <span className="text-xs text-zinc-400">Set status:</span>
           <Select value={bulkStatus} onValueChange={(v) => setBulkStatus(v as MemberStatus)}>
             <SelectTrigger className="h-7 w-28 text-xs border-zinc-700 bg-zinc-800"><SelectValue /></SelectTrigger>
             <SelectContent>
@@ -478,7 +478,7 @@ function MembersPage() {
           <Button size="sm" className="h-7 text-xs" onClick={applyBulkStatus} disabled={bulkUpdate.isPending}>
             {bulkUpdate.isPending ? 'Applying…' : 'Apply'}
           </Button>
-          <button onClick={() => setSelected(new Set())} className="text-zinc-500 hover:text-white transition-colors">
+          <button onClick={() => setSelected(new Set())} className="text-zinc-400 hover:text-white transition-colors">
             <X className="h-4 w-4" />
           </button>
         </div>

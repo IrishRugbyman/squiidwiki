@@ -88,7 +88,7 @@ export function AffiliationCombobox({
         aria-expanded={open}
         aria-label={label}
         className={cn(
-          'flex h-9 w-full items-center justify-between rounded-md border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm text-zinc-100 ring-offset-zinc-950 placeholder:text-zinc-500',
+          'flex h-9 w-full items-center justify-between rounded-md border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm text-zinc-100 ring-offset-zinc-950 placeholder:text-zinc-400',
           'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/50 focus-visible:ring-offset-1',
           'disabled:cursor-not-allowed disabled:opacity-50',
           'hover:border-zinc-600 transition-colors',
@@ -96,11 +96,11 @@ export function AffiliationCombobox({
       >
         <span className="flex min-w-0 items-center gap-2">
           {selected?.dotClass && <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${selected.dotClass}`} />}
-          <span className={cn('truncate', !selected && 'text-zinc-500')}>
+          <span className={cn('truncate', !selected && 'text-zinc-400')}>
             {selected ? selected.name : placeholder}
           </span>
         </span>
-        <span className="flex shrink-0 items-center gap-1 text-zinc-500">
+        <span className="flex shrink-0 items-center gap-1 text-zinc-400">
           {selected && !disabled && (
             <span
               role="button"
@@ -128,7 +128,7 @@ export function AffiliationCombobox({
             <CommandList>
               <CommandEmpty>
                 {showCreate
-                  ? <span className="text-zinc-500">No match — create one below</span>
+                  ? <span className="text-zinc-400">No match. Create one below</span>
                   : 'No results.'}
               </CommandEmpty>
               <CommandGroup>
@@ -143,7 +143,7 @@ export function AffiliationCombobox({
                     >
                       {item.dotClass && <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${item.dotClass}`} />}
                       <span className="truncate">{item.name}</span>
-                      {item.hint && <span className="ml-auto text-[11px] text-zinc-500">{item.hint}</span>}
+                      {item.hint && <span className="ml-auto text-[11px] text-zinc-400">{item.hint}</span>}
                       {isSelected && <Check className={cn('h-3.5 w-3.5 text-violet-400', item.hint && 'ml-1')} />}
                     </CommandItem>
                   )
@@ -156,7 +156,7 @@ export function AffiliationCombobox({
                     disabled={creating}
                     onClick={() => onCreateRequest?.(trimmed)}
                     className={cn(
-                      'flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-sm text-violet-300',
+                      'flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm text-violet-300',
                       'hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-50',
                     )}
                   >

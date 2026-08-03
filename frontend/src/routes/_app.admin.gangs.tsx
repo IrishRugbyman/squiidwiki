@@ -9,6 +9,7 @@ import { TableRowSkeleton } from '@/components/skeletons'
 import { Sheet, SheetClose, SheetContent } from '@/components/Sheet'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { BRAND } from '@/lib/brand'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import {
@@ -100,31 +101,31 @@ function GangFormSheet({
             <div className="grid grid-cols-2 gap-3">
               {/* Primary color */}
               <div className="space-y-1">
-                <p className="text-[11px] text-zinc-500">Primary (fill)</p>
+                <p className="text-[11px] text-zinc-400">Primary (fill)</p>
                 <div className="flex items-center gap-1.5">
                   <input
                     id="gang-color"
                     type="color"
-                    value={color || '#7c3aed'}
+                    value={color || BRAND.strong}
                     onChange={(e) => setColor(e.target.value)}
                     className="h-8 w-10 shrink-0 cursor-pointer rounded border border-zinc-700 bg-zinc-900 p-0.5"
                   />
                   <Input
                     value={color}
                     onChange={(e) => setColor(e.target.value)}
-                    placeholder="#7c3aed"
+                    placeholder={BRAND.strong}
                     className="font-mono text-xs"
                   />
                 </div>
                 {color && (
-                  <button type="button" onClick={() => setColor('')} className="text-[10px] text-zinc-500 hover:text-zinc-300">
+                  <button type="button" onClick={() => setColor('')} className="text-[10px] text-zinc-400 hover:text-zinc-300">
                     Clear
                   </button>
                 )}
               </div>
               {/* Secondary color */}
               <div className="space-y-1">
-                <p className="text-[11px] text-zinc-500">Secondary (stripe)</p>
+                <p className="text-[11px] text-zinc-400">Secondary (stripe)</p>
                 <div className="flex items-center gap-1.5">
                   <input
                     id="gang-color-secondary"
@@ -141,13 +142,13 @@ function GangFormSheet({
                   />
                 </div>
                 {colorSecondary && (
-                  <button type="button" onClick={() => setColorSecondary('')} className="text-[10px] text-zinc-500 hover:text-zinc-300">
+                  <button type="button" onClick={() => setColorSecondary('')} className="text-[10px] text-zinc-400 hover:text-zinc-300">
                     Clear
                   </button>
                 )}
               </div>
             </div>
-            <p className="text-[11px] text-zinc-500">
+            <p className="text-[11px] text-zinc-400">
               Territory polygons show diagonal stripes of both colors. Primary also tints pins and alliance cards.
             </p>
           </div>
@@ -192,7 +193,7 @@ function AdminGangsPage() {
 
   if (user?.global_role !== 'ADMIN') {
     return (
-      <div className="py-24 text-center text-sm text-zinc-500">
+      <div className="py-24 text-center text-sm text-zinc-400">
         Admin access required.
       </div>
     )
@@ -200,7 +201,7 @@ function AdminGangsPage() {
 
   if (!universeId) {
     return (
-      <div className="py-24 text-center text-sm text-zinc-500">
+      <div className="py-24 text-center text-sm text-zinc-400">
         Select a universe to manage its gangs.
       </div>
     )
@@ -260,7 +261,7 @@ function AdminGangsPage() {
                     <span className="inline-flex items-center gap-2">
                       {g.color ? (
                         <span
-                          className="h-3.5 w-3.5 rounded-sm ring-1 ring-zinc-700"
+                          className="h-3.5 w-3.5 rounded-md ring-1 ring-zinc-700"
                           style={{ backgroundColor: g.color }}
                           aria-hidden
                         />
@@ -273,7 +274,7 @@ function AdminGangsPage() {
                   <td className="hidden px-4 py-3 text-xs text-zinc-400 sm:table-cell">
                     {g.aliases?.length ? g.aliases.join(', ') : '—'}
                   </td>
-                  <td className="hidden px-4 py-3 text-xs text-zinc-500 max-w-md truncate md:table-cell">
+                  <td className="hidden px-4 py-3 text-xs text-zinc-400 max-w-md truncate md:table-cell">
                     {g.description || '—'}
                   </td>
                   <td className="px-4 py-3 text-right">

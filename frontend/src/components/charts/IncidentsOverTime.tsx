@@ -1,4 +1,5 @@
 import { Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis, CartesianGrid } from 'recharts'
+import { BRAND } from '@/lib/brand'
 
 interface Point {
   month: string
@@ -53,9 +54,9 @@ export function IncidentsOverTime({ data, className }: IncidentsOverTimeProps) {
           <Line
             type="monotone"
             dataKey="count"
-            stroke="#a78bfa"
+            stroke={BRAND.light}
             strokeWidth={2}
-            dot={{ r: 2, fill: '#a78bfa' }}
+            dot={{ r: 2, fill: BRAND.light }}
             activeDot={{ r: 4 }}
           />
         </LineChart>

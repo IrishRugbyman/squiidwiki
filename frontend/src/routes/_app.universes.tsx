@@ -167,18 +167,18 @@ function UniversesPage() {
                 >
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
-                      <Globe className={`h-4 w-4 ${isCurrent ? 'text-violet-400' : 'text-zinc-500'}`} />
+                      <Globe className={`h-4 w-4 ${isCurrent ? 'text-violet-400' : 'text-zinc-400'}`} />
                       <span className="font-medium text-white">{u.name}</span>
                       {isCurrent && (
                         <span className="rounded-full bg-violet-900/60 px-2 py-0.5 text-xs text-violet-300">Current</span>
                       )}
                     </div>
                     <div className="mt-0.5 flex items-center gap-1">
-                      <span className="text-xs text-zinc-600 font-mono">{u.slug}</span>
+                      <span className="text-xs text-zinc-400 font-mono">{u.slug}</span>
                       <CopyButton value={u.slug} label="Copy slug" className="opacity-50 hover:opacity-100" silent={false} />
                     </div>
                     {stats ? (
-                      <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] tabular-nums text-zinc-500">
+                      <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] tabular-nums text-zinc-400">
                         <span className="inline-flex items-center gap-1">
                           <Users className="h-3 w-3" />
                           <span className="text-zinc-300">{stats.total_members}</span>

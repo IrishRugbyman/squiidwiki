@@ -91,7 +91,7 @@ export function AddMemberToSetDialog({
         </div>
 
         <div className="space-y-2 pt-2">
-          <div className="text-xs font-medium text-zinc-500 uppercase tracking-wider">
+          <div className="text-xs font-medium text-zinc-400 uppercase tracking-wider">
             Or pick existing ({candidates.length} available)
           </div>
           <div className="rounded-md border border-zinc-800">
@@ -99,7 +99,7 @@ export function AddMemberToSetDialog({
               <CommandInput placeholder="Search members…" />
               <CommandList className="max-h-[260px]">
                 {isLoading ? (
-                  <div className="py-6 text-center text-sm text-zinc-500">Loading…</div>
+                  <div className="py-6 text-center text-sm text-zinc-400">Loading…</div>
                 ) : candidates.length === 0 ? (
                   <CommandEmpty>All members are already affiliated with this set.</CommandEmpty>
                 ) : (

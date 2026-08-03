@@ -88,7 +88,7 @@ export function FuzzyDateInput({ value, onChange, label, idPrefix, life }: Props
         />
       )}
       {mode === 'life' && (
-        <p className="text-xs text-zinc-500">No release — sentenced to life.</p>
+        <p className="text-xs text-zinc-400">No release, sentenced to life.</p>
       )}
     </div>
   )

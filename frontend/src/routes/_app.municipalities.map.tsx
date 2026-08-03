@@ -23,7 +23,7 @@ function MetricToggle({ value, onChange }: { value: MapMetric; onChange: (v: Map
           aria-selected={value === key}
           onClick={() => onChange(key)}
           className={`rounded-md px-3 py-1 text-xs font-medium transition-colors ${
-            value === key ? 'bg-zinc-700 text-white' : 'text-zinc-500 hover:text-zinc-300'
+            value === key ? 'bg-zinc-700 text-white' : 'text-zinc-400 hover:text-zinc-300'
           }`}
         >
           {label}
@@ -129,7 +129,7 @@ function MapPage() {
             className={`inline-flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-xs font-medium transition-colors ${
               showSets
                 ? 'border-violet-700 bg-violet-950/60 text-violet-300 hover:bg-violet-900/60'
-                : 'border-zinc-700 text-zinc-500 hover:border-zinc-500 hover:text-zinc-300'
+                : 'border-zinc-700 text-zinc-400 hover:border-zinc-500 hover:text-zinc-300'
             }`}
           >
             <Users className="h-3.5 w-3.5" />
@@ -143,7 +143,7 @@ function MapPage() {
             className={`inline-flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-xs font-medium transition-colors ${
               showIncidents
                 ? 'border-rose-700 bg-rose-950/60 text-rose-300 hover:bg-rose-900/60'
-                : 'border-zinc-700 text-zinc-500 hover:border-zinc-500 hover:text-zinc-300'
+                : 'border-zinc-700 text-zinc-400 hover:border-zinc-500 hover:text-zinc-300'
             }`}
           >
             <Crosshair className="h-3.5 w-3.5" />
@@ -161,15 +161,15 @@ function MapPage() {
         </div>
       </div>
 
-      <div className="relative flex-1 overflow-hidden rounded-xl border border-zinc-800">
+      <div className="relative flex-1 overflow-hidden rounded-lg border border-zinc-800">
         {isLoading ? (
           <MapPlaceholder label="Loading map…" />
         ) : featureCount === 0 ? (
           <div className="flex h-full flex-col items-center justify-center gap-3 bg-zinc-900 text-center">
-            <MapPin className="h-10 w-10 text-zinc-600" />
+            <MapPin className="h-10 w-10 text-zinc-400" />
             <div>
               <p className="font-medium text-white">No boundaries yet</p>
-              <p className="mt-1 text-sm text-zinc-500 max-w-xs">
+              <p className="mt-1 text-sm text-zinc-400 max-w-xs">
                 Edit a municipality and paste its GeoJSON polygon boundary to show it on the map.
               </p>
             </div>
@@ -213,7 +213,7 @@ function MapPage() {
 function MapPlaceholder({ label }: { label: string }) {
   return (
     <div className="flex h-full items-center justify-center bg-zinc-900">
-      <div className="flex flex-col items-center gap-2 text-zinc-500">
+      <div className="flex flex-col items-center gap-2 text-zinc-400">
         <MapPin className="h-8 w-8 animate-pulse" />
         <span className="text-sm">{label}</span>
       </div>
@@ -230,7 +230,7 @@ function PreviewCard({
   onClose: () => void
 }) {
   return (
-    <div className="absolute bottom-3 right-3 z-10 w-72 rounded-xl border border-zinc-700 bg-zinc-900/95 p-4 shadow-xl backdrop-blur">
+    <div className="absolute bottom-3 right-3 z-10 w-72 rounded-lg border border-zinc-700 bg-zinc-900/95 p-4 shadow-xl backdrop-blur">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="flex items-center gap-2">
@@ -238,7 +238,7 @@ function PreviewCard({
             <h3 className="truncate text-base font-semibold text-white">{preview.name}</h3>
           </div>
           {parent && (
-            <p className="mt-0.5 text-xs text-zinc-500">
+            <p className="mt-0.5 text-xs text-zinc-400">
               District of <span className="text-zinc-400">{parent.name}</span>
             </p>
           )}
@@ -247,7 +247,7 @@ function PreviewCard({
           type="button"
           onClick={onClose}
           aria-label="Close preview"
-          className="rounded p-1 text-zinc-500 hover:bg-zinc-800 hover:text-zinc-300"
+          className="rounded p-1 text-zinc-400 hover:bg-zinc-800 hover:text-zinc-300"
         >
           <X className="h-3.5 w-3.5" />
         </button>
@@ -255,16 +255,16 @@ function PreviewCard({
 
       <div className="mt-3 grid grid-cols-2 gap-2">
         <div className="rounded-lg border border-zinc-800 bg-zinc-900/50 p-2 text-center">
-          <div className={`text-lg font-bold tabular-nums ${preview.incident_count > 0 ? 'text-amber-400' : 'text-zinc-500'}`}>
+          <div className={`text-lg font-bold tabular-nums ${preview.incident_count > 0 ? 'text-amber-400' : 'text-zinc-400'}`}>
             {preview.incident_count}
           </div>
-          <div className="text-[10px] uppercase tracking-wider text-zinc-500">Incidents</div>
+          <div className="text-[10px] uppercase tracking-wider text-zinc-400">Incidents</div>
         </div>
         <div className="rounded-lg border border-zinc-800 bg-zinc-900/50 p-2 text-center">
-          <div className={`text-lg font-bold tabular-nums ${childCount > 0 ? 'text-white' : 'text-zinc-500'}`}>
+          <div className={`text-lg font-bold tabular-nums ${childCount > 0 ? 'text-white' : 'text-zinc-400'}`}>
             {childCount}
           </div>
-          <div className="text-[10px] uppercase tracking-wider text-zinc-500">Sub-districts</div>
+          <div className="text-[10px] uppercase tracking-wider text-zinc-400">Sub-districts</div>
         </div>
       </div>
 

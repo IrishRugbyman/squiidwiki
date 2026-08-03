@@ -39,7 +39,7 @@ export function CopyButton({ value, label = 'Copy', className, size = 'sm', sile
             onClick={handleClick}
             aria-label={label}
             className={cn(
-              'inline-flex items-center justify-center rounded text-zinc-500 transition-colors hover:text-zinc-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/50',
+              'inline-flex items-center justify-center rounded text-zinc-400 transition-colors hover:text-zinc-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/50',
               size === 'sm' ? 'p-1' : 'p-1.5',
               className,
             )}

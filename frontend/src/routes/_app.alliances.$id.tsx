@@ -122,10 +122,10 @@ function AllianceDetailPage() {
                     alt={`Photo of ${alliance.name}`}
                     loading="lazy"
                     decoding="async"
-                    className="h-20 w-20 rounded-xl object-cover ring-1 ring-zinc-600/80 shadow-lg shadow-black/30"
+                    className="h-20 w-20 rounded-lg object-cover ring-1 ring-zinc-600/80 shadow-lg shadow-black/30"
                   />
                 ) : (
-                  <div className="flex h-20 w-20 items-center justify-center rounded-xl bg-zinc-800 text-2xl font-bold text-zinc-400 ring-1 ring-zinc-700">
+                  <div className="flex h-20 w-20 items-center justify-center rounded-lg bg-zinc-800 text-2xl font-bold text-zinc-400 ring-1 ring-zinc-700">
                     {alliance.name.slice(0, 2).toUpperCase()}
                   </div>
                 )}
@@ -145,7 +145,7 @@ function AllianceDetailPage() {
                     Founded&nbsp;<FuzzyDate value={alliance.founded_at} />
                   </span>
                 )}
-                <span className="text-[11px] text-zinc-600">Updated {timeAgo(alliance.updated_at)}</span>
+                <span className="text-[11px] text-zinc-400">Updated {timeAgo(alliance.updated_at)}</span>
               </div>
             </div>
             </div>
@@ -209,7 +209,7 @@ function AllianceDetailPage() {
                       type="button"
                       onClick={() => setSetsView(v)}
                       className={`rounded px-2.5 py-0.5 text-[11px] font-medium transition-colors ${
-                        setsView === v ? 'bg-zinc-700 text-white' : 'text-zinc-500 hover:text-zinc-300'
+                        setsView === v ? 'bg-zinc-700 text-white' : 'text-zinc-400 hover:text-zinc-300'
                       }`}
                     >
                       {v === 'list' ? 'List' : 'Graph'}
@@ -316,7 +316,7 @@ function AllianceDetailPage() {
                                   {m.display_name}
                                 </span>
                                 {m.aliases && m.aliases.length > 0 && (
-                                  <span className="mt-0.5 block text-[11px] text-zinc-600 group-hover:text-zinc-500 transition-colors">
+                                  <span className="mt-0.5 block text-[11px] text-zinc-400 group-hover:text-zinc-200 transition-colors">
                                     {m.aliases.slice(0, 3).join(' · ')}
                                   </span>
                                 )}
@@ -341,12 +341,12 @@ function AllianceDetailPage() {
                                   })}
                                 </span>
                               ) : (
-                                <span className="text-xs text-zinc-700">—</span>
+                                <span className="text-xs text-zinc-500">—</span>
                               )}
                             </td>
                             <td className="px-3 py-3"><MemberStatusBadge status={m.status} /></td>
-                            <td className="hidden px-3 py-3 text-xs text-zinc-500 md:table-cell">
-                              {m.date_of_death ? <FuzzyDate value={m.date_of_death} /> : <span className="text-zinc-700">—</span>}
+                            <td className="hidden px-3 py-3 text-xs text-zinc-400 md:table-cell">
+                              {m.date_of_death ? <FuzzyDate value={m.date_of_death} /> : <span className="text-zinc-500">—</span>}
                             </td>
                           </tr>
                         )
@@ -396,12 +396,12 @@ function AllianceDetailPage() {
                             </td>
                             <td className="p-0">
                               <Link to="/incidents/$id" params={{ id: inc.id }} className="block px-4 py-3 font-mono text-xs text-zinc-400 tabular-nums">
-                                {inc.date ? <FuzzyDate value={inc.date} /> : <span className="text-zinc-700">Unknown</span>}
+                                {inc.date ? <FuzzyDate value={inc.date} /> : <span className="text-zinc-500">Unknown</span>}
                               </Link>
                             </td>
                             <td className="hidden p-0 md:table-cell">
-                              <Link to="/incidents/$id" params={{ id: inc.id }} className="block px-4 py-3 text-xs text-zinc-500" tabIndex={-1}>
-                                {muniName ?? <span className="text-zinc-700">—</span>}
+                              <Link to="/incidents/$id" params={{ id: inc.id }} className="block px-4 py-3 text-xs text-zinc-400" tabIndex={-1}>
+                                {muniName ?? <span className="text-zinc-500">—</span>}
                               </Link>
                             </td>
                             <td className="hidden p-0 lg:table-cell">
@@ -412,7 +412,7 @@ function AllianceDetailPage() {
                                     {inc.victim_names.length > 3 && ` +${inc.victim_names.length - 3}`}
                                   </span>
                                 ) : (
-                                  <span className="text-zinc-700">—</span>
+                                  <span className="text-zinc-500">—</span>
                                 )}
                               </Link>
                             </td>
@@ -548,7 +548,7 @@ function AllianceSetRow({ set, memberCount, onRequestRemove }: AllianceSetRowPro
                   return extras.length > 0 ? `${head} (${extras.join(' · ')})` : head
                 })
                 .filter(Boolean)
-              return aka.length > 0 ? <p className="text-xs text-zinc-500">{aka.join(' · ')}</p> : null
+              return aka.length > 0 ? <p className="text-xs text-zinc-400">{aka.join(' · ')}</p> : null
             })()}
           </div>
         </Link>
@@ -560,7 +560,7 @@ function AllianceSetRow({ set, memberCount, onRequestRemove }: AllianceSetRowPro
           variant="ghost"
           size="sm"
           aria-label={`Remove ${set.name} from alliance`}
-          className="h-7 w-7 p-0 text-zinc-500 opacity-0 hover:bg-red-950/40 hover:text-red-400 group-hover:opacity-100 focus:opacity-100"
+          className="h-7 w-7 p-0 text-zinc-400 opacity-0 hover:bg-red-950/40 hover:text-red-400 group-hover:opacity-100 focus:opacity-100"
           onClick={onRequestRemove}
         >
           <X className="h-3.5 w-3.5" />

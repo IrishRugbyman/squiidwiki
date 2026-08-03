@@ -18,13 +18,13 @@ const MEMBER_STATUS_STYLE: Record<MemberStatus, string> = {
 
 const SET_STATUS_STYLE: Record<SetStatus, string> = {
   ACTIVE: 'bg-emerald-900 text-emerald-300',
-  EXTINCT: 'bg-zinc-800 text-zinc-500',
+  EXTINCT: 'bg-zinc-800 text-zinc-400',
 }
 
 const ALLIANCE_STATUS_STYLE: Record<AllianceStatus, string> = {
   ACTIVE: 'bg-emerald-900 text-emerald-300',
   DORMANT: 'bg-amber-900 text-amber-300',
-  EXTINCT: 'bg-zinc-800 text-zinc-500',
+  EXTINCT: 'bg-zinc-800 text-zinc-400',
 }
 
 const MEMBER_OPTIONS: MemberStatus[] = ['FREE', 'LOCKED', 'DEAD', 'UNKNOWN', 'ESCAPEE', 'ABSCONDER']

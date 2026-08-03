@@ -81,7 +81,7 @@ function CreateUniverseSheet({ open, onClose }: { open: boolean; onClose: (creat
               placeholder="metro-chicago"
               pattern="[a-z0-9\-]+"
             />
-            <p className="text-xs text-zinc-500">Lowercase letters, numbers, and hyphens only.</p>
+            <p className="text-xs text-zinc-400">Lowercase letters, numbers, and hyphens only.</p>
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="u-desc">Description</Label>
@@ -211,9 +211,9 @@ export function GlobalCommandPalette({ open, onClose }: GlobalCommandPaletteProp
             <CommandGroup heading="Members">
               {memberResults!.slice(0, 5).map((m) => (
                 <CommandItem key={m.id} value={`member-${m.id}`} onSelect={() => go(`/members/${m.slug ?? m.id}`)}>
-                  <Users className="mr-2 h-3.5 w-3.5 shrink-0 text-zinc-500" />
+                  <Users className="mr-2 h-3.5 w-3.5 shrink-0 text-zinc-400" />
                   <span>{m.display_name}</span>
-                  <span className="ml-auto text-[10px] text-zinc-600">{m.status}</span>
+                  <span className="ml-auto text-[10px] text-zinc-400">{m.status}</span>
                 </CommandItem>
               ))}
             </CommandGroup>
@@ -234,12 +234,12 @@ export function GlobalCommandPalette({ open, onClose }: GlobalCommandPaletteProp
                   : null
                 return (
                   <CommandItem key={s.id} value={`set-${s.id}`} onSelect={() => go(`/sets/${s.slug ?? s.id}`)}>
-                    <Shield className="mr-2 h-3.5 w-3.5 shrink-0 text-zinc-500" />
+                    <Shield className="mr-2 h-3.5 w-3.5 shrink-0 text-zinc-400" />
                     <span>{s.name}</span>
                     {matchLabel && (
-                      <span className="ml-2 text-[10px] text-zinc-500">a/k/a {matchLabel}</span>
+                      <span className="ml-2 text-[10px] text-zinc-400">a/k/a {matchLabel}</span>
                     )}
-                    <span className="ml-auto text-[10px] text-zinc-600">{s.status}</span>
+                    <span className="ml-auto text-[10px] text-zinc-400">{s.status}</span>
                   </CommandItem>
                 )
               })}
@@ -250,9 +250,9 @@ export function GlobalCommandPalette({ open, onClose }: GlobalCommandPaletteProp
             <CommandGroup heading="Alliances">
               {allianceResults!.slice(0, 5).map((a) => (
                 <CommandItem key={a.id} value={`alliance-${a.id}`} onSelect={() => go(`/alliances/${a.slug ?? a.id}`)}>
-                  <Network className="mr-2 h-3.5 w-3.5 shrink-0 text-zinc-500" />
+                  <Network className="mr-2 h-3.5 w-3.5 shrink-0 text-zinc-400" />
                   <span>{a.name}</span>
-                  <span className="ml-auto text-[10px] text-zinc-600">{a.status}</span>
+                  <span className="ml-auto text-[10px] text-zinc-400">{a.status}</span>
                 </CommandItem>
               ))}
             </CommandGroup>
@@ -262,9 +262,9 @@ export function GlobalCommandPalette({ open, onClose }: GlobalCommandPaletteProp
             <CommandGroup heading="Incidents">
               {incidentResults!.slice(0, 5).map((inc) => (
                 <CommandItem key={inc.id} value={`incident-${inc.id}`} onSelect={() => go(`/incidents/${inc.id}`)}>
-                  <AlertTriangle className="mr-2 h-3.5 w-3.5 shrink-0 text-zinc-500" />
+                  <AlertTriangle className="mr-2 h-3.5 w-3.5 shrink-0 text-zinc-400" />
                   <span>{inc.type}</span>
-                  {inc.date && <span className="ml-1.5 text-[10px] text-zinc-600">{fmtDate(inc.date)}</span>}
+                  {inc.date && <span className="ml-1.5 text-[10px] text-zinc-400">{fmtDate(inc.date)}</span>}
                   {inc.verified && <span className="ml-auto text-[10px] text-emerald-600">verified</span>}
                 </CommandItem>
               ))}
@@ -275,10 +275,10 @@ export function GlobalCommandPalette({ open, onClose }: GlobalCommandPaletteProp
             <CommandGroup heading="Municipalities">
               {municipalityResults!.slice(0, 5).map((m) => (
                 <CommandItem key={m.id} value={`municipality-${m.id}`} onSelect={() => go(`/municipalities/${m.id}`)}>
-                  <MapPin className="mr-2 h-3.5 w-3.5 shrink-0 text-zinc-500" />
+                  <MapPin className="mr-2 h-3.5 w-3.5 shrink-0 text-zinc-400" />
                   <span>{m.name}</span>
                   {m.incident_count > 0 && (
-                    <span className="ml-auto text-[10px] text-zinc-600">{m.incident_count} incidents</span>
+                    <span className="ml-auto text-[10px] text-zinc-400">{m.incident_count} incidents</span>
                   )}
                 </CommandItem>
               ))}
@@ -289,9 +289,9 @@ export function GlobalCommandPalette({ open, onClose }: GlobalCommandPaletteProp
             <CommandGroup heading="Sources">
               {sourceResults!.slice(0, 5).map((src) => (
                 <CommandItem key={src.id} value={`source-${src.id}`} onSelect={() => go(`/sources/${src.id}`)}>
-                  <FileText className="mr-2 h-3.5 w-3.5 shrink-0 text-zinc-500" />
+                  <FileText className="mr-2 h-3.5 w-3.5 shrink-0 text-zinc-400" />
                   <span className="truncate">{src.title}</span>
-                  <span className="ml-auto text-[10px] text-zinc-600">{src.reliability}</span>
+                  <span className="ml-auto text-[10px] text-zinc-400">{src.reliability}</span>
                 </CommandItem>
               ))}
             </CommandGroup>
@@ -308,7 +308,7 @@ export function GlobalCommandPalette({ open, onClose }: GlobalCommandPaletteProp
                     value={`universe-${u.name}`}
                     onSelect={() => { setActiveUniverse(u); onClose(); setQ('') }}
                   >
-                    <Globe className="mr-2 h-3.5 w-3.5 shrink-0 text-zinc-500" />
+                    <Globe className="mr-2 h-3.5 w-3.5 shrink-0 text-zinc-400" />
                     <span>{u.name}</span>
                     {activeUniverse?.id === u.id && (
                       <span className="ml-auto text-[10px] text-violet-400">active</span>
@@ -340,9 +340,9 @@ export function GlobalCommandPalette({ open, onClose }: GlobalCommandPaletteProp
                       value={`recent-${r.type}-${r.id}`}
                       onSelect={() => go(path)}
                     >
-                      <Icon className="mr-2 h-3.5 w-3.5 shrink-0 text-zinc-500" />
+                      <Icon className="mr-2 h-3.5 w-3.5 shrink-0 text-zinc-400" />
                       <span className="truncate">{r.label}</span>
-                      <Clock className="ml-auto h-3 w-3 shrink-0 text-zinc-700" />
+                      <Clock className="ml-auto h-3 w-3 shrink-0 text-zinc-500" />
                     </CommandItem>
                   )
                 })}

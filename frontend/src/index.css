@@ -7,13 +7,36 @@
 @import "tailwindcss";
 
 @theme {
+  /* ── Brand accent ──────────────────────────────────────────────────────────
+     The accent is sampled from the SquiidWiki logo, not picked from Tailwind's
+     stock palette. The logo's octopus sits at hue ~279 (grape) at 60-70%
+     saturation; Tailwind's stock `violet` sits at hue 258-263 (blue-leaning) at
+     83-95%. That gap is what made the old UI read as generic.
+
+     We deliberately REDEFINE the `violet-*` ramp rather than introduce a
+     parallel `brand-*` scale. ~200 call sites already say `violet-*`, and
+     splitting the name would leave two competing accents in the tree. With the
+     ramp overridden, `violet-*` IS the brand token and the whole app re-themes
+     from these eleven lines. Do not hardcode hex accents anywhere else. */
+  --color-violet-50: hsl(279 60% 97%);
+  --color-violet-100: hsl(279 62% 94%);
+  --color-violet-200: hsl(279 62% 87%);
+  --color-violet-300: hsl(279 62% 78%);
+  --color-violet-400: hsl(279 60% 68%);
+  --color-violet-500: hsl(279 58% 56%);
+  --color-violet-600: hsl(279 60% 46%);
+  --color-violet-700: hsl(279 64% 38%);
+  --color-violet-800: hsl(279 66% 31%);
+  --color-violet-900: hsl(279 68% 25%);
+  --color-violet-950: hsl(279 72% 16%);
+
   --color-background: hsl(240 10% 3.9%);
   --color-foreground: hsl(0 0% 98%);
   --color-card: hsl(240 10% 3.9%);
   --color-card-foreground: hsl(0 0% 98%);
   --color-popover: hsl(240 5% 8%);
   --color-popover-foreground: hsl(0 0% 98%);
-  --color-primary: hsl(258 68% 62%);
+  --color-primary: var(--color-violet-600);
   --color-primary-foreground: hsl(0 0% 98%);
   --color-secondary: hsl(240 3.7% 15.9%);
   --color-secondary-foreground: hsl(0 0% 98%);
@@ -25,18 +48,29 @@
   --color-destructive-foreground: hsl(0 0% 98%);
   --color-border: hsl(240 3.7% 15.9%);
   --color-input: hsl(240 3.7% 15.9%);
-  --color-ring: hsl(258 68% 62%);
+  --color-ring: var(--color-violet-500);
 
   --font-sans: 'Geist Sans', system-ui, -apple-system, sans-serif;
   --font-mono: 'Geist Mono', 'JetBrains Mono', monospace;
 
+  /* ── Shape scale (locked) ────────────────────────────────────────────────
+     Three steps, one rule, no exceptions:
+       rounded-md   controls  — buttons, inputs, selects, rows, icon buttons
+       rounded-lg   surfaces  — cards, panels, dialogs, table wrappers
+       rounded-full circular  — pills, chips, avatars, count badges
+     `rounded-xl` / `rounded-2xl` / `rounded-sm` are intentionally aliased onto
+     these so stray usages can't reintroduce a fourth and fifth radius. */
   --radius: 0.5rem;
-  --radius-sm: calc(var(--radius) - 4px);
+  --radius-sm: calc(var(--radius) - 2px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
+  --radius-xl: var(--radius);
+  --radius-2xl: var(--radius);
 }
 
-/* CSS variables for shadcn components that use hsl() syntax */
+/* CSS variables for shadcn components that use hsl() syntax.
+   Kept in sync with the @theme block above by hand — these are raw
+   `H S% L%` triples because the components wrap them in hsl(). */
 :root {
   --background: 240 10% 3.9%;
   --foreground: 0 0% 98%;
@@ -44,7 +78,7 @@
   --card-foreground: 0 0% 98%;
   --popover: 240 5% 8%;
   --popover-foreground: 0 0% 98%;
-  --primary: 258 68% 62%;
+  --primary: 279 60% 46%;
   --primary-foreground: 0 0% 98%;
   --secondary: 240 3.7% 15.9%;
   --secondary-foreground: 0 0% 98%;
@@ -56,11 +90,19 @@
   --destructive-foreground: 0 0% 98%;
   --border: 240 3.7% 15.9%;
   --input: 240 3.7% 15.9%;
-  --ring: 258 68% 62%;
+  --ring: 279 58% 56%;
 }
 
 * {
   box-sizing: border-box;
+}
+
+/* Page-edge clip. `clip`, never `hidden`: an ancestor with overflow:hidden
+   silently disables position:sticky and position:fixed on every descendant,
+   which would break the sticky table headers and the mobile drawer. */
+html,
+body {
+  overflow-x: clip;
 }
 
 body {
@@ -71,8 +113,33 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+/* dvh, not vh — iOS Safari's collapsing address bar makes 100vh taller than the
+   visible viewport, which pushed the app shell down by ~60px on every scroll. */
 #root {
-  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+/* Display-size text needs an explicit break opportunity. Long nicknames and
+   hyphenated set names ("Seven-Mile Bloods") have only one, and would otherwise
+   overflow a 320px viewport. min-width:0 is the half that gets forgotten: a
+   grid/flex child refuses to shrink below its content without it. */
+h1,
+h2 {
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
+
+/* Motion is decorative throughout this app (hover tints, chevron rotations,
+   skeleton pulses). None of it carries meaning, so all of it collapses. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 /* MapLibre popups — override the default white-on-white styling to match the

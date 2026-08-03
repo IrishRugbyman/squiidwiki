@@ -63,7 +63,7 @@ export function MunicipalityFormSheet({ universeId, open, onClose, initial, defa
     setError(null)
     const geometry = parseGeometry(geometryText)
     if (geometry === 'error') {
-      setError('Invalid GeoJSON — paste a Polygon/MultiPolygon geometry, a Feature, or a FeatureCollection whose first feature is a (Multi)Polygon')
+      setError('Invalid GeoJSON. Paste a Polygon/MultiPolygon geometry, a Feature, or a FeatureCollection whose first feature is a (Multi)Polygon')
       return
     }
     const body = { universe_id: universeId, name, parent_id: parentId || null, geometry }
@@ -102,7 +102,7 @@ export function MunicipalityFormSheet({ universeId, open, onClose, initial, defa
               <Select value={parentId || 'none'} onValueChange={(v) => setParentId(v === 'none' ? '' : v)}>
                 <SelectTrigger><SelectValue placeholder="None (top-level)" /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="none">— None —</SelectItem>
+                  <SelectItem value="none">None</SelectItem>
                   {options.map((m) => (
                     <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>
                   ))}
@@ -112,7 +112,7 @@ export function MunicipalityFormSheet({ universeId, open, onClose, initial, defa
           )}
           <div className="space-y-1.5">
             <Label htmlFor="m-geometry">
-              Boundary GeoJSON <span className="text-zinc-500 font-normal">(for map)</span>
+              Boundary GeoJSON <span className="text-zinc-400 font-normal">(for map)</span>
             </Label>
             <textarea
               id="m-geometry"
@@ -120,9 +120,9 @@ export function MunicipalityFormSheet({ universeId, open, onClose, initial, defa
               onChange={(e) => setGeometryText(e.target.value)}
               placeholder={'Paste a GeoJSON Polygon or MultiPolygon geometry here.\n{"type":"Polygon","coordinates":[[[lng,lat],...]]}'}
               rows={6}
-              className="w-full rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 font-mono text-xs text-zinc-300 placeholder:text-zinc-600 focus:border-violet-500 focus:outline-none focus:ring-1 focus:ring-violet-500/40 resize-y"
+              className="w-full rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 font-mono text-xs text-zinc-300 placeholder:text-zinc-400 focus:border-violet-500 focus:outline-none focus:ring-1 focus:ring-violet-500/40 resize-y"
             />
-            <p className="text-[11px] text-zinc-500">
+            <p className="text-[11px] text-zinc-400">
               Accepts a <code className="text-zinc-400">Polygon</code>, <code className="text-zinc-400">MultiPolygon</code>, or a full GeoJSON <code className="text-zinc-400">Feature</code>. Get boundaries from{' '}
               <a href="https://osm-boundaries.com" target="_blank" rel="noopener noreferrer" className="text-violet-400 hover:underline">osm-boundaries.com</a> or{' '}
               <a href="https://overpass-turbo.eu" target="_blank" rel="noopener noreferrer" className="text-violet-400 hover:underline">Overpass Turbo</a>.
@@ -175,12 +175,12 @@ function MuniRow({
           onClick={onToggleExpand}
           aria-expanded={expanded}
           aria-label={expanded ? `Collapse ${m.name}` : `Expand ${m.name}`}
-          className="-ml-1 grid h-5 w-5 shrink-0 place-items-center rounded text-zinc-500 hover:bg-zinc-800 hover:text-zinc-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/50"
+          className="-ml-1 grid h-5 w-5 shrink-0 place-items-center rounded text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/50"
         >
           <ChevronRight className={`h-3.5 w-3.5 transition-transform ${expanded ? 'rotate-90' : ''}`} />
         </button>
       ) : (
-        <MapPin className={`h-4 w-4 shrink-0 ${indent ? 'text-zinc-600' : 'text-zinc-500'}`} />
+        <MapPin className={`h-4 w-4 shrink-0 ${indent ? 'text-zinc-400' : 'text-zinc-400'}`} />
       )}
       <Link
         to="/municipalities/$id"
@@ -212,7 +212,7 @@ function MuniRow({
               {m.child_count} {m.child_count === 1 ? 'district' : 'districts'}
             </button>
           ) : (
-            <span className="rounded-full border border-zinc-700 bg-zinc-800/60 px-2 py-0.5 text-[11px] text-zinc-500">
+            <span className="rounded-full border border-zinc-700 bg-zinc-800/60 px-2 py-0.5 text-[11px] text-zinc-400">
               {m.child_count} {m.child_count === 1 ? 'district' : 'districts'}
             </span>
           )
@@ -223,7 +223,7 @@ function MuniRow({
               className={`rounded-full px-2 py-0.5 text-[11px] font-medium tabular-nums ${
                 m.incident_count > 0
                   ? 'bg-amber-500/10 text-amber-400'
-                  : 'bg-zinc-800/60 text-zinc-600'
+                  : 'bg-zinc-800/60 text-zinc-400'
               }`}
             >
               {m.incident_count} {m.incident_count === 1 ? 'incident' : 'incidents'}
@@ -236,7 +236,7 @@ function MuniRow({
         <button
           onClick={(e) => { e.preventDefault(); e.stopPropagation(); onEdit(m) }}
           aria-label={`Edit ${m.name}`}
-          className="rounded-md p-1.5 text-zinc-600 transition-colors hover:bg-zinc-700 hover:text-zinc-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/50 lg:opacity-0 lg:group-hover:opacity-100 lg:group-focus-within:opacity-100"
+          className="rounded-md p-1.5 text-zinc-400 transition-colors hover:bg-zinc-700 hover:text-zinc-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/50 lg:opacity-0 lg:group-hover:opacity-100 lg:group-focus-within:opacity-100"
         >
           <Pencil className="h-3.5 w-3.5" />
         </button>
@@ -351,7 +351,7 @@ function MunicipalitiesPage() {
       {/* Search + expand toggle */}
       <div className="flex items-center gap-2">
         <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-500" />
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400" />
           <Input
             value={q}
             onChange={(e) => setQ(e.target.value)}
@@ -359,7 +359,7 @@ function MunicipalitiesPage() {
             className="pl-9 pr-9"
           />
           {q && (
-            <button onClick={() => setQ('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-white">
+            <button onClick={() => setQ('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-white">
               <X className="h-4 w-4" />
             </button>
           )}

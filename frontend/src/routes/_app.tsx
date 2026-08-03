@@ -93,7 +93,7 @@ function renderKey(keys: string) {
       <kbd className="rounded bg-zinc-800 px-1.5 py-0.5 text-[10px] font-mono text-zinc-300 shadow-sm">
         {k === 'Ctrl' ? '⌘' : k}
       </kbd>
-      {i < arr.length - 1 && <span className="mx-0.5 text-zinc-600">{keys.includes('+') ? '+' : 'then'}</span>}
+      {i < arr.length - 1 && <span className="mx-0.5 text-zinc-400">{keys.includes('+') ? '+' : 'then'}</span>}
     </span>
   ))
 }
@@ -109,7 +109,7 @@ function DbModeToggle() {
       className={`mt-2 w-full rounded px-2 py-1 text-left text-[11px] font-semibold tracking-widest transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/50 ${
         mode === 'test'
           ? 'bg-amber-500/15 text-amber-400 hover:bg-amber-500/25'
-          : 'bg-zinc-800/60 text-zinc-500 hover:bg-zinc-800 hover:text-zinc-300'
+          : 'bg-zinc-800/60 text-zinc-400 hover:bg-zinc-800 hover:text-zinc-300'
       }`}
     >
       {mode === 'test' ? '⚠ TEST DB' : 'PROD DB'}
@@ -122,8 +122,10 @@ function NavLink({ to, icon: Icon, label, exact, onClick }: { to: string; icon: 
     <Link
       to={to}
       activeOptions={exact ? { exact: true } : undefined}
-      className="flex items-center gap-2.5 rounded-md px-2.5 py-2 text-sm text-zinc-400 transition-colors hover:bg-zinc-800 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/50 lg:py-1.5"
-      activeProps={{ className: 'bg-zinc-800/70 !text-white shadow-[inset_2px_0_0_hsl(258_68%_62%)]' }}
+      className="flex items-center gap-2.5 rounded-md px-2.5 py-2 text-sm text-zinc-400 transition-colors hover:bg-zinc-800 hover:text-white active:bg-zinc-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/50 lg:py-1.5"
+      // The active rail reads from --ring rather than a literal hsl() so it
+      // re-themes with the accent instead of drifting away from it.
+      activeProps={{ className: 'bg-zinc-800/70 !text-white shadow-[inset_2px_0_0_hsl(var(--ring))]' }}
       onClick={onClick}
     >
       <Icon className="h-4 w-4 shrink-0" />
@@ -224,7 +226,7 @@ function AppLayout() {
         <button
           onClick={() => setSidebarOpen(false)}
           aria-label="Close navigation menu"
-          className="lg:hidden inline-flex h-9 w-9 items-center justify-center rounded-md text-zinc-500 hover:bg-zinc-800 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/50"
+          className="lg:hidden inline-flex h-9 w-9 items-center justify-center rounded-md text-zinc-400 hover:bg-zinc-800 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/50"
         >
           <X className="h-4 w-4" />
         </button>
@@ -249,12 +251,12 @@ function AppLayout() {
       </nav>
 
       <div className="border-t border-zinc-800 p-3">
-        <Link to="/profile" className="block truncate text-xs text-zinc-500 hover:text-white transition-colors" onClick={() => setSidebarOpen(false)}>
+        <Link to="/profile" className="block truncate text-xs text-zinc-400 hover:text-white transition-colors" onClick={() => setSidebarOpen(false)}>
           {user?.email}
         </Link>
         <button
           onClick={handleLogout}
-          className="mt-1 text-xs text-zinc-500 transition-colors hover:text-white"
+          className="mt-1 text-xs text-zinc-400 transition-colors hover:text-white"
         >
           Sign out
         </button>
@@ -264,7 +266,7 @@ function AppLayout() {
   )
 
   return (
-    <div className="flex h-screen overflow-hidden bg-zinc-950">
+    <div className="flex h-dvh overflow-hidden bg-zinc-950">
       {/* Skip-to-main link (accessibility) — visible only when focused */}
       <a
         href="#main-content"
@@ -321,7 +323,7 @@ function AppLayout() {
           <div className="mt-2 space-y-5 max-h-[60vh] overflow-y-auto pr-1">
             {SHORTCUT_GROUPS.map((group) => (
               <section key={group.title}>
-                <h4 className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-zinc-500">{group.title}</h4>
+                <h4 className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-zinc-400">{group.title}</h4>
                 <ul className="space-y-1.5">
                   {group.items.map((s) => (
                     <li key={`${group.title}-${s.keys}`} className="flex items-center justify-between text-sm">

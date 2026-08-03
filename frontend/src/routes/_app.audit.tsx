@@ -49,8 +49,8 @@ function DiffBlock({ diff }: { diff: Record<string, unknown> }) {
   }, [diff])
 
   function render(v: unknown) {
-    if (v === undefined) return <span className="text-zinc-700">—</span>
-    if (v === null) return <span className="text-zinc-700 italic">null</span>
+    if (v === undefined) return <span className="text-zinc-500">—</span>
+    if (v === null) return <span className="text-zinc-500 italic">null</span>
     if (typeof v === 'string') return <span className="break-words">{v}</span>
     return <code className="font-mono text-[10px] text-zinc-400">{JSON.stringify(v)}</code>
   }
@@ -60,7 +60,7 @@ function DiffBlock({ diff }: { diff: Record<string, unknown> }) {
       <div className="overflow-hidden rounded border border-zinc-800 bg-zinc-950">
         <table className="w-full text-[11px]">
           <thead>
-            <tr className="bg-zinc-900/60 text-zinc-500">
+            <tr className="bg-zinc-900/60 text-zinc-400">
               <th className="px-2 py-1 text-left font-medium">Field</th>
               <th className="px-2 py-1 text-left font-medium">Before</th>
               <th className="px-2 py-1 text-left font-medium">After</th>
@@ -80,7 +80,7 @@ function DiffBlock({ diff }: { diff: Record<string, unknown> }) {
       <button
         type="button"
         onClick={() => setShowRaw((v) => !v)}
-        className="text-[10px] text-zinc-500 hover:text-zinc-300 transition-colors"
+        className="text-[10px] text-zinc-400 hover:text-zinc-300 transition-colors"
       >
         {showRaw ? 'Hide raw JSON' : 'Show raw JSON'}
       </button>
@@ -98,12 +98,12 @@ function AuditRow({ entry, email }: { entry: AuditLogRead; email: string | null 
   return (
     <>
       <tr className="hover:bg-zinc-900/30">
-        <td className="px-4 py-3 text-xs text-zinc-500 whitespace-nowrap">
+        <td className="px-4 py-3 text-xs text-zinc-400 whitespace-nowrap">
           {new Date(entry.created_at).toLocaleString()}
         </td>
         <td className="px-4 py-3">
           <span className="text-xs font-mono text-zinc-400">{entry.entity_type}</span>
-          <span className="ml-1 font-mono text-xs text-zinc-600">{entry.entity_id.slice(0, 8)}…</span>
+          <span className="ml-1 font-mono text-xs text-zinc-400">{entry.entity_id.slice(0, 8)}…</span>
         </td>
         <td className="px-4 py-3">
           <span className={`text-xs font-semibold ${
@@ -115,9 +115,9 @@ function AuditRow({ entry, email }: { entry: AuditLogRead; email: string | null 
           {email ? (
             <span className="text-zinc-300">{email}</span>
           ) : entry.user_id ? (
-            <span className="font-mono text-zinc-500">{entry.user_id.slice(0, 8)}…</span>
+            <span className="font-mono text-zinc-400">{entry.user_id.slice(0, 8)}…</span>
           ) : (
-            <span className="text-zinc-700">—</span>
+            <span className="text-zinc-500">—</span>
           )}
         </td>
         <td className="px-4 py-3">
@@ -126,13 +126,13 @@ function AuditRow({ entry, email }: { entry: AuditLogRead; email: string | null 
               type="button"
               onClick={() => setExpanded((v) => !v)}
               aria-expanded={expanded}
-              className="inline-flex items-center gap-1 text-xs text-zinc-500 hover:text-zinc-200 focus-visible:outline-none focus-visible:text-zinc-200"
+              className="inline-flex items-center gap-1 text-xs text-zinc-400 hover:text-zinc-200 focus-visible:outline-none focus-visible:text-zinc-200"
             >
               {expanded ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
               {expanded ? 'Hide' : 'View'} diff
             </button>
           ) : (
-            <span className="text-zinc-700">—</span>
+            <span className="text-zinc-500">—</span>
           )}
         </td>
       </tr>
@@ -159,7 +159,7 @@ function AuditPage() {
 
   if (user?.global_role !== 'ADMIN') {
     return (
-      <div className="py-24 text-center text-sm text-zinc-500">
+      <div className="py-24 text-center text-sm text-zinc-400">
         Admin access required to view the audit log.
       </div>
     )
@@ -183,7 +183,7 @@ function AuditPage() {
 
       <div className="mb-4 flex flex-wrap items-end gap-3">
         <div className="space-y-1">
-          <Label className="text-xs text-zinc-500">Entity type</Label>
+          <Label className="text-xs text-zinc-400">Entity type</Label>
           <Select value={entityType || 'all'} onValueChange={(v) => { setEntityType(v === 'all' ? '' : v); setOffset(0) }}>
             <SelectTrigger className="w-36 h-8 text-xs"><SelectValue placeholder="All" /></SelectTrigger>
             <SelectContent>
@@ -193,7 +193,7 @@ function AuditPage() {
           </Select>
         </div>
         <div className="space-y-1">
-          <Label className="text-xs text-zinc-500">Action</Label>
+          <Label className="text-xs text-zinc-400">Action</Label>
           <Select value={action || 'all'} onValueChange={(v) => { setAction(v === 'all' ? '' : v); setOffset(0) }}>
             <SelectTrigger className="w-28 h-8 text-xs"><SelectValue placeholder="All" /></SelectTrigger>
             <SelectContent>
@@ -227,7 +227,7 @@ function AuditPage() {
                 ))}
             {!isLoading && items.length === 0 && (
               <tr>
-                <td colSpan={5} className="px-4 py-12 text-center text-sm text-zinc-500">No audit entries found</td>
+                <td colSpan={5} className="px-4 py-12 text-center text-sm text-zinc-400">No audit entries found</td>
               </tr>
             )}
           </tbody>

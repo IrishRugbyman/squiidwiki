@@ -22,7 +22,7 @@ export function MemberIdentity({ member, showLegalName = false, className, secon
     <span className="inline-flex flex-col">
       <span className={cn('font-medium', className)}>{primary}</span>
       {secondary && (
-        <span className={cn('text-xs text-zinc-500', secondaryClassName)}>
+        <span className={cn('text-xs text-zinc-400', secondaryClassName)}>
           a/k/a {secondary}
         </span>
       )}

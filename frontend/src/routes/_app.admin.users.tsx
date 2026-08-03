@@ -94,8 +94,8 @@ function AddUserSheet({ open, onClose }: { open: boolean; onClose: () => void })
             <Select value={role} onValueChange={(v) => setRole(v as GlobalRole)}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="USER">USER — standard access</SelectItem>
-                <SelectItem value="ADMIN">ADMIN — full access</SelectItem>
+                <SelectItem value="USER">USER (standard access)</SelectItem>
+                <SelectItem value="ADMIN">ADMIN (full access)</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -124,7 +124,7 @@ function ManageAccessSheet({ user, onClose }: { user: UserListItem; onClose: () 
   return (
     <Sheet open onOpenChange={(v) => !v && onClose()}>
       <SheetContent
-        title={`Universe access — ${user.email}`}
+        title={`Universe access: ${user.email}`}
         description={
           isAdmin
             ? 'Admins automatically have access to every universe. Per-universe grants are not enforced for admin accounts.'
@@ -137,9 +137,9 @@ function ManageAccessSheet({ user, onClose }: { user: UserListItem; onClose: () 
           </p>
         )}
         <div className="mt-3 space-y-1.5">
-          {isLoading && <p className="text-sm text-zinc-500">Loading…</p>}
+          {isLoading && <p className="text-sm text-zinc-400">Loading…</p>}
           {!isLoading && data?.length === 0 && (
-            <p className="text-sm text-zinc-500">No universes exist yet.</p>
+            <p className="text-sm text-zinc-400">No universes exist yet.</p>
           )}
           {data?.map((row) => {
             const pendingGrant  = grant.isPending  && grant.variables?.universeId  === row.universe_id
@@ -152,7 +152,7 @@ function ManageAccessSheet({ user, onClose }: { user: UserListItem; onClose: () 
               >
                 <div className="min-w-0">
                   <div className="truncate text-zinc-200">{row.name}</div>
-                  <div className="truncate text-[11px] text-zinc-500">/{row.slug}</div>
+                  <div className="truncate text-[11px] text-zinc-400">/{row.slug}</div>
                 </div>
                 <input
                   type="checkbox"
@@ -201,7 +201,7 @@ function AdminUsersPage() {
 
   if (user?.global_role !== 'ADMIN') {
     return (
-      <div className="py-24 text-center text-sm text-zinc-500">
+      <div className="py-24 text-center text-sm text-zinc-400">
         Admin access required.
       </div>
     )
@@ -247,7 +247,7 @@ function AdminUsersPage() {
 
       <div className="mb-4 flex flex-wrap items-center gap-2">
         <div className="relative flex-1 min-w-48 max-w-sm">
-          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" />
           <Input className="pl-8 h-8 text-sm" placeholder="Filter by email…" value={q} onChange={(e) => setQ(e.target.value)} />
         </div>
         <Select value={roleFilter} onValueChange={(v) => setRoleFilter(v as GlobalRole | 'ALL')}>
@@ -278,7 +278,7 @@ function AdminUsersPage() {
                   <tr key={u.id} className="hover:bg-zinc-900/30">
                     <td className="px-4 py-3 text-zinc-200">
                       <span className="inline-flex items-center gap-2">
-                        {u.global_role === 'ADMIN' ? <Shield className="h-3.5 w-3.5 text-amber-400" /> : <UserIcon className="h-3.5 w-3.5 text-zinc-500" />}
+                        {u.global_role === 'ADMIN' ? <Shield className="h-3.5 w-3.5 text-amber-400" /> : <UserIcon className="h-3.5 w-3.5 text-zinc-400" />}
                         {u.email}
                         {u.id === user?.id && <span className="rounded-full bg-violet-900/40 px-1.5 py-0.5 text-[10px] text-violet-300">you</span>}
                       </span>
@@ -300,12 +300,12 @@ function AdminUsersPage() {
                         </SelectContent>
                       </Select>
                     </td>
-                    <td className="hidden px-4 py-3 text-xs text-zinc-500 sm:table-cell">
+                    <td className="hidden px-4 py-3 text-xs text-zinc-400 sm:table-cell">
                       <span title={new Date(u.created_at).toLocaleString()}>
                         {new Date(u.created_at).toLocaleDateString()}
                       </span>
                     </td>
-                    <td className="hidden px-4 py-3 text-xs text-zinc-500 sm:table-cell">
+                    <td className="hidden px-4 py-3 text-xs text-zinc-400 sm:table-cell">
                       {u.last_login_at ? (
                         <span title={new Date(u.last_login_at).toLocaleString()}>
                           {relativeTime(u.last_login_at)}
@@ -328,7 +328,7 @@ function AdminUsersPage() {
                 ))}
             {!isLoading && items.length === 0 && (
               <tr>
-                <td colSpan={5} className="px-4 py-12 text-center text-sm text-zinc-500">
+                <td colSpan={5} className="px-4 py-12 text-center text-sm text-zinc-400">
                   {q || roleFilter !== 'ALL' ? 'No users match the current filters' : 'No users found'}
                 </td>
               </tr>

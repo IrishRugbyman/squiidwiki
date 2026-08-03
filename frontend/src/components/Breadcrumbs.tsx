@@ -15,10 +15,10 @@ interface BreadcrumbsProps {
 
 export function Breadcrumbs({ items, className }: BreadcrumbsProps) {
   return (
-    <nav aria-label="Breadcrumb" className={cn('mb-4 flex items-center text-xs text-zinc-500', className)}>
+    <nav aria-label="Breadcrumb" className={cn('mb-4 flex items-center text-xs text-zinc-400', className)}>
       <Link
         to="/"
-        className="flex items-center gap-1 rounded px-1 py-0.5 text-zinc-500 transition-colors hover:text-zinc-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/50"
+        className="flex items-center gap-1 rounded px-1 py-0.5 text-zinc-400 transition-colors hover:text-zinc-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/50"
         aria-label="Dashboard"
       >
         <Home className="h-3.5 w-3.5" />
@@ -27,11 +27,11 @@ export function Breadcrumbs({ items, className }: BreadcrumbsProps) {
         const isLast = i === items.length - 1
         return (
           <div key={`${item.label}-${i}`} className="flex items-center">
-            <ChevronRight className="mx-1 h-3.5 w-3.5 text-zinc-700" />
+            <ChevronRight className="mx-1 h-3.5 w-3.5 text-zinc-500" />
             {item.to && !isLast ? (
               <Link
                 to={item.to}
-                className="rounded px-1 py-0.5 text-zinc-500 transition-colors hover:text-zinc-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/50"
+                className="rounded px-1 py-0.5 text-zinc-400 transition-colors hover:text-zinc-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/50"
               >
                 {item.label}
               </Link>
@@ -39,7 +39,7 @@ export function Breadcrumbs({ items, className }: BreadcrumbsProps) {
               <span
                 className={cn(
                   'px-1 py-0.5',
-                  isLast ? 'truncate font-medium text-zinc-200' : 'text-zinc-500',
+                  isLast ? 'truncate font-medium text-zinc-200' : 'text-zinc-400',
                 )}
                 aria-current={isLast ? 'page' : undefined}
               >

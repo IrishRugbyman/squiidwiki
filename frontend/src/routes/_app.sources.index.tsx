@@ -101,10 +101,10 @@ export function SourceFormSheet({ universeId, open, onClose, initial, defaultUrl
             <Select value={reliability} onValueChange={(v) => setReliability(v as SourceReliability)}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="HIGH">High — {RELIABILITY_DESCRIPTION.HIGH}</SelectItem>
-                <SelectItem value="MEDIUM">Medium — {RELIABILITY_DESCRIPTION.MEDIUM}</SelectItem>
-                <SelectItem value="LOW">Low — {RELIABILITY_DESCRIPTION.LOW}</SelectItem>
-                <SelectItem value="UNVERIFIED">Unverified — {RELIABILITY_DESCRIPTION.UNVERIFIED}</SelectItem>
+                <SelectItem value="HIGH">High: {RELIABILITY_DESCRIPTION.HIGH}</SelectItem>
+                <SelectItem value="MEDIUM">Medium: {RELIABILITY_DESCRIPTION.MEDIUM}</SelectItem>
+                <SelectItem value="LOW">Low: {RELIABILITY_DESCRIPTION.LOW}</SelectItem>
+                <SelectItem value="UNVERIFIED">Unverified: {RELIABILITY_DESCRIPTION.UNVERIFIED}</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -223,7 +223,7 @@ function SourcesPage() {
 
         <div className="mb-4 flex flex-wrap items-center gap-2">
           <div className="relative flex-1 min-w-48 max-w-sm">
-            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" />
             <Input className="pl-8" placeholder="Filter sources…" value={q} onChange={(e) => setQ(e.target.value)} />
           </div>
           <Select value={reliabilityFilter} onValueChange={(v) => setReliabilityFilter(v as SourceReliability | 'ALL')}>
@@ -266,14 +266,14 @@ function SourcesPage() {
                     Reliability
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <HelpCircle className="h-3 w-3 text-zinc-600 hover:text-zinc-400" />
+                        <HelpCircle className="h-3 w-3 text-zinc-400 hover:text-zinc-200" />
                       </TooltipTrigger>
                       <TooltipContent side="top">
                         <div className="space-y-1 max-w-xs">
-                          <div><strong>HIGH</strong> — {RELIABILITY_DESCRIPTION.HIGH}</div>
-                          <div><strong>MEDIUM</strong> — {RELIABILITY_DESCRIPTION.MEDIUM}</div>
-                          <div><strong>LOW</strong> — {RELIABILITY_DESCRIPTION.LOW}</div>
-                          <div><strong>UNVERIFIED</strong> — {RELIABILITY_DESCRIPTION.UNVERIFIED}</div>
+                          <div><strong>HIGH:</strong> {RELIABILITY_DESCRIPTION.HIGH}</div>
+                          <div><strong>MEDIUM:</strong> {RELIABILITY_DESCRIPTION.MEDIUM}</div>
+                          <div><strong>LOW:</strong> {RELIABILITY_DESCRIPTION.LOW}</div>
+                          <div><strong>UNVERIFIED:</strong> {RELIABILITY_DESCRIPTION.UNVERIFIED}</div>
                         </div>
                       </TooltipContent>
                     </Tooltip>
@@ -317,7 +317,7 @@ function SourcesPage() {
                           target="_blank"
                           rel="noopener noreferrer"
                           aria-label="Open source in new tab"
-                          className="rounded p-1 text-zinc-500 hover:text-violet-400 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/50"
+                          className="rounded p-1 text-zinc-400 hover:text-violet-400 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/50"
                         >
                           <ExternalLink className="h-3.5 w-3.5" />
                         </a>

@@ -14,7 +14,7 @@ export function BulkActionBar({ count, label, onClear, children }: BulkActionBar
   if (count === 0) return null
   return (
     <div
-      className="fixed left-1/2 z-40 flex -translate-x-1/2 items-center gap-3 rounded-xl border border-zinc-700 bg-zinc-900 px-4 py-2.5 shadow-2xl shadow-black/50"
+      className="fixed left-1/2 z-40 flex -translate-x-1/2 items-center gap-3 rounded-lg border border-zinc-700 bg-zinc-900 px-4 py-2.5 shadow-2xl shadow-black/50"
       style={{ bottom: 'max(1.5rem, env(safe-area-inset-bottom))' }}
       role="region"
       aria-label={`Bulk actions for selected ${label}s`}
@@ -31,7 +31,7 @@ export function BulkActionBar({ count, label, onClear, children }: BulkActionBar
       <button
         onClick={onClear}
         aria-label="Clear selection"
-        className="text-zinc-500 transition-colors hover:text-white"
+        className="text-zinc-400 transition-colors hover:text-white"
       >
         <X className="h-4 w-4" />
       </button>

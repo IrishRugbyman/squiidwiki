@@ -89,7 +89,7 @@ export function AllianceFormSheet({ universeId, open, onClose, initial, onSaved 
             <Input id="a-name" required value={name} onChange={(e) => setName(e.target.value)} placeholder="Alliance name" />
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="a-aliases">Aliases <span className="text-zinc-600">(comma-separated)</span></Label>
+            <Label htmlFor="a-aliases">Aliases <span className="text-zinc-400">(comma-separated)</span></Label>
             <Input id="a-aliases" value={aliases} onChange={(e) => setAliases(e.target.value)} placeholder="e.g. EastSide, ESC" />
           </div>
           <div className="space-y-1.5">
@@ -217,7 +217,7 @@ function AlliancesPage() {
 
       <div className="mb-4 flex items-center gap-2">
         <div className="relative flex-1 max-w-sm">
-          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" />
           <Input className="pl-8" placeholder="Search alliances…" value={q} onChange={(e) => setQ(e.target.value)} />
         </div>
         <Button variant="outline" size="sm" onClick={() => {
@@ -247,7 +247,7 @@ function AlliancesPage() {
                 aria-sort={sortKey === 'name' ? (sortDir === 'asc' ? 'ascending' : 'descending') : 'none'}
               >
                 <button onClick={() => toggleSort('name')} className="flex items-center gap-1 text-xs font-medium text-zinc-400 hover:text-white transition-colors focus-visible:outline-none focus-visible:text-white">
-                  Name <span className="text-zinc-600" aria-hidden>{sortKey === 'name' ? (sortDir === 'asc' ? '↑' : '↓') : '↕'}</span>
+                  Name <span className="text-zinc-400" aria-hidden>{sortKey === 'name' ? (sortDir === 'asc' ? '↑' : '↓') : '↕'}</span>
                 </button>
               </th>
               <th
@@ -256,7 +256,7 @@ function AlliancesPage() {
                 aria-sort={sortKey === 'status' ? (sortDir === 'asc' ? 'ascending' : 'descending') : 'none'}
               >
                 <button onClick={() => toggleSort('status')} className="flex items-center gap-1 text-xs font-medium text-zinc-400 hover:text-white transition-colors focus-visible:outline-none focus-visible:text-white">
-                  Status <span className="text-zinc-600" aria-hidden>{sortKey === 'status' ? (sortDir === 'asc' ? '↑' : '↓') : '↕'}</span>
+                  Status <span className="text-zinc-400" aria-hidden>{sortKey === 'status' ? (sortDir === 'asc' ? '↑' : '↓') : '↕'}</span>
                 </button>
               </th>
             </tr>

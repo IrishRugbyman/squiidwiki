@@ -2,6 +2,7 @@ import { Link } from '@tanstack/react-router'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { FuzzyDate } from '@/components/FuzzyDate'
 import { INCIDENT_TYPE_HEX } from '@/lib/statusColors'
+import { BRAND } from '@/lib/brand'
 import type { FuzzyDateValue } from '@/components/FuzzyDate'
 import type { IncidentListItem } from '@/lib/types'
 
@@ -44,7 +45,7 @@ export function MemberTimeline({ incidents, dob, dateOfDeath }: MemberTimelinePr
   return (
     <TooltipProvider delayDuration={150}>
       <div className="rounded-lg border border-zinc-800 bg-zinc-900/30 p-4">
-        <div className="mb-6 flex items-center justify-between text-[10px] text-zinc-600">
+        <div className="mb-6 flex items-center justify-between text-[10px] text-zinc-400">
           <span>{new Date(min).getFullYear()}</span>
           <span>{new Date(max).getFullYear()}</span>
         </div>
@@ -79,7 +80,7 @@ export function MemberTimeline({ incidents, dob, dateOfDeath }: MemberTimelinePr
                 >
                   <div
                     className="h-3 w-3 rounded-full ring-2 ring-zinc-900 transition-transform hover:scale-125"
-                    style={{ backgroundColor: INCIDENT_TYPE_HEX[inc.type] ?? '#a78bfa' }}
+                    style={{ backgroundColor: INCIDENT_TYPE_HEX[inc.type] ?? BRAND.light }}
                   />
                 </Link>
               </TooltipTrigger>
@@ -112,7 +113,7 @@ export function MemberTimeline({ incidents, dob, dateOfDeath }: MemberTimelinePr
             </Tooltip>
           )}
         </div>
-        <div className="mt-3 flex justify-center gap-4 text-[10px] text-zinc-500">
+        <div className="mt-3 flex justify-center gap-4 text-[10px] text-zinc-400">
           {dobT !== null && <span className="inline-flex items-center gap-1"><span className="h-1.5 w-1.5 rounded-full bg-sky-500" /> Born</span>}
           <span className="inline-flex items-center gap-1"><span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: INCIDENT_TYPE_HEX.SHOOTING }} /> Shooting</span>
           <span className="inline-flex items-center gap-1"><span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: INCIDENT_TYPE_HEX.MURDER }} /> Murder</span>
