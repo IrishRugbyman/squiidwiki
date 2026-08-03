@@ -82,7 +82,7 @@ export function AddSourceToIncidentDialog({
           {search.length >= 2 && results && (
             <div className="max-h-48 overflow-y-auto rounded border border-zinc-800 bg-zinc-950">
               {results.length === 0 ? (
-                <div className="px-3 py-2 text-sm text-zinc-500">No matching sources.</div>
+                <div className="px-3 py-2 text-sm text-zinc-400">No matching sources.</div>
               ) : (
                 results.map((s) => {
                   const already = existingIds.has(s.id) || pendingIds.has(s.id)
@@ -97,7 +97,7 @@ export function AddSourceToIncidentDialog({
                       <span className="truncate text-zinc-300">{s.title}</span>
                       <div className="flex items-center gap-2 shrink-0">
                         <ReliabilityBadge reliability={s.reliability} />
-                        {already && <span className="text-xs text-zinc-500">already added</span>}
+                        {already && <span className="text-xs text-zinc-400">already added</span>}
                       </div>
                     </button>
                   )
@@ -120,7 +120,7 @@ export function AddSourceToIncidentDialog({
 
         {pending.length > 0 && (
           <div className="space-y-1.5 pt-2">
-            <div className="text-xs font-medium text-zinc-500 uppercase tracking-wider">
+            <div className="text-xs font-medium text-zinc-400 uppercase tracking-wider">
               Staged ({pending.length})
             </div>
             {pending.map((s) => (
@@ -134,7 +134,7 @@ export function AddSourceToIncidentDialog({
                   <button
                     type="button"
                     onClick={() => removePending(s.id)}
-                    className="text-zinc-600 hover:text-red-400 transition-colors text-xs"
+                    className="text-zinc-400 hover:text-red-400 transition-colors text-xs"
                   >
                     ✕
                   </button>

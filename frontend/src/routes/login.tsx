@@ -18,7 +18,7 @@ function loginErrorMessage(err: unknown): string {
     if (err.status >= 500) return 'The server had a problem. Try again in a moment.'
     return err.message
   }
-  return 'Login failed — check your network connection and try again.'
+  return 'Login failed. Check your network connection and try again.'
 }
 
 function LoginPage() {
@@ -47,7 +47,7 @@ function LoginPage() {
   }
 
   return (
-    <div className="relative flex min-h-screen items-center justify-center bg-zinc-950 p-4">
+    <div className="relative flex min-h-dvh items-center justify-center bg-zinc-950 p-4">
       {/* Subtle grid texture */}
       <div
         aria-hidden
@@ -61,12 +61,12 @@ function LoginPage() {
 
       <div className="relative w-full max-w-sm">
         <div className="mb-8 flex flex-col items-center text-center">
-          <img src="/logo.png" alt="SquiidWiki" className="mb-2 h-24 w-24 rounded-2xl object-cover shadow-lg shadow-black/40" />
+          <img src="/logo.png" alt="SquiidWiki" className="mb-2 h-24 w-24 rounded-lg object-cover shadow-lg shadow-black/40" />
           <h1 className="text-2xl font-bold tracking-tight text-white">SquiidWiki</h1>
-          <p className="mt-1 text-sm text-zinc-500">Sign in to continue</p>
+          <p className="mt-1 text-sm text-zinc-400">Sign in to continue</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4 rounded-xl border border-zinc-800 bg-zinc-900/60 p-6 shadow-xl shadow-black/30">
+        <form onSubmit={handleSubmit} className="space-y-4 rounded-lg border border-zinc-800 bg-zinc-900/60 p-6 shadow-xl shadow-black/30">
           <div className="space-y-1.5">
             <Label htmlFor="email">Email</Label>
             <Input
@@ -104,7 +104,7 @@ function LoginPage() {
             {loading ? 'Signing in…' : 'Sign in'}
           </Button>
 
-          <p className="pt-1 text-center text-[11px] text-zinc-600">
+          <p className="pt-1 text-center text-[11px] text-zinc-400">
             Lost your password? Contact an administrator.
           </p>
         </form>

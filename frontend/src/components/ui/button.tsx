@@ -4,16 +4,26 @@ import * as React from 'react'
 import { cn } from '@/lib/utils'
 
 const buttonVariants = cva(
-  'inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500 disabled:pointer-events-none disabled:opacity-50',
+  // The transition list is explicit rather than `transition-colors` or
+  // `transition-all` for two reasons: transform must be included so the
+  // :active press reads, and box-shadow must be EXCLUDED so the focus ring
+  // appears instantly. A ring that fades in is a ring a keyboard user has
+  // already tabbed past.
+  'inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium ' +
+    'transition-[color,background-color,border-color,transform] duration-150 ' +
+    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-950 ' +
+    'active:scale-[0.98] ' +
+    'disabled:pointer-events-none disabled:opacity-50 disabled:saturate-50',
   {
     variants: {
       variant: {
-        default: 'bg-violet-600 text-white hover:bg-violet-500',
-        destructive: 'bg-red-600 text-white hover:bg-red-500',
-        outline: 'border border-zinc-700 bg-transparent text-foreground hover:bg-zinc-800',
-        secondary: 'bg-zinc-800 text-zinc-100 hover:bg-zinc-700',
-        ghost: 'hover:bg-zinc-800 hover:text-white',
-        link: 'text-violet-400 underline-offset-4 hover:underline',
+        default: 'bg-violet-600 text-white hover:bg-violet-500 active:bg-violet-700',
+        destructive: 'bg-red-600 text-white hover:bg-red-500 active:bg-red-700',
+        outline:
+          'border border-zinc-700 bg-transparent text-foreground hover:bg-zinc-800 active:bg-zinc-700',
+        secondary: 'bg-zinc-800 text-zinc-100 hover:bg-zinc-700 active:bg-zinc-600',
+        ghost: 'hover:bg-zinc-800 hover:text-white active:bg-zinc-700',
+        link: 'text-violet-400 underline-offset-4 hover:underline active:text-violet-300',
       },
       size: {
         default: 'h-9 px-4 py-2',

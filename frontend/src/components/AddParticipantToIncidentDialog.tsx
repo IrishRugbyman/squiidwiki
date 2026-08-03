@@ -138,7 +138,7 @@ export function AddParticipantToIncidentDialog({
           {search.length >= 2 && results && (
             <div className="max-h-40 overflow-y-auto rounded border border-zinc-800 bg-zinc-950">
               {results.length === 0 ? (
-                <div className="px-3 py-2 text-sm text-zinc-500">No matching members.</div>
+                <div className="px-3 py-2 text-sm text-zinc-400">No matching members.</div>
               ) : (
                 results.map((m) => {
                   const already = existingIds.has(m.id) || pendingIds.has(m.id)
@@ -153,9 +153,9 @@ export function AddParticipantToIncidentDialog({
                       <span className="truncate">{m.display_name}</span>
                       <span className="flex items-center gap-2 shrink-0">
                         {m.primary_set_name && (
-                          <span className="text-[10px] text-zinc-500 truncate max-w-[120px]">{m.primary_set_name}</span>
+                          <span className="text-[10px] text-zinc-400 truncate max-w-[120px]">{m.primary_set_name}</span>
                         )}
-                        {already && <span className="text-xs text-zinc-500">already added</span>}
+                        {already && <span className="text-xs text-zinc-400">already added</span>}
                       </span>
                     </button>
                   )
@@ -178,7 +178,7 @@ export function AddParticipantToIncidentDialog({
 
         {pending.length > 0 && (
           <div className="space-y-1.5 pt-2">
-            <div className="text-xs font-medium text-zinc-500 uppercase tracking-wider">
+            <div className="text-xs font-medium text-zinc-400 uppercase tracking-wider">
               Staged ({pending.length})
             </div>
             {pending.map((p) => (
@@ -189,7 +189,7 @@ export function AddParticipantToIncidentDialog({
                 <span className="min-w-0 flex items-baseline gap-1.5 truncate">
                   <span className="text-zinc-200 truncate">{p.member_name}</span>
                   {p.set_name && (
-                    <span className="text-[10px] text-zinc-500 truncate">· {p.set_name}</span>
+                    <span className="text-[10px] text-zinc-400 truncate">· {p.set_name}</span>
                   )}
                 </span>
                 <div className="flex items-center gap-2">
@@ -198,7 +198,7 @@ export function AddParticipantToIncidentDialog({
                   <button
                     type="button"
                     onClick={() => removePending(p.member_id)}
-                    className="text-zinc-600 hover:text-red-400 transition-colors text-xs"
+                    className="text-zinc-400 hover:text-red-400 transition-colors text-xs"
                   >
                     ✕
                   </button>

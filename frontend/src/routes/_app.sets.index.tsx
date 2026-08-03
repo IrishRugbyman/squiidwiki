@@ -161,7 +161,7 @@ export function SetAvatar({ name, thumbUrl, size = 'md', isReserved = false, gan
   const [imgError, setImgError] = useState(false)
   const sz =
     size === 'sm' ? 'h-7 w-7 text-xs rounded-md' :
-    size === 'xl' ? 'h-20 w-20 text-2xl rounded-xl ring-1 ring-zinc-600/80 shadow-lg shadow-black/30' :
+    size === 'xl' ? 'h-20 w-20 text-2xl rounded-lg ring-1 ring-zinc-600/80 shadow-lg shadow-black/30' :
     'h-8 w-8 text-sm rounded-md'
   const iconSz = size === 'sm' ? 'h-3.5 w-3.5' : size === 'xl' ? 'h-8 w-8' : 'h-4 w-4'
   if (isReserved) {
@@ -356,7 +356,7 @@ export function SetFormSheet({ universeId, open, onClose, initial, onSaved, defa
         <form onSubmit={handleSubmit} className="space-y-4">
           {isReserved && (
             <div className="rounded border border-zinc-700 bg-zinc-900/50 px-3 py-2 text-xs text-zinc-400">
-              System set — only the bio is editable. All other fields are locked.
+              System set. Only the bio is editable. All other fields are locked.
             </div>
           )}
           {isReserved ? (
@@ -368,7 +368,7 @@ export function SetFormSheet({ universeId, open, onClose, initial, onSaved, defa
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <Label>Names *</Label>
-                <span className="text-[11px] text-zinc-500">Primary is shown as the set's display name</span>
+                <span className="text-[11px] text-zinc-400">Primary is shown as the set's display name</span>
               </div>
               <div className="space-y-2">
                 {variants.map((v, idx) => (
@@ -378,7 +378,7 @@ export function SetFormSheet({ universeId, open, onClose, initial, onSaved, defa
                   >
                     <div className="grid grid-cols-3 gap-2">
                       <div className="space-y-1">
-                        <Label className="text-[11px] text-zinc-500">Name</Label>
+                        <Label className="text-[11px] text-zinc-400">Name</Label>
                         <Input
                           value={v.name ?? ''}
                           onChange={(e) =>
@@ -388,7 +388,7 @@ export function SetFormSheet({ universeId, open, onClose, initial, onSaved, defa
                         />
                       </div>
                       <div className="space-y-1">
-                        <Label className="text-[11px] text-zinc-500">Initials</Label>
+                        <Label className="text-[11px] text-zinc-400">Initials</Label>
                         <Input
                           value={v.initials ?? ''}
                           onChange={(e) =>
@@ -398,7 +398,7 @@ export function SetFormSheet({ universeId, open, onClose, initial, onSaved, defa
                         />
                       </div>
                       <div className="space-y-1">
-                        <Label className="text-[11px] text-zinc-500">Number</Label>
+                        <Label className="text-[11px] text-zinc-400">Number</Label>
                         <Input
                           value={v.number ?? ''}
                           onChange={(e) =>
@@ -421,7 +421,7 @@ export function SetFormSheet({ universeId, open, onClose, initial, onSaved, defa
                         />
                         Primary
                       </label>
-                      <div className="flex items-center gap-1.5 text-[11px] text-zinc-500">
+                      <div className="flex items-center gap-1.5 text-[11px] text-zinc-400">
                         <span>Show as</span>
                         {(['name', 'initials', 'number'] as const).map((slot) => {
                           const filled = !!v[slot]?.trim()
@@ -455,7 +455,7 @@ export function SetFormSheet({ universeId, open, onClose, initial, onSaved, defa
                               return next
                             })
                           }
-                          className="text-xs text-zinc-500 hover:text-red-400"
+                          className="text-xs text-zinc-400 hover:text-red-400"
                         >
                           Remove
                         </button>
@@ -521,14 +521,14 @@ export function SetFormSheet({ universeId, open, onClose, initial, onSaved, defa
               <Select value={municipalityId} onValueChange={handleMunicipalityChange}>
                 <SelectTrigger><SelectValue placeholder="No municipality" /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value={MUNI_NONE}>— None —</SelectItem>
+                  <SelectItem value={MUNI_NONE}>None</SelectItem>
                   {topLevelMunis.map((m) => (
                     <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
               {municipalityId !== MUNI_NONE && subDistricts.length === 0 && (
-                <p className="text-[11px] text-zinc-600">
+                <p className="text-[11px] text-zinc-400">
                   This municipality has no sub-districts.
                 </p>
               )}
@@ -538,7 +538,7 @@ export function SetFormSheet({ universeId, open, onClose, initial, onSaved, defa
             <div className="space-y-1.5">
               <div className="flex items-center justify-between">
                 <Label>Sub-districts</Label>
-                <span className="text-xs text-zinc-500 tabular-nums">
+                <span className="text-xs text-zinc-400 tabular-nums">
                   {territoryIds.length} of {subDistricts.length} selected
                 </span>
               </div>
@@ -572,7 +572,7 @@ export function SetFormSheet({ universeId, open, onClose, initial, onSaved, defa
                             </span>
                           ))}
                           {coClaims.length > 2 && (
-                            <span className="text-[10px] text-zinc-500">+{coClaims.length - 2}</span>
+                            <span className="text-[10px] text-zinc-400">+{coClaims.length - 2}</span>
                           )}
                         </span>
                       )}
@@ -643,11 +643,11 @@ function StatusTabs({ value, onChange, counts }: {
           onClick={() => onChange(key)}
           aria-pressed={value === key}
           className={`flex items-center gap-1.5 rounded-md px-3 py-1 text-xs font-medium transition-colors ${
-            value === key ? 'bg-zinc-700 text-white' : 'text-zinc-500 hover:text-zinc-300'
+            value === key ? 'bg-zinc-700 text-white' : 'text-zinc-400 hover:text-zinc-300'
           }`}
         >
           {label}
-          <span className={`tabular-nums ${value === key ? 'text-zinc-300' : 'text-zinc-600'}`}>
+          <span className={`tabular-nums ${value === key ? 'text-zinc-300' : 'text-zinc-400'}`}>
             {counts[key]}
           </span>
         </button>
@@ -674,7 +674,7 @@ function SortHeader({ label, col, sort, order, onSort, align = 'left' }: {
         }`}
       >
         {label}
-        <span className="text-zinc-600" aria-hidden>{sorted ? (order === 'asc' ? '↑' : '↓') : '↕'}</span>
+        <span className="text-zinc-400" aria-hidden>{sorted ? (order === 'asc' ? '↑' : '↓') : '↕'}</span>
       </button>
     </th>
   )
@@ -701,7 +701,7 @@ function StatTile({ label, value, active, onClick, accent }: {
       onClick={onClick}
       className={`flex flex-1 min-w-0 flex-col items-start rounded-lg border border-zinc-800 bg-zinc-900/40 px-3 py-2 text-left transition-colors ${ring}`}
     >
-      <span className="text-[10px] font-medium uppercase tracking-wider text-zinc-500">{label}</span>
+      <span className="text-[10px] font-medium uppercase tracking-wider text-zinc-400">{label}</span>
       <span className={`mt-0.5 text-lg font-bold tabular-nums ${accentColor}`}>{value}</span>
     </Comp>
   )
@@ -759,7 +759,7 @@ function RowActions({ set, onEdit, onDuplicate, onDelete }: {
       <button
         onClick={onEdit}
         aria-label={`Edit ${set.name}`}
-        className="rounded p-1.5 text-zinc-600 hover:bg-zinc-800 hover:text-zinc-300 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/50"
+        className="rounded p-1.5 text-zinc-400 hover:bg-zinc-800 hover:text-zinc-300 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/50"
       >
         <Pencil className="h-3.5 w-3.5" />
       </button>
@@ -771,7 +771,7 @@ function RowActions({ set, onEdit, onDuplicate, onDelete }: {
         <button
           aria-label={`Actions for ${set.name}`}
           onClick={(e) => e.stopPropagation()}
-          className="rounded p-1.5 text-zinc-500 hover:bg-zinc-800 hover:text-zinc-200 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/50"
+          className="rounded p-1.5 text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/50"
         >
           <MoreVertical className="h-4 w-4" />
         </button>
@@ -830,7 +830,7 @@ function SetCard({ set, isSelected, onToggleSelect, onEdit, onDuplicate, onDelet
           )}
           {set.municipality_name && <MunicipalityPill name={set.municipality_name} />}
           {!set.gang_name && !set.alliance_name && !set.municipality_name && (
-            <span className="text-[11px] text-zinc-600">No affiliations</span>
+            <span className="text-[11px] text-zinc-400">No affiliations</span>
           )}
         </div>
         <div className="flex items-center justify-between border-t border-zinc-800/80 px-3 py-2">
@@ -1083,7 +1083,7 @@ function SetsPage() {
       {/* Toolbar */}
       <div className="mb-3 flex flex-wrap items-center gap-2">
         <div className="relative min-w-48 flex-1 max-w-sm">
-          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" />
           <Input
             className="pl-8"
             placeholder="Search sets…"
@@ -1180,7 +1180,7 @@ function SetsPage() {
                 onClick={() => patchSearch({ view: 'table' })}
                 aria-label="Table view"
                 aria-pressed={view === 'table'}
-                className={`rounded-md p-1.5 transition-colors ${view === 'table' ? 'bg-zinc-700 text-white' : 'text-zinc-500 hover:text-zinc-300'}`}
+                className={`rounded-md p-1.5 transition-colors ${view === 'table' ? 'bg-zinc-700 text-white' : 'text-zinc-400 hover:text-zinc-300'}`}
               >
                 <Rows3 className="h-3.5 w-3.5" />
               </button>
@@ -1188,7 +1188,7 @@ function SetsPage() {
                 onClick={() => patchSearch({ view: 'cards' })}
                 aria-label="Card view"
                 aria-pressed={view === 'cards'}
-                className={`rounded-md p-1.5 transition-colors ${view === 'cards' ? 'bg-zinc-700 text-white' : 'text-zinc-500 hover:text-zinc-300'}`}
+                className={`rounded-md p-1.5 transition-colors ${view === 'cards' ? 'bg-zinc-700 text-white' : 'text-zinc-400 hover:text-zinc-300'}`}
               >
                 <LayoutGrid className="h-3.5 w-3.5" />
               </button>
@@ -1228,7 +1228,7 @@ function SetsPage() {
           )}
           <button
             onClick={clearAllFilters}
-            className="text-xs text-zinc-500 hover:text-zinc-200 underline-offset-4 hover:underline"
+            className="text-xs text-zinc-400 hover:text-zinc-200 underline-offset-4 hover:underline"
           >
             Clear all
           </button>
@@ -1238,7 +1238,7 @@ function SetsPage() {
       {/* System sets row (reserved) */}
       {reservedSets.length > 0 && !hasFilters && (
         <div className="mb-4 flex items-center gap-2">
-          <span className="text-[11px] font-medium uppercase tracking-wider text-zinc-600">System</span>
+          <span className="text-[11px] font-medium uppercase tracking-wider text-zinc-400">System</span>
           {reservedSets.map((s) => (
             <Link
               key={s.id}
@@ -1343,7 +1343,7 @@ function SetsPage() {
                               <div className="flex items-center gap-2">
                                 <p className="truncate font-medium text-white group-hover:text-violet-400 transition-colors">{set.name}</p>
                                 {set.is_reserved && (
-                                  <span className="rounded border border-zinc-700 bg-zinc-800/60 px-1.5 py-px text-[9px] font-medium uppercase tracking-wider text-zinc-500">
+                                  <span className="rounded border border-zinc-700 bg-zinc-800/60 px-1.5 py-px text-[9px] font-medium uppercase tracking-wider text-zinc-400">
                                     System
                                   </span>
                                 )}
@@ -1352,15 +1352,15 @@ function SetsPage() {
                           </Link>
                         </td>
                         <td className={`hidden px-4 ${padY} md:table-cell`}>
-                          {set.gang_name ? <GangPill name={set.gang_name} /> : <span className="text-xs text-zinc-700">—</span>}
+                          {set.gang_name ? <GangPill name={set.gang_name} /> : <span className="text-xs text-zinc-500">—</span>}
                         </td>
                         <td className={`hidden px-4 ${padY} md:table-cell`}>
                           {set.alliance_id && set.alliance_name ? (
                             <AlliancePill name={set.alliance_name} slug={null} id={set.alliance_id} />
-                          ) : <span className="text-xs text-zinc-700">—</span>}
+                          ) : <span className="text-xs text-zinc-500">—</span>}
                         </td>
                         <td className={`hidden px-4 ${padY} md:table-cell`}>
-                          {set.municipality_name ? <MunicipalityPill name={set.municipality_name} /> : <span className="text-xs text-zinc-700">—</span>}
+                          {set.municipality_name ? <MunicipalityPill name={set.municipality_name} /> : <span className="text-xs text-zinc-500">—</span>}
                         </td>
                         <td className={`px-4 ${padY} text-right`}>
                           <MemberCount n={set.member_count} />
@@ -1406,7 +1406,7 @@ function SetsPage() {
             <span aria-live="polite">
               Showing <span className="text-zinc-200 tabular-nums">{offset + 1}</span>–<span className="text-zinc-200 tabular-nums">{Math.min(offset + pageSize, total)}</span> of{' '}
               <span className="text-zinc-200 tabular-nums">{total}</span>
-              {hasFilters && <span className="ml-1 text-zinc-500">(filtered)</span>}
+              {hasFilters && <span className="ml-1 text-zinc-400">(filtered)</span>}
             </span>
             <Select value={String(pageSize)} onValueChange={(v) => patchSearch({ size: Number(v) })}>
               <SelectTrigger className="h-7 w-auto text-xs"><SelectValue /></SelectTrigger>
@@ -1418,7 +1418,7 @@ function SetsPage() {
             </Select>
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-xs text-zinc-500 tabular-nums">Page {page} of {totalPages}</span>
+            <span className="text-xs text-zinc-400 tabular-nums">Page {page} of {totalPages}</span>
             <Button
               variant="outline" size="sm"
               aria-disabled={page === 1} disabled={page === 1}
@@ -1500,7 +1500,7 @@ function FilterChip({ label, onClear }: { label: string; onClear: () => void }) 
       className="group inline-flex items-center gap-1 rounded-full border border-zinc-700 bg-zinc-900/60 px-2.5 py-1 text-xs text-zinc-300 transition-colors hover:border-zinc-500 hover:text-white"
     >
       <span>{label}</span>
-      <X className="h-3 w-3 text-zinc-500 group-hover:text-zinc-200" aria-hidden />
+      <X className="h-3 w-3 text-zinc-400 group-hover:text-zinc-200" aria-hidden />
     </button>
   )
 }

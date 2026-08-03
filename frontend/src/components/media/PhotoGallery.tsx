@@ -120,7 +120,7 @@ function PhotoTile({ media, onClick, onSetPrimary, onDelete, setPrimaryPending, 
             className="h-full w-full object-cover"
           />
         ) : (
-          <div className="flex h-full w-full items-center justify-center text-xs text-zinc-600">no thumbnail</div>
+          <div className="flex h-full w-full items-center justify-center text-xs text-zinc-400">no thumbnail</div>
         )}
       </button>
 

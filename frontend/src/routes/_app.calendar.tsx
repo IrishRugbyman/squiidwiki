@@ -66,10 +66,10 @@ function DayDetail({ day, month, year, events, onClose }: {
 }) {
   const dateStr = `${MONTH_NAMES[month - 1]} ${day}, ${year}`
   return (
-    <div className="rounded-xl border border-zinc-800 bg-zinc-900/60 p-4">
+    <div className="rounded-lg border border-zinc-800 bg-zinc-900/60 p-4">
       <div className="mb-3 flex items-center justify-between">
         <h3 className="text-sm font-semibold text-white">{dateStr}</h3>
-        <button onClick={onClose} className="text-zinc-600 hover:text-zinc-400 transition-colors text-xs">✕</button>
+        <button onClick={onClose} className="text-zinc-400 hover:text-zinc-200 transition-colors text-xs">✕</button>
       </div>
       <div className="space-y-2">
         {events.map((ev) => {
@@ -159,12 +159,12 @@ function MonthYearPicker({ year, month, onChange }: {
         onClick={() => setOpen((v) => !v)}
         className="flex items-center gap-1.5 rounded-lg px-2 py-1 text-xl font-bold text-white hover:bg-zinc-800 transition-colors"
       >
-        {MONTH_NAMES[month - 1]} <span className="text-zinc-500">{year}</span>
-        <ChevronRight className={`h-4 w-4 text-zinc-500 transition-transform ${open ? 'rotate-90' : ''}`} />
+        {MONTH_NAMES[month - 1]} <span className="text-zinc-400">{year}</span>
+        <ChevronRight className={`h-4 w-4 text-zinc-400 transition-transform ${open ? 'rotate-90' : ''}`} />
       </button>
 
       {open && (
-        <div className="absolute left-0 top-full z-50 mt-1 w-64 rounded-xl border border-zinc-700 bg-zinc-900 p-3 shadow-xl">
+        <div className="absolute left-0 top-full z-50 mt-1 w-64 rounded-lg border border-zinc-700 bg-zinc-900 p-3 shadow-xl">
           {/* Year row */}
           <div className="mb-3 flex items-center justify-between">
             <button onClick={() => setPickerYear((y) => y - 1)}
@@ -379,7 +379,7 @@ function CalendarPage() {
           {/* Legend */}
           <div className="hidden items-center gap-3 sm:flex mr-2">
             {(Object.entries(KIND_CONFIG) as [EventKind, typeof KIND_CONFIG[EventKind]][]).map(([kind, cfg]) => (
-              <span key={kind} className="inline-flex items-center gap-1.5 text-xs text-zinc-500">
+              <span key={kind} className="inline-flex items-center gap-1.5 text-xs text-zinc-400">
                 <span className={`h-2 w-2 rounded-full ${cfg.dot}`} />
                 {cfg.label}
               </span>
@@ -391,7 +391,7 @@ function CalendarPage() {
                 <button
                   type="button"
                   aria-label="Keyboard shortcuts"
-                  className="hidden sm:inline-flex items-center justify-center rounded-md border border-zinc-800 bg-zinc-900/60 p-1.5 text-zinc-500 hover:text-zinc-200 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/50"
+                  className="hidden sm:inline-flex items-center justify-center rounded-md border border-zinc-800 bg-zinc-900/60 p-1.5 text-zinc-400 hover:text-zinc-200 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/50"
                 >
                   <Keyboard className="h-3.5 w-3.5" />
                 </button>
@@ -417,7 +417,7 @@ function CalendarPage() {
       {/* Month-level events (imprecise dates) */}
       {monthLevelEvents.length > 0 && (
         <div className="rounded-lg border border-zinc-800 bg-zinc-900/30 p-3">
-          <p className="mb-2 text-xs font-medium text-zinc-500">Events with approximate dates this month</p>
+          <p className="mb-2 text-xs font-medium text-zinc-400">Events with approximate dates this month</p>
           <div className="flex flex-wrap gap-2">
             {monthLevelEvents.map((ev) => {
               const cfg = KIND_CONFIG[ev.kind]
@@ -438,12 +438,12 @@ function CalendarPage() {
       <div className={`grid gap-4 ${selectedDay && selectedEvents.length ? 'lg:grid-cols-[1fr_240px]' : 'grid-cols-1'}`}>
 
         {/* Calendar grid */}
-        <div className="overflow-x-auto rounded-xl border border-zinc-800">
+        <div className="overflow-x-auto rounded-lg border border-zinc-800">
           <div className="min-w-[320px]">
           {/* Day-of-week headers */}
           <div className="grid grid-cols-7 border-b border-zinc-800 bg-zinc-900/50">
             {WEEKDAYS.map((d) => (
-              <div key={d} className="py-2 text-center text-xs font-medium text-zinc-500">{d}</div>
+              <div key={d} className="py-2 text-center text-xs font-medium text-zinc-400">{d}</div>
             ))}
           </div>
 
@@ -462,7 +462,7 @@ function CalendarPage() {
                     key={di}
                     role={day ? 'button' : undefined}
                     tabIndex={day ? 0 : undefined}
-                    aria-label={dateLabel ? `${dateLabel}${hasEvents ? ` — ${evs.length} event${evs.length === 1 ? '' : 's'}` : ''}` : undefined}
+                    aria-label={dateLabel ? `${dateLabel}${hasEvents ? `, ${evs.length} event${evs.length === 1 ? '' : 's'}` : ''}` : undefined}
                     onClick={() => {
                       if (!day) return
                       setSelectedDay(day === selectedDay ? null : day)
@@ -490,7 +490,7 @@ function CalendarPage() {
                               ? 'bg-violet-600 text-white'
                               : isSelected
                               ? 'bg-zinc-600 text-white'
-                              : 'text-zinc-500'
+                              : 'text-zinc-400'
                           }`}>
                             {day}
                           </span>
@@ -499,7 +499,7 @@ function CalendarPage() {
                               <CheckCircle2 className="h-3 w-3 text-emerald-500" aria-label="Contains verified events" />
                             )}
                             {evs.length > 0 && (
-                              <span className="text-[10px] tabular-nums text-zinc-600">{evs.length}</span>
+                              <span className="text-[10px] tabular-nums text-zinc-400">{evs.length}</span>
                             )}
                           </div>
                         </div>
@@ -556,7 +556,7 @@ function CalendarPage() {
 
       {/* No events state */}
       {allMonthEvents.length === 0 && (
-        <p className="text-center text-sm text-zinc-600">
+        <p className="text-center text-sm text-zinc-400">
           No events recorded for {MONTH_NAMES[month - 1]} {year}.
           <span className="block mt-0.5 text-xs">Try navigating to a month with incidents or member deaths.</span>
         </p>

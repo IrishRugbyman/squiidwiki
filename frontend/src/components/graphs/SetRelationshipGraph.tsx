@@ -147,7 +147,7 @@ export function SetRelationshipGraph({ input }: { input: SetGraphInput }) {
         <Background color="#27272a" gap={20} size={1} />
         <Controls className="!bg-zinc-900 !border-zinc-700 [&>button]:!bg-zinc-900 [&>button]:!border-zinc-700 [&>button]:!text-zinc-400 [&>button:hover]:!bg-zinc-800" />
       </ReactFlow>
-      <div className="pointer-events-none absolute bottom-2 right-2 flex gap-3 rounded-md border border-zinc-800 bg-zinc-950/90 px-2 py-1 text-[10px] text-zinc-500">
+      <div className="pointer-events-none absolute bottom-2 right-2 flex gap-3 rounded-md border border-zinc-800 bg-zinc-950/90 px-2 py-1 text-[10px] text-zinc-400">
         <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-emerald-500" /> Ally</span>
         <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-red-500" /> Enemy</span>
       </div>

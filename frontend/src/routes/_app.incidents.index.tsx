@@ -161,7 +161,7 @@ function ParticipantsSection({ universeId, participants, onChangeParticipants, s
     <div className="rounded-lg border border-zinc-800 bg-zinc-900/50 p-3 space-y-3">
       <div className="flex items-center justify-between">
         <span className="text-xs font-medium uppercase tracking-wider text-zinc-400">
-          Participants{total > 0 && <span className="ml-1.5 text-zinc-500">({total})</span>}
+          Participants{total > 0 && <span className="ml-1.5 text-zinc-400">({total})</span>}
         </span>
         <div className="flex rounded border border-zinc-700 overflow-hidden text-xs">
           <button type="button"
@@ -202,7 +202,7 @@ function ParticipantsSection({ universeId, participants, onChangeParticipants, s
                   className="w-full px-3 py-2 text-left text-sm text-zinc-300 hover:bg-zinc-800 transition-colors flex items-center justify-between gap-2">
                   <span className="truncate">{m.display_name}</span>
                   {memberSetNameById[m.id] && (
-                    <span className="text-[10px] text-zinc-500 shrink-0 truncate max-w-[40%]">{memberSetNameById[m.id]}</span>
+                    <span className="text-[10px] text-zinc-400 shrink-0 truncate max-w-[40%]">{memberSetNameById[m.id]}</span>
                   )}
                 </button>
               ))}
@@ -210,14 +210,14 @@ function ParticipantsSection({ universeId, participants, onChangeParticipants, s
           )}
           {memberSearch.length < 2 && suggestions.length > 0 && (
             <div className="space-y-1">
-              <p className="text-[10px] font-medium uppercase tracking-wider text-zinc-500">Suggested · same set</p>
+              <p className="text-[10px] font-medium uppercase tracking-wider text-zinc-400">Suggested · same set</p>
               <div className="max-h-32 overflow-y-auto rounded border border-zinc-800 bg-zinc-950">
                 {suggestions.map((m) => (
                   <button key={m.id} type="button" onClick={() => addMember(m.id, m.display_name)}
                     className="w-full px-3 py-2 text-left text-sm text-zinc-300 hover:bg-zinc-800 transition-colors flex items-center justify-between gap-2">
                     <span className="truncate">{m.display_name}</span>
                     {memberSetNameById[m.id] && (
-                      <span className="text-[10px] text-zinc-500 shrink-0 truncate max-w-[40%]">{memberSetNameById[m.id]}</span>
+                      <span className="text-[10px] text-zinc-400 shrink-0 truncate max-w-[40%]">{memberSetNameById[m.id]}</span>
                     )}
                   </button>
                 ))}
@@ -234,12 +234,12 @@ function ParticipantsSection({ universeId, participants, onChangeParticipants, s
                 <button key={s.id} type="button" onClick={() => addSet(s)}
                   className="w-full px-3 py-2 text-left text-sm text-zinc-300 hover:bg-zinc-800 transition-colors flex items-center justify-between gap-2">
                   <span className="truncate">{s.name}</span>
-                  {s.is_reserved && <span className="text-[10px] text-zinc-500 shrink-0">system</span>}
+                  {s.is_reserved && <span className="text-[10px] text-zinc-400 shrink-0">system</span>}
                 </button>
               ))}
             </div>
           )}
-          <p className="text-[11px] text-zinc-600">Use when the individual shooter is unknown.</p>
+          <p className="text-[11px] text-zinc-400">Use when the individual shooter is unknown.</p>
         </>
       )}
 
@@ -250,14 +250,14 @@ function ParticipantsSection({ universeId, participants, onChangeParticipants, s
               <span className="min-w-0 flex items-baseline gap-1.5 truncate">
                 <span className="text-zinc-200 truncate">{p.member_name}</span>
                 {memberSetNameById[p.member_id] && (
-                  <span className="text-[10px] text-zinc-500 truncate">· {memberSetNameById[p.member_id]}</span>
+                  <span className="text-[10px] text-zinc-400 truncate">· {memberSetNameById[p.member_id]}</span>
                 )}
               </span>
               <div className="flex items-center gap-1.5 shrink-0">
                 <Badge variant="secondary" className="text-[10px] px-1.5">{p.role}</Badge>
                 <Badge variant="outline" className="text-[10px] px-1.5">{p.outcome}</Badge>
                 <button type="button" onClick={() => onChangeParticipants(participants.filter((x) => x.member_id !== p.member_id))}
-                  className="text-zinc-600 hover:text-red-400 transition-colors">✕</button>
+                  className="text-zinc-400 hover:text-red-400 transition-colors">✕</button>
               </div>
             </div>
           ))}
@@ -265,11 +265,11 @@ function ParticipantsSection({ universeId, participants, onChangeParticipants, s
             <div key={p.set_id} className="flex items-center justify-between rounded border border-zinc-800 px-2.5 py-1.5 text-sm">
               <span className="text-zinc-200 truncate">{p.set_name}</span>
               <div className="flex items-center gap-1.5 shrink-0">
-                <Badge variant="outline" className="text-[10px] px-1.5 text-zinc-500 border-zinc-700">set</Badge>
+                <Badge variant="outline" className="text-[10px] px-1.5 text-zinc-400 border-zinc-700">set</Badge>
                 <Badge variant="secondary" className="text-[10px] px-1.5">{p.role}</Badge>
                 <Badge variant="outline" className="text-[10px] px-1.5">{p.outcome}</Badge>
                 <button type="button" onClick={() => onChangeSetParticipants(setParticipants.filter((x) => x.set_id !== p.set_id))}
-                  className="text-zinc-600 hover:text-red-400 transition-colors">✕</button>
+                  className="text-zinc-400 hover:text-red-400 transition-colors">✕</button>
               </div>
             </div>
           ))}
@@ -277,7 +277,7 @@ function ParticipantsSection({ universeId, participants, onChangeParticipants, s
       )}
 
       {participants.some((p) => p.outcome === 'KILLED') && (
-        <p className="text-[11px] text-zinc-500">
+        <p className="text-[11px] text-zinc-400">
           <span className="font-medium text-zinc-400">KILLED</span> participants will be marked DEAD on save.
         </p>
       )}
@@ -410,7 +410,7 @@ export function IncidentFormSheet({ universeId, open, onClose, initial, defaultP
       })
       .catch((err) => {
         if (err.name === 'AbortError') return
-        setGeoError('Geocoder error — check console')
+        setGeoError('Geocoder error. Check console')
         setGeoResults([]); setShowGeoDropdown(true); setGeoSearched(true)
       })
       .finally(() => setGeoLoading(false))
@@ -571,7 +571,7 @@ export function IncidentFormSheet({ universeId, open, onClose, initial, defaultP
               <Select value={cityId || 'none'} onValueChange={(v) => { setCityId(v === 'none' ? '' : v); setSubDistrictId('') }}>
                 <SelectTrigger><SelectValue placeholder="None" /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="none">— None —</SelectItem>
+                  <SelectItem value="none">None</SelectItem>
                   {topLevelMunis.map((m) => (
                     <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>
                   ))}
@@ -584,7 +584,7 @@ export function IncidentFormSheet({ universeId, open, onClose, initial, defaultP
                 <Select value={subDistrictId || 'none'} onValueChange={(v) => setSubDistrictId(v === 'none' ? '' : v)}>
                   <SelectTrigger><SelectValue placeholder="City level" /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="none">— City level —</SelectItem>
+                    <SelectItem value="none">City level</SelectItem>
                     {subDistricts.map((m) => (
                       <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>
                     ))}
@@ -610,7 +610,7 @@ export function IncidentFormSheet({ universeId, open, onClose, initial, defaultP
                 {showGeoDropdown && (geoLoading || geoResults.length > 0 || (geoSearched && geoSearchTerm.length >= 3)) && (
                   <div className="absolute z-30 mt-1 w-full overflow-hidden rounded-md border border-zinc-700 bg-zinc-950 shadow-xl">
                     {geoLoading && (
-                      <div className="px-3 py-2 text-xs text-zinc-500">Searching…</div>
+                      <div className="px-3 py-2 text-xs text-zinc-400">Searching…</div>
                     )}
                     {!geoLoading && geoError && (
                       <div className="px-3 py-2 text-xs text-amber-400">{geoError}</div>
@@ -632,8 +632,8 @@ export function IncidentFormSheet({ universeId, open, onClose, initial, defaultP
                         className="block w-full border-t border-zinc-800 px-3 py-2 text-left text-xs text-zinc-400 hover:bg-zinc-800 transition-colors"
                       >
                         {geoResults.length === 0
-                          ? <>No matches — <span className="text-violet-400">use “{geoSearchTerm}” as typed</span></>
-                          : <>None of these — <span className="text-violet-400">use “{geoSearchTerm}” as typed</span></>}
+                          ? <>No matches. <span className="text-violet-400">use “{geoSearchTerm}” as typed</span></>
+                          : <>None of these. <span className="text-violet-400">use “{geoSearchTerm}” as typed</span></>}
                       </button>
                     )}
                   </div>
@@ -642,11 +642,11 @@ export function IncidentFormSheet({ universeId, open, onClose, initial, defaultP
             </div>
             <div className="grid grid-cols-2 gap-2">
               <div className="space-y-1.5">
-                <Label htmlFor="inc-lat" className="text-xs text-zinc-500">Latitude</Label>
+                <Label htmlFor="inc-lat" className="text-xs text-zinc-400">Latitude</Label>
                 <Input id="inc-lat" type="number" step="any" value={lat} onChange={(e) => setLat(e.target.value)} placeholder="41.8781" className="h-8 text-sm" />
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="inc-lng" className="text-xs text-zinc-500">Longitude</Label>
+                <Label htmlFor="inc-lng" className="text-xs text-zinc-400">Longitude</Label>
                 <Input id="inc-lng" type="number" step="any" value={lng} onChange={(e) => setLng(e.target.value)} placeholder="-87.6298" className="h-8 text-sm" />
               </div>
             </div>
@@ -737,11 +737,11 @@ function FilterTabs<T extends string>({ options, value, onChange }: {
       {options.map(({ key, label, count }) => (
         <button key={key} onClick={() => onChange(key)}
           className={`flex items-center gap-1.5 rounded-md px-3 py-1 text-xs font-medium transition-colors ${
-            value === key ? 'bg-zinc-700 text-white' : 'text-zinc-500 hover:text-zinc-300'
+            value === key ? 'bg-zinc-700 text-white' : 'text-zinc-400 hover:text-zinc-300'
           }`}>
           {label}
           {count !== undefined && (
-            <span className={`tabular-nums ${value === key ? 'text-zinc-300' : 'text-zinc-600'}`}>{count}</span>
+            <span className={`tabular-nums ${value === key ? 'text-zinc-300' : 'text-zinc-400'}`}>{count}</span>
           )}
         </button>
       ))}
@@ -988,7 +988,7 @@ function IncidentsPage() {
       {/* Calendar density */}
       {allItems.length > 0 && (
         <div className="mb-4">
-          <Suspense fallback={<div className="h-40 rounded-xl border border-zinc-800 bg-zinc-900/30" />}>
+          <Suspense fallback={<div className="h-40 rounded-lg border border-zinc-800 bg-zinc-900/30" />}>
             <IncidentHeatmap incidents={allItems} />
           </Suspense>
         </div>
@@ -1010,12 +1010,12 @@ function IncidentsPage() {
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start" className="w-64">
             {presets.length === 0 ? (
-              <DropdownMenuLabel className="text-xs font-normal text-zinc-500">
+              <DropdownMenuLabel className="text-xs font-normal text-zinc-400">
                 No saved presets yet.
               </DropdownMenuLabel>
             ) : (
               <>
-                <DropdownMenuLabel className="text-[10px] uppercase tracking-wider text-zinc-500">
+                <DropdownMenuLabel className="text-[10px] uppercase tracking-wider text-zinc-400">
                   Saved
                 </DropdownMenuLabel>
                 {presets.map((p) => (
@@ -1031,7 +1031,7 @@ function IncidentsPage() {
                       type="button"
                       onClick={() => deletePreset(p.name)}
                       aria-label={`Delete preset ${p.name}`}
-                      className="rounded p-1 text-zinc-600 hover:bg-zinc-800 hover:text-red-400"
+                      className="rounded p-1 text-zinc-400 hover:bg-zinc-800 hover:text-red-400"
                     >
                       <Trash2 className="h-3 w-3" />
                     </button>
@@ -1090,7 +1090,7 @@ function IncidentsPage() {
           </button>
         ) : (
           <div className="relative min-w-[220px]">
-            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-zinc-500" />
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-zinc-400" />
             <Input
               className="pl-8 h-8 text-sm"
               placeholder="Filter by participant…"
@@ -1100,7 +1100,7 @@ function IncidentsPage() {
             {debouncedParticipantSearch.length >= 2 && participantResults && (
               <div className="absolute z-20 mt-1 w-full max-h-48 overflow-y-auto rounded-md border border-zinc-800 bg-zinc-950 shadow-lg">
                 {participantResults.length === 0 ? (
-                  <div className="px-3 py-2 text-sm text-zinc-500">No matching members.</div>
+                  <div className="px-3 py-2 text-sm text-zinc-400">No matching members.</div>
                 ) : (
                   participantResults.map((m) => (
                     <button
@@ -1199,21 +1199,21 @@ function IncidentsPage() {
                           {/* Meta line: type · date · location · verified */}
                           <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
                             <TypeChip type={incident.type} />
-                            <span className="text-zinc-700">·</span>
+                            <span className="text-zinc-500">·</span>
                             <span className="font-mono text-xs text-zinc-400 tabular-nums">
                               {incident.date
                                 ? <FuzzyDate value={incident.date} />
-                                : <span className="text-zinc-600">Unknown date</span>}
+                                : <span className="text-zinc-400">Unknown date</span>}
                             </span>
                             {locationLabel && (
                               <>
-                                <span className="text-zinc-700">·</span>
-                                <span className="text-xs text-zinc-500">{locationLabel}</span>
+                                <span className="text-zinc-500">·</span>
+                                <span className="text-xs text-zinc-400">{locationLabel}</span>
                               </>
                             )}
                             {incident.verified && (
                               <>
-                                <span className="text-zinc-700">·</span>
+                                <span className="text-zinc-500">·</span>
                                 <span className="inline-flex items-center gap-0.5 text-xs font-medium text-emerald-400">
                                   <CheckCircle2 className="h-3 w-3" />Verified
                                 </span>
@@ -1225,32 +1225,32 @@ function IncidentsPage() {
                           <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 min-h-[1.25rem]">
                             {hasVictims && (
                               <span className="flex items-center gap-1.5">
-                                <span className="text-[10px] font-medium uppercase tracking-wider text-zinc-600">
+                                <span className="text-[10px] font-medium uppercase tracking-wider text-zinc-400">
                                   {victimNames.length === 1 ? 'Victim' : 'Victims'}
                                 </span>
                                 <span className="text-xs text-rose-300">
                                   {victimNames.slice(0, 3).join(', ')}
                                   {victimNames.length > 3 && (
-                                    <span className="text-zinc-500"> +{victimNames.length - 3}</span>
+                                    <span className="text-zinc-400"> +{victimNames.length - 3}</span>
                                   )}
                                 </span>
                               </span>
                             )}
                             {hasShooters && (
                               <span className="flex items-center gap-1.5">
-                                <span className="text-[10px] font-medium uppercase tracking-wider text-zinc-600">
+                                <span className="text-[10px] font-medium uppercase tracking-wider text-zinc-400">
                                   {shooterNames.length === 1 ? 'Shooter' : 'Shooters'}
                                 </span>
                                 <span className="text-xs text-amber-300">
                                   {shooterNames.slice(0, 3).join(', ')}
                                   {shooterNames.length > 3 && (
-                                    <span className="text-zinc-500"> +{shooterNames.length - 3}</span>
+                                    <span className="text-zinc-400"> +{shooterNames.length - 3}</span>
                                   )}
                                 </span>
                               </span>
                             )}
                             {!hasParticipants && (
-                              <span className="text-xs text-zinc-700">No participants recorded</span>
+                              <span className="text-xs text-zinc-500">No participants recorded</span>
                             )}
                           </div>
                         </Link>
@@ -1261,7 +1261,7 @@ function IncidentsPage() {
                         <button
                           onClick={() => setEditingId(incident.id)}
                           aria-label="Edit incident"
-                          className="rounded p-1.5 text-zinc-600 hover:bg-zinc-800 hover:text-zinc-300 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/50 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100"
+                          className="rounded p-1.5 text-zinc-400 hover:bg-zinc-800 hover:text-zinc-300 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/50 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100"
                         >
                           <Pencil className="h-3.5 w-3.5" />
                         </button>

@@ -31,8 +31,8 @@ import { MemberStatusBadge } from '@/components/StatusBadge'
 const STATUS_AVATAR: Record<MemberStatus, string> = {
   FREE: 'bg-emerald-900 text-emerald-300',
   LOCKED: 'bg-orange-900 text-orange-300',
-  DEAD: 'bg-zinc-800 text-zinc-500',
-  UNKNOWN: 'bg-zinc-800 text-zinc-500',
+  DEAD: 'bg-zinc-800 text-zinc-400',
+  UNKNOWN: 'bg-zinc-800 text-zinc-400',
   ESCAPEE: 'bg-amber-900 text-amber-300',
   ABSCONDER: 'bg-yellow-900 text-yellow-300',
 }
@@ -101,8 +101,8 @@ function FormSection({ title, hint, children }: { title: string; hint?: string; 
   return (
     <section className="space-y-2 py-3 first:pt-0 last:pb-0">
       <div className="flex items-baseline justify-between">
-        <h3 className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500">{title}</h3>
-        {hint && <span className="text-[11px] text-zinc-600">{hint}</span>}
+        <h3 className="text-[11px] font-semibold uppercase tracking-wider text-zinc-400">{title}</h3>
+        {hint && <span className="text-[11px] text-zinc-400">{hint}</span>}
       </div>
       <div className="space-y-2">{children}</div>
     </section>
@@ -201,7 +201,7 @@ function FamilyEditor({
         <div className="rounded-lg border border-zinc-800 bg-zinc-900/30 p-3 space-y-2">
           {groupedEntries.map(({ role, entries: grp }) => (
             <div key={role} className="flex flex-wrap items-center gap-1.5">
-              <span className="text-[11px] font-medium uppercase tracking-wider text-zinc-500 w-14 shrink-0">
+              <span className="text-[11px] font-medium uppercase tracking-wider text-zinc-400 w-14 shrink-0">
                 {ROLE_LABEL[role]}
               </span>
               {grp.map((entry, gi) => {
@@ -212,7 +212,7 @@ function FamilyEditor({
                     <button
                       type="button"
                       onClick={() => removeEntry(idx)}
-                      className="rounded-full p-0.5 text-zinc-500 hover:bg-zinc-700 hover:text-white"
+                      className="rounded-full p-0.5 text-zinc-400 hover:bg-zinc-700 hover:text-white"
                     >
                       <X className="h-2.5 w-2.5" />
                     </button>
@@ -223,11 +223,11 @@ function FamilyEditor({
           ))}
         </div>
       ) : (
-        <p className="text-xs italic text-zinc-600">No family members added yet.</p>
+        <p className="text-xs italic text-zinc-400">No family members added yet.</p>
       )}
 
       <div>
-        <p className="mb-1 text-[11px] text-zinc-500">Add family member</p>
+        <p className="mb-1 text-[11px] text-zinc-400">Add family member</p>
         <div className="flex gap-1.5">
           <Select value={newRole} onValueChange={(v) => setNewRole(v as FamilyRole)}>
             <SelectTrigger className="h-9 w-28 text-xs">
@@ -269,7 +269,7 @@ function FamilyEditor({
                   >
                     <span className={`h-1.5 w-1.5 rounded-full ${STATUS_DOT[m.status]}`} />
                     <span className="text-zinc-200">{m.display_name}</span>
-                    <span className="ml-auto text-zinc-600 text-[10px]">{m.status}</span>
+                    <span className="ml-auto text-zinc-400 text-[10px]">{m.status}</span>
                   </button>
                 ))}
               </div>
@@ -324,7 +324,7 @@ function SocialInput({
   return (
     <div className="space-y-1">
       <div className="flex items-center gap-2">
-        <Icon className="h-4 w-4 shrink-0 text-zinc-500" />
+        <Icon className="h-4 w-4 shrink-0 text-zinc-400" />
         <Input
           value={value}
           onChange={(e) => onChange(e.target.value)}
@@ -341,7 +341,7 @@ function SocialInput({
           href={SOCIAL_BASE[platform] + handle}
           target="_blank"
           rel="noreferrer noopener"
-          className="ml-6 block truncate text-[11px] text-zinc-600 hover:text-violet-400"
+          className="ml-6 block truncate text-[11px] text-zinc-400 hover:text-violet-400"
           title={SOCIAL_BASE[platform] + handle}
         >
           {SOCIAL_BASE[platform]}{handle}
@@ -618,7 +618,7 @@ export function MemberFormSheet({ universeId, open, onClose, initial, defaultSet
         photo_url: profile.photo_url,
       })
       if (status === 'UNKNOWN') setStatus('LOCKED')
-      toast.success('Imported from MDOC — review and save')
+      toast.success('Imported from MDOC. Review and save')
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'MDOC import failed'
       toast.error(msg)
@@ -674,16 +674,16 @@ export function MemberFormSheet({ universeId, open, onClose, initial, defaultSet
           className="-mx-6 -my-4 flex min-h-full flex-col divide-y divide-zinc-800/60"
         >
           <div className="sticky top-0 z-10 -mb-px flex items-center gap-3 border-b border-zinc-800 bg-zinc-950/95 px-6 py-3 backdrop-blur">
-            <span className="text-xs uppercase tracking-wider text-zinc-500">Display:</span>
+            <span className="text-xs uppercase tracking-wider text-zinc-400">Display:</span>
             {identityValid
               ? <span className="truncate text-sm font-medium text-white">{displayPreview}</span>
-              : <span className="text-sm italic text-zinc-600">— need a nickname or legal name —</span>}
+              : <span className="text-sm italic text-zinc-400">needs a nickname or legal name</span>}
             <span className="ml-auto"><MemberStatusBadge status={status} /></span>
           </div>
           <div className="flex-1 divide-y divide-zinc-800/60 px-6 pt-4">
           {!isEdit && (
             <FormSection title="Import from MDOC">
-              <p className="text-xs text-zinc-500">
+              <p className="text-xs text-zinc-400">
                 Paste an MDOC OTIS profile URL to prefill legal name, date of birth, and create an incarceration record with the facility and release dates.
               </p>
               <div className="flex gap-2">
@@ -713,7 +713,7 @@ export function MemberFormSheet({ universeId, open, onClose, initial, defaultSet
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between">
                   <Label htmlFor="m-nickname">Nickname</Label>
-                  <label htmlFor="m-nku" className="flex cursor-pointer items-center gap-1.5 text-[11px] text-zinc-500 hover:text-zinc-300">
+                  <label htmlFor="m-nku" className="flex cursor-pointer items-center gap-1.5 text-[11px] text-zinc-400 hover:text-zinc-300">
                     <input
                       id="m-nku"
                       type="checkbox"
@@ -732,12 +732,12 @@ export function MemberFormSheet({ universeId, open, onClose, initial, defaultSet
               </div>
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="m-aliases">Aliases <span className="text-zinc-600">(comma-separated)</span></Label>
+              <Label htmlFor="m-aliases">Aliases <span className="text-zinc-400">(comma-separated)</span></Label>
               <Input id="m-aliases" value={aliases} onChange={(e) => setAliases(e.target.value)} placeholder="e.g. Big L, Lucky" />
             </div>
           </FormSection>
 
-          <FormSection title="Photos" hint={isEdit ? 'uploads immediately' : 'queued — first becomes primary'}>
+          <FormSection title="Photos" hint={isEdit ? 'uploads immediately' : 'queued, first becomes primary'}>
             <PhotoSection
               mode={isEdit ? 'edit' : 'create'}
               universeId={universeId}
@@ -796,7 +796,7 @@ export function MemberFormSheet({ universeId, open, onClose, initial, defaultSet
                 </button>
               </div>
               {affiliations.length === 0 && (
-                <p className="text-xs text-zinc-600 italic">No set affiliation</p>
+                <p className="text-xs text-zinc-400 italic">No set affiliation</p>
               )}
               {affiliations.map((aff, idx) => {
                 const usedSetIds = new Set(affiliations.filter((_, i) => i !== idx).map((a) => a.set_id).filter(Boolean))
@@ -829,7 +829,7 @@ export function MemberFormSheet({ universeId, open, onClose, initial, defaultSet
                       type="button"
                       title={aff.is_primary ? 'Primary set' : 'Make primary'}
                       onClick={() => setAffiliations((prev) => prev.map((a, i) => ({ ...a, is_primary: i === idx })))}
-                      className={`shrink-0 rounded p-1 text-xs transition-colors ${aff.is_primary ? 'text-violet-400' : 'text-zinc-600 hover:text-violet-400'}`}
+                      className={`shrink-0 rounded p-1 text-xs transition-colors ${aff.is_primary ? 'text-violet-400' : 'text-zinc-400 hover:text-violet-400'}`}
                     >
                       ★
                     </button>
@@ -841,7 +841,7 @@ export function MemberFormSheet({ universeId, open, onClose, initial, defaultSet
                         if (aff.is_primary && next.length > 0) next[0].is_primary = true
                         return next
                       })}
-                      className="shrink-0 rounded p-1 text-zinc-600 hover:text-red-400 transition-colors"
+                      className="shrink-0 rounded p-1 text-zinc-400 hover:text-red-400 transition-colors"
                     >
                       <X size={12} />
                     </button>
@@ -854,7 +854,7 @@ export function MemberFormSheet({ universeId, open, onClose, initial, defaultSet
                 <FuzzyDateInput value={dateOfDeath} onChange={setDateOfDeath} label="Date of death" idPrefix="dod" />
                 {initial?.death_incident_id && (
                   <p className="mt-2 text-[11px] text-rose-400">
-                    Linked to a killing incident — manage the link from the incident page.
+                    Linked to a killing incident. Manage the link from the incident page.
                   </p>
                 )}
               </div>
@@ -863,7 +863,7 @@ export function MemberFormSheet({ universeId, open, onClose, initial, defaultSet
               <div className="space-y-2 rounded-lg border border-orange-900/50 bg-orange-950/10 p-3">
                 <div className="flex items-baseline justify-between">
                   <h4 className="text-[11px] font-semibold uppercase tracking-wider text-orange-400">Incarceration spell</h4>
-                  <span className="text-[11px] text-zinc-500">created with the member</span>
+                  <span className="text-[11px] text-zinc-400">created with the member</span>
                 </div>
                 <div className="grid gap-3 sm:grid-cols-2">
                   <FuzzyDateInput value={incFromDate} onChange={setIncFromDate} label="Lockup date" idPrefix="inc-from" />
@@ -893,15 +893,15 @@ export function MemberFormSheet({ universeId, open, onClose, initial, defaultSet
                   <Label htmlFor="inc-notes" className="text-xs">Notes</Label>
                   <Textarea id="inc-notes" rows={2} value={incNotes} onChange={(e) => setIncNotes(e.target.value)} placeholder="optional" />
                 </div>
-                <p className="text-[11px] text-zinc-600">
-                  Federal sentences typically have only a max discharge — leave the lockup date blank if unknown.
+                <p className="text-[11px] text-zinc-400">
+                  Federal sentences typically have only a max discharge. Leave the lockup date blank if unknown.
                 </p>
               </div>
             )}
             {status === 'LOCKED' && isEdit && (
-              <p className="text-xs text-zinc-500">
+              <p className="text-xs text-zinc-400">
                 Manage the active incarceration spell (release dates, facility) on the
-                member's detail page — editing here would risk clobbering an existing record.
+                member's detail page. Editing here would risk clobbering an existing record.
               </p>
             )}
           </FormSection>
@@ -912,7 +912,7 @@ export function MemberFormSheet({ universeId, open, onClose, initial, defaultSet
             </div>
           </FormSection>
 
-          <FormSection title="Social media" hint="handle or URL — normalized on blur">
+          <FormSection title="Social media" hint="handle or URL, normalized on blur">
             <div className="grid gap-3 sm:grid-cols-3">
               <SocialInput
                 platform="facebook"
@@ -938,7 +938,7 @@ export function MemberFormSheet({ universeId, open, onClose, initial, defaultSet
             </div>
           </FormSection>
 
-          <FormSection title="Family" hint="bilateral — inverse links auto-saved">
+          <FormSection title="Family" hint="bilateral, inverse links auto-saved">
             <FamilyEditor
               entries={familyEntries}
               onChange={setFamilyEntries}
@@ -981,7 +981,7 @@ export function MemberFormSheet({ universeId, open, onClose, initial, defaultSet
               <SheetClose asChild>
                 <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
               </SheetClose>
-              <span className="ml-auto hidden text-[11px] text-zinc-600 sm:inline">⌘/Ctrl + Enter to save</span>
+              <span className="ml-auto hidden text-[11px] text-zinc-400 sm:inline">⌘/Ctrl + Enter to save</span>
               <Button
                 type="submit"
                 disabled={isPending || !identityValid}

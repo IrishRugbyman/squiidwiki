@@ -136,8 +136,8 @@ function TimelinePage() {
           {Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-12 w-full" />)}
         </div>
       ) : eventCount === 0 ? (
-        <p className="py-12 text-center text-sm text-zinc-600">
-          Nothing dated to show yet — record incidents or set member dates of death to populate the feed.
+        <p className="py-12 text-center text-sm text-zinc-400">
+          Nothing dated to show yet. Record incidents or set member dates of death to populate the feed.
         </p>
       ) : (
         <div className="space-y-8">
@@ -145,7 +145,7 @@ function TimelinePage() {
             <section key={year}>
               <div className="sticky top-0 z-10 -mx-4 mb-3 flex items-center gap-3 bg-zinc-950/95 px-4 py-1 backdrop-blur">
                 <h2 className="font-mono text-2xl font-bold tabular-nums text-white">{year}</h2>
-                <span className="text-xs text-zinc-600">
+                <span className="text-xs text-zinc-400">
                   {items.length} event{items.length === 1 ? '' : 's'}
                 </span>
               </div>
@@ -166,12 +166,12 @@ function TimelinePage() {
                         params={{ id: e.slug }}
                         className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-lg border border-zinc-800 bg-zinc-900/30 px-3 py-2 text-sm transition-colors hover:border-zinc-700 hover:bg-zinc-900/60"
                       >
-                        <span className="font-mono text-xs tabular-nums text-zinc-500">
+                        <span className="font-mono text-xs tabular-nums text-zinc-400">
                           <FuzzyDate value={e.date} />
                         </span>
                         <span className="text-zinc-200">{e.primary}</span>
-                        {e.secondary && <span className="text-xs text-zinc-500">{e.secondary}</span>}
-                        <span className="ml-auto rounded-md border border-zinc-800 px-1.5 py-0.5 text-[10px] uppercase tracking-wider text-zinc-500">
+                        {e.secondary && <span className="text-xs text-zinc-400">{e.secondary}</span>}
+                        <span className="ml-auto rounded-md border border-zinc-800 px-1.5 py-0.5 text-[10px] uppercase tracking-wider text-zinc-400">
                           {cfg.label}
                         </span>
                       </Link>

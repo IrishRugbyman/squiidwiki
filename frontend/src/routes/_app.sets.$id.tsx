@@ -99,7 +99,7 @@ function IncidentsYearStrip({ data }: { data: Array<{ year: number; count: numbe
   const max = Math.max(...data.map((d) => d.count), 1)
   return (
     <div className="rounded-lg border border-zinc-800 bg-zinc-950 p-3">
-      <div className="mb-1.5 flex items-baseline justify-between text-[10px] uppercase tracking-wider text-zinc-600">
+      <div className="mb-1.5 flex items-baseline justify-between text-[10px] uppercase tracking-wider text-zinc-400">
         <span>Incidents per year</span>
         <span className="font-mono tabular-nums">{minYear}–{maxYear}</span>
       </div>
@@ -111,7 +111,7 @@ function IncidentsYearStrip({ data }: { data: Array<{ year: number; count: numbe
             <div
               key={y}
               title={`${y}: ${c} incident${c === 1 ? '' : 's'}`}
-              className={`flex-1 rounded-sm transition-colors ${c === 0 ? 'bg-zinc-800/40' : 'bg-violet-500/70 hover:bg-violet-400'}`}
+              className={`flex-1 rounded-md transition-colors ${c === 0 ? 'bg-zinc-800/40' : 'bg-violet-500/70 hover:bg-violet-400'}`}
               style={{ height: h }}
             />
           )
@@ -156,8 +156,8 @@ function ActivityFeed({ entries, loading, setName }: {
         const label = isToday ? 'Today' : isYesterday ? 'Yesterday' : date.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })
         return (
           <div key={day}>
-            <h3 className="mb-1.5 text-[10px] font-medium uppercase tracking-wider text-zinc-500">{label}</h3>
-            <ul className="divide-y divide-zinc-800 rounded-xl border border-zinc-800 bg-zinc-900/30">
+            <h3 className="mb-1.5 text-[10px] font-medium uppercase tracking-wider text-zinc-400">{label}</h3>
+            <ul className="divide-y divide-zinc-800 rounded-lg border border-zinc-800 bg-zinc-900/30">
               {items.map((e) => {
                 const verb = e.action === 'CREATE' ? 'created' : e.action === 'DELETE' ? 'deleted' : 'updated'
                 const actor = e.actor_email ? e.actor_email.split('@')[0] : 'Someone'
@@ -179,18 +179,18 @@ function ActivityFeed({ entries, loading, setName }: {
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-baseline gap-x-1.5 gap-y-0.5">
                         <span className="text-zinc-300">{actor}</span>
-                        <span className="text-zinc-500">{verb} {noun}</span>
+                        <span className="text-zinc-400">{verb} {noun}</span>
                         <Link {...linkTo} className="font-medium text-violet-400 hover:underline truncate">
                           {target}
                         </Link>
-                        <span className="ml-auto font-mono text-[11px] tabular-nums text-zinc-600">{time}</span>
+                        <span className="ml-auto font-mono text-[11px] tabular-nums text-zinc-400">{time}</span>
                       </div>
                       {showKeys && (
-                        <div className="mt-0.5 flex flex-wrap gap-1 text-[10px] text-zinc-500">
+                        <div className="mt-0.5 flex flex-wrap gap-1 text-[10px] text-zinc-400">
                           {e.diff_keys.slice(0, 6).map((k) => (
                             <span key={k} className="rounded bg-zinc-800/60 px-1.5 py-0.5">{k}</span>
                           ))}
-                          {e.diff_keys.length > 6 && <span className="text-zinc-600">+{e.diff_keys.length - 6}</span>}
+                          {e.diff_keys.length > 6 && <span className="text-zinc-400">+{e.diff_keys.length - 6}</span>}
                         </div>
                       )}
                     </div>
@@ -208,7 +208,7 @@ function ActivityFeed({ entries, loading, setName }: {
 function DetailRow({ label, children }: { label: React.ReactNode; children: React.ReactNode }) {
   return (
     <div className="flex items-baseline gap-4 border-b border-zinc-800/70 py-2.5 last:border-0">
-      <span className="w-32 shrink-0 text-xs text-zinc-500">{label}</span>
+      <span className="w-32 shrink-0 text-xs text-zinc-400">{label}</span>
       <span className="text-sm text-zinc-200">{children}</span>
     </div>
   )
@@ -248,7 +248,7 @@ function SortHeader<K extends string>({
         className="flex items-center gap-1 text-xs font-medium text-zinc-400 hover:text-white transition-colors focus-visible:outline-none focus-visible:text-white"
       >
         {label}
-        <span className="text-zinc-600" aria-hidden>
+        <span className="text-zinc-400" aria-hidden>
           {sorted ? (sortDir === 'asc' ? '↑' : '↓') : '↕'}
         </span>
       </button>
@@ -314,7 +314,7 @@ function buildSetMarkdown({
     lines.push(`## Members (${members.length})`)
     lines.push('')
     for (const m of members) {
-      const dod = m.date_of_death ? ` — †${formatFuzzyDateText(m.date_of_death)}` : ''
+      const dod = m.date_of_death ? ` (†${formatFuzzyDateText(m.date_of_death)}` : ''
       lines.push(`- ${m.display_name} (${m.status})${dod}`)
     }
     lines.push('')
@@ -328,8 +328,8 @@ function buildSetMarkdown({
     lines.push('')
     for (const inc of recent) {
       const dateStr = formatFuzzyDateText(inc.date, 'Date unknown')
-      const victims = inc.victim_names.length > 0 ? ` — Victims: ${inc.victim_names.join(', ')}` : ''
-      lines.push(`- ${dateStr} — ${inc.type}${victims}`)
+      const victims = inc.victim_names.length > 0 ? `  (victims: ${inc.victim_names.join(', ')}` : ''
+      lines.push(`- ${dateStr}: ${inc.type}${victims}`)
     }
     lines.push('')
   }
@@ -387,7 +387,7 @@ function AddRelationshipDialog({
             Add {isAlly ? 'Ally' : 'Enemy'}
           </DialogTitle>
           <DialogDescription>
-            Relationships are bilateral — the selected set will show this set as {isAlly ? 'an ally' : 'an enemy'} too.
+            Relationships are bilateral. The selected set will show this set as {isAlly ? 'an ally' : 'an enemy'} too.
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4 pt-2">
@@ -400,7 +400,7 @@ function AddRelationshipDialog({
                 className={`flex items-center justify-center gap-2 rounded-md border px-3 py-2 text-sm transition-colors ${
                   isAlly
                     ? 'border-emerald-600 bg-emerald-950/40 text-emerald-300'
-                    : 'border-zinc-800 bg-zinc-900/50 text-zinc-500 hover:text-zinc-300'
+                    : 'border-zinc-800 bg-zinc-900/50 text-zinc-400 hover:text-zinc-300'
                 }`}
               >
                 <Users className="h-4 w-4" /> Ally
@@ -411,7 +411,7 @@ function AddRelationshipDialog({
                 className={`flex items-center justify-center gap-2 rounded-md border px-3 py-2 text-sm transition-colors ${
                   !isAlly
                     ? 'border-red-700 bg-red-950/40 text-red-300'
-                    : 'border-zinc-800 bg-zinc-900/50 text-zinc-500 hover:text-zinc-300'
+                    : 'border-zinc-800 bg-zinc-900/50 text-zinc-400 hover:text-zinc-300'
                 }`}
               >
                 <Swords className="h-4 w-4" /> Enemy
@@ -424,7 +424,7 @@ function AddRelationshipDialog({
               <SelectTrigger><SelectValue placeholder="Select a set…" /></SelectTrigger>
               <SelectContent>
                 {available.length === 0 ? (
-                  <div className="px-2 py-4 text-center text-xs text-zinc-500">No available sets to link.</div>
+                  <div className="px-2 py-4 text-center text-xs text-zinc-400">No available sets to link.</div>
                 ) : (
                   available.map((s) => (
                     <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
@@ -481,7 +481,7 @@ function RelationshipsPanel({
           aria-label={`Remove relationship with ${setName(sid)}`}
           disabled={removingId === sid}
           onClick={() => onRemove(sid)}
-          className="shrink-0 text-zinc-700 opacity-0 transition-all hover:text-red-400 group-hover:opacity-100 disabled:opacity-40"
+          className="shrink-0 text-zinc-500 opacity-0 transition-all hover:text-red-400 group-hover:opacity-100 disabled:opacity-40"
         >
           <X className="h-3 w-3" />
         </button>
@@ -490,9 +490,9 @@ function RelationshipsPanel({
   }
 
   return (
-    <div className="rounded-xl border border-zinc-800 bg-zinc-900/30 px-4 py-3">
+    <div className="rounded-lg border border-zinc-800 bg-zinc-900/30 px-4 py-3">
       <div className="mb-2.5 flex items-center justify-between">
-        <p className="text-xs font-medium uppercase tracking-wider text-zinc-500">
+        <p className="text-xs font-medium uppercase tracking-wider text-zinc-400">
           Relationships{total > 0 ? ` (${total})` : ''}
         </p>
         <div className="flex items-center gap-3">
@@ -500,7 +500,7 @@ function RelationshipsPanel({
             <button
               type="button"
               onClick={onOpenGraph}
-              className="inline-flex items-center gap-1 text-xs text-zinc-500 hover:text-violet-400 transition-colors"
+              className="inline-flex items-center gap-1 text-xs text-zinc-400 hover:text-violet-400 transition-colors"
             >
               <GitFork className="h-3 w-3" />Graph
             </button>
@@ -508,7 +508,7 @@ function RelationshipsPanel({
           <button
             type="button"
             onClick={onAdd}
-            className="inline-flex items-center gap-1 text-xs text-zinc-500 hover:text-violet-400 transition-colors"
+            className="inline-flex items-center gap-1 text-xs text-zinc-400 hover:text-violet-400 transition-colors"
           >
             <Plus className="h-3 w-3" />Add
           </button>
@@ -516,7 +516,7 @@ function RelationshipsPanel({
       </div>
 
       {total === 0 ? (
-        <p className="text-xs text-zinc-600">No relationships recorded.</p>
+        <p className="text-xs text-zinc-400">No relationships recorded.</p>
       ) : (
         <div className="space-y-3">
           {sortedFriendIds.length > 0 && (
@@ -796,7 +796,7 @@ function SetDetailPage() {
                               key={slot}
                               className="inline-flex items-center gap-1 rounded-full bg-zinc-800/70 px-2 py-0.5 text-zinc-300"
                             >
-                              <span className="text-[10px] uppercase tracking-wider text-zinc-500">{slot}</span>
+                              <span className="text-[10px] uppercase tracking-wider text-zinc-400">{slot}</span>
                               {value}
                             </span>
                           ))}
@@ -804,7 +804,7 @@ function SetDetailPage() {
                       )}
                       {others.length > 0 && (
                         <div className="flex flex-wrap items-center gap-1.5 text-xs">
-                          <span className="text-[10px] uppercase tracking-wider text-zinc-600">a/k/a</span>
+                          <span className="text-[10px] uppercase tracking-wider text-zinc-400">a/k/a</span>
                           {others.map((v, i) => {
                             const lead = variantLead(v)
                             if (!lead) return null
@@ -819,7 +819,7 @@ function SetDetailPage() {
                               >
                                 <span className="text-zinc-200">{head}</span>
                                 {extras.length > 0 && (
-                                  <span className="text-zinc-600">· {extras.join(' · ')}</span>
+                                  <span className="text-zinc-400">· {extras.join(' · ')}</span>
                                 )}
                               </span>
                             )
@@ -855,7 +855,7 @@ function SetDetailPage() {
                       {muni.name}
                     </Link>
                   )}
-                  <span className="text-[11px] text-zinc-600">Updated {timeAgo(set.updated_at)}</span>
+                  <span className="text-[11px] text-zinc-400">Updated {timeAgo(set.updated_at)}</span>
                 </div>
               </div>
             </div>
@@ -899,7 +899,7 @@ function SetDetailPage() {
                 <StatCard icon={Crosshair} label="Shootings" value={stats.total_shootings} accent="amber" />
                 <StatCard icon={Skull} label="Kills" value={stats.total_kills} accent="red" />
               </div>
-              <div className="flex flex-wrap items-center gap-x-4 gap-y-1 rounded-lg border border-zinc-800 bg-zinc-950 px-4 py-2 text-xs text-zinc-500">
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-1 rounded-lg border border-zinc-800 bg-zinc-950 px-4 py-2 text-xs text-zinc-400">
                 <span><span className="text-zinc-300 tabular-nums">{stats.active_member_count}</span> active</span>
                 <span><span className="text-zinc-300 tabular-nums">{stats.dead_members}</span> dead</span>
                 <span><span className="text-zinc-300 tabular-nums">{stats.total_assists}</span> assists</span>
@@ -907,7 +907,7 @@ function SetDetailPage() {
                   Last incident{' '}
                   <span className="text-zinc-300 tabular-nums">{stats.last_incident_year ?? '—'}</span>
                   {stats.first_incident_year && stats.first_incident_year !== stats.last_incident_year && (
-                    <span className="text-zinc-600"> (since {stats.first_incident_year})</span>
+                    <span className="text-zinc-400"> (since {stats.first_incident_year})</span>
                   )}
                 </span>
               </div>
@@ -961,16 +961,16 @@ function SetDetailPage() {
                   </div>
                 </div>
               ) : set.bio ? (
-                <div className="group relative rounded-xl border border-zinc-800 bg-zinc-900/30 p-4">
+                <div className="group relative rounded-lg border border-zinc-800 bg-zinc-900/30 p-4">
                   <p className="text-sm leading-relaxed text-zinc-300 whitespace-pre-wrap">{set.bio}</p>
                   <button type="button" onClick={startBioEdit} aria-label="Edit bio"
-                    className="absolute right-2 top-2 rounded p-1.5 text-zinc-500 opacity-0 transition-opacity hover:bg-zinc-800 hover:text-zinc-200 focus-visible:opacity-100 group-hover:opacity-100">
+                    className="absolute right-2 top-2 rounded p-1.5 text-zinc-400 opacity-0 transition-opacity hover:bg-zinc-800 hover:text-zinc-200 focus-visible:opacity-100 group-hover:opacity-100">
                     <Pencil className="h-3.5 w-3.5" />
                   </button>
                 </div>
               ) : !isReserved ? (
                 <button type="button" onClick={startBioEdit}
-                  className="flex w-full items-center gap-2 rounded-xl border border-dashed border-zinc-800 px-4 py-3 text-xs text-zinc-600 hover:border-zinc-700 hover:text-zinc-400 transition-colors">
+                  className="flex w-full items-center gap-2 rounded-lg border border-dashed border-zinc-800 px-4 py-3 text-xs text-zinc-400 hover:border-zinc-700 hover:text-zinc-200 transition-colors">
                   <Pencil className="h-3 w-3" />Add bio
                 </button>
               ) : null}
@@ -983,34 +983,34 @@ function SetDetailPage() {
                 </div>
               )}
 
-              <div className="rounded-xl border border-zinc-800 bg-zinc-900/30 px-4 py-1">
+              <div className="rounded-lg border border-zinc-800 bg-zinc-900/30 px-4 py-1">
                 <DetailRow label="Founder">
                   {founder ? (
                     <Link to="/members/$id" params={{ id: founder.slug ?? founder.id }} className="text-violet-400 hover:underline">
                       {founder.display_name}
                     </Link>
-                  ) : <span className="text-zinc-600">—</span>}
+                  ) : <span className="text-zinc-400">—</span>}
                 </DetailRow>
                 <DetailRow label="Alliance">
                   {alliance ? (
                     <Link to="/alliances/$id" params={{ id: alliance.slug ?? alliance.id }} className="text-blue-400 hover:underline">
                       {alliance.name}
                     </Link>
-                  ) : <span className="text-zinc-600">—</span>}
+                  ) : <span className="text-zinc-400">—</span>}
                 </DetailRow>
                 <DetailRow label="Municipality">
                   {muni && set.municipality_id ? (
                     <Link to="/municipalities/$id" params={{ id: set.municipality_id }} className="text-violet-400 hover:underline">
                       {muni.name}
                     </Link>
-                  ) : <span className="text-zinc-600">—</span>}
+                  ) : <span className="text-zinc-400">—</span>}
                 </DetailRow>
                 <DetailRow label="Territories">
                   {territoryNames.length > 0 ? (
                     <span title={territoryNames.join(', ')}>
                       {territoryNames.length} sub-district{territoryNames.length === 1 ? '' : 's'}
                     </span>
-                  ) : <span className="text-zinc-600">—</span>}
+                  ) : <span className="text-zinc-400">—</span>}
                 </DetailRow>
                 <DetailRow label="Created">
                   <span className="text-zinc-400">{timeAgo(set.created_at)}</span>
@@ -1021,12 +1021,12 @@ function SetDetailPage() {
               {incidentItems.length > 0 && (
                 <div>
                   <div className="mb-2 flex items-center justify-between">
-                    <h3 className="text-xs font-medium uppercase tracking-wider text-zinc-500">Latest incidents</h3>
-                    <button type="button" onClick={() => setTab('incidents')} className="text-xs text-zinc-500 hover:text-violet-400">
+                    <h3 className="text-xs font-medium uppercase tracking-wider text-zinc-400">Latest incidents</h3>
+                    <button type="button" onClick={() => setTab('incidents')} className="text-xs text-zinc-400 hover:text-violet-400">
                       View all {incidentItems.length} →
                     </button>
                   </div>
-                  <ul className="divide-y divide-zinc-800 rounded-xl border border-zinc-800 bg-zinc-900/30">
+                  <ul className="divide-y divide-zinc-800 rounded-lg border border-zinc-800 bg-zinc-900/30">
                     {sortedIncidents.slice(0, 3).map((inc) => (
                       <li key={inc.id}>
                         <Link to="/incidents/$id" params={{ id: inc.id }} className="flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-zinc-900/60">
@@ -1035,7 +1035,7 @@ function SetDetailPage() {
                             {inc.date ? <FuzzyDate value={inc.date} /> : 'Unknown'}
                           </span>
                           {inc.victim_names.length > 0 && (
-                            <span className="truncate text-xs text-zinc-500">
+                            <span className="truncate text-xs text-zinc-400">
                               {inc.victim_names.slice(0, 3).join(', ')}{inc.victim_names.length > 3 && ` +${inc.victim_names.length - 3}`}
                             </span>
                           )}
@@ -1053,7 +1053,7 @@ function SetDetailPage() {
               <div className="flex flex-1 flex-wrap items-center gap-2">
                 {memberItems.length > 5 && (
                   <div className="relative max-w-xs flex-1">
-                    <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-zinc-500" />
+                    <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-zinc-400" />
                     <Input
                       className="h-8 pl-8 text-sm"
                       placeholder="Filter by name or alias…"
@@ -1078,7 +1078,7 @@ function SetDetailPage() {
                             className={`rounded-full border px-2.5 py-0.5 text-[11px] font-medium transition-colors ${
                               active
                                 ? 'border-violet-500/60 bg-violet-500/10 text-violet-200'
-                                : 'border-zinc-800 bg-zinc-900/40 text-zinc-500 hover:text-zinc-300'
+                                : 'border-zinc-800 bg-zinc-900/40 text-zinc-400 hover:text-zinc-300'
                             }`}
                           >
                             {s === 'ALL' ? 'All' : s.charAt(0) + s.slice(1).toLowerCase()}
@@ -1089,7 +1089,7 @@ function SetDetailPage() {
                   </div>
                 )}
                 {(memberQuery || memberStatusFilter !== 'ALL') && filteredMembers.length !== memberItems.length && (
-                  <span className="text-xs text-zinc-500 tabular-nums">
+                  <span className="text-xs text-zinc-400 tabular-nums">
                     {filteredMembers.length} of {memberItems.length}
                   </span>
                 )}
@@ -1097,7 +1097,7 @@ function SetDetailPage() {
               <button
                   type="button"
                   onClick={() => setPrimaryOnly((v) => !v)}
-                  className={`shrink-0 rounded-full border px-2.5 py-0.5 text-[11px] font-medium transition-colors ${primaryOnly ? 'border-violet-500/60 bg-violet-500/10 text-violet-200' : 'border-zinc-800 bg-zinc-900/40 text-zinc-500 hover:text-zinc-300'}`}
+                  className={`shrink-0 rounded-full border px-2.5 py-0.5 text-[11px] font-medium transition-colors ${primaryOnly ? 'border-violet-500/60 bg-violet-500/10 text-violet-200' : 'border-zinc-800 bg-zinc-900/40 text-zinc-400 hover:text-zinc-300'}`}
                 >
                   Primary only
                 </button>
@@ -1123,7 +1123,7 @@ function SetDetailPage() {
                 description="Try a different name or alias."
               />
             ) : (
-              <div className="overflow-hidden rounded-xl border border-zinc-800">
+              <div className="overflow-hidden rounded-lg border border-zinc-800">
                 <table className="w-full text-sm">
                   <thead className="sticky top-0 z-10">
                     <tr className="border-b border-zinc-800 bg-zinc-900">
@@ -1178,7 +1178,7 @@ function SetDetailPage() {
                                 )}
                               </span>
                               {m.aliases && m.aliases.length > 0 && (
-                                <span className="mt-0.5 block text-[11px] text-zinc-600 group-hover:text-zinc-500 transition-colors">
+                                <span className="mt-0.5 block text-[11px] text-zinc-400 group-hover:text-zinc-200 transition-colors">
                                   {m.aliases.slice(0, 3).join(' · ')}
                                 </span>
                               )}
@@ -1190,8 +1190,8 @@ function SetDetailPage() {
                             </Link>
                           </td>
                           <td className="hidden p-0 md:table-cell">
-                            <Link to="/members/$id" params={{ id: linkId }} className={`block px-4 ${cellPad} text-xs text-zinc-500`} tabIndex={-1}>
-                              {m.date_of_death ? <FuzzyDate value={m.date_of_death} /> : <span className="text-zinc-700">—</span>}
+                            <Link to="/members/$id" params={{ id: linkId }} className={`block px-4 ${cellPad} text-xs text-zinc-400`} tabIndex={-1}>
+                              {m.date_of_death ? <FuzzyDate value={m.date_of_death} /> : <span className="text-zinc-500">—</span>}
                             </Link>
                           </td>
                         </tr>
@@ -1214,7 +1214,7 @@ function SetDetailPage() {
             ) : (
               <>
                 <IncidentsYearStrip data={set.incidents_per_year} />
-                <div className="overflow-hidden rounded-xl border border-zinc-800">
+                <div className="overflow-hidden rounded-lg border border-zinc-800">
                 <table className="w-full text-sm">
                   <thead className="sticky top-0 z-10">
                     <tr className="border-b border-zinc-800 bg-zinc-900">
@@ -1244,12 +1244,12 @@ function SetDetailPage() {
                           </td>
                           <td className="p-0">
                             <Link to="/incidents/$id" params={{ id: inc.id }} className="block px-4 py-3 font-mono text-xs text-zinc-400 tabular-nums" tabIndex={-1}>
-                              {inc.date ? <FuzzyDate value={inc.date} /> : <span className="text-zinc-700">Unknown</span>}
+                              {inc.date ? <FuzzyDate value={inc.date} /> : <span className="text-zinc-500">Unknown</span>}
                             </Link>
                           </td>
                           <td className="hidden p-0 md:table-cell">
-                            <Link to="/incidents/$id" params={{ id: inc.id }} className="block px-4 py-3 text-xs text-zinc-500" tabIndex={-1}>
-                              {muniName ?? <span className="text-zinc-700">—</span>}
+                            <Link to="/incidents/$id" params={{ id: inc.id }} className="block px-4 py-3 text-xs text-zinc-400" tabIndex={-1}>
+                              {muniName ?? <span className="text-zinc-500">—</span>}
                             </Link>
                           </td>
                           <td className="hidden p-0 lg:table-cell">
@@ -1260,7 +1260,7 @@ function SetDetailPage() {
                                   {inc.victim_names.length > 3 && ` +${inc.victim_names.length - 3}`}
                                 </span>
                               ) : (
-                                <span className="text-zinc-700">—</span>
+                                <span className="text-zinc-500">—</span>
                               )}
                             </Link>
                           </td>
@@ -1295,7 +1295,7 @@ function SetDetailPage() {
                 />
               ) : (
                 <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1fr_280px]">
-                  <div className="rounded-xl border border-zinc-800 bg-zinc-900/30">
+                  <div className="rounded-lg border border-zinc-800 bg-zinc-900/30">
                     <Suspense fallback={<Skeleton className="h-[420px] w-full" />}>
                       <SetRelationshipGraph
                         input={{

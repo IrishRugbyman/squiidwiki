@@ -39,13 +39,13 @@ export function StatCard({ icon: Icon, label, value, hint, to, accent = 'default
       )}
     >
       <div className="flex items-center justify-between">
-        <span className="text-xs font-medium text-zinc-500">{label}</span>
+        <span className="text-xs font-medium text-zinc-400">{label}</span>
         {Icon && <Icon className={cn('h-4 w-4', ACCENT_ICON[accent])} />}
       </div>
       <div className="mt-3 flex items-baseline gap-2">
         <span className="text-2xl font-semibold text-white">{value}</span>
       </div>
-      {hint && <p className="mt-1 text-xs text-zinc-500">{hint}</p>}
+      {hint && <p className="mt-1 text-xs text-zinc-400">{hint}</p>}
     </div>
   )
 

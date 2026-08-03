@@ -167,7 +167,7 @@ export function AllianceRelationshipGraph({
   )
 
   if (allianceSets.length === 0) {
-    return <p className="py-6 text-sm text-zinc-600">No sets in this alliance to graph.</p>
+    return <p className="py-6 text-sm text-zinc-400">No sets in this alliance to graph.</p>
   }
 
   return (
@@ -188,12 +188,12 @@ export function AllianceRelationshipGraph({
         <Background color="#27272a" gap={20} size={1} />
         <Controls className="!bg-zinc-900 !border-zinc-700 [&>button]:!bg-zinc-900 [&>button]:!border-zinc-700 [&>button]:!text-zinc-400 [&>button:hover]:!bg-zinc-800" />
       </ReactFlow>
-      <div className="pointer-events-none absolute bottom-2 right-2 flex gap-3 rounded-md border border-zinc-800 bg-zinc-950/90 px-2 py-1 text-[10px] text-zinc-500">
+      <div className="pointer-events-none absolute bottom-2 right-2 flex gap-3 rounded-md border border-zinc-800 bg-zinc-950/90 px-2 py-1 text-[10px] text-zinc-400">
         <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-violet-500" /> In alliance</span>
         <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-emerald-500" /> Ally</span>
         <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-red-500" /> Enemy</span>
-        {loading && <span className="text-zinc-600">· loading…</span>}
-        {!loading && externalCount > 0 && <span className="text-zinc-600">· {externalCount} external</span>}
+        {loading && <span className="text-zinc-400">· loading…</span>}
+        {!loading && externalCount > 0 && <span className="text-zinc-400">· {externalCount} external</span>}
       </div>
     </div>
   )

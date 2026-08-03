@@ -145,12 +145,12 @@ function IncidentDetailPage() {
                 {incident.location_text && !municipality && <> · {incident.location_text}</>}
               </p>
               {incident.location_text && municipality && (
-                <p className="mt-1 text-xs text-zinc-500">{incident.location_text}</p>
+                <p className="mt-1 text-xs text-zinc-400">{incident.location_text}</p>
               )}
               {incident.lat != null && incident.lng != null && (
-                <p className="mt-1 text-xs text-zinc-500 font-mono">{incident.lat.toFixed(5)}, {incident.lng.toFixed(5)}</p>
+                <p className="mt-1 text-xs text-zinc-400 font-mono">{incident.lat.toFixed(5)}, {incident.lng.toFixed(5)}</p>
               )}
-              <p className="mt-1 text-[11px] text-zinc-600">Updated {timeAgo(incident.updated_at)}</p>
+              <p className="mt-1 text-[11px] text-zinc-400">Updated {timeAgo(incident.updated_at)}</p>
             </div>
             <div className="flex items-center gap-2">
               <Button size="sm" variant="outline" onClick={() => setEditing(true)}>
@@ -165,12 +165,12 @@ function IncidentDetailPage() {
           </div>
 
           {incident.narrative ? (
-            <div className="group relative mb-5 rounded-xl border border-zinc-800 bg-zinc-900/30 p-4">
+            <div className="group relative mb-5 rounded-lg border border-zinc-800 bg-zinc-900/30 p-4">
               <p className="text-sm leading-relaxed text-zinc-300 whitespace-pre-wrap">{incident.narrative}</p>
               <button
                 type="button"
                 onClick={() => setEditing(true)}
-                className="absolute right-2 top-2 rounded p-1.5 text-zinc-500 opacity-0 group-hover:opacity-100 hover:bg-zinc-800 hover:text-zinc-300 transition-all"
+                className="absolute right-2 top-2 rounded p-1.5 text-zinc-400 opacity-0 group-hover:opacity-100 hover:bg-zinc-800 hover:text-zinc-300 transition-all"
                 aria-label="Edit narrative"
               >
                 <Pencil className="h-3.5 w-3.5" />
@@ -202,7 +202,7 @@ function IncidentDetailPage() {
                 </Button>
               </div>
               {incident.participants.length === 0 && incident.set_participants.length === 0 ? (
-                <p className="text-sm text-zinc-600">No participants recorded.</p>
+                <p className="text-sm text-zinc-400">No participants recorded.</p>
               ) : (
                 <div className="space-y-2">
                   {incident.participants.map((p) => {
@@ -218,14 +218,14 @@ function IncidentDetailPage() {
                             params={{ id: memberSlug(p.member_id) }}
                             className="inline-flex items-center gap-2 text-sm font-medium text-white hover:text-violet-400 transition-colors"
                           >
-                            <User className="h-3.5 w-3.5 text-zinc-500" />
+                            <User className="h-3.5 w-3.5 text-zinc-400" />
                             {name}
                           </Link>
                         ) : (
-                          <span className="inline-flex items-center gap-2 text-sm font-medium text-zinc-500">
+                          <span className="inline-flex items-center gap-2 text-sm font-medium text-zinc-400">
                             <User className="h-3.5 w-3.5" />
                             Unknown member
-                            <span className="font-mono text-xs text-zinc-600">({p.member_id.slice(0, 8)}…)</span>
+                            <span className="font-mono text-xs text-zinc-400">({p.member_id.slice(0, 8)}…)</span>
                           </span>
                         )}
                         <div className="flex items-center gap-2">
@@ -248,18 +248,18 @@ function IncidentDetailPage() {
                             params={{ id: set.slug ?? set.id }}
                             className="inline-flex items-center gap-2 text-sm font-medium text-white hover:text-violet-400 transition-colors"
                           >
-                            <Users className="h-3.5 w-3.5 text-zinc-500" />
+                            <Users className="h-3.5 w-3.5 text-zinc-400" />
                             {set.name}
                           </Link>
                         ) : (
-                          <span className="inline-flex items-center gap-2 text-sm font-medium text-zinc-500">
+                          <span className="inline-flex items-center gap-2 text-sm font-medium text-zinc-400">
                             <Users className="h-3.5 w-3.5" />
                             Unknown set
-                            <span className="font-mono text-xs text-zinc-600">({p.set_id.slice(0, 8)}…)</span>
+                            <span className="font-mono text-xs text-zinc-400">({p.set_id.slice(0, 8)}…)</span>
                           </span>
                         )}
                         <div className="flex items-center gap-2">
-                          <Badge variant="outline" className="text-[10px] text-zinc-500 border-zinc-700">set</Badge>
+                          <Badge variant="outline" className="text-[10px] text-zinc-400 border-zinc-700">set</Badge>
                           <Badge className={`border ${ROLE_CHIP[p.role]}`}>{ROLE_LABEL[p.role]}</Badge>
                           <Badge className={`border ${OUTCOME_CHIP[p.outcome]}`}>{OUTCOME_LABEL[p.outcome]}</Badge>
                         </div>
@@ -277,7 +277,7 @@ function IncidentDetailPage() {
                 </Button>
               </div>
               {incident.source_ids.length === 0 ? (
-                <p className="text-sm text-zinc-600">No sources cited.</p>
+                <p className="text-sm text-zinc-400">No sources cited.</p>
               ) : (
                 <div className="space-y-2">
                   {incident.source_ids.map((sid) => {
@@ -296,9 +296,9 @@ function IncidentDetailPage() {
                             {source.title}
                           </Link>
                         ) : (
-                          <span className="inline-flex items-center gap-2 text-sm font-medium text-zinc-500">
+                          <span className="inline-flex items-center gap-2 text-sm font-medium text-zinc-400">
                             Unknown source
-                            <span className="font-mono text-xs text-zinc-600">({sid.slice(0, 8)}…)</span>
+                            <span className="font-mono text-xs text-zinc-400">({sid.slice(0, 8)}…)</span>
                           </span>
                         )}
                         <div className="flex items-center gap-2">
@@ -309,7 +309,7 @@ function IncidentDetailPage() {
                               target="_blank"
                               rel="noopener noreferrer"
                               aria-label="Open source in new tab"
-                              className="rounded p-1 text-zinc-500 hover:text-violet-400 transition-colors"
+                              className="rounded p-1 text-zinc-400 hover:text-violet-400 transition-colors"
                             >
                               <ExternalLink className="h-3.5 w-3.5" />
                             </a>

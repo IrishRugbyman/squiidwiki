@@ -327,7 +327,7 @@ function TerritoryMapPage() {
   return (
     <div className="flex flex-col gap-4 lg:h-[calc(100vh-3.5rem-3rem)] lg:flex-row">
       {/* Sidebar */}
-      <aside className="flex max-h-[40vh] w-full shrink-0 flex-col gap-3 overflow-hidden rounded-xl border border-zinc-800 bg-zinc-950 p-3 lg:max-h-none lg:w-[280px]">
+      <aside className="flex max-h-[40vh] w-full shrink-0 flex-col gap-3 overflow-hidden rounded-lg border border-zinc-800 bg-zinc-950 p-3 lg:max-h-none lg:w-[280px]">
         {/* View toggle */}
         <div className="inline-flex items-center gap-1 rounded-lg border border-zinc-800 bg-zinc-900/50 p-1" role="tablist">
           {(['sets', 'alliances'] as const).map((v) => (
@@ -337,7 +337,7 @@ function TerritoryMapPage() {
               aria-selected={view === v}
               onClick={() => setView(v)}
               className={`flex-1 rounded-md px-3 py-1 text-xs font-medium transition-colors ${
-                view === v ? 'bg-zinc-700 text-white' : 'text-zinc-500 hover:text-zinc-300'
+                view === v ? 'bg-zinc-700 text-white' : 'text-zinc-400 hover:text-zinc-300'
               }`}
             >
               {v === 'sets' ? 'Sets' : 'Alliances'}
@@ -347,7 +347,7 @@ function TerritoryMapPage() {
 
         {/* Search */}
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-500" />
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400" />
           <Input
             value={searchQ}
             onChange={(e) => setSearchQ(e.target.value)}
@@ -357,7 +357,7 @@ function TerritoryMapPage() {
           {searchQ && (
             <button
               onClick={() => setSearchQ('')}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-white"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-white"
               aria-label="Clear search"
             >
               <X className="h-4 w-4" />
@@ -368,9 +368,9 @@ function TerritoryMapPage() {
         {/* List */}
         <div className="flex-1 overflow-y-auto -mr-1 pr-1">
           {isLoadingShell ? (
-            <p className="text-xs text-zinc-500">Loading…</p>
+            <p className="text-xs text-zinc-400">Loading…</p>
           ) : filteredSets.length === 0 ? (
-            <p className="text-xs text-zinc-500">No sets match.</p>
+            <p className="text-xs text-zinc-400">No sets match.</p>
           ) : view === 'alliances' ? (
             renderGroupedByAlliance(filteredSets, selected, selectSet, polygonByteSetIds)
           ) : (
@@ -396,7 +396,7 @@ function TerritoryMapPage() {
               <button
                 onClick={clearSelection}
                 aria-label="Clear selection"
-                className="rounded p-1 text-zinc-500 hover:bg-zinc-800 hover:text-white"
+                className="rounded p-1 text-zinc-400 hover:bg-zinc-800 hover:text-white"
               >
                 <X className="h-3.5 w-3.5" />
               </button>
@@ -432,7 +432,7 @@ function TerritoryMapPage() {
                     {selectedSet.territory_polygon ? 'Edit boundary' : 'Draw boundary'}
                   </Button>
                 ) : (
-                  <p className="text-xs text-zinc-500">Set a primary municipality to draw a polygon boundary.</p>
+                  <p className="text-xs text-zinc-400">Set a primary municipality to draw a polygon boundary.</p>
                 )}
                 <Button size="sm" variant="outline" className="w-full" onClick={startPinEditing}>
                   <MapPin className="mr-1.5 h-3.5 w-3.5" />
@@ -504,7 +504,7 @@ function TerritoryMapPage() {
         </div>
 
         {/* Map */}
-        <div className="relative h-[55vh] overflow-hidden rounded-xl border border-zinc-800 lg:h-auto lg:flex-1">
+        <div className="relative h-[55vh] overflow-hidden rounded-lg border border-zinc-800 lg:h-auto lg:flex-1">
           <Suspense fallback={<MapPlaceholder />}>
             <TerritoryMap
               setPolygons={setPolygons ?? []}
@@ -554,7 +554,7 @@ function TerritoryMapPage() {
                     />
                     <span className="text-zinc-200">{c.name}</span>
                   </label>
-                  <span className="font-mono text-xs tabular-nums text-zinc-500">
+                  <span className="font-mono text-xs tabular-nums text-zinc-400">
                     {Math.round(c.overlapPct * 100)}%
                   </span>
                 </li>
@@ -657,7 +657,7 @@ function EditorTabs({
             aria-selected={tab === t}
             onClick={() => onTabChange(t)}
             className={`flex-1 rounded-md px-2 py-1 text-[11px] font-medium transition-colors ${
-              tab === t ? 'bg-zinc-700 text-white' : 'text-zinc-500 hover:text-zinc-300'
+              tab === t ? 'bg-zinc-700 text-white' : 'text-zinc-400 hover:text-zinc-300'
             }`}
           >
             {t === 'draw' ? 'Draw' : t === 'address' ? 'Address' : 'Pin'}
@@ -668,14 +668,14 @@ function EditorTabs({
       {tab === 'pin' ? (
         <div className="space-y-2">
           {/* Address geocoder */}
-          <p className="text-[11px] text-zinc-500">Search an address or intersection (US only).</p>
+          <p className="text-[11px] text-zinc-400">Search an address or intersection (US only).</p>
           <div className="flex items-center gap-1.5">
             <input
               value={pinAddressInput}
               onChange={(e) => { setPinAddressInput(e.target.value); setPinGeocodeState('idle') }}
               onKeyDown={(e) => e.key === 'Enter' && geocodePin()}
               placeholder="E. Seven Mile & Hayes, Detroit"
-              className="flex-1 min-w-0 rounded-md border border-zinc-800 bg-zinc-950 px-2 py-1 text-[11px] text-zinc-200 placeholder:text-zinc-600 focus-visible:border-violet-700 focus-visible:outline-none"
+              className="flex-1 min-w-0 rounded-md border border-zinc-800 bg-zinc-950 px-2 py-1 text-[11px] text-zinc-200 placeholder:text-zinc-400 focus-visible:border-violet-700 focus-visible:outline-none"
             />
             <Button size="sm" variant="outline" onClick={geocodePin} disabled={!pinAddressInput.trim() || pinGeocodeState === 'loading'} className="shrink-0 px-2">
               {pinGeocodeState === 'loading' ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <MapPin className="h-3.5 w-3.5" />}
@@ -688,7 +688,7 @@ function EditorTabs({
             <p className="truncate text-[10px] text-emerald-400">{pinGeocodeLabel}</p>
           )}
 
-          <p className="text-[10px] text-zinc-600">— or click anywhere on the map —</p>
+          <p className="text-[10px] text-zinc-400">or click anywhere on the map</p>
 
           {existingPoint && !pendingPoint && (
             <div className="rounded-md border border-zinc-800 bg-zinc-950/50 px-2 py-1.5 text-[11px]">
@@ -719,14 +719,14 @@ function EditorTabs({
         </p>
       ) : (
         <div className="space-y-2">
-          <p className="text-[11px] text-zinc-500">
+          <p className="text-[11px] text-zinc-400">
             One address or intersection per line (US only). Mapbox geocoder.
           </p>
           <textarea
             value={addressInput}
             onChange={(e) => onAddressInputChange(e.target.value)}
             placeholder={'Mack Ave & Van Dyke St, Detroit\nGratiot Ave & Conner St, Detroit\n…'}
-            className="h-24 w-full resize-y rounded-md border border-zinc-800 bg-zinc-950 px-2 py-1.5 text-xs text-zinc-200 placeholder:text-zinc-600 focus-visible:border-violet-700 focus-visible:outline-none"
+            className="h-24 w-full resize-y rounded-md border border-zinc-800 bg-zinc-950 px-2 py-1.5 text-xs text-zinc-200 placeholder:text-zinc-400 focus-visible:border-violet-700 focus-visible:outline-none"
           />
           <div className="flex items-center gap-2">
             <Button size="sm" variant="outline" className="flex-1" onClick={geocodeAll} disabled={!addressInput.trim() || anyLoading}>
@@ -753,7 +753,7 @@ function EditorTabs({
                     </p>
                     {v.status === 'error' && <p className="truncate text-[10px] text-rose-500">{v.error}</p>}
                   </div>
-                  {v.status === 'loading' && <Loader2 className="h-3 w-3 shrink-0 animate-spin text-zinc-500" />}
+                  {v.status === 'loading' && <Loader2 className="h-3 w-3 shrink-0 animate-spin text-zinc-400" />}
                   {v.status === 'ok' && <Check className="h-3 w-3 shrink-0 text-emerald-500" />}
                   {v.status === 'error' && <X className="h-3 w-3 shrink-0 text-rose-500" />}
                 </li>
@@ -820,7 +820,7 @@ function renderGroupedByAlliance(
     <div className="space-y-3">
       {groups.map((g) => (
         <div key={g.name}>
-          <h3 className="mb-1 px-2 text-[10px] font-medium uppercase tracking-wider text-zinc-500">{g.name}</h3>
+          <h3 className="mb-1 px-2 text-[10px] font-medium uppercase tracking-wider text-zinc-400">{g.name}</h3>
           <ul className="space-y-0.5">
             {g.sets.map((s) => (
               <SetRow key={s.id} set={s} selected={selected === s.id} hasPolygon={polygonSetIds.has(s.id)} onClick={() => onSelect(s.id)} />
@@ -830,7 +830,7 @@ function renderGroupedByAlliance(
       ))}
       {unaffiliated.length > 0 && (
         <div>
-          <h3 className="mb-1 px-2 text-[10px] font-medium uppercase tracking-wider text-zinc-600">Unaffiliated</h3>
+          <h3 className="mb-1 px-2 text-[10px] font-medium uppercase tracking-wider text-zinc-400">Unaffiliated</h3>
           <ul className="space-y-0.5">
             {unaffiliated.map((s) => (
               <SetRow key={s.id} set={s} selected={selected === s.id} hasPolygon={polygonSetIds.has(s.id)} onClick={() => onSelect(s.id)} />
@@ -898,12 +898,12 @@ function CopyFromSelect({
               value={q}
               onChange={(e) => setQ(e.target.value)}
               placeholder="Search sets…"
-              className="w-full rounded bg-zinc-800 px-2 py-1 text-xs text-zinc-200 placeholder:text-zinc-500 outline-none"
+              className="w-full rounded bg-zinc-800 px-2 py-1 text-xs text-zinc-200 placeholder:text-zinc-400 outline-none"
             />
           </div>
           <ul className="max-h-48 overflow-y-auto py-1">
             {choices.length === 0 ? (
-              <li className="px-3 py-2 text-xs text-zinc-500">No sets found.</li>
+              <li className="px-3 py-2 text-xs text-zinc-400">No sets found.</li>
             ) : choices.map((p) => (
               <li key={p.id}>
                 <button
@@ -942,7 +942,7 @@ function ToolbarToggle({
       onClick={onClick}
       aria-pressed={active}
       className={`inline-flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-xs font-medium transition-colors ${
-        active ? activeClasses : 'border-zinc-700 text-zinc-500 hover:border-zinc-500 hover:text-zinc-300'
+        active ? activeClasses : 'border-zinc-700 text-zinc-400 hover:border-zinc-500 hover:text-zinc-300'
       }`}
     >
       {icon}
@@ -954,7 +954,7 @@ function ToolbarToggle({
 function MapPlaceholder() {
   return (
     <div className="flex h-full items-center justify-center bg-zinc-900">
-      <div className="flex flex-col items-center gap-2 text-zinc-500">
+      <div className="flex flex-col items-center gap-2 text-zinc-400">
         <MapPin className="h-8 w-8 animate-pulse" />
         <span className="text-sm">Loading map…</span>
       </div>

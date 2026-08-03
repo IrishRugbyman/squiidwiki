@@ -68,7 +68,7 @@ function ProfilePage() {
           </div>
           <div className="min-w-0 flex-1">
             <p className="truncate text-sm font-semibold text-white">{user?.email}</p>
-            <p className="mt-0.5 inline-flex items-center gap-1 text-xs text-zinc-500">
+            <p className="mt-0.5 inline-flex items-center gap-1 text-xs text-zinc-400">
               {user?.global_role === 'ADMIN' ? <Shield className="h-3 w-3 text-amber-400" /> : <UserIcon className="h-3 w-3" />}
               {user?.global_role}
             </p>
@@ -92,7 +92,7 @@ function ProfilePage() {
             value={newPassword} onChange={(e) => setNewPassword(e.target.value)}
             aria-describedby="p-new-hint"
           />
-          <p id="p-new-hint" className="text-[11px] text-zinc-500">
+          <p id="p-new-hint" className="text-[11px] text-zinc-400">
             At least 8 characters. Use a unique password you don't use elsewhere.
           </p>
         </div>
