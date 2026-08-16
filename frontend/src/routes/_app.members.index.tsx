@@ -102,8 +102,8 @@ function MembersPage() {
     if (setFilter) list = list.filter((m) => m.affiliations.some((a) => a.set_id === setFilter))
     if (!sortKey) return list
     return [...list].sort((a, b) => {
-      const av = String((a as unknown as Record<string, unknown>)[sortKey] ?? '')
-      const bv = String((b as unknown as Record<string, unknown>)[sortKey] ?? '')
+      const av = a[sortKey] ?? ''
+      const bv = b[sortKey] ?? ''
       return sortDir === 'asc' ? av.localeCompare(bv) : bv.localeCompare(av)
     })
   }, [baseItems, statusFilter, setFilter, sortKey, sortDir])

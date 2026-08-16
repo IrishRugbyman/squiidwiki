@@ -154,8 +154,8 @@ function AlliancesPage() {
   const items = useMemo(() => {
     if (!sortKey) return rawItems
     return [...rawItems].sort((a, b) => {
-      const av = String((a as unknown as Record<string, unknown>)[sortKey] ?? '')
-      const bv = String((b as unknown as Record<string, unknown>)[sortKey] ?? '')
+      const av = a[sortKey] ?? ''
+      const bv = b[sortKey] ?? ''
       return sortDir === 'asc' ? av.localeCompare(bv) : bv.localeCompare(av)
     })
   }, [rawItems, sortKey, sortDir])
