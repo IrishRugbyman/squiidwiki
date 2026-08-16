@@ -157,7 +157,7 @@ function SourcesPage() {
       const pub = (s as unknown as { publication?: string | null }).publication
       if (pub) set.add(pub)
     }
-    return Array.from(set).sort()
+    return Array.from(set).sort((a, b) => a.localeCompare(b))
   }, [rawItems])
 
   if (!universe) return <NoUniverse />
