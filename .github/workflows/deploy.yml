@@ -30,4 +30,4 @@ jobs:
             npm run build
 
             echo "=== Done ==="
-            sudo systemctl is-active squiidwiki
+            systemctl is-active squiidwiki
