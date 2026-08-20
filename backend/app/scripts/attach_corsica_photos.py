@@ -59,12 +59,14 @@ PHOTOS: list[tuple[str, str, str]] = [
     ),
     (
         "Robert Moracchini",
-        "https://www.corsenetinfos.corsica/photo/art/grande/72955048-50760898.jpg",
-        "On the summit of Everest with the Corsican bandera, May 2023, aged 63. "
-        "Published by Corse Net Infos, credited Thamserku Expedition. His face is "
-        "covered by mask and goggles, so this identifies the moment rather than the "
-        "man: it is here because the climb is the defining fact of his last years, "
-        "not as a likeness.",
+        "https://www.ici.fr/pikapi/images/151ef7ed-6809-403d-a175-506d67c96db6/1280",
+        "Police mugshot, front and profile, the placard reading MORACCHINI Robert. "
+        "Photograph \u00a9 Radio France / Marion Galland, published by ICI (ex-France "
+        "Bleu RCFM) on 29 March 2025 with the caption: \"Au d\u00e9but des ann\u00e9es 80, "
+        "Robert Moracchini \u00e9tait soup\u00e7onn\u00e9 par les policiers d'\u00eatre un des membres "
+        "fondateurs de la bande de la Brise de mer.\" Marion Galland is the "
+        "co-author of Vendetta, so this comes from the authors' own research "
+        "archive.",
     ),
 ]
 
