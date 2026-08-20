@@ -68,6 +68,21 @@ PHOTOS: list[tuple[str, str, str]] = [
         "co-author of Vendetta, so this comes from the authors' own research "
         "archive.",
     ),
+    (
+        "Fran\u00e7ois Guazzelli",
+        "/tmp/claude-1000/-home-lbzgiu-squiidwiki/47d7a4e6-935e-4cff-ac23-9b2238e7f6ff/scratchpad/pics/francis_guazzelli.jpg",
+        "Portrait published by franceinfo with its report of his killing, captioned "
+        "\u00ab Francis Guazzelli (F2) \u00bb, the credit indicating France 2 "
+        "television. Saved rather than hotlinked.",
+    ),
+    (
+        "Francis Mariani",
+        "/tmp/claude-1000/-home-lbzgiu-squiidwiki/47d7a4e6-935e-4cff-ac23-9b2238e7f6ff/scratchpad/pics/francis_mariani.jpg",
+        "Cropped from the lead montage of Le Parisien, 6 May 2024, \u00ab Gang de la "
+        "Brise de mer : aux origines de la haine \u00bb, whose caption reads "
+        "\u00ab Francis Mariani (\u00e0 droite, en bas) et Francis Guazzelli "
+        "(au-dessus) \u00bb. Credit Le Parisien-DA / PHOTOPQR / Nice-Matin / la Provence.",
+    ),
 ]
 
 
