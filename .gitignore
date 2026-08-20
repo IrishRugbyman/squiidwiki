@@ -67,3 +67,12 @@ ssh-tunnel.sh
 
 # Playwright
 .playwright-mcp/
+
+# Research data (personal data; this repo is public)
+research/*.txt
+research/**/*.txt
+
+# Copyrighted source material kept locally, never committed
+research/**/*.epub
+research/**/*.pdf
+research/**/*.mobi
