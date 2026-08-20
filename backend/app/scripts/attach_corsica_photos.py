@@ -50,12 +50,11 @@ UNIVERSE_SLUG = "corsica"
 PHOTOS: list[tuple[str, str, str]] = [
     (
         "Pierre-Marie Santucci",
-        "https://s.france24.com/media/display/bc0cd8f6-162f-11e9-b43f-005056a964fe"
-        "/w:1024/p:16x9/0210-santucci_m.webp",
+        "/tmp/claude-1000/-home-lbzgiu-squiidwiki/47d7a4e6-935e-4cff-ac23-9b2238e7f6ff/scratchpad/pics/pierre_marie_santucci.jpg",
         "Archive photograph published by France 24 with its report of his killing, "
         "10 February 2009. Undated, and shows him under gendarme escort: the setting "
         "and the black curls match the custody photograph described in Lazard & "
-        "Galland, Vendetta.",
+        "Galland, Vendetta. Cropped to him from the wider frame.",
     ),
     (
         "Robert Moracchini",
@@ -82,6 +81,14 @@ PHOTOS: list[tuple[str, str, str]] = [
         "Brise de mer : aux origines de la haine \u00bb, whose caption reads "
         "\u00ab Francis Mariani (\u00e0 droite, en bas) et Francis Guazzelli "
         "(au-dessus) \u00bb. Credit Le Parisien-DA / PHOTOPQR / Nice-Matin / la Provence.",
+    ),
+    (
+        "Jacques Mariani",
+        "/tmp/claude-1000/-home-lbzgiu-squiidwiki/47d7a4e6-935e-4cff-ac23-9b2238e7f6ff/scratchpad/pics/jacques_mariani.jpg",
+        "At his trial in 2008, where he was sentenced to fifteen years for the "
+        "assassination of Nicolas Montigny. Photograph Michel Gangne / AFP, published "
+        "by 20 Minutes, whose caption reads \u00ab Jacques Mariani \u00e0 son "
+        "proc\u00e8s en 2008 \u00bb. Cropped to him from the wider frame.",
     ),
 ]
 
