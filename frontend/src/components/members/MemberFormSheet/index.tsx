@@ -18,6 +18,7 @@ import {
 } from '@/lib/queries'
 import { useDebounce } from '@/hooks/useDebounce'
 import { api } from '@/lib/api'
+import { currentAffiliations } from '@/lib/utils'
 import { UrlPasteBanner, useUrlPasteBanner } from '@/components/UrlPasteBanner'
 import { SourceFormSheet } from '@/routes/_app.sources.index'
 import type { MemberListItem, MemberRead, MemberStatus, SetRank } from '@/lib/types'
@@ -450,8 +451,9 @@ export function MemberFormSheet({ universeId, open, onClose, initial, defaultSet
   type AffRow = { set_id: string; rank: SetRank | ''; is_primary: boolean }
   const seedAffiliations = (): AffRow[] => {
     const src = initial ?? copyFrom
-    if (src?.affiliations && src.affiliations.length > 0) {
-      return src.affiliations.map((a) => ({ set_id: a.set_id, rank: a.rank ?? '', is_primary: a.is_primary }))
+    const current = currentAffiliations(src?.affiliations)
+    if (current.length > 0) {
+      return current.map((a) => ({ set_id: a.set_id, rank: a.rank ?? '', is_primary: a.is_primary }))
     }
     if (defaultSetId) return [{ set_id: defaultSetId, rank: '', is_primary: true }]
     return []

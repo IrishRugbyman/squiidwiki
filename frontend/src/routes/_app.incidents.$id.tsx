@@ -12,7 +12,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { ReliabilityBadge } from '@/components/StatusBadge'
 import { useIncident, useAllMembers, useAllSources, useDeleteIncident, useMunicipality, useSets } from '@/lib/queries'
-import { timeAgo } from '@/lib/utils'
+import { primaryAffiliation, timeAgo } from '@/lib/utils'
 import { useUniverseStore } from '@/stores/universe'
 import { useAuthStore } from '@/stores/auth'
 import { IncidentFormSheet } from './_app.incidents.index'
@@ -81,8 +81,7 @@ function IncidentDetailPage() {
     const counts: Record<string, number> = {}
     for (const p of incident.participants) {
       const m = memberMap[p.member_id]
-      const primary = m?.affiliations.find((a) => a.is_primary) ?? m?.affiliations[0]
-      const sid = primary?.set_id
+      const sid = primaryAffiliation(m?.affiliations)?.set_id
       if (sid) counts[sid] = (counts[sid] ?? 0) + 1
     }
     const top = Object.entries(counts).sort((a, b) => b[1] - a[1])[0]

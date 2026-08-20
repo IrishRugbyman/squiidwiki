@@ -16,7 +16,7 @@ import { ErrorState } from '@/components/ErrorState'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { Breadcrumbs } from '@/components/Breadcrumbs'
 import { CopyButton } from '@/components/CopyButton'
-import { timeAgo } from '@/lib/utils'
+import { currentAffiliations, timeAgo } from '@/lib/utils'
 import { EmptyState } from '@/components/EmptyState'
 import { StatCard } from '@/components/StatCard'
 import { DetailHeaderSkeleton } from '@/components/skeletons'
@@ -92,7 +92,7 @@ function AllianceDetailPage() {
   const memberCountBySetId = useMemo(() => {
     const m: Record<string, number> = {}
     for (const x of memberItems) {
-      for (const aff of x.affiliations) {
+      for (const aff of currentAffiliations(x.affiliations)) {
         m[aff.set_id] = (m[aff.set_id] ?? 0) + 1
       }
     }
@@ -255,7 +255,7 @@ function AllianceDetailPage() {
                     </thead>
                     <tbody className="divide-y divide-zinc-800">
                       {allianceSets.map((s) => {
-                        const memberCount = memberItems.filter((m) => m.affiliations.some((a) => a.set_id === s.id)).length
+                        const memberCount = memberItems.filter((m) => currentAffiliations(m.affiliations).some((a) => a.set_id === s.id)).length
                         return (
                           <AllianceSetRow
                             key={s.id}
@@ -303,7 +303,7 @@ function AllianceDetailPage() {
                     </thead>
                     <tbody className="divide-y divide-zinc-800">
                       {memberItems.map((m) => {
-                        const setInfos = m.affiliations.filter((a) => allianceSets.some((s) => s.id === a.set_id))
+                        const setInfos = currentAffiliations(m.affiliations).filter((a) => allianceSets.some((s) => s.id === a.set_id))
                         const isDead = m.status === 'DEAD'
                         return (
                           <tr key={m.id} className={`group hover:bg-zinc-900/40 transition-colors ${isDead ? 'opacity-60' : ''}`}>
@@ -503,7 +503,7 @@ function AllianceDetailPage() {
             <RemoveSetConfirm
               set={removingSet}
               universeId={universe.id}
-              memberCount={memberItems.filter((m) => m.affiliations.some((a) => a.set_id === removingSet.id)).length}
+              memberCount={memberItems.filter((m) => currentAffiliations(m.affiliations).some((a) => a.set_id === removingSet.id)).length}
               onClose={() => setRemovingSetId(null)}
             />
           )}

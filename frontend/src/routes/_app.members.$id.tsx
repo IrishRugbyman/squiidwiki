@@ -13,7 +13,7 @@ import { ErrorState } from '@/components/ErrorState'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { Breadcrumbs } from '@/components/Breadcrumbs'
 import { CopyButton } from '@/components/CopyButton'
-import { ageFromFuzzyDates, timeAgo } from '@/lib/utils'
+import { ageFromFuzzyDates, currentAffiliations, timeAgo } from '@/lib/utils'
 import { DetailHeaderSkeleton } from '@/components/skeletons'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Textarea } from '@/components/ui/textarea'
@@ -578,9 +578,9 @@ function MemberDetailPage() {
                 })()}
                 <div className="mt-2 flex flex-wrap items-center gap-2">
                   <MemberStatusBadge status={member.status} />
-                  {(member.affiliations ?? []).map((aff) => (
+                  {currentAffiliations(member.affiliations).map((aff) => (
                     <Link
-                      key={aff.set_id}
+                      key={aff.id ?? aff.set_id}
                       to="/sets/$id"
                       params={{ id: aff.set_slug ?? aff.set_id }}
                       className={`rounded-full px-2.5 py-0.5 text-xs text-zinc-400 hover:text-violet-400 transition-colors ${aff.is_primary ? 'bg-zinc-800/70 ring-1 ring-violet-700/30 hover:bg-zinc-800' : 'bg-zinc-900/50 hover:bg-zinc-800/60'}`}

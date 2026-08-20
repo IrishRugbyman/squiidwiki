@@ -2,7 +2,7 @@ import uuid
 from datetime import UTC, datetime
 
 import sqlalchemy as sa
-from sqlalchemy import CheckConstraint, Column, DateTime, UniqueConstraint
+from sqlalchemy import CheckConstraint, Column, DateTime
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlmodel import Field, SQLModel
 
@@ -19,20 +19,26 @@ class SetMunicipality(SQLModel, table=True):
 
 class SetRelationship(SQLModel, table=True):
     """
-    Bilateral friend/enemy link between two sets.
-    Stored once: set_a_id < set_b_id enforced by CHECK constraint + Postgres trigger.
-    Application CRUD must normalize (min, max) before insert.
+    Bilateral friend/enemy link between two sets, over one period of time.
+    Stored once per direction: set_a_id < set_b_id enforced by CHECK constraint
+    + Postgres trigger. Application CRUD must normalize (min, max) before insert.
+
+    Sets fall out and re-align, so a pair can hold several rows: allies until
+    2012, enemies since. The *current* link is the one with ``until_date IS
+    NULL``, and a partial unique index allows only one of those per pair.
+    Closing a link means setting ``until_date``, never deleting the row.
     """
 
     __tablename__ = "set_relationships"
-    __table_args__ = (
-        CheckConstraint("set_a_id < set_b_id", name="ck_set_relationship_ordering"),
-        UniqueConstraint("set_a_id", "set_b_id", name="uq_set_relationship_pair"),
-    )
+    __table_args__ = (CheckConstraint("set_a_id < set_b_id", name="ck_set_relationship_ordering"),)
 
-    set_a_id: uuid.UUID = Field(foreign_key="sets.id", primary_key=True)
-    set_b_id: uuid.UUID = Field(foreign_key="sets.id", primary_key=True)
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    set_a_id: uuid.UUID = Field(foreign_key="sets.id", index=True)
+    set_b_id: uuid.UUID = Field(foreign_key="sets.id", index=True)
     relationship_type: SetRelationshipType
+    # none_as_null is load-bearing: see the note on MemberSet.until_date.
+    from_date: dict | None = Field(default=None, sa_column=Column(JSONB(none_as_null=True)))
+    until_date: dict | None = Field(default=None, sa_column=Column(JSONB(none_as_null=True)))
 
 
 class GangSet(SQLModel, table=True):

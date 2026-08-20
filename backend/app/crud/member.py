@@ -193,7 +193,17 @@ async def _sync_member_sources(
 async def _sync_member_sets(
     session: AsyncSession, member_id: uuid.UUID, affiliations: list[MemberSetAffiliationIn]
 ) -> None:
-    await session.execute(MemberSet.__table__.delete().where(MemberSet.member_id == member_id))
+    """Replace the member's *current* affiliations.
+
+    Closed spells (until_date set) are the historical record and are never
+    touched here: ending an affiliation is an explicit dated action, not a side
+    effect of editing the current list. See `end_member_affiliation`.
+    """
+    await session.execute(
+        MemberSet.__table__.delete().where(
+            MemberSet.member_id == member_id, MemberSet.until_date.is_(None)
+        )
+    )
     for aff in affiliations:
         session.add(
             MemberSet(
@@ -201,6 +211,7 @@ async def _sync_member_sets(
                 set_id=aff.set_id,
                 rank=aff.rank,
                 is_primary=aff.is_primary,
+                from_date=_fuzzy_to_dict(aff.from_date),
             )
         )
 
@@ -215,36 +226,80 @@ async def load_member_affiliations(
         await session.execute(
             select(
                 MemberSet.member_id,
+                MemberSet.id,
                 MemberSet.set_id,
                 MemberSet.rank,
                 MemberSet.is_primary,
+                MemberSet.from_date,
+                MemberSet.until_date,
                 GangSet.name,
                 GangSet.slug,
             )
             .join(GangSet, GangSet.id == MemberSet.set_id)
             .where(MemberSet.member_id.in_(member_ids))
-            .order_by(MemberSet.is_primary.desc())
+            # Current spells first, then the closed ones most recent first.
+            # NULLS LAST keeps an undated closed spell below dated ones.
+            .order_by(
+                MemberSet.until_date.is_(None).desc(),
+                MemberSet.is_primary.desc(),
+                MemberSet.from_date.desc().nullslast(),
+            )
         )
     ).all()
     result: dict[uuid.UUID, list[MemberSetAffiliationOut]] = {}
-    for mid, set_id, rank, is_primary, set_name, set_slug in rows:
+    for mid, aff_id, set_id, rank, is_primary, from_date, until_date, set_name, set_slug in rows:
         result.setdefault(mid, []).append(
             MemberSetAffiliationOut(
+                id=aff_id,
                 set_id=set_id,
                 set_name=set_name,
                 set_slug=set_slug,
                 rank=rank,
                 is_primary=is_primary,
+                from_date=from_date,
+                until_date=until_date,
             )
         )
     return result
 
 
+async def end_member_affiliation(
+    session: AsyncSession,
+    member_id: uuid.UUID,
+    affiliation_id: uuid.UUID,
+    until_date: dict | None,
+) -> bool:
+    """Close an open affiliation spell. Returns False if there is no such open spell.
+
+    Only open spells can be closed: re-closing a closed one would silently
+    rewrite history rather than record that the member left.
+    """
+    row = (
+        await session.execute(
+            select(MemberSet).where(
+                MemberSet.id == affiliation_id,
+                MemberSet.member_id == member_id,
+                MemberSet.until_date.is_(None),
+            )
+        )
+    ).scalar_one_or_none()
+    if row is None:
+        return False
+    row.until_date = until_date
+    # A set the member has left cannot stay flagged as their primary one.
+    row.is_primary = False
+    await session.commit()
+    return True
+
+
 def _attach_affiliations(obj: Member, affiliations: list[MemberSetAffiliationOut]) -> None:
-    """Attach pre-loaded affiliations + primary_set_* convenience fields onto a Member instance."""
-    primary = next(
-        (a for a in affiliations if a.is_primary), affiliations[0] if affiliations else None
-    )
+    """Attach pre-loaded affiliations + primary_set_* convenience fields onto a Member instance.
+
+    `affiliations` carries closed spells too, but primary_set_* describes where
+    the member stands *now*, so a set they have left can never fill it.
+    """
+    current = [a for a in affiliations if a.until_date is None]
+    primary = next((a for a in current if a.is_primary), current[0] if current else None)
     object.__setattr__(obj, "affiliations", affiliations)
     object.__setattr__(obj, "primary_set_id", primary.set_id if primary else None)
     object.__setattr__(obj, "primary_set_name", primary.set_name if primary else None)
@@ -299,7 +354,10 @@ async def list_members(
 ) -> tuple[list[Member], str | None]:
     stmt = select(Member).where(Member.universe_id == universe_id)
     if set_id is not None:
-        ms_sq = select(MemberSet.member_id).where(MemberSet.set_id == set_id)
+        # Current members of the set, not everyone who ever passed through it.
+        ms_sq = select(MemberSet.member_id).where(
+            MemberSet.set_id == set_id, MemberSet.until_date.is_(None)
+        )
         if primary_only:
             ms_sq = ms_sq.where(MemberSet.is_primary.is_(True))
         stmt = stmt.where(Member.id.in_(ms_sq))

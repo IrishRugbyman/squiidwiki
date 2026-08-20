@@ -15,6 +15,7 @@ import {
 } from '@/lib/queries'
 import { useUniverseStore } from '@/stores/universe'
 import { downloadCsv } from '@/lib/download'
+import { currentAffiliations, primaryAffiliation } from '@/lib/utils'
 import { useDebounce } from '@/hooks/useDebounce'
 import { MemberRowSkeleton } from '@/components/skeletons'
 import { MemberStatusBadge } from '@/components/StatusBadge'
@@ -99,7 +100,10 @@ function MembersPage() {
   const items: MemberListItem[] = useMemo(() => {
     let list = baseItems
     if (statusFilter) list = list.filter((m) => m.status === statusFilter)
-    if (setFilter) list = list.filter((m) => m.affiliations.some((a) => a.set_id === setFilter))
+    if (setFilter)
+      list = list.filter((m) =>
+        currentAffiliations(m.affiliations).some((a) => a.set_id === setFilter),
+      )
     if (!sortKey) return list
     return [...list].sort((a, b) => {
       const av = a[sortKey] ?? ''
@@ -280,8 +284,9 @@ function MembersPage() {
                 : null}
             {!listLoading && (isVirtualized ? virtualRows.map((vRow) => items[vRow.index]) : items).map((member, idx) => {
                   const linkId = member.slug ?? member.id
-                  const primaryAff = member.affiliations.find((a) => a.is_primary) ?? member.affiliations[0] ?? null
-                  const extraCount = member.affiliations.length - 1
+                  const currentAffs = currentAffiliations(member.affiliations)
+                  const primaryAff = primaryAffiliation(member.affiliations)
+                  const extraCount = currentAffs.length - 1
                   const isDead = member.status === 'DEAD'
                   const measureRef = isVirtualized ? rowVirtualizer.measureElement : undefined
                   const dataIndex = isVirtualized ? virtualRows[idx]?.index : undefined
@@ -313,7 +318,7 @@ function MembersPage() {
                               {primaryAff.set_name}
                             </Link>
                             {extraCount > 0 && (
-                              <span className="inline-flex items-center rounded-full bg-zinc-800/40 px-1.5 py-0.5 text-[10px] text-zinc-400" title={member.affiliations.filter((a) => !a.is_primary).map((a) => a.set_name).join(', ')}>
+                              <span className="inline-flex items-center rounded-full bg-zinc-800/40 px-1.5 py-0.5 text-[10px] text-zinc-400" title={currentAffiliations(member.affiliations).filter((a) => !a.is_primary).map((a) => a.set_name).join(', ')}>
                                 +{extraCount}
                               </span>
                             )}
@@ -381,8 +386,9 @@ function MembersPage() {
         ) : (
           items.map((member) => {
             const linkId = member.slug ?? member.id
-            const primaryAffMobile = member.affiliations.find((a) => a.is_primary) ?? member.affiliations[0] ?? null
-            const extraCountMobile = member.affiliations.length - 1
+            const currentAffsMobile = currentAffiliations(member.affiliations)
+            const primaryAffMobile = primaryAffiliation(member.affiliations)
+            const extraCountMobile = currentAffsMobile.length - 1
             const isDead = member.status === 'DEAD'
             const isSelected = selected.has(member.id)
             return (
@@ -427,7 +433,7 @@ function MembersPage() {
                             {primaryAffMobile.set_name}
                           </Link>
                           {extraCountMobile > 0 && (
-                            <span className="inline-flex items-center rounded-full bg-zinc-800/40 px-1.5 py-0.5 text-[10px] text-zinc-400" title={member.affiliations.filter((a) => !a.is_primary).map((a) => a.set_name).join(', ')}>
+                            <span className="inline-flex items-center rounded-full bg-zinc-800/40 px-1.5 py-0.5 text-[10px] text-zinc-400" title={currentAffiliations(member.affiliations).filter((a) => !a.is_primary).map((a) => a.set_name).join(', ')}>
                               +{extraCountMobile}
                             </span>
                           )}

@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { useDebounce } from '@/hooks/useDebounce'
 import { useAllSets, useMemberSearch, useUpdateIncident } from '@/lib/queries'
+import { primaryAffiliation } from '@/lib/utils'
 import type { IncidentReadDetail, ParticipantOutcome, ParticipantRole, UUID } from '@/lib/types'
 
 interface PendingParticipant {
@@ -147,7 +148,7 @@ export function AddParticipantToIncidentDialog({
                       key={m.id}
                       type="button"
                       disabled={already}
-                      onClick={() => { const pa = m.affiliations.find((a) => a.is_primary) ?? m.affiliations[0]; addPending(m.id, m.display_name, pa?.set_id) }}
+                      onClick={() => { const pa = primaryAffiliation(m.affiliations); addPending(m.id, m.display_name, pa?.set_id) }}
                       className="w-full px-3 py-2 text-left text-sm text-zinc-300 hover:bg-zinc-800 transition-colors disabled:opacity-40 disabled:hover:bg-transparent disabled:cursor-not-allowed flex items-center justify-between gap-2"
                     >
                       <span className="truncate">{m.display_name}</span>

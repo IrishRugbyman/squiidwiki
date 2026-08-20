@@ -84,7 +84,10 @@ async def _sync_alliance_friend_relationships(
             a, b = (a_id, b_id) if a_id < b_id else (b_id, a_id)
             existing = await session.execute(
                 select(SetRelationship).where(
-                    SetRelationship.set_a_id == a, SetRelationship.set_b_id == b
+                    SetRelationship.set_a_id == a,
+                    SetRelationship.set_b_id == b,
+                    # A link that was closed in the past must not block a new one.
+                    SetRelationship.until_date.is_(None),
                 )
             )
             if existing.scalar_one_or_none() is None:
