@@ -5,6 +5,7 @@ from typing import Literal
 
 import sqlalchemy as sa
 from fastapi import HTTPException, status
+from sqlalchemy import case
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import func, select
 
@@ -91,9 +92,16 @@ async def _sync_set_relationships(
     friend_ids: list[uuid.UUID],
     enemy_ids: list[uuid.UUID],
 ) -> None:
+    """Replace the set's *current* allies and enemies.
+
+    Closed links (until_date set) are the historical record and are never
+    touched here: ending a relationship is an explicit dated action, not a side
+    effect of editing the current lists. See `end_set_relationship`.
+    """
     existing = await session.execute(
         select(SetRelationship).where(
-            (SetRelationship.set_a_id == set_id) | (SetRelationship.set_b_id == set_id)
+            (SetRelationship.set_a_id == set_id) | (SetRelationship.set_b_id == set_id),
+            SetRelationship.until_date.is_(None),
         )
     )
     for rel in existing.scalars().all():
@@ -124,7 +132,10 @@ async def _sync_alliance_auto_allies(
         a, b = (set_id, sibling_id) if set_id < sibling_id else (sibling_id, set_id)
         existing = await session.execute(
             select(SetRelationship).where(
-                SetRelationship.set_a_id == a, SetRelationship.set_b_id == b
+                SetRelationship.set_a_id == a,
+                SetRelationship.set_b_id == b,
+                # A link that was closed in the past must not block a new one.
+                SetRelationship.until_date.is_(None),
             )
         )
         if existing.scalar_one_or_none() is None:
@@ -245,6 +256,8 @@ async def list_gang_sets(
         select(
             MemberSet.set_id, func.count(func.distinct(MemberSet.member_id)).label("member_count")
         )
+        # Current roster: members who have left keep their row but are not counted.
+        .where(MemberSet.until_date.is_(None))
         .group_by(MemberSet.set_id)
         .subquery()
     )
@@ -457,7 +470,9 @@ async def list_set_relationships(
 ) -> tuple[list[uuid.UUID], list[uuid.UUID]]:
     result = await session.execute(
         select(SetRelationship).where(
-            (SetRelationship.set_a_id == set_id) | (SetRelationship.set_b_id == set_id)
+            (SetRelationship.set_a_id == set_id) | (SetRelationship.set_b_id == set_id),
+            # Current allies and enemies only; past ones live in the history.
+            SetRelationship.until_date.is_(None),
         )
     )
     rels = result.scalars().all()
@@ -481,7 +496,11 @@ async def add_set_relationship(
 ) -> None:
     a, b = (set_a_id, set_b_id) if set_a_id < set_b_id else (set_b_id, set_a_id)
     existing = await session.execute(
-        select(SetRelationship).where(SetRelationship.set_a_id == a, SetRelationship.set_b_id == b)
+        select(SetRelationship).where(
+            SetRelationship.set_a_id == a,
+            SetRelationship.set_b_id == b,
+            SetRelationship.until_date.is_(None),
+        )
     )
     ex = existing.scalar_one_or_none()
     if ex is not None:
@@ -498,9 +517,19 @@ async def add_set_relationship(
 async def remove_set_relationship(
     session: AsyncSession, set_a_id: uuid.UUID, set_b_id: uuid.UUID, universe_id: uuid.UUID
 ) -> bool:
+    """Delete the *current* link outright, for correcting a mistaken entry.
+
+    To record that a real relationship ended, use `end_set_relationship`, which
+    keeps the spell. Scoped to the open row because a pair can now hold several
+    and scalar_one_or_none() would raise on the closed ones.
+    """
     a, b = (set_a_id, set_b_id) if set_a_id < set_b_id else (set_b_id, set_a_id)
     result = await session.execute(
-        select(SetRelationship).where(SetRelationship.set_a_id == a, SetRelationship.set_b_id == b)
+        select(SetRelationship).where(
+            SetRelationship.set_a_id == a,
+            SetRelationship.set_b_id == b,
+            SetRelationship.until_date.is_(None),
+        )
     )
     obj = result.scalar_one_or_none()
     if obj is None:
@@ -508,6 +537,78 @@ async def remove_set_relationship(
     await session.delete(obj)
     await session.commit()
     return True
+
+
+async def end_set_relationship(
+    session: AsyncSession,
+    set_id: uuid.UUID,
+    relationship_id: uuid.UUID,
+    until_date: dict | None,
+) -> bool:
+    """Close an open link as of a date, keeping it as history.
+
+    Only open links can be closed: re-closing a closed one would rewrite the
+    record rather than state that the relationship ended.
+    """
+    row = (
+        await session.execute(
+            select(SetRelationship).where(
+                SetRelationship.id == relationship_id,
+                (SetRelationship.set_a_id == set_id) | (SetRelationship.set_b_id == set_id),
+                SetRelationship.until_date.is_(None),
+            )
+        )
+    ).scalar_one_or_none()
+    if row is None:
+        return False
+    row.until_date = until_date
+    await session.commit()
+    return True
+
+
+async def list_set_relationship_history(session: AsyncSession, set_id: uuid.UUID) -> list[dict]:
+    """Every link this set has held, current first, then most recently ended."""
+    rows = (
+        await session.execute(
+            select(
+                SetRelationship.id,
+                SetRelationship.set_a_id,
+                SetRelationship.set_b_id,
+                SetRelationship.relationship_type,
+                SetRelationship.from_date,
+                SetRelationship.until_date,
+                GangSet.name,
+                GangSet.slug,
+            )
+            .join(
+                GangSet,
+                GangSet.id
+                == case(
+                    (SetRelationship.set_a_id == set_id, SetRelationship.set_b_id),
+                    else_=SetRelationship.set_a_id,
+                ),
+            )
+            .where((SetRelationship.set_a_id == set_id) | (SetRelationship.set_b_id == set_id))
+            .order_by(
+                SetRelationship.until_date.is_(None).desc(),
+                SetRelationship.until_date.desc().nullslast(),
+                SetRelationship.from_date.desc().nullslast(),
+            )
+        )
+    ).all()
+    return [
+        {
+            "id": rel_id,
+            "other_id": b if a == set_id else a,
+            "other_name": name,
+            "other_slug": slug,
+            "type": rel_type,
+            "from_date": from_date,
+            "until_date": until_date,
+            "is_current": until_date is None,
+        }
+        for rel_id, a, b, rel_type, from_date, until_date, name, slug in rows
+    ]
 
 
 async def list_set_territories_detail(session: AsyncSession, set_id: uuid.UUID) -> list[dict]:
@@ -530,7 +631,8 @@ async def list_set_relationships_detail(
         (
             await session.execute(
                 select(SetRelationship).where(
-                    (SetRelationship.set_a_id == set_id) | (SetRelationship.set_b_id == set_id)
+                    (SetRelationship.set_a_id == set_id) | (SetRelationship.set_b_id == set_id),
+                    SetRelationship.until_date.is_(None),
                 )
             )
         )
@@ -547,6 +649,7 @@ async def list_set_relationships_detail(
 
     member_count_sq = (
         select(MemberSet.set_id, func.count(func.distinct(MemberSet.member_id)).label("c"))
+        .where(MemberSet.until_date.is_(None))
         .group_by(MemberSet.set_id)
         .subquery()
     )
@@ -636,7 +739,13 @@ async def list_set_activity(
 
     # Fetch the set's current member ids in one query.
     member_ids = (
-        (await session.execute(select(MemberSet.member_id).where(MemberSet.set_id == set_id)))
+        (
+            await session.execute(
+                select(MemberSet.member_id).where(
+                    MemberSet.set_id == set_id, MemberSet.until_date.is_(None)
+                )
+            )
+        )
         .scalars()
         .all()
     )
@@ -737,7 +846,10 @@ async def get_set_max_updated_at(session: AsyncSession, set_id: uuid.UUID) -> da
     member_ts = (
         await session.execute(
             select(func.max(Member.updated_at)).join(
-                MemberSet, (MemberSet.member_id == Member.id) & (MemberSet.set_id == set_id)
+                MemberSet,
+                (MemberSet.member_id == Member.id)
+                & (MemberSet.set_id == set_id)
+                & MemberSet.until_date.is_(None),
             )
         )
     ).scalar_one_or_none()

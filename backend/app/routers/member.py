@@ -2,21 +2,20 @@ import uuid
 from typing import Annotated
 
 from fastapi import APIRouter, Body, Depends, HTTPException, Query
-from fastapi.responses import StreamingResponse
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.dependencies import CurrentUser, require_global_role
+from app.core.csv_export import to_csv_response
 from app.core.database import get_session
 from app.core.enums import GlobalRole, MemberStatus
-from app.core.csv_export import to_csv_response
 from app.crud import member as crud
 from app.models.alliance import Alliance
-from app.models.gang_set import GangSet
 from app.models.incident import Incident
 from app.models.municipality import Municipality
 from app.schemas.common import CursorPage
 from app.schemas.member import (
+    AffiliationEnd,
     MemberAliasCreate,
     MemberAliasRead,
     MemberCreate,
@@ -28,9 +27,9 @@ from app.schemas.member import (
     MemberRead,
     MemberReadDetail,
     MemberReleaseEvent,
+    MemberSetAffiliationOut,
     MemberStats,
     MemberUpdate,
-    MemberSetAffiliationOut,
 )
 
 router = APIRouter(prefix="/members", tags=["members"])
@@ -52,8 +51,13 @@ async def list_members(
         items, _ = await crud.list_members(session, universe_id, limit=1000)
         return to_csv_response(items, "members.csv")
     items, next_cursor = await crud.list_members(
-        session, universe_id, limit=limit, cursor=cursor,
-        set_id=set_id, primary_only=primary_only, alliance_id=alliance_id,
+        session,
+        universe_id,
+        limit=limit,
+        cursor=cursor,
+        set_id=set_id,
+        primary_only=primary_only,
+        alliance_id=alliance_id,
     )
     return CursorPage(items=items, next_cursor=next_cursor, total=None)
 
@@ -90,8 +94,7 @@ async def search_members(
 ):
     if len(q.strip()) < 2:
         return []
-    items = await crud.search_members(session, universe_id, q)
-    return items
+    return await crud.search_members(session, universe_id, q)
 
 
 @router.get("/release-events", response_model=list[MemberReleaseEvent])
@@ -131,26 +134,30 @@ async def get_member(
 
     alliance_name = alliance_slug = None
     if obj.alliance_id:
-        row = (await session.execute(
-            select(Alliance.name, Alliance.slug).where(Alliance.id == obj.alliance_id)
-        )).one_or_none()
+        row = (
+            await session.execute(
+                select(Alliance.name, Alliance.slug).where(Alliance.id == obj.alliance_id)
+            )
+        ).one_or_none()
         if row:
             alliance_name, alliance_slug = row
 
     killed_in: MemberKilledInSummary | None = None
     if obj.death_incident_id:
-        row = (await session.execute(
-            select(
-                Incident.id,
-                Incident.type,
-                Incident.date,
-                Incident.municipality_id,
-                Municipality.name,
+        row = (
+            await session.execute(
+                select(
+                    Incident.id,
+                    Incident.type,
+                    Incident.date,
+                    Incident.municipality_id,
+                    Municipality.name,
+                )
+                .select_from(Incident)
+                .outerjoin(Municipality, Municipality.id == Incident.municipality_id)
+                .where(Incident.id == obj.death_incident_id)
             )
-            .select_from(Incident)
-            .outerjoin(Municipality, Municipality.id == Incident.municipality_id)
-            .where(Incident.id == obj.death_incident_id)
-        )).one_or_none()
+        ).one_or_none()
         if row:
             killed_in = MemberKilledInSummary(
                 incident_id=row[0],
@@ -161,7 +168,9 @@ async def get_member(
             )
 
     affiliations: list[MemberSetAffiliationOut] = getattr(obj, "affiliations", [])
-    primary = next((a for a in affiliations if a.is_primary), affiliations[0] if affiliations else None)
+    primary = next(
+        (a for a in affiliations if a.is_primary), affiliations[0] if affiliations else None
+    )
     base = MemberRead(
         id=obj.id,
         universe_id=obj.universe_id,
@@ -280,6 +289,26 @@ async def delete_member_alias(
     ok = await crud.delete_member_alias(session, alias_id, id)
     if not ok:
         raise HTTPException(404)
+
+
+@router.post("/{id}/affiliations/{affiliation_id}/end", status_code=204)
+async def end_member_affiliation(
+    id: uuid.UUID,
+    affiliation_id: uuid.UUID,
+    universe_id: uuid.UUID,
+    data: AffiliationEnd,
+    current_user: CurrentUser,
+    session: Annotated[AsyncSession, Depends(get_session)],
+):
+    """Record that the member left this set, keeping the spell as history."""
+    obj = await crud.get_member(session, id, universe_id)
+    if obj is None:
+        raise HTTPException(404)
+    ok = await crud.end_member_affiliation(
+        session, id, affiliation_id, data.until_date.model_dump() if data.until_date else None
+    )
+    if not ok:
+        raise HTTPException(404, detail="No open affiliation with that id for this member")
 
 
 @router.get("/{id}/incarcerations", response_model=list[MemberIncarcerationRead])

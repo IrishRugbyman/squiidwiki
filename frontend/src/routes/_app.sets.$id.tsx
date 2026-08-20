@@ -25,7 +25,7 @@ import { ErrorState } from '@/components/ErrorState'
 import { FuzzyDate, type FuzzyDateValue } from '@/components/FuzzyDate'
 import { Breadcrumbs } from '@/components/Breadcrumbs'
 import { CopyButton } from '@/components/CopyButton'
-import { timeAgo } from '@/lib/utils'
+import { currentAffiliations, timeAgo } from '@/lib/utils'
 import { downloadText } from '@/lib/download'
 import { DetailHeaderSkeleton } from '@/components/skeletons'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -1147,7 +1147,7 @@ function SetDetailPage() {
                       const isDead = m.status === 'DEAD'
                       const linkId = m.slug ?? m.id
                       const cellPad = 'py-1.5'
-                      const thisSetRank = m.affiliations.find((a) => a.set_id === realId)?.rank ?? null
+                      const thisSetRank = currentAffiliations(m.affiliations).find((a) => a.set_id === realId)?.rank ?? null
                       return (
                         <tr key={m.id} className={`group hover:bg-zinc-900/50 transition-colors ${isDead ? 'opacity-60' : ''}`}>
                           <td className="p-0">

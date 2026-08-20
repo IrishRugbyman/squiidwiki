@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Command, CommandEmpty, CommandInput, CommandItem, CommandList } from '@/components/ui/command'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { useAllMembers, useAddMembersToSet } from '@/lib/queries'
+import { currentAffiliations } from '@/lib/utils'
 
 interface AddMemberToSetDialogProps {
   setId: string
@@ -21,9 +22,9 @@ export function AddMemberToSetDialog({
   const addToSet = useAddMembersToSet(setId, universeId)
   const [selected, setSelected] = useState<Set<string>>(new Set())
 
-  // All members that don't already have this set in their affiliations
+  // All members that aren't currently in this set (a former member can rejoin)
   const candidates = useMemo(
-    () => (allMembers?.items ?? []).filter((m) => !m.affiliations.some((a) => a.set_id === setId)),
+    () => (allMembers?.items ?? []).filter((m) => !currentAffiliations(m.affiliations).some((a) => a.set_id === setId)),
     [allMembers, setId],
   )
 
@@ -47,7 +48,7 @@ export function AddMemberToSetDialog({
     await addToSet.mutateAsync(
       Array.from(selected).map((id) => {
         const m = membersList.find((x) => x.id === id)
-        const existing = m?.affiliations ?? []
+        const existing = currentAffiliations(m?.affiliations)
         const isPrimary = existing.length === 0
         return {
           id,

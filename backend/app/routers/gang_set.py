@@ -2,19 +2,18 @@ import uuid
 from typing import Annotated, Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response
-from fastapi.responses import StreamingResponse
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.dependencies import CurrentUser, require_global_role
+from app.core.csv_export import to_csv_response
 from app.core.database import get_session
 from app.core.enums import GlobalRole, SetStatus
 from app.core.etag import check_etag, make_etag
 from app.crud import gang_set as crud
-from app.crud.media import attach_primary_photos_sets
 from app.crud.gang_set import get_gang_set_by_slug
-from app.core.csv_export import to_csv_response
 from app.crud.incident import get_set_stats
+from app.crud.media import attach_primary_photos_sets
 from app.models.alliance import Alliance
 from app.models.gang import Gang
 from app.models.member import Member
@@ -31,6 +30,8 @@ from app.schemas.gang_set import (
     SetReadDetailFull,
     SetRelatedSummary,
     SetRelationshipCreate,
+    SetRelationshipEnd,
+    SetRelationshipHistoryItem,
     SetStats,
     SetTerritorySummary,
     SetUpdate,
@@ -150,9 +151,7 @@ async def search_sets(
     """Backwards-compat shim. New callers should use GET /sets/?q= instead."""
     if len(q.strip()) < 2:
         return []
-    items, _total = await crud.list_gang_sets(
-        session, universe_id, offset=0, limit=200, q=q
-    )
+    items, _total = await crud.list_gang_sets(session, universe_id, offset=0, limit=200, q=q)
     return [_to_list_item(o) for o in items]
 
 
@@ -209,40 +208,45 @@ async def get_set_detail(
     territory_ids = await crud.list_set_territory_ids(session, obj.id)
     friend_ids, enemy_ids = await crud.list_set_relationships(session, obj.id, universe_id)
     territories_raw = await crud.list_set_territories_detail(session, obj.id)
-    allies_raw, enemies_raw = await crud.list_set_relationships_detail(
-        session, obj.id, universe_id
-    )
+    allies_raw, enemies_raw = await crud.list_set_relationships_detail(session, obj.id, universe_id)
 
     alliance_name = alliance_slug = None
     if obj.alliance_id:
-        row = (await session.execute(
-            select(Alliance.name, Alliance.slug).where(Alliance.id == obj.alliance_id)
-        )).one_or_none()
+        row = (
+            await session.execute(
+                select(Alliance.name, Alliance.slug).where(Alliance.id == obj.alliance_id)
+            )
+        ).one_or_none()
         if row:
             alliance_name, alliance_slug = row
 
     gang_name = gang_color = None
     if obj.gang_id:
-        row = (await session.execute(
-            select(Gang.name, Gang.color).where(Gang.id == obj.gang_id)
-        )).one_or_none()
+        row = (
+            await session.execute(select(Gang.name, Gang.color).where(Gang.id == obj.gang_id))
+        ).one_or_none()
         if row:
             gang_name, gang_color = row
 
     municipality_name = None
     if obj.municipality_id:
-        row = (await session.execute(
-            select(Municipality.name).where(Municipality.id == obj.municipality_id)
-        )).one_or_none()
+        row = (
+            await session.execute(
+                select(Municipality.name).where(Municipality.id == obj.municipality_id)
+            )
+        ).one_or_none()
         if row:
             municipality_name = row[0]
 
     founder_display_name = founder_slug = None
     if obj.founder_id:
-        row = (await session.execute(
-            select(Member.nickname, Member.legal_name, Member.nickname_unknown, Member.slug)
-            .where(Member.id == obj.founder_id)
-        )).one_or_none()
+        row = (
+            await session.execute(
+                select(
+                    Member.nickname, Member.legal_name, Member.nickname_unknown, Member.slug
+                ).where(Member.id == obj.founder_id)
+            )
+        ).one_or_none()
         if row:
             nickname, legal_name, nickname_unknown, m_slug = row
             if nickname_unknown or not nickname:
@@ -256,6 +260,7 @@ async def get_set_detail(
 
     # Sparkline: last 5 years inclusive of last_incident_year (or current span).
     from datetime import datetime as _dt
+
     end_year = stats.last_incident_year or _dt.utcnow().year
     incidents_per_year = await crud.list_set_incidents_per_year(
         session, obj.id, since_year=end_year - 4
@@ -366,7 +371,9 @@ async def add_relationship(
     territory_ids = await crud.list_set_territory_ids(session, id)
     friend_ids, enemy_ids = await crud.list_set_relationships(session, id, universe_id)
     base = SetRead.model_validate(obj)
-    return SetReadDetail(**base.model_dump(), territory_ids=territory_ids, friend_ids=friend_ids, enemy_ids=enemy_ids)
+    return SetReadDetail(
+        **base.model_dump(), territory_ids=territory_ids, friend_ids=friend_ids, enemy_ids=enemy_ids
+    )
 
 
 @router.delete("/{id}/relationships/{target_id}", status_code=204)
@@ -380,6 +387,40 @@ async def remove_relationship(
     ok = await crud.remove_set_relationship(session, id, target_id, universe_id)
     if not ok:
         raise HTTPException(404)
+
+
+@router.get("/{id}/relationships/history", response_model=list[SetRelationshipHistoryItem])
+async def get_relationship_history(
+    id: uuid.UUID,
+    universe_id: uuid.UUID,
+    _: CurrentUser,
+    session: Annotated[AsyncSession, Depends(get_session)],
+):
+    """Every ally/enemy link this set has held, current and ended."""
+    obj = await crud.get_gang_set(session, id, universe_id)
+    if obj is None:
+        raise HTTPException(404)
+    return await crud.list_set_relationship_history(session, id)
+
+
+@router.post("/{id}/relationships/{relationship_id}/end", status_code=204)
+async def end_relationship(
+    id: uuid.UUID,
+    relationship_id: uuid.UUID,
+    universe_id: uuid.UUID,
+    data: SetRelationshipEnd,
+    _: CurrentUser,
+    session: Annotated[AsyncSession, Depends(get_session)],
+):
+    """Record that the link ended, keeping the spell as history."""
+    obj = await crud.get_gang_set(session, id, universe_id)
+    if obj is None:
+        raise HTTPException(404)
+    ok = await crud.end_set_relationship(
+        session, id, relationship_id, data.until_date.model_dump() if data.until_date else None
+    )
+    if not ok:
+        raise HTTPException(404, detail="No open relationship with that id for this set")
 
 
 @router.get("/{id}/activity", response_model=list[SetActivityEntry])

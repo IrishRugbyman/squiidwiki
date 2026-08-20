@@ -18,15 +18,31 @@ class MemberSource(SQLModel, table=True):
 
 
 class MemberSet(SQLModel, table=True):
+    """One spell of a member belonging to a set.
+
+    A member can join, leave and rejoin, so there is one row per spell rather
+    than one row per (member, set). The *current* spell is the one with
+    ``until_date IS NULL``; a partial unique index allows only one of those per
+    pair, and only one current primary per member. Closing a spell means
+    setting ``until_date``, never deleting the row.
+    """
+
     __tablename__ = "member_set"
 
-    member_id: uuid.UUID = Field(foreign_key="member.id", primary_key=True)
-    set_id: uuid.UUID = Field(foreign_key="sets.id", primary_key=True)
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    member_id: uuid.UUID = Field(foreign_key="member.id", index=True)
+    set_id: uuid.UUID = Field(foreign_key="sets.id", index=True)
     rank: SetRank | None = Field(default=None, sa_column=Column(String, nullable=True))
     is_primary: bool = Field(
         default=False,
         sa_column=Column("is_primary", sa.Boolean, nullable=False, server_default="false"),
     )
+    # none_as_null is load-bearing: without it SQLAlchemy writes Python None as
+    # JSONB 'null', which is not SQL NULL. Every "current spell" query and both
+    # partial unique indexes test `until_date IS NULL`, so a JSON null would
+    # silently drop the row out of all of them.
+    from_date: dict | None = Field(default=None, sa_column=Column(JSONB(none_as_null=True)))
+    until_date: dict | None = Field(default=None, sa_column=Column(JSONB(none_as_null=True)))
 
 
 class MemberAlias(SQLModel, table=True):

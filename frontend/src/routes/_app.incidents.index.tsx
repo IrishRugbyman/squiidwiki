@@ -33,6 +33,7 @@ import {
 import { BulkActionBar } from '@/components/BulkActionBar'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { downloadCsv } from '@/lib/download'
+import { currentAffiliations, primaryAffiliation } from '@/lib/utils'
 import { useDebounce } from '@/hooks/useDebounce'
 import { EmptyState } from '@/components/EmptyState'
 import { TableRowSkeleton } from '@/components/skeletons'
@@ -121,7 +122,7 @@ function ParticipantsSection({ universeId, participants, onChangeParticipants, s
   const memberSetNameById = useMemo(() => {
     const out: Record<string, string> = {}
     for (const m of allMembers) {
-      const primary = m.affiliations.find((a) => a.is_primary) ?? m.affiliations[0]
+      const primary = primaryAffiliation(m.affiliations)
       if (primary?.set_name) out[m.id] = primary.set_name
     }
     return out
@@ -132,10 +133,10 @@ function ParticipantsSection({ universeId, participants, onChangeParticipants, s
     const memberMap = Object.fromEntries(allMembers.map((m) => [m.id, m]))
     const setIds = new Set<string>()
     for (const p of participants) {
-      for (const aff of (memberMap[p.member_id]?.affiliations ?? [])) setIds.add(aff.set_id)
+      for (const aff of currentAffiliations(memberMap[p.member_id]?.affiliations)) setIds.add(aff.set_id)
     }
     if (setIds.size === 0) return []
-    return allMembers.filter((m) => m.affiliations.some((a) => setIds.has(a.set_id)) && !addedMemberIds.has(m.id)).slice(0, 8)
+    return allMembers.filter((m) => currentAffiliations(m.affiliations).some((a) => setIds.has(a.set_id)) && !addedMemberIds.has(m.id)).slice(0, 8)
   }, [allMembers, participants, addedMemberIds])
 
   const filteredSets = useMemo(() => {

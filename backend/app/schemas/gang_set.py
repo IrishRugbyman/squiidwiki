@@ -1,10 +1,11 @@
 import uuid
 from datetime import datetime
-from typing import Literal, Optional
+from typing import Any, Literal, Optional
 
 from pydantic import BaseModel, model_validator
 
 from app.core.enums import SetRelationshipType, SetStatus
+from app.schemas.common import FuzzyDateField
 
 
 class NameVariant(BaseModel):
@@ -75,9 +76,16 @@ def _validate_polygon(value: Optional[dict]) -> Optional[dict]:
         raise ValueError("territory_polygon.coordinates must be a non-empty list of rings")
     for i, ring in enumerate(rings):
         if not isinstance(ring, list) or len(ring) < 4:
-            raise ValueError(f"ring {i} must have at least 4 coordinates (3 vertices + closing point)")
+            raise ValueError(
+                f"ring {i} must have at least 4 coordinates (3 vertices + closing point)"
+            )
         first, last = ring[0], ring[-1]
-        if not (isinstance(first, list) and isinstance(last, list) and len(first) >= 2 and len(last) >= 2):
+        if not (
+            isinstance(first, list)
+            and isinstance(last, list)
+            and len(first) >= 2
+            and len(last) >= 2
+        ):
             raise ValueError(f"ring {i} coordinates must be [lng, lat] pairs")
         if first[0] != last[0] or first[1] != last[1]:
             raise ValueError(f"ring {i} is not closed: first and last coordinates must be equal")
@@ -166,6 +174,7 @@ class SetReadDetail(SetRead):
 
 class SetPolygonItem(BaseModel):
     """Lightweight territory row for the territory map (polygon and/or point)."""
+
     model_config = {"from_attributes": True}
 
     id: uuid.UUID
@@ -208,6 +217,25 @@ class SetRelationshipCreate(BaseModel):
     type: SetRelationshipType
 
 
+class SetRelationshipEnd(BaseModel):
+    """Close a relationship spell as of a date."""
+
+    until_date: FuzzyDateField = None
+
+
+class SetRelationshipHistoryItem(BaseModel):
+    """One spell of a link with another set, current or ended."""
+
+    id: uuid.UUID
+    other_id: uuid.UUID
+    other_name: str
+    other_slug: Optional[str] = None
+    type: SetRelationshipType
+    from_date: Optional[dict[str, Any]] = None
+    until_date: Optional[dict[str, Any]] = None
+    is_current: bool
+
+
 class SetStats(BaseModel):
     set_id: uuid.UUID
     member_count: int
@@ -222,6 +250,7 @@ class SetStats(BaseModel):
 
 class SetRelatedSummary(BaseModel):
     """Lightweight ally / enemy reference for the detail payload."""
+
     id: uuid.UUID
     name: str
     slug: Optional[str]
@@ -242,6 +271,7 @@ class IncidentsPerYear(BaseModel):
 
 class SetActivityEntry(BaseModel):
     """One row in the per-set audit feed."""
+
     id: uuid.UUID
     entity_type: Literal["set", "member"]
     entity_id: uuid.UUID
@@ -255,6 +285,7 @@ class SetActivityEntry(BaseModel):
 
 class SetReadDetailFull(SetReadDetail):
     """Denormalized payload for the set detail page — single round-trip."""
+
     alliance_name: Optional[str] = None
     alliance_slug: Optional[str] = None
     municipality_name: Optional[str] = None

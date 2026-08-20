@@ -9,17 +9,35 @@ from app.schemas.common import FuzzyDateField
 
 
 class MemberSetAffiliationIn(BaseModel):
+    """One *current* affiliation. Closing a spell is a separate dated action,
+    so there is deliberately no until_date here."""
+
     set_id: uuid.UUID
     rank: Optional[SetRank] = None
     is_primary: bool = False
+    from_date: FuzzyDateField = None
 
 
 class MemberSetAffiliationOut(BaseModel):
+    id: Optional[uuid.UUID] = None
     set_id: uuid.UUID
     set_name: Optional[str] = None
     set_slug: Optional[str] = None
     rank: Optional[SetRank] = None
     is_primary: bool = False
+    from_date: Optional[dict[str, Any]] = None
+    until_date: Optional[dict[str, Any]] = None
+
+    @computed_field
+    @property
+    def is_current(self) -> bool:
+        return self.until_date is None
+
+
+class AffiliationEnd(BaseModel):
+    """Close an affiliation spell as of a date."""
+
+    until_date: FuzzyDateField = None
 
 
 class MemberCreate(BaseModel):

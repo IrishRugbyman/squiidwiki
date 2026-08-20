@@ -280,12 +280,32 @@ export interface SetReadDetailFull extends SetReadDetail {
 }
 
 // Member
+/**
+ * One spell of membership. The list now carries closed spells too, so anything
+ * that means "which set is this person in *now*" must go through
+ * `currentAffiliations()` rather than reading the array directly.
+ */
 export interface MemberSetAffiliation {
+  id: UUID | null
   set_id: UUID
   set_name: string | null
   set_slug: string | null
   rank: SetRank | null
   is_primary: boolean
+  from_date: FuzzyDateValue | null
+  until_date: FuzzyDateValue | null
+  is_current: boolean
+}
+
+export interface SetRelationshipHistoryItem {
+  id: UUID
+  other_id: UUID
+  other_name: string
+  other_slug: string | null
+  type: SetRelationshipType
+  from_date: FuzzyDateValue | null
+  until_date: FuzzyDateValue | null
+  is_current: boolean
 }
 
 export interface MemberListItem {

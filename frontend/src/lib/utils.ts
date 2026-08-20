@@ -31,3 +31,22 @@ export function timeAgo(isoString: string): string {
   if (mo < 12) return `${mo}mo ago`
   return `${Math.floor(mo / 12)}y ago`
 }
+
+/**
+ * Spells the member is still in. `affiliations` carries closed spells as well,
+ * so every "which set is this person in now" question has to filter first.
+ * Tolerates older payloads that predate is_current.
+ */
+export function currentAffiliations<T extends { is_current?: boolean; until_date?: unknown }>(
+  affiliations: T[] | null | undefined,
+): T[] {
+  return (affiliations ?? []).filter((a) => a.is_current ?? a.until_date == null)
+}
+
+/** The spell that fills primary_set_*: primary if flagged, else the first current one. */
+export function primaryAffiliation<
+  T extends { is_primary: boolean; is_current?: boolean; until_date?: unknown },
+>(affiliations: T[] | null | undefined): T | null {
+  const current = currentAffiliations(affiliations)
+  return current.find((a) => a.is_primary) ?? current[0] ?? null
+}
