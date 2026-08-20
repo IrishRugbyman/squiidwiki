@@ -17,6 +17,7 @@ interface PendingParticipant {
   set_name?: string
   role: ParticipantRole
   outcome: ParticipantOutcome
+  acquitted: boolean
 }
 
 interface AddParticipantToIncidentDialogProps {
@@ -34,6 +35,7 @@ export function AddParticipantToIncidentDialog({
   const [search, setSearch] = useState('')
   const [role, setRole] = useState<ParticipantRole>('VICTIM')
   const [outcome, setOutcome] = useState<ParticipantOutcome>('UNKNOWN')
+  const [acquitted, setAcquitted] = useState(false)
   const [pending, setPending] = useState<PendingParticipant[]>([])
   const debouncedSearch = useDebounce(search, 200)
   const { data: results } = useMemberSearch(universeId, debouncedSearch)
@@ -44,13 +46,24 @@ export function AddParticipantToIncidentDialog({
     return out
   }, [setsPage])
 
+  // Only an offender role is something a court can clear someone of.
+  const roleIsOffender = role === 'SHOOTER' || role === 'ASSISTED'
+
+  function changeRole(next: ParticipantRole) {
+    setRole(next)
+    if (next !== 'SHOOTER' && next !== 'ASSISTED') setAcquitted(false)
+  }
+
   const existingIds = new Set(incident.participants.map((p) => p.member_id))
   const pendingIds = new Set(pending.map((p) => p.member_id))
 
   function addPending(memberId: UUID, memberName: string, setId?: string | null) {
     if (existingIds.has(memberId) || pendingIds.has(memberId)) return
     const setName = setId ? setNameById[setId] : undefined
-    setPending((prev) => [...prev, { member_id: memberId, member_name: memberName, set_name: setName, role, outcome }])
+    setPending((prev) => [
+      ...prev,
+      { member_id: memberId, member_name: memberName, set_name: setName, role, outcome, acquitted },
+    ])
     setSearch('')
   }
 
@@ -80,12 +93,16 @@ export function AddParticipantToIncidentDialog({
         member_id: p.member_id,
         role: p.role,
         outcome: p.outcome,
+        // Carried through explicitly: omitting it would silently clear the flag
+        // on every existing participant each time another one is added.
+        acquitted: p.acquitted,
         notes: p.notes,
       })),
       ...pending.map((p) => ({
         member_id: p.member_id,
         role: p.role,
         outcome: p.outcome,
+        acquitted: p.acquitted,
       })),
     ]
     await update.mutateAsync({ participants: merged })
@@ -108,7 +125,7 @@ export function AddParticipantToIncidentDialog({
         <div className="grid grid-cols-2 gap-2 pt-2">
           <div className="space-y-1">
             <Label>Role</Label>
-            <Select value={role} onValueChange={(v) => setRole(v as ParticipantRole)}>
+            <Select value={role} onValueChange={(v) => changeRole(v as ParticipantRole)}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
                 {(['SHOOTER', 'ASSISTED', 'BYSTANDER', 'VICTIM'] as ParticipantRole[]).map((r) => (
@@ -129,6 +146,24 @@ export function AddParticipantToIncidentDialog({
             </Select>
           </div>
         </div>
+
+        {roleIsOffender && (
+          <label className="flex cursor-pointer items-start gap-2 rounded-md border border-zinc-800 bg-zinc-900/40 p-2">
+            <input
+              type="checkbox"
+              checked={acquitted}
+              onChange={(e) => setAcquitted(e.target.checked)}
+              className="mt-0.5 h-4 w-4 shrink-0 accent-amber-500"
+            />
+            <span className="text-xs leading-snug">
+              <span className="font-medium text-amber-400">Acquitted</span>
+              <span className="text-muted-foreground">
+                {' '}&mdash; a court cleared them of this. Keeps the role on record but excludes it
+                from their kill and shooting counts.
+              </span>
+            </span>
+          </label>
+        )}
 
         <div className="space-y-2">
           <Input
@@ -196,6 +231,11 @@ export function AddParticipantToIncidentDialog({
                 <div className="flex items-center gap-2">
                   <Badge variant="secondary" className="text-xs">{p.role}</Badge>
                   <Badge variant="outline" className="text-xs">{p.outcome}</Badge>
+                  {p.acquitted && (
+                    <Badge variant="outline" className="border-amber-500/40 text-xs text-amber-400">
+                      Acquitted
+                    </Badge>
+                  )}
                   <button
                     type="button"
                     onClick={() => removePending(p.member_id)}

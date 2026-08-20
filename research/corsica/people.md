@@ -283,10 +283,11 @@ After Dijon the Brise was stronger than ever. The Memmi clan no longer existed. 
   - Pierre-Marie Santucci - role `SHOOTER`, outcome `UNHARMED`
   - Robert Moracchini - role `SHOOTER`, outcome `UNHARMED`
   - Georges Seatelli - role `ASSISTED`, outcome `UNHARMED` (charged as *complicité*)
-  - **All three were acquitted.** The schema has no "alleged / acquitted" qualifier on
-    participants, so this must be carried in the incident description, or the roles
-    downgraded. Decide before seeding: recording an acquitted man as `SHOOTER` is a factual
-    claim the court rejected.
+  - **All three were acquitted**, so each of their rows sets `acquitted=True` (added in
+    migration `56eddc26ba9b`, 2026-08-20). The role stays on record; `member_stats` leaves
+    flagged rows out of `shootings`/`assists`/`kills`, so no "1 kill" tile appears on the
+    profile of a man a court cleared. The reason for the acquittal goes in the participant
+    `notes`, the trial itself in `Incident.narrative`.
 - Incident type: existing enum has `SHOOTING` and `MURDER`. The Seatelli house bombing
   (28 Dec 1982) and the Brise bar bombing (28 Nov 1982) need `BOMBING`, which now exists.
 - Dates are all at least year-precision; most are full `YMD`. Where only the month is known

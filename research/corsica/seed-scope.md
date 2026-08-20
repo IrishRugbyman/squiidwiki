@@ -104,7 +104,7 @@ Notes:
 | # | date | type | municipality | who |
 |---|---|---|---|---|
 | 1 | 1981-09-10 (`YMD`) | `MURDER` | Corte | Louis Memmi `VICTIM`/`KILLED` |
-| 2 | 1982-09-14 (`YMD`) | `MURDER` | Cervione | Daniel Ziglioli `VICTIM`/`KILLED` (+ see decision below) |
+| 2 | 1982-09-14 (`YMD`) | `MURDER` | Cervione | Daniel Ziglioli `VICTIM`/`KILLED`, + the three accused (see below) |
 | 3 | 1982 autumn (`Y`, approx) | `MURDER` | Corte | Pierre-Jean Memmi `VICTIM`/`KILLED` |
 | 4 | 1982-11-28 (`YMD`) | `BOMBING` | Bastia | none (the Brise bar, material damage only) |
 | 5 | 1982-12-28 (`YMD`) | `BOMBING` | Cardo | Georges Seatelli `VICTIM`/`UNHARMED` (house destroyed, he was not in it) |
@@ -120,37 +120,39 @@ Notes:
   each `KILLED` participant automatically, so those member fields can be left to it rather
   than written twice. Seven of the nine members die this way.
 
-### Decision needed: how to record the three acquitted men on incident 2
+### Resolved: how the three acquitted men are recorded on incident 2
 
-This is the one thing I will not decide unilaterally.
+**They go in as real participants, flagged `acquitted=True`.** Settled 2026-08-20 and
+implemented in migration `56eddc26ba9b`.
 
-`member_stats` computes:
+`incident_participant` now carries an `acquitted` boolean, and `member_stats` excludes
+flagged rows from `shootings`, `assists` and `kills`. So the role stays on record and the
+red "Kills" tile stays at zero.
 
-```sql
-kills = count(*) FILTER (WHERE ip.role = 'SHOOTER' AND EXISTS (
-          SELECT 1 FROM incident_participant ip2
-          WHERE ip2.incident_id = ip.incident_id
-            AND ip2.role = 'VICTIM' AND ip2.outcome = 'KILLED'))
-```
+The flag is a boolean rather than a disposition enum on purpose. `False` means **attributed
+by research**, not **convicted**: essentially every participant row in this database comes
+from press or street sourcing and was never tested in court, so "alleged" is already the
+baseline meaning of the role. A court affirmatively clearing someone is the narrow
+exception, and that is all the column records. Finer shades (suspected, charged but never
+tried) go in the participant `notes`, which the incident page now renders.
 
-So adding Moracchini and Santucci as `SHOOTER` and Seatelli as `ASSISTED` would render
-**"1 kill" on the profile pages of three men a court acquitted**, as a stat tile, with no
-qualifier anywhere near it. The schema has no "alleged" or "acquitted" flag on
-`incident_participant`.
+So incident 2 gets:
 
-**Recommendation: option A.**
+| member | role | outcome | acquitted |
+|---|---|---|---|
+| Daniel Ziglioli | `VICTIM` | `KILLED` | false |
+| Robert Moracchini | `SHOOTER` | `UNHARMED` | **true** |
+| Pierre-Marie Santucci | `SHOOTER` | `UNHARMED` | **true** |
+| Georges Seatelli | `ASSISTED` | `UNHARMED` | **true** |
 
-- **A. No participant rows for the three.** The charges, the trial and the 1 June 1985
-  acquittal go in `Incident.narrative`, and the three men are tied to the incident through
-  `Source` records instead. Costs the network graph an edge; costs nobody a false stat.
-- **B. Add them with real roles** and rely on the narrative to carry the acquittal. Truer
-  to what investigators believed, but the stat tiles will state it as fact.
-- **C. Add a nullable `disposition` column** to `incident_participant`
-  (`CHARGED_ACQUITTED` / `CONVICTED` / `SUSPECTED` / `NULL`) and exclude non-convictions
-  from `member_stats`. The correct long-term fix, and this universe will keep needing it,
-  but it is a migration plus a matview change and should not block the seed.
+Each of the three carries a `notes` line along the lines of *"Acquitted, Dijon, 1 June 1985,
+after the principal witness retracted. No investigation into possible juror corruption was
+ever opened."* The trial itself goes in `Incident.narrative`.
 
-A now, C later, is the path I would take.
+This is the honest recording. The earlier plan to omit the participant rows would have
+treated the acquittal as truth, which in this milieu it plainly is not: not one of the
+killings of the Brise barons ever produced a charge. But nor does the wiki assert guilt a
+court rejected. Both facts are on the page, neither is a statistic.
 
 ## 6. Businesses (8)
 

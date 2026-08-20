@@ -79,6 +79,8 @@ export interface ParticipantDraft {
   member_name: string
   role: ParticipantRole
   outcome: ParticipantOutcome
+  /** A court cleared them of this role. Excluded from kill/shooting counts. */
+  acquitted: boolean
 }
 
 export interface SetParticipantDraft {
@@ -91,6 +93,11 @@ export interface SetParticipantDraft {
 // ─── Unified participants section ─────────────────────────────────────────────
 
 const ROLES: ParticipantRole[] = ['SHOOTER', 'ASSISTED', 'BYSTANDER', 'VICTIM']
+
+/** Only an offender role is something a court can clear someone of. */
+function isOffenderRole(r: ParticipantRole) {
+  return r === 'SHOOTER' || r === 'ASSISTED'
+}
 const OUTCOMES: ParticipantOutcome[] = ['KILLED', 'INJURED', 'UNHARMED', 'UNKNOWN']
 
 function ParticipantsSection({ universeId, participants, onChangeParticipants, setParticipants, onChangeSetParticipants, allMembers, allSets }: {
@@ -108,6 +115,7 @@ function ParticipantsSection({ universeId, participants, onChangeParticipants, s
   const [memberSearch, setMemberSearch] = useState('')
   const [memberRole, setMemberRole] = useState<ParticipantRole>('VICTIM')
   const [memberOutcome, setMemberOutcome] = useState<ParticipantOutcome>('UNKNOWN')
+  const [memberAcquitted, setMemberAcquitted] = useState(false)
   const debouncedMemberSearch = useDebounce(memberSearch, 200)
   const { data: memberResults } = useMemberSearch(universeId, debouncedMemberSearch)
 
@@ -154,7 +162,16 @@ function ParticipantsSection({ universeId, participants, onChangeParticipants, s
 
   function addMember(id: UUID, name: string) {
     if (addedMemberIds.has(id)) return
-    onChangeParticipants([...participants, { member_id: id, member_name: name, role: memberRole, outcome: memberOutcome }])
+    onChangeParticipants([
+      ...participants,
+      {
+        member_id: id,
+        member_name: name,
+        role: memberRole,
+        outcome: memberOutcome,
+        acquitted: isOffenderRole(memberRole) && memberAcquitted,
+      },
+    ])
     setMemberSearch('')
   }
 
@@ -200,6 +217,21 @@ function ParticipantsSection({ universeId, participants, onChangeParticipants, s
           </SelectContent>
         </Select>
       </div>
+
+      {mode === 'member' && isOffenderRole(memberRole) && (
+        <label className="flex cursor-pointer items-center gap-2 text-xs text-zinc-400">
+          <input
+            type="checkbox"
+            checked={memberAcquitted}
+            onChange={(e) => setMemberAcquitted(e.target.checked)}
+            className="h-3.5 w-3.5 accent-amber-500"
+          />
+          <span>
+            <span className="text-amber-400">Acquitted</span> — cleared by a court, so kept on
+            record but left out of their kill and shooting counts
+          </span>
+        </label>
+      )}
 
       {mode === 'member' ? (
         <>
@@ -265,6 +297,22 @@ function ParticipantsSection({ universeId, participants, onChangeParticipants, s
               <div className="flex items-center gap-1.5 shrink-0">
                 <Badge variant="secondary" className="text-[10px] px-1.5">{p.role}</Badge>
                 <Badge variant="outline" className="text-[10px] px-1.5">{p.outcome}</Badge>
+                {isOffenderRole(p.role) && (
+                  <button
+                    type="button"
+                    title={p.acquitted ? 'Cleared by a court — click to unset' : 'Mark as cleared by a court'}
+                    onClick={() => onChangeParticipants(participants.map((x) =>
+                      x.member_id === p.member_id ? { ...x, acquitted: !x.acquitted } : x
+                    ))}
+                    className={`rounded border px-1.5 text-[10px] transition-colors ${
+                      p.acquitted
+                        ? 'border-amber-500/40 bg-amber-500/10 text-amber-400'
+                        : 'border-zinc-700 text-zinc-500 hover:text-zinc-300'
+                    }`}
+                  >
+                    Acquitted
+                  </button>
+                )}
                 <button type="button" onClick={() => onChangeParticipants(participants.filter((x) => x.member_id !== p.member_id))}
                   className="text-zinc-400 hover:text-red-400 transition-colors">✕</button>
               </div>
@@ -347,6 +395,7 @@ export function IncidentFormSheet({ universeId, open, onClose, initial, defaultP
       member_name: memberNameMap[p.member_id] ?? p.member_id,
       role: p.role,
       outcome: p.outcome,
+      acquitted: p.acquitted,
     })) ?? defaultParticipants ?? []
   )
   const [setLevelParticipants, updateSetLevelParticipants] = useState<SetParticipantDraft[]>(() =>
@@ -528,7 +577,9 @@ export function IncidentFormSheet({ universeId, open, onClose, initial, defaultP
         municipality_id: effectiveMunicipalityId,
         narrative: narrative || null,
         verified,
-        participants: participants.map(({ member_id, role, outcome }) => ({ member_id, role, outcome })),
+        participants: participants.map(({ member_id, role, outcome, acquitted }) => ({
+          member_id, role, outcome, acquitted,
+        })),
         set_participants: setLevelParticipants.map(({ set_id, role, outcome }) => ({ set_id, role, outcome })),
       }
       if (isEdit) {

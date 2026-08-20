@@ -12,6 +12,7 @@ class ParticipantCreate(BaseModel):
     member_id: uuid.UUID
     role: ParticipantRole
     outcome: ParticipantOutcome = ParticipantOutcome.UNKNOWN
+    acquitted: bool = False
     notes: Optional[str] = None
 
 
@@ -21,6 +22,7 @@ class ParticipantRead(BaseModel):
     member_id: uuid.UUID
     role: ParticipantRole
     outcome: ParticipantOutcome
+    acquitted: bool
     notes: Optional[str]
 
 
