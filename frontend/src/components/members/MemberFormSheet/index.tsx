@@ -51,11 +51,12 @@ const ALL_STATUSES: MemberStatus[] = ['FREE', 'LOCKED', 'ESCAPEE', 'ABSCONDER', 
 
 // ─── Family types ─────────────────────────────────────────────────────────────
 
-export type FamilyRole = 'father' | 'son' | 'brother' | 'cousin' | 'uncle' | 'nephew'
+export type FamilyRole = 'father' | 'son' | 'brother' | 'cousin' | 'uncle' | 'nephew' | 'spouse'
 
-export const FAMILY_ROLES: FamilyRole[] = ['father', 'son', 'brother', 'cousin', 'uncle', 'nephew']
+export const FAMILY_ROLES: FamilyRole[] = ['father', 'son', 'brother', 'cousin', 'uncle', 'nephew', 'spouse']
 
 export const ROLE_LABEL: Record<FamilyRole, string> = {
+  spouse: 'Spouse',
   father: 'Father',
   son: 'Son',
   brother: 'Brother',

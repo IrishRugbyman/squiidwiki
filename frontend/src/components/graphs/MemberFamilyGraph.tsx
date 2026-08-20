@@ -17,6 +17,7 @@ import { familyDictToEntries, ROLE_LABEL, type FamilyRole } from '@/routes/_app.
 import type { MemberListItem, MemberRead, UUID } from '@/lib/types'
 
 const ROLE_TINT: Record<FamilyRole, string> = {
+  spouse: 'bg-rose-950/60 border-rose-700 text-rose-200',
   father: 'bg-amber-950/60 border-amber-700 text-amber-200',
   son: 'bg-sky-950/60 border-sky-700 text-sky-200',
   brother: 'bg-violet-950/60 border-violet-700 text-violet-200',
