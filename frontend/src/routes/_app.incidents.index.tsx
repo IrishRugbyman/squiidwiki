@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useLocation, useNavigate } from '@tanstack/react-router'
-import { Bomb, Bookmark, BookmarkPlus, CheckCircle2, Download, Flame, HandCoins, Pencil, Plus, Search, ShieldAlert, Skull, Swords, Trash2, User, UserX, X } from 'lucide-react'
+import { Banknote, Bomb, Bookmark, BookmarkPlus, CheckCircle2, Download, Flame, HandCoins, Pencil, Plus, Search, ShieldAlert, Skull, Swords, Trash2, User, UserX, X } from 'lucide-react'
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import { toast } from 'sonner'
@@ -57,6 +57,7 @@ const TYPE_CONFIG: Record<IncidentType, { icon: typeof ShieldAlert; color: strin
   ARSON:      { icon: Flame,       color: 'text-pink-400',   dot: 'bg-pink-500',   tile: 'bg-pink-950/60 text-pink-400',     label: 'Arson'      },
   EXTORTION:  { icon: HandCoins,   color: 'text-teal-400',   dot: 'bg-teal-500',   tile: 'bg-teal-950/60 text-teal-400',     label: 'Extortion'  },
   KIDNAPPING: { icon: UserX,       color: 'text-blue-400',   dot: 'bg-blue-500',   tile: 'bg-blue-950/60 text-blue-400',     label: 'Kidnapping' },
+  ROBBERY:    { icon: Banknote,    color: 'text-emerald-400',dot: 'bg-emerald-500',tile: 'bg-emerald-950/60 text-emerald-400', label: 'Robbery'  },
 }
 
 const TYPE_ORDER = Object.keys(TYPE_CONFIG) as IncidentType[]
