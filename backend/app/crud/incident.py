@@ -41,6 +41,7 @@ async def _sync_participants(
                 member_id=p.member_id,
                 role=p.role,
                 outcome=p.outcome,
+                acquitted=p.acquitted,
                 notes=p.notes,
             )
         )

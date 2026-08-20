@@ -417,6 +417,8 @@ export interface ParticipantRead {
   member_id: UUID
   role: ParticipantRole
   outcome: ParticipantOutcome
+  /** A court cleared them of this role. False means "attributed by research", not "convicted". */
+  acquitted: boolean
   notes: string | null
 }
 

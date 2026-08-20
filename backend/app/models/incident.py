@@ -1,7 +1,7 @@
 import uuid
 from datetime import UTC, datetime
 
-from sqlalchemy import Column, DateTime
+from sqlalchemy import Boolean, Column, DateTime
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlmodel import Field, SQLModel
 
@@ -27,6 +27,16 @@ class IncidentParticipant(SQLModel, table=True):
     member_id: uuid.UUID = Field(foreign_key="member.id", primary_key=True)
     role: ParticipantRole
     outcome: ParticipantOutcome = ParticipantOutcome.UNKNOWN
+    # A court affirmatively cleared this person of this role in this incident.
+    # The default, False, means "attributed by research" and NOT "convicted":
+    # almost every participant row in this database is a researcher attribution,
+    # never tested in court. So this flags the narrow exceptional case, and
+    # `member_stats` excludes these rows from the offender counts so an acquitted
+    # man's profile does not show a red "Kills" tile. Detail goes in `notes`.
+    acquitted: bool = Field(
+        default=False,
+        sa_column=Column("acquitted", Boolean, nullable=False, server_default="false"),
+    )
     notes: str | None = None
 
 

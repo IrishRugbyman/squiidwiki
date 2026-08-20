@@ -3,6 +3,7 @@ import uuid
 
 import pytest
 from httpx import AsyncClient
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.crud import create_user
@@ -214,3 +215,85 @@ async def test_incident_source_ids_in_detail(client: AsyncClient, db_session: As
     )
     assert resp.status_code == 200
     assert "source_ids" in resp.json()
+
+
+async def test_acquitted_participant_excluded_from_offender_stats(
+    client: AsyncClient, db_session: AsyncSession
+):
+    """An acquitted SHOOTER keeps the role on record but stops counting as a kill.
+
+    Expected values come from the domain rule, not from running the view: one
+    shooter, one killed victim, so kills is 1 while the role stands and 0 once a
+    court has cleared him. The first half of the test is what proves the second
+    half can fail.
+    """
+    token = await _admin_token(client, db_session)
+    headers = {"Authorization": f"Bearer {token}"}
+    universe_id = await _make_universe(client, token)
+    shooter_id = await _make_member(client, token, universe_id, "Accused")
+    victim_id = await _make_member(client, token, universe_id, "Deceased")
+
+    incident = (
+        await client.post(
+            "/api/v1/incidents/",
+            json={
+                "universe_id": universe_id,
+                "type": "MURDER",
+                "participants": [
+                    {"member_id": shooter_id, "role": "SHOOTER", "outcome": "UNHARMED"},
+                    {"member_id": victim_id, "role": "VICTIM", "outcome": "KILLED"},
+                ],
+            },
+            headers=headers,
+        )
+    ).json()
+
+    async def stats() -> dict:
+        # Non-concurrent on purpose: crud.refresh_materialized_views swallows
+        # every exception, which would leave this test reading stale rows.
+        await db_session.execute(text("REFRESH MATERIALIZED VIEW member_stats"))
+        await db_session.commit()
+        resp = await client.get(
+            f"/api/v1/members/{shooter_id}/stats?universe_id={universe_id}", headers=headers
+        )
+        assert resp.status_code == 200
+        return resp.json()
+
+    before = await stats()
+    assert before["shootings"] == 1
+    assert before["kills"] == 1
+
+    resp = await client.patch(
+        f"/api/v1/incidents/{incident['id']}?universe_id={universe_id}",
+        json={
+            "participants": [
+                {
+                    "member_id": shooter_id,
+                    "role": "SHOOTER",
+                    "outcome": "UNHARMED",
+                    "acquitted": True,
+                    "notes": "Acquitted at trial.",
+                },
+                {"member_id": victim_id, "role": "VICTIM", "outcome": "KILLED"},
+            ]
+        },
+        headers=headers,
+    )
+    assert resp.status_code == 200
+
+    after = await stats()
+    assert after["kills"] == 0, "a court-cleared role must not be counted as a kill"
+    assert after["shootings"] == 0
+
+    # The role itself is still on record — the flag qualifies it, it does not delete it.
+    detail = (
+        await client.get(f"/api/v1/incidents/{incident['id']}?universe_id={universe_id}", headers=headers)
+    ).json()
+    shooter = next(p for p in detail["participants"] if p["member_id"] == shooter_id)
+    assert shooter["role"] == "SHOOTER"
+    assert shooter["acquitted"] is True
+    assert shooter["notes"] == "Acquitted at trial."
+
+    # The victim is untouched: being shot is not a claim anyone can be acquitted of.
+    victim = next(p for p in detail["participants"] if p["member_id"] == victim_id)
+    assert victim["acquitted"] is False

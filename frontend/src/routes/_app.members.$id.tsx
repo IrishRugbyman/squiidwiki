@@ -1094,6 +1094,7 @@ function MemberDetailPage() {
                   member_name: member.display_name,
                   role: 'BYSTANDER',
                   outcome: 'UNKNOWN',
+                  acquitted: false,
                 },
               ]}
             />

@@ -230,7 +230,15 @@ function IncidentDetailPage() {
                         <div className="flex items-center gap-2">
                           <Badge className={`border ${ROLE_CHIP[p.role]}`}>{ROLE_LABEL[p.role]}</Badge>
                           <Badge className={`border ${OUTCOME_CHIP[p.outcome]}`}>{OUTCOME_LABEL[p.outcome]}</Badge>
+                          {p.acquitted && (
+                            <Badge className="border border-amber-500/40 bg-amber-500/10 text-amber-400">
+                              Acquitted
+                            </Badge>
+                          )}
                         </div>
+                        {p.notes && (
+                          <p className="basis-full text-xs leading-snug text-muted-foreground">{p.notes}</p>
+                        )}
                       </div>
                     )
                   })}
