@@ -37,6 +37,10 @@ class IncidentType(str, Enum):
     SHOOTING = "SHOOTING"
     MURDER = "MURDER"
     FIGHT = "FIGHT"
+    BOMBING = "BOMBING"
+    ARSON = "ARSON"
+    EXTORTION = "EXTORTION"
+    KIDNAPPING = "KIDNAPPING"
 
 
 class ParticipantRole(str, Enum):

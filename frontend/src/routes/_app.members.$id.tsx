@@ -30,6 +30,7 @@ import {
 import type { IncidentListItem, MemberIncarcerationRead, MemberListItem, MemberRead } from '@/lib/types'
 import type { FuzzyDateValue } from '@/components/FuzzyDate'
 import { downloadText } from '@/lib/download'
+import { INCIDENT_TYPE_CHIP, INCIDENT_TYPE_LABEL } from '@/lib/incidentColors'
 import { useUniverseStore } from '@/stores/universe'
 import { useAuthStore } from '@/stores/auth'
 import { MemberFormSheet, familyDictToEntries, ROLE_LABEL } from './_app.members.index'
@@ -781,8 +782,8 @@ function MemberDetailPage() {
                               </Link>
                             </td>
                             <td className="px-4 py-3">
-                              <Badge variant="outline" className={`text-xs ${inc.type === 'MURDER' ? 'border-rose-800 text-rose-400' : inc.type === 'FIGHT' ? 'border-violet-800 text-violet-400' : 'border-amber-800 text-amber-400'}`}>
-                                {inc.type}
+                              <Badge variant="outline" className={`text-xs ${INCIDENT_TYPE_CHIP[inc.type]}`}>
+                                {INCIDENT_TYPE_LABEL[inc.type]}
                               </Badge>
                             </td>
                             <td className="px-4 py-3 text-xs text-zinc-400">

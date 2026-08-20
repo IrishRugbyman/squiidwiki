@@ -4,6 +4,45 @@ export const INCIDENT_TYPE_CHIP: Record<IncidentType, string> = {
   SHOOTING: 'border-amber-800/70 text-amber-400 bg-amber-950/30',
   MURDER: 'border-rose-800/70 text-rose-400 bg-rose-950/30',
   FIGHT: 'border-violet-800/70 text-violet-400 bg-violet-950/30',
+  BOMBING: 'border-yellow-800/70 text-yellow-400 bg-yellow-950/30',
+  ARSON: 'border-pink-800/70 text-pink-400 bg-pink-950/30',
+  EXTORTION: 'border-teal-800/70 text-teal-400 bg-teal-950/30',
+  KIDNAPPING: 'border-blue-800/70 text-blue-400 bg-blue-950/30',
+}
+
+/** Foreground-only variant, for glyphs and text that carry no chip background. */
+export const INCIDENT_TYPE_TEXT: Record<IncidentType, string> = {
+  SHOOTING: 'text-amber-400',
+  MURDER: 'text-rose-400',
+  FIGHT: 'text-violet-400',
+  BOMBING: 'text-yellow-400',
+  ARSON: 'text-pink-400',
+  EXTORTION: 'text-teal-400',
+  KIDNAPPING: 'text-blue-400',
+}
+
+export const INCIDENT_TYPE_LABEL: Record<IncidentType, string> = {
+  SHOOTING: 'Shooting',
+  MURDER: 'Murder',
+  FIGHT: 'Fight',
+  BOMBING: 'Bombing',
+  ARSON: 'Arson',
+  EXTORTION: 'Extortion',
+  KIDNAPPING: 'Kidnapping',
+}
+
+/**
+ * Wording used to narrate an incident ("<shooters> shot <victims>").
+ * `aggressor` labels the SHOOTER-role participants for that type.
+ */
+export const INCIDENT_VERB: Record<IncidentType, { verb: string; aggressor: string }> = {
+  SHOOTING: { verb: 'shot', aggressor: 'Shooter' },
+  MURDER: { verb: 'killed', aggressor: 'Shooter' },
+  FIGHT: { verb: 'fought', aggressor: 'Aggressor' },
+  BOMBING: { verb: 'bombed', aggressor: 'Bomber' },
+  ARSON: { verb: 'torched', aggressor: 'Arsonist' },
+  EXTORTION: { verb: 'extorted', aggressor: 'Extortionist' },
+  KIDNAPPING: { verb: 'abducted', aggressor: 'Abductor' },
 }
 
 export const ROLE_CHIP: Record<ParticipantRole, string> = {

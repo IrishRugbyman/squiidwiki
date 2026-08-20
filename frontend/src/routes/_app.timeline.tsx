@@ -1,21 +1,22 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
-import { ShieldAlert, Skull, Swords, Unlock } from 'lucide-react'
+import { Bomb, Flame, HandCoins, ShieldAlert, Skull, Swords, Unlock, UserX } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { useMemo } from 'react'
 import { FuzzyDate } from '@/components/FuzzyDate'
 import { NoUniverse } from '@/components/NoUniverse'
 import { PageHeader } from '@/components/PageHeader'
 import { Skeleton } from '@/components/ui/skeleton'
+import { INCIDENT_VERB } from '@/lib/incidentColors'
 import { useAllIncidents, useAllMembers } from '@/lib/queries'
 import { useUniverseStore } from '@/stores/universe'
 import type { FuzzyDateValue } from '@/components/FuzzyDate'
-import type { UUID } from '@/lib/types'
+import type { IncidentType, UUID } from '@/lib/types'
 
 export const Route = createFileRoute('/_app/timeline')({
   component: TimelinePage,
 })
 
-type EventKind = 'SHOOTING' | 'MURDER' | 'FIGHT' | 'DEATH' | 'RELEASE'
+type EventKind = IncidentType | 'DEATH' | 'RELEASE'
 
 interface TimelineEvent {
   kind: EventKind
@@ -41,6 +42,10 @@ const KIND_CONFIG: Record<EventKind, { icon: LucideIcon; tint: string; label: st
   SHOOTING: { icon: Swords, tint: 'text-amber-400 bg-amber-950/40 border-amber-800/60', label: 'Shooting', route: '/incidents/$id' },
   MURDER: { icon: Skull, tint: 'text-rose-400 bg-rose-950/40 border-rose-800/60', label: 'Murder', route: '/incidents/$id' },
   FIGHT: { icon: ShieldAlert, tint: 'text-violet-400 bg-violet-950/40 border-violet-800/60', label: 'Fight', route: '/incidents/$id' },
+  BOMBING: { icon: Bomb, tint: 'text-yellow-400 bg-yellow-950/40 border-yellow-800/60', label: 'Bombing', route: '/incidents/$id' },
+  ARSON: { icon: Flame, tint: 'text-pink-400 bg-pink-950/40 border-pink-800/60', label: 'Arson', route: '/incidents/$id' },
+  EXTORTION: { icon: HandCoins, tint: 'text-teal-400 bg-teal-950/40 border-teal-800/60', label: 'Extortion', route: '/incidents/$id' },
+  KIDNAPPING: { icon: UserX, tint: 'text-blue-400 bg-blue-950/40 border-blue-800/60', label: 'Kidnapping', route: '/incidents/$id' },
   DEATH: { icon: Skull, tint: 'text-rose-300 bg-rose-950/30 border-rose-900/60', label: 'Member died', route: '/members/$id' },
   RELEASE: { icon: Unlock, tint: 'text-emerald-400 bg-emerald-950/30 border-emerald-800/60', label: 'Released', route: '/members/$id' },
 }
@@ -61,12 +66,8 @@ function TimelinePage() {
       if (!inc.date?.year) continue
       const shooters = inc.shooter_names ?? []
       const victims = inc.victim_names ?? []
-      const kind: EventKind =
-        inc.type === 'MURDER' ? 'MURDER'
-        : inc.type === 'FIGHT' ? 'FIGHT'
-        : 'SHOOTING'
-      const verb = kind === 'MURDER' ? 'killed' : kind === 'FIGHT' ? 'fought' : 'shot'
-      const aggressorLabel = kind === 'FIGHT' ? 'Aggressor' : 'Shooter'
+      const kind: EventKind = inc.type
+      const { verb, aggressor: aggressorLabel } = INCIDENT_VERB[inc.type]
       const fmt = (names: string[], max = 3) =>
         names.slice(0, max).join(', ') + (names.length > max ? ` +${names.length - max}` : '')
       const secondary =

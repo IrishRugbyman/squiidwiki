@@ -5,11 +5,12 @@ import { useNavigate } from '@tanstack/react-router'
 import { Home } from 'lucide-react'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import { BRAND } from '@/lib/brand'
-import type { GeoJSONGeometry, MunicipalityGeoJSON } from '@/lib/types'
+import type { GeoJSONGeometry, IncidentType, MunicipalityGeoJSON } from '@/lib/types'
+import { INCIDENT_TYPE_HEX } from '@/lib/statusColors'
 
 export interface IncidentPoint {
   id: string
-  type: 'SHOOTING' | 'MURDER' | 'FIGHT'
+  type: IncidentType
   lat: number
   lng: number
 }
@@ -403,9 +404,9 @@ export default function MunicipalityMap({
                 'circle-radius': 6,
                 'circle-color': [
                   'match', ['get', 'incidentType'],
-                  'MURDER', '#fb7185',
-                  'FIGHT', BRAND.light,
-                  '#fbbf24',
+                  // Driven by INCIDENT_TYPE_HEX so map dots, chips and charts never drift.
+                  ...Object.entries(INCIDENT_TYPE_HEX).flat(),
+                  '#a1a1aa',
                 ] as unknown as string,
                 'circle-stroke-width': 1.5,
                 'circle-stroke-color': '#18181b',
