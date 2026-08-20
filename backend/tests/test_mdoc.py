@@ -199,3 +199,134 @@ class TestFailureModes:
     def test_empty_html_is_a_parse_error(self):
         with pytest.raises(MdocParseError):
             parse_mdoc_html("")
+
+
+# ---------------------------------------------------------------------------
+# fetch_mdoc_profile: the session walk and its failure modes.
+#
+# Stubbed rather than mocked with a library: the point is to pin down how the
+# code reacts to responses OTIS really produces, all of which were observed
+# live against mdocweb.state.mi.us before being written down here.
+# ---------------------------------------------------------------------------
+
+import httpx  # noqa: E402
+
+from app.services import mdoc as mdoc_service  # noqa: E402
+
+SEARCH_FORM = "<html><head><title>OTIS Offender Search - OTIS</title></head><body></body></html>"
+RESULTS = "<html><head><title>Results Page - OTIS</title></head><body></body></html>"
+RUNTIME_ERROR = "<html><head><title>Runtime Error</title></head><body></body></html>"
+
+
+class _StubClient:
+    """Stands in for httpx.AsyncClient. `posts` is consumed in order:
+    the search POST first, then the LoadProfile POST."""
+
+    def __init__(self, posts, *, raise_on_get=None, **kwargs):
+        self._posts = list(posts)
+        self._raise_on_get = raise_on_get
+        self.requested = []
+
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, *exc):
+        return False
+
+    async def get(self, url, **kwargs):
+        if self._raise_on_get:
+            raise self._raise_on_get
+        return httpx.Response(200, text=SEARCH_FORM)
+
+    async def post(self, url, data=None, **kwargs):
+        self.requested.append((url, data))
+        return self._posts.pop(0)
+
+
+def _install(monkeypatch, posts, raise_on_get=None):
+    holder = {}
+
+    def factory(**kwargs):
+        holder["client"] = _StubClient(posts, raise_on_get=raise_on_get, **kwargs)
+        return holder["client"]
+
+    monkeypatch.setattr(mdoc_service.httpx, "AsyncClient", factory)
+    return holder
+
+
+class TestFetchProfile:
+    @pytest.mark.asyncio
+    async def test_happy_path_returns_the_parsed_profile(self, monkeypatch, profile_html):
+        _install(
+            monkeypatch,
+            [httpx.Response(200, text=RESULTS), httpx.Response(200, text=profile_html)],
+        )
+        parsed = await mdoc_service.fetch_mdoc_profile("111222", proxy="socks5://x:1")
+        assert parsed.legal_name == "Jordan Avery Reed"
+        assert parsed.mdoc_number == "111222"
+
+    @pytest.mark.asyncio
+    async def test_load_profile_is_posted_with_the_number(self, monkeypatch, profile_html):
+        holder = _install(
+            monkeypatch,
+            [httpx.Response(200, text=RESULTS), httpx.Response(200, text=profile_html)],
+        )
+        await mdoc_service.fetch_mdoc_profile("111222", proxy="socks5://x:1")
+        url, data = holder["client"].requested[-1]
+        assert url.endswith("/Results")
+        assert data == {"action:LoadProfile": "111222"}
+
+    @pytest.mark.asyncio
+    async def test_a_flaky_search_step_does_not_fail_the_lookup(self, monkeypatch, profile_html):
+        """OTIS sometimes bounces the search back to the form for a real
+        offender, then loads the profile fine. Observed live; must not fail."""
+        _install(
+            monkeypatch,
+            [httpx.Response(200, text=SEARCH_FORM), httpx.Response(200, text=profile_html)],
+        )
+        parsed = await mdoc_service.fetch_mdoc_profile("111222", proxy="socks5://x:1")
+        assert parsed.mdoc_number == "111222"
+
+    @pytest.mark.asyncio
+    async def test_unknown_number_reports_a_missing_offender_not_a_proxy_fault(self, monkeypatch):
+        """OTIS answers 500 for a number that doesn't exist, and blaming the
+        proxy for that would send someone debugging the wrong thing."""
+        _install(
+            monkeypatch,
+            [httpx.Response(200, text=RESULTS), httpx.Response(500, text=RUNTIME_ERROR)],
+        )
+        with pytest.raises(mdoc_service.MdocFetchError, match="no offender with MDOC number"):
+            await mdoc_service.fetch_mdoc_profile("999999", proxy="socks5://x:1")
+
+    @pytest.mark.asyncio
+    async def test_a_profile_for_the_wrong_person_is_refused(self, monkeypatch, profile_html):
+        """The fixture is offender 111222; ask for someone else and the
+        mismatch must abort rather than attach another man's convictions."""
+        _install(
+            monkeypatch,
+            [httpx.Response(200, text=RESULTS), httpx.Response(200, text=profile_html)],
+        )
+        with pytest.raises(mdoc_service.MdocFetchError, match="may be someone else"):
+            await mdoc_service.fetch_mdoc_profile("352482", proxy="socks5://x:1")
+
+    @pytest.mark.asyncio
+    async def test_search_form_instead_of_a_profile_is_a_fetch_error(self, monkeypatch):
+        _install(
+            monkeypatch,
+            [httpx.Response(200, text=RESULTS), httpx.Response(200, text=SEARCH_FORM)],
+        )
+        with pytest.raises(mdoc_service.MdocFetchError, match="did not load a profile"):
+            await mdoc_service.fetch_mdoc_profile("111222", proxy="socks5://x:1")
+
+    @pytest.mark.asyncio
+    async def test_transport_failure_points_at_the_proxy(self, monkeypatch):
+        _install(monkeypatch, [], raise_on_get=httpx.ConnectError("All connection attempts failed"))
+        with pytest.raises(mdoc_service.MdocFetchError, match="MDOC_PROXY"):
+            await mdoc_service.fetch_mdoc_profile("111222", proxy="socks5://x:1")
+
+    @pytest.mark.asyncio
+    async def test_non_numeric_input_is_rejected_before_any_request(self, monkeypatch):
+        holder = _install(monkeypatch, [])
+        with pytest.raises(ValueError, match="must be digits"):
+            await mdoc_service.fetch_mdoc_profile("not-a-number", proxy="socks5://x:1")
+        assert "client" not in holder

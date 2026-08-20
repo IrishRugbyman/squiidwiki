@@ -479,6 +479,16 @@ async def fetch_mdoc_profile(mdoc_number: str, proxy: str | None = None) -> Mdoc
 
     OTIS answers 200 with the search form when it rejects a step rather than
     signalling an error, so each step is verified by page title.
+
+    The search step exists only to establish session state, and **nothing is
+    decided from what it returns**, because what it returns is not trustworthy:
+    for one real offender it reported "0 matches found" on one attempt and
+    bounced to the search form on the next, yet ``LoadProfile`` fetched that
+    profile correctly both times. Gating on it rejects lookups that work.
+
+    ``LoadProfile`` is the authoritative step: it returns the offender asked
+    for regardless of what the search listed, and answers 500 "Runtime Error"
+    when no such number exists.
     """
     number = str(mdoc_number).strip()
     if not number.isdigit():
@@ -493,32 +503,44 @@ async def fetch_mdoc_profile(mdoc_number: str, proxy: str | None = None) -> Mdoc
     ) as client:
         try:
             await client.get(f"{BASE_URL}/Search")
-
             results = await client.post(
                 f"{BASE_URL}/Search",
                 data={**BLANK_SEARCH, "MDOCNumber": number, "action:Search": "Search"},
             )
-            results.raise_for_status()
-            if RESULTS_TITLE not in _title_of(results.text):
-                raise MdocFetchError(
-                    f"OTIS returned no results page for MDOC number {number}. "
-                    "Either the number doesn't exist or the search was rejected."
-                )
-
             profile = await client.post(f"{BASE_URL}/Results", data={"action:LoadProfile": number})
-            profile.raise_for_status()
         except httpx.HTTPError as e:
+            # A transport failure, not an HTTP status: almost always the proxy.
             raise MdocFetchError(
-                f"{e}. OTIS 403s this server's own IP - set MDOC_PROXY to a SOCKS5 "
-                "proxy that egresses elsewhere (see infra/otis-tunnel.sh)."
+                f"Couldn't reach OTIS ({e}). It 403s this server's own IP, so "
+                "MDOC_PROXY must point at a SOCKS5 proxy that egresses "
+                "elsewhere, with something actually listening on it "
+                "(infra/otis-tunnel.sh opens one)."
             ) from e
 
-    if PROFILE_TITLE not in _title_of(profile.text):
+    # OTIS raises rather than 404s for a number that doesn't exist.
+    if profile.status_code >= 500:
         raise MdocFetchError(
-            f"OTIS did not load a profile for MDOC number {number} (got "
-            f"{_title_of(profile.text)!r} instead)."
+            f"OTIS has no offender with MDOC number {number} "
+            f"(it answered {profile.status_code} {_title_of(profile.text)!r})."
         )
-    return parse_mdoc_html(profile.text)
+    if profile.status_code != 200 or PROFILE_TITLE not in _title_of(profile.text):
+        raise MdocFetchError(
+            f"OTIS did not load a profile for MDOC number {number} "
+            f"({profile.status_code}, {_title_of(profile.text)!r}; the search "
+            f"step returned {_title_of(results.text)!r})."
+        )
+
+    parsed = parse_mdoc_html(profile.text)
+    # Belt and braces. OTIS holds the selected offender in session state, so a
+    # bug or a session mix-up upstream could hand back somebody else - and
+    # attaching the wrong person's convictions to a member is the worst thing
+    # this code could quietly do. Verified correct today; checked anyway.
+    if parsed.mdoc_number and parsed.mdoc_number != number:
+        raise MdocFetchError(
+            f"OTIS returned MDOC number {parsed.mdoc_number} when asked for "
+            f"{number}; refusing to use a profile that may be someone else's."
+        )
+    return parsed
 
 
 async def fetch_mdoc_image(photo_url: str) -> tuple[bytes, str]:
