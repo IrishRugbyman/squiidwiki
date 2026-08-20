@@ -1,0 +1,145 @@
+# Detroit research - press coverage and articles
+#
+# Extracted from Chrome bookmarks export on 2026-08-02.
+# 91 articles across 41 outlets.
+#
+# These map onto the SquiidWiki `Source` entity (citation + reliability rating).
+# Primary court documents are in detroit-legal-sources.txt instead.
+# Several outlets 403 non-browser clients; some links may have rotted since bookmarking.
+#
+# Columns: outlet <TAB> title <TAB> url <TAB> source bookmark folder <TAB> bookmarked
+
+# Outlet counts:
+#     9  The Detroit News
+#     7  ClickOnDetroit (WDIV)
+#     6  WXYZ Detroit
+#     5  FOX 2 Detroit
+#     5  Gangster Report
+#     5  Detroit Free Press
+#     4  MLive
+#     4  CBS Detroit
+#     3  Google (recherche)
+#     2  Patch
+#     2  Reddit
+#     2  Michigan Courts
+#     2  ATF
+#     2  Motor City Muckraker
+#     2  The Toledo Blade
+#     1  idoc.pub
+#     1  gannett-cdn.com
+#     1  eu.northjersey.com
+#     1  The New York Times
+#     1  media.mlive.com
+#     1  Bellingcat
+#     1  opn.ca6.uscourts.gov
+#     1  officer.com
+#     1  Deadline Detroit
+#     1  xxlmag.com
+#     1  forms.cloud.microsoft
+#     1  unitedgangs.com
+#     1  Rolling Out
+#     1  dea.gov
+#     1  lipstickalley.com
+#     1  crimeindetroit.com
+#     1  chamspage.blogspot.com
+#     1  newmcfallbrothersfuneralhome.com
+#     1  patersontimes.com
+#     1  theoaklandpress.com
+#     1  drive.google.com
+#     1  thestreetsdontloveyouback.ning.com
+#     1  mied.uscourts.gov
+#     1  13abc.com
+#     1  answers.com
+#     1  metrotimes.com
+
+13abc.com	Three suspects indicted in murder of Toledo toddler	https://www.13abc.com/content/news/Three-suspects-indicted-in-murder-of-Toledo-toddler-505854141.html	Importés depuis Firefox/unfiled	2020-04-13
+answers.com	What street gangs are in Southwest Detroit - Answers	https://www.answers.com/Q/What_street_gangs_are_in_Southwest_Detroit	Importés depuis Firefox/unfiled	2020-03-31
+ATF	Detroit One Collaboration Leads to Racketeering Indictment of Violent Gang Members from Detroit's Eastside | Bureau of Alcohol, Tobacco, Firearms and Explosives	https://www.atf.gov/news/pr/detroit-one-collaboration-leads-racketeering-indictment-violent-gang-members-detroits	Importés depuis Firefox/unfiled	2020-04-01
+ATF	Latin Counts Gang Members Charged and Arrested for Committing a Shooting in Southwest Detroit | Bureau of Alcohol, Tobacco, Firearms and Explosives	https://www.atf.gov/news/pr/latin-counts-gang-members-charged-and-arrested-committing-shooting-southwest-detroit	Importés depuis Firefox/unfiled	2020-03-31
+Bellingcat	bellingcat - Gangs of Detroit: OSINT and Indictment Documents - bellingcat	https://www.bellingcat.com/resources/2015/10/05/gangs-of-detroit-osint-and-indictment-documents/	Importés depuis Firefox/unfiled	2020-04-04
+CBS Detroit	Authorities: Leader Of Detroit’s Bounty Hunter Bloods Gang Gets 30 Years In Prison – CBS Detroit	https://detroit.cbslocal.com/2016/04/20/authorities-leader-of-detroits-bounty-hunter-bloods-gang-gets-30-years-in-prison/	Importés depuis Firefox/unfiled	2020-04-03
+CBS Detroit	Local Gang Leaders Plead Guilty In Racketeering, Firearm Charges – CBS Detroit	https://detroit.cbslocal.com/2018/01/12/local-gang-leaders-plead-guilty-in-racketeering-firearm-charges/	Importés depuis Firefox/unfiled	2020-03-31
+CBS Detroit	playboy-ind.pdf	https://detroit.cbslocal.com/wp-content/uploads/sites/15909782/2017/10/playboy-ind.pdf	Importés depuis Firefox/unfiled	2020-04-28
+CBS Detroit	us-district-court-detroit-11-1-17.pdf	https://detroit.cbslocal.com/wp-content/uploads/sites/15909782/2017/11/us-district-court-detroit-11-1-17.pdf	Importés depuis Firefox/unfiled	2020-04-09
+chamspage.blogspot.com	Miscellaneous Posts: 2011 Detroit Homicide/Murder Victim List	http://chamspage.blogspot.com/2012/02/2011-detroit-homicidemurder-victim-list.html	Importés depuis Firefox/unfiled	2020-12-05
+ClickOnDetroit (WDIV)	(sans titre)	https://www.clickondetroit.com/news/2018/07/03/detroit-rapper-accused-of-funding-up-and-coming-career-with-3000-stolen-credit-cards/	Importés depuis Firefox/unfiled	2020-03-31
+ClickOnDetroit (WDIV)	2 leaders of Detroit's Rollin 60s Crips street gang sentenced for racketeering	https://www.clickondetroit.com/news/2018/01/12/2-leaders-of-detroits-rollin-60s-crips-street-gang-sentenced-for-racketeering/	Importés depuis Firefox/unfiled	2020-04-01
+ClickOnDetroit (WDIV)	Band Crew street gang leader sentenced to 20 years for violence, shootings in Detroit	https://www.clickondetroit.com/news/2017/05/19/band-crew-street-gang-leader-sentenced-to-20-years-for-violence-shootings-in-detroit/	Importés depuis Firefox/unfiled	2020-04-04
+ClickOnDetroit (WDIV)	Defenders look at Detroit's criminal groups	https://www.clickondetroit.com/news/2015/06/23/defenders-look-at-detroits-criminal-groups/	Importés depuis Firefox/unfiled	2020-03-31
+ClickOnDetroit (WDIV)	Judge: CVS security guard killer is 'poster child' for gang life	https://www.clickondetroit.com/news/2014/07/15/judge-cvs-security-guard-killer-is-poster-child-for-gang-life/	Importés depuis Firefox/unfiled	2020-04-15
+ClickOnDetroit (WDIV)	Latin Counts gang member sentenced to 30 years in prison for southwest Detroit drive-by shooting	https://www.clickondetroit.com/news/2019/11/15/latin-counts-gang-member-sentenced-to-30-years-in-prison-for-southwest-detroit-drive-by-shooting/	Importés depuis Firefox/unfiled	2020-04-01
+ClickOnDetroit (WDIV)	Wrongfully imprisoned Detroit man sues city for $1.5 million	https://www.clickondetroit.com/news/2016/03/08/wrongfully-imprisoned-detroit-man-sues-city-for-15-million/	Importés depuis Firefox/unfiled	2020-04-07
+crimeindetroit.com	Microsoft Word - Document1 - 101905_Puritan_Avenue_Gang[1].pdf	https://crimeindetroit.com/documents/101905_Puritan_Avenue_Gang[1].pdf	Importés depuis Firefox/unfiled	2020-04-13
+dea.gov	https://www.dea.gov/sites/default/files/states/newsrel/2003/detroit120403.html	https://www.dea.gov/sites/default/files/states/newsrel/2003/detroit120403.html	Importés depuis Firefox/unfiled	2020-04-04
+Deadline Detroit	Deadline Detroit | Did Napoleon Misspeak When He Said 'There Are No Organized Gangs' in Detroit?	https://www.deadlinedetroit.com/articles/7008/did_napoleon_misspeak_when_he_said_there_are_no_organized_gangs_in_detroit	Importés depuis Firefox/unfiled	2020-04-05
+Detroit Free Press	Detroit leader of Bounty Hunter Bloods gang gets 30 years	https://eu.freep.com/story/news/local/michigan/detroit/2016/04/19/bounty-hunter-bloods-sentenced-detroit-street-gang-federal-court/83260524/	Importés depuis Firefox/unfiled	2020-04-03
+Detroit Free Press	Facebook, feds bust Rollin 60s Crips in Detroit, arrest 12	https://eu.freep.com/story/news/2016/02/10/facebook-feds-bust-rollin-60s-crips-detroit-arrest-12/80189608/	Importés depuis Firefox/unfiled	2020-04-01
+Detroit Free Press	Feds bust 8 gang members who bragged on Facebook, Twitter	https://eu.freep.com/story/news/local/michigan/detroit/2015/09/22/members-detroit-gang-indicted-band-crew/72623054/	Importés depuis Firefox/unfiled	2020-04-04
+Detroit Free Press	Man cleared in killing as teen now part of gang bust	https://eu.freep.com/story/news/local/michigan/oakland/2016/02/14/man-cleared-killing-teen-now-part-gang-bust/80352032/	Importés depuis Firefox/unfiled	2020-03-31
+Detroit Free Press	Man gets prison in fatal shooting at Detroit drive-thru	https://eu.freep.com/story/news/local/michigan/detroit/2016/01/06/sentenced-fatal-drive-thru-shooting/78357384/	Importés depuis Firefox/unfiled	2020-04-19
+drive.google.com	Purple Heart Vets Full Indictment.pdf - Google Drive	https://drive.google.com/file/d/1zO32Ljme47q5N8swDbkMxHQPhgmS5qvi/view?pli=1		2023-10-11
+eu.northjersey.com	Archive: Brazen gangs in turf battle	https://eu.northjersey.com/story/news/passaic/paterson/2017/08/31/archive-brazen-gangs-turf-battle/556595001/	Importés depuis Firefox/unfiled	2020-04-02
+forms.cloud.microsoft	Formulaire d'inscription à l'association des anciens élèves du LFI de Dublin.	https://forms.cloud.microsoft/Pages/ResponsePage.aspx?id=zspazGvjHk2GGPZXdmu52ocogKEEpnhGrTOG7C_Z-OhUNDE5ODUyRDc5R00yMzE5SVEwODk0OE1HVy4u		2026-05-26
+FOX 2 Detroit	14 members of Detroit's Playboy Gangster Crips gang arrested for slew of crimes | FOX 2 Detroit	https://www.fox2detroit.com/news/14-members-of-detroits-playboy-gangster-crips-gang-arrested-for-slew-of-crimes	Importés depuis Firefox/unfiled	2020-04-01
+FOX 2 Detroit	ICE raid leads to 1,000 gang arrests, including 20 in Michigan | FOX 2 Detroit	https://www.fox2detroit.com/news/ice-raid-leads-to-1000-gang-arrests-including-20-in-michigan	Importés depuis Firefox/unfiled	2020-04-02
+FOX 2 Detroit	More than 40 shots fired at scene of man's murder in Detroit | FOX 2 Detroit	https://www.fox2detroit.com/news/more-than-40-shots-fired-at-scene-of-mans-murder-in-detroit	Importés depuis Firefox/unfiled	2020-04-05
+FOX 2 Detroit	Social media bragging by Detroit gang members lead to prosecution | FOX 2 Detroit	https://www.fox2detroit.com/news/social-media-bragging-by-detroit-gang-members-lead-to-prosecution	Importés depuis Firefox/unfiled	2020-03-29
+FOX 2 Detroit	Video of gunmen who murdered 21, 13-year-old in car released | FOX 2 Detroit	https://www.fox2detroit.com/news/video-of-gunmen-who-murdered-21-13-year-old-in-car-released	Importés depuis Firefox/unfiled	2020-04-03
+Gangster Report	Chief Keef-Backed Rapper YNS Cheeks Charged In RICO, Named A Leader Of Detroit's Young & Scandalous Gang - The Gangster Report	https://gangsterreport.com/chief-keef-backed-rapper-yns-cheeks-charged-in-rico-named-a-leader-of-detroits-young-scandalous-gang/	Importés depuis Firefox/unfiled	2020-04-02
+Gangster Report	Convictions Across The Board In Detroit Feds' Latest Assault Launched On Seven Mile Bloods - The Gangster Report	https://gangsterreport.com/convictions-across-the-board-in-detroit-feds-latest-assault-launched-on-seven-mile-bloods/	Importés depuis Firefox/unfiled	2020-03-31
+Gangster Report	PA Boys Power Slim Brantley Back On The Outside, Detroit Drug Chief Checks Into Halfway House - The Gangster Report	https://gangsterreport.com/pa-boys-power-slim-brantley-back-on-the-outside-detroit-drug-chief-checks-into-halfway-house/	Importés depuis Firefox/unfiled	2020-04-03
+Gangster Report	Take Me Home, Country Roads: Feds Bag West Virginia Branch Of Detroit's 'Young 'N Scandalous' Gang - The Gangster Report	https://gangsterreport.com/take-me-home-country-roads-feds-bag-west-virginia-branch-of-detroits-young-n-scandalous-gang/	Importés depuis Firefox/unfiled	2020-06-16
+Gangster Report	The Face That Launched 1,000 Ships: SW Detroit Crime Lord Scarface Viramontez Returns Home From Prison - The Gangster Report	https://gangsterreport.com/the-face-that-launched-1000-ships-sw-detroit-crime-lord-scarface-viramontez-returns-home-from-prison/	Importés depuis Firefox/unfiled	2021-01-02
+gannett-cdn.com	636600906950913275-gill-combo-wide.jpg (Image WEBP, 1900 × 1000 pixels) - Redimensionnée (64%)	https://www.gannett-cdn.com/media/2018/04/23/DetroitNews/DetroitNews/636600906950913275-gill-combo-wide.jpg	Importés depuis Firefox/unfiled	2020-04-05
+Google (recherche)	Detroit Gang Map (W.I.P) - Google My Maps	https://www.google.com/maps/d/u/0/viewer?mid=1DoDpgLSdHmsdFJXjqsbybzyDZUKJ59vw&hl=en_US&ll=42.383854111320744%2C-83.14616174716981&z=15	Barre de favoris/🏚️	2024-05-01
+Google (recherche)	pa boys detroit indictment – Recherche Google	https://www.google.com/search?q=pa+boys+detroit+indictment&client=firefox-b-d&hl=fr&sxsrf=ALeKk00aJCI05QUHm2es5wWSNUWj3LIMxw:1586799147791&source=lnms&tbm=isch&sa=X&ved=2ahUKEwiWsqK89-XoAhXMgnIEHVobDmYQ_AUoAnoECAsQBA&biw=1708&bih=808#imgrc=NU_U8o-qUSM-NM	Importés depuis Firefox/unfiled	2020-04-13
+Google (recherche)	smokecamp indictment - Recherche Google	https://www.google.com/search?client=firefox-b-d&q=smokecamp+indictment	Importés depuis Firefox/unfiled	2020-11-23
+idoc.pub	6 Mile Chedda Grove Indictment [x4e6jzzdy8n3]	https://idoc.pub/documents/6-mile-chedda-grove-indictment-x4e6jzzdy8n3	Importés depuis Firefox/unfiled	2020-04-03
+lipstickalley.com	I Want Some Detroit Gossip! Part II | Page 716 | Lipstick Alley	https://www.lipstickalley.com/threads/i-want-some-detroit-gossip-part-ii.953846/page-716	Importés depuis Firefox/unfiled	2020-03-31
+media.mlive.com	Band Crew indictment.pdf	http://media.mlive.com/news/detroit_impact/other/Band%20Crew%20indictment.pdf	Importés depuis Firefox/unfiled	2020-04-04
+metrotimes.com	yns_superseding_indictment__1__2.pdf	https://www.metrotimes.com/media/pdf/yns_superseding_indictment__1__2.pdf	Importés depuis Firefox/unfiled	2020-04-03
+Michigan Courts	Block Squad	https://www.courts.michigan.gov/siteassets/case-documents/uploads/opinions/final/coa/20210408_c348244_88_348244.opn.ord.pdf	Barre de favoris/🏚️	2023-06-17
+Michigan Courts	Kalamazoo	https://www.courts.michigan.gov/siteassets/case-documents/uploads/OPINIONS/FINAL/COA/20211028_C329091_90_329091O.OPN.ORD.PDF	Importés depuis Firefox/unfiled	2022-08-26
+mied.uscourts.gov	SCB	https://www.mied.uscourts.gov/PDFFIles/Blackmon%20opinion.pdf	Barre de favoris/🏚️	2022-08-26
+MLive	A glimpse inside Detroit's 6 Mile Chedda Grove gang - mlive.com	https://www.mlive.com/news/detroit/2016/12/look_inside_detroit_6_mile_gan.html	Importés depuis Firefox/unfiled	2020-03-30
+MLive	Flint street gang taken down by same law used against the mafia - mlive.com	https://www.mlive.com/news/flint/2014/07/howard_boys_first_flint_gang_c.html	Importés depuis Firefox/unfiled	2020-04-02
+MLive	Flint's battlefield: A three-year homicide map - mlive.com	https://www.mlive.com/news/flint/2013/01/map_three_years_of_flint_homic.html	Importés depuis Firefox/unfiled	2020-04-12
+MLive	Robert 'Fat Daddy' Taylor sentenced to life in prison for Matt Landry murder - mlive.com	https://www.mlive.com/news/detroit/2011/02/robert_fat_daddy_taylor_senten.html	Importés depuis Firefox/unfiled	2020-04-05
+Motor City Muckraker	Detroit rappers take credit for brutal assault, robbery of Doughboyz star	http://motorcitymuckraker.com/2013/12/01/detroit-rappers-take-credit-brutal-assault-robbery-doughboyz-star/	Importés depuis Firefox/unfiled	2020-04-01
+Motor City Muckraker	Gangs from Detroit bring violence, drugs to West Virginia communities – Motor City Muckraker	http://motorcitymuckraker.com/2014/04/27/gangs-from-detroit-bring-violence-drugs-to-west-virginia-communities/	Importés depuis Firefox/unfiled	2020-12-21
+newmcfallbrothersfuneralhome.com	Obituary for Davon Fondren | New McFall Brothers Funeral Home	https://www.newmcfallbrothersfuneralhome.com/obituary/Davon-Fondren	Barre de favoris/🏚️	2024-05-06
+officer.com	Cops Bust Detroit Hustle Boys Gang | Officer	https://www.officer.com/investigations/news/10552031/cops-bust-detroit-hustle-boys-gang	Importés depuis Firefox/unfiled	2020-04-08
+opn.ca6.uscourts.gov	Bounty Hunter Bloods	https://www.opn.ca6.uscourts.gov/opinions.pdf/18a0107n-06.pdf	Barre de favoris/🏚️	2023-06-17
+Patch	9 More Alleged Gang Members Charged with Murder, Racketeering | Detroit, MI Patch	https://patch.com/michigan/detroit/9-more-alleged-gang-members-charged-murder-racketeering	Importés depuis Firefox/unfiled	2020-04-05
+Patch	Chaldean 'Godfather,' Other Metro Detroit Iraqis Can Stay 2 More Weeks | Detroit, MI Patch	https://patch.com/michigan/detroit/chaldean-godfather-among-114-metro-detroit-iraqis-facing-deportation	Importés depuis Firefox/unfiled	2020-04-02
+patersontimes.com	Paterson drug dealing ring linked to Bloods street gang broken up | Paterson Times	http://patersontimes.com/2018/06/07/paterson-drug-dealing-ring-linked-to-bloods-street-gang-broken-up/	Importés depuis Firefox/unfiled	2020-04-06
+Reddit	Bigg 🕊 from Toledo’s Mafia Counts (TMC), a Latino gang in southwest detroit, he was killed in 2012 at only 15 years of age. RIH : r/CrimeInTheD	https://www.reddit.com/r/CrimeInTheD/comments/ofi1ju/bigg_from_toledos_mafia_counts_tmc_a_latino_gang/	Barre de favoris/🏚️	2024-05-30
+Reddit	The Color Red: Bringing Terror To Detroit's Eastside, Seven Mile Bloods Roll Call - (SMB 🅱️⭐🖐🏾) : CrimeInTheD	https://www.reddit.com/r/CrimeInTheD/comments/hvoijn/the_color_red_bringing_terror_to_detroits/	Importés depuis Firefox/unfiled	2020-11-25
+Rolling Out	How Detroit Bloods used Instagram to fuel deadly gang war - Rolling Out	https://rollingout.com/2018/09/07/how-detroit-bloods-used-instagram-to-fuel-deadly-gang-war/	Importés depuis Firefox/unfiled	2020-03-29
+The Detroit News	'Death by Instagram' trial ends in convictions	https://eu.detroitnews.com/story/news/local/detroit-city/2018/08/27/death-instagram-trial-ends-convictions/1111387002/	Importés depuis Firefox/unfiled	2020-03-29
+The Detroit News	Death by Instagram | Chapter 10: Rap tracks	https://www.detroitnews.com/story/story-series/death-by-instagram/2018/04/23/detroit-gang-wars-rap-tracks-youtube-video/439345002/	Importés depuis Firefox/unfiled	2020-04-06
+The Detroit News	Death by Instagram, Chapter 3: Smaller east-side gangs team up	https://eu.detroitnews.com/story/story-series/death-by-instagram/2018/04/23/detroit-gang-wars-unlikely-alliance/433553002/	Importés depuis Firefox/unfiled	2020-03-30
+The Detroit News	Death by Instagram, Chapter 5: Laughing emojis mark another victim	https://eu.detroitnews.com/story/story-series/death-by-instagram/2018/04/24/detroit-gang-wars-laughing-emojis-ar-15-search/439092002/	Importés depuis Firefox/unfiled	2020-04-05
+The Detroit News	Death by Instagram, Chapter 8: Fresh bloodshed as racketeering trials begin	https://eu.detroitnews.com/story/story-series/death-by-instagram/2018/04/25/detroit-gang-wars-executing-aaron-seven-mile-bloods-trials/439227002/	Importés depuis Firefox/unfiled	2020-03-30
+The Detroit News	Death by Instagram: Biographies of key figures in the deadly gang war	https://eu.detroitnews.com/story/story-series/death-by-instagram/2018/04/22/detroit-gang-wars-key-figures-biographies/436841002/	Importés depuis Firefox/unfiled	2020-04-05
+The Detroit News	Feds: Brightmoor area gang waged murderous campaign	https://eu.detroitnews.com/story/news/local/detroit-city/2017/05/12/detroit-street-gang-indictments/101603746/	Importés depuis Firefox/unfiled	2020-04-03
+The Detroit News	Free Band Gang stole $2M from Walmart during crime spree, feds say	https://eu.detroitnews.com/story/news/local/detroit-city/2018/09/26/free-band-gang-stole-2-million-walmart-during-crime-spree-feds-say/1431095002/	Importés depuis Firefox/unfiled	2020-03-31
+The Detroit News	Rapper Doughboy Roc targeted by feds before death	https://eu.detroitnews.com/story/news/local/detroit-city/2017/10/12/rapper-doughboy-roc-targeted-feds-death/106555466/	Importés depuis Firefox/unfiled	2020-04-19
+The New York Times	AROUND THE NATION; Charges Against 6 Dropped In Illinois Prison Riot Trial - The New York Times	https://www.nytimes.com/1981/06/02/us/around-the-nation-charges-against-6-dropped-in-illinois-prison-riot-trial.html	Importés depuis Firefox/unfiled	2020-07-14
+The Toledo Blade	g13BLADEGangMap - Blade-gang-map-1.pdf	https://www.toledoblade.com/attachment/2013/08/13/Blade-gang-map-1.pdf	Importés depuis Firefox/unfiled	2020-04-04
+The Toledo Blade	The Blade obtains Toledo Police Department's “Gang Territorial Divisions” map | Toledo Blade	https://www.toledoblade.com/local/police-fire/2013/08/12/The-Blade-obtains-Toledo-gang-map/stories/20130812142	Importés depuis Firefox/unfiled	2020-04-12
+theoaklandpress.com	Pontiac families grieve over six recent homicides WITH VIDEO | News | theoaklandpress.com	https://www.theoaklandpress.com/news/pontiac-families-grieve-over-six-recent-homicides-with-video/article_cdbde0d0-a716-50bd-a067-c9d026fc7240.html	Importés depuis Firefox/unfiled	2020-04-10
+thestreetsdontloveyouback.ning.com	REAL LIFE DETROIT GANGS FROM THE 70S ,80S,EARLY 90S – THE STREETS DON'T LOVE YOU BACK	https://thestreetsdontloveyouback.ning.com/m/blogpost?id=3378072%3ABlogPost%3A7577	Importés depuis Firefox/unfiled	2020-04-20
+unitedgangs.com	Hoover Criminals	https://unitedgangs.com/hoover-criminals-gang/	Importés depuis Firefox/unfiled	2020-03-29
+WXYZ Detroit	2 people shot and killed on Detroit's west side	https://www.wxyz.com/news/region/detroit/two-people-shot-and-killed-while-driving-on-detroits-west-side	Importés depuis Firefox/unfiled	2020-12-30
+WXYZ Detroit	6 Mile Chedda Grove gang members Edwin Mills and Carlo Wilson facing federal charges	https://www.wxyz.com/news/6-mile-chedda-grove-gang-members-edwin-mills-and-carlo-wilson-facing-federal-charges	Importés depuis Firefox/unfiled	2020-03-30
+WXYZ Detroit	Detroit Police Department arrests two men connected to murders of teens in party store parking lot	https://www.wxyz.com/news/most-wanted/detroit-police-department-arrests-two-men-connected-to-murders-of-teens-in-party-store-parking-lot	Importés depuis Firefox/unfiled	2020-03-31
+WXYZ Detroit	Detroit's Most Wanted: Dejuan "Montana" Jackson is wanted for murder	https://www.wxyz.com/news/most-wanted/detroits-most-wanted-dejuan-montana-jackson-is-wanted-for-murder	Importés depuis Firefox/unfiled	2020-04-07
+WXYZ Detroit	Detroit's Most Wanted: Jerome McNeil a documented member of the Bloods	https://www.wxyz.com/news/detroit-s-most-wanted-jerome-mcneil-a-documented-member-of-the-bloods	Importés depuis Firefox/unfiled	2020-03-29
+WXYZ Detroit	Gangs of Detroit: Videos bring spotlight to violence of city's organized crime	https://www.wxyz.com/news/local-news/investigations/gangs-of-detroit-videos-bring-spotlight-to-violence-of-citys-organized-crime	Importés depuis Firefox/unfiled	2020-03-31
+xxlmag.com	Doughboy Roc of Doughboyz Cashout Shot and Killed in Detroit - XXL	https://www.xxlmag.com/news/2017/10/doughboy-roc-shot-killed-detroit/	Importés depuis Firefox/unfiled	2020-04-19
+Stone Greasers	Venturers - The Death of DOC - Desi's Story	http://www.stonegreasers.com/greaser/venturers.html	Importés depuis Firefox/unfiled	2020-03-21
+Michigan Mugshot Search	Michigan Mugshot Search	https://michigan.mugshotsearch.net/	Importés depuis Firefox/unfiled	2020-04-21
+13abc (WTVG Toledo)	Chase suspects were under investigation for counterfeiting, buying guns	https://www.13abc.com/content/news/Officer-hit-in-high-speed-chase-in-Wood-County-504054421.html	Importés depuis Firefox/unfiled	2020-10-31
+St. Louis Post-Dispatch	Man gets 15 years for his role in St. Louis County murder, kidnapping | Metro | stltoday.com	https://www.stltoday.com/news/local/metro/man-gets-15-years-for-his-role-in-st-louis-county-murder-kidnapping/article_e226717c-bf80-11e0-b072-001a4bcf6878.html	Importés depuis Firefox/unfiled	2020-12-28
+Downriver Sunday Times	Dearborn police provide updates on recent arrests, ongoing cases	https://www.downriversundaytimes.com/2017/01/02/dearborn-police-provide-updates-on-recent-arrests-ongoing-cases/		2021-01-24
