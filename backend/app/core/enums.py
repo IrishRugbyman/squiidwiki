@@ -86,6 +86,30 @@ class SetRelationshipType(str, Enum):
     ENEMY = "ENEMY"
 
 
+class BusinessType(str, Enum):
+    GAMING = "GAMING"
+    NIGHTLIFE = "NIGHTLIFE"
+    CONSTRUCTION = "CONSTRUCTION"
+    PORT = "PORT"
+    WASTE_MANAGEMENT = "WASTE_MANAGEMENT"
+    HOSPITALITY = "HOSPITALITY"
+    RETAIL = "RETAIL"
+    SECURITY = "SECURITY"
+    OTHER = "OTHER"
+
+
+class BusinessStatus(str, Enum):
+    ACTIVE = "ACTIVE"
+    CLOSED = "CLOSED"
+    SEIZED = "SEIZED"
+
+
+class BusinessRole(str, Enum):
+    OWNER = "OWNER"
+    FRONT = "FRONT"
+    BENEFICIARY = "BENEFICIARY"
+
+
 class MediaKind(str, Enum):
     R2 = "R2"
     EXTERNAL_URL = "EXTERNAL_URL"
