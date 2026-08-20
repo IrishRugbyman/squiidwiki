@@ -1,4 +1,3 @@
-import re
 import uuid
 from datetime import UTC, datetime
 
@@ -9,6 +8,7 @@ from sqlmodel import select
 
 from app.core import storage
 from app.core.enums import MediaKind
+from app.core.slug import slugify
 from app.models.gang_set import GangSet
 from app.models.incident import IncidentParticipant
 from app.models.media import Media
@@ -31,6 +31,7 @@ INVERSE_REL: dict[str, str] = {
     "nephew": "uncle",
     "brother": "brother",
     "cousin": "cousin",
+    "spouse": "spouse",
 }
 SINGLE_RELS = {"father"}
 
@@ -125,11 +126,7 @@ def _fuzzy_to_dict(fd) -> dict | None:
 
 
 def _slugify(s: str) -> str:
-    s = s.lower().strip()
-    s = re.sub(r"[^\w\s-]", "", s)
-    s = re.sub(r"[\s_]+", "-", s)
-    s = re.sub(r"-+", "-", s)
-    return s.strip("-") or "member"
+    return slugify(s, "member")
 
 
 async def _unique_slug(

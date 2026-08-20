@@ -1,4 +1,3 @@
-import re
 import uuid
 from datetime import UTC, datetime
 
@@ -7,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import func, select
 
 from app.core.enums import SetRelationshipType
+from app.core.slug import slugify
 from app.models.alliance import Alliance, AllianceMunicipality
 from app.models.gang_set import GangSet, SetRelationship
 from app.schemas.alliance import AllianceCreate, AllianceUpdate
@@ -19,11 +19,7 @@ def _fuzzy_to_dict(fd) -> dict | None:
 
 
 def _slugify(s: str) -> str:
-    s = s.lower().strip()
-    s = re.sub(r"[^\w\s-]", "", s)
-    s = re.sub(r"[\s_]+", "-", s)
-    s = re.sub(r"-+", "-", s)
-    return s.strip("-") or "alliance"
+    return slugify(s, "alliance")
 
 
 async def _unique_slug(

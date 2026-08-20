@@ -1,4 +1,3 @@
-import re
 import uuid
 from datetime import UTC, datetime
 
@@ -6,6 +5,7 @@ import sqlalchemy as sa
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import func, select
 
+from app.core.slug import slugify
 from app.models.business import Business, BusinessMember, BusinessSet, BusinessSource
 from app.models.member import Member
 from app.models.municipality import Municipality
@@ -19,11 +19,7 @@ def _fuzzy_to_dict(fd) -> dict | None:
 
 
 def _slugify(s: str) -> str:
-    s = s.lower().strip()
-    s = re.sub(r"[^\w\s-]", "", s)
-    s = re.sub(r"[\s_]+", "-", s)
-    s = re.sub(r"-+", "-", s)
-    return s.strip("-") or "business"
+    return slugify(s, "business")
 
 
 async def _unique_slug(

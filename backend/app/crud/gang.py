@@ -1,10 +1,10 @@
-import re
 import uuid
 from datetime import UTC, datetime
 
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import func, select
 
+from app.core.slug import slugify
 from app.models.alliance import Alliance
 from app.models.gang import Gang
 from app.models.gang_set import GangSet
@@ -13,11 +13,7 @@ from app.schemas.gang import GangCreate, GangUpdate
 
 
 def _slugify(s: str) -> str:
-    s = s.lower().strip()
-    s = re.sub(r"[^\w\s-]", "", s)
-    s = re.sub(r"[\s_]+", "-", s)
-    s = re.sub(r"-+", "-", s)
-    return s.strip("-") or "gang"
+    return slugify(s, "gang")
 
 
 async def _unique_slug(
