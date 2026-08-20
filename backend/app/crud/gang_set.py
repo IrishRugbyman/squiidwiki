@@ -1,4 +1,3 @@
-import re
 import uuid
 from datetime import UTC, datetime
 from typing import Literal
@@ -10,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import func, select
 
 from app.core.enums import SetRelationshipType, SetStatus
+from app.core.slug import slugify
 from app.models.alliance import Alliance
 from app.models.gang import Gang
 from app.models.gang_set import GangSet, SetMunicipality, SetRelationship
@@ -25,11 +25,7 @@ FilterId = uuid.UUID | NoneSentinel | None
 
 
 def _slugify(name: str) -> str:
-    s = name.lower().strip()
-    s = re.sub(r"[^\w\s-]", "", s)
-    s = re.sub(r"[\s_]+", "-", s)
-    s = re.sub(r"-+", "-", s)
-    return s.strip("-") or "set"
+    return slugify(name, "set")
 
 
 async def _unique_slug(

@@ -35,6 +35,7 @@ from app.core.enums import (
     MemberStatus,
     ParticipantOutcome,
     ParticipantRole,
+    SetRelationshipType,
     SetStatus,
     SourceReliability,
 )
@@ -866,29 +867,29 @@ async def main() -> int:
             sets[name] = obj.id
 
         # --- the one set relationship, opened 1981 and closed 1983 ----------
-        if not dry:
-            a, b = sorted([sets["Brise de Mer"], sets["Clan Memmi"]])
-            rel = (
-                (
-                    await s.execute(
-                        select(SetRelationship).where(
-                            SetRelationship.set_a_id == a, SetRelationship.set_b_id == b
-                        )
+        a, b = sorted([sets["Brise de Mer"], sets["Clan Memmi"]])
+        rel = (
+            (
+                await s.execute(
+                    select(SetRelationship).where(
+                        SetRelationship.set_a_id == a, SetRelationship.set_b_id == b
                     )
                 )
-                .scalars()
-                .first()
             )
-            if rel is None:
-                created.append("set relationship Brise de Mer <-> Clan Memmi (ENEMY, 1981-1983)")
-                from app.core.enums import SetRelationshipType
-
-                rel = SetRelationship(
-                    set_a_id=a,
-                    set_b_id=b,
-                    relationship_type=SetRelationshipType.ENEMY,
-                    from_date=yr(1981).model_dump(mode="json"),
-                )
+            .scalars()
+            .first()
+        )
+        if rel is not None:
+            skipped.append("set relationship Brise de Mer <-> Clan Memmi")
+        else:
+            created.append("set relationship Brise de Mer <-> Clan Memmi (ENEMY, 1981-1983)")
+            rel = SetRelationship(
+                set_a_id=a,
+                set_b_id=b,
+                relationship_type=SetRelationshipType.ENEMY,
+                from_date=yr(1981).model_dump(mode="json"),
+            )
+            if not dry:
                 s.add(rel)
                 await s.commit()
                 await s.refresh(rel)
@@ -896,10 +897,6 @@ async def main() -> int:
                 await end_set_relationship(
                     s, sets["Brise de Mer"], rel.id, yr(1983).model_dump(mode="json")
                 )
-            else:
-                skipped.append("set relationship Brise de Mer <-> Clan Memmi")
-        else:
-            created.append("set relationship Brise de Mer <-> Clan Memmi (ENEMY, 1981-1983)")
 
         # --- members --------------------------------------------------------
         mem: dict[str, uuid.UUID] = {}
@@ -941,15 +938,14 @@ async def main() -> int:
         for who, rel, other in FAMILY:
             if who not in mem or other not in mem:
                 continue
-            created.append(f"family {who} {rel} {other}")
-            if dry:
-                continue
             current = await existing(Member, legal_name=who)
-            fam = dict(current.family or {})
+            fam = dict(current.family or {}) if current else {}
             ids = set(fam.get(rel) or [])
             if str(mem[other]) in ids:
-                created.pop()
                 skipped.append(f"family {who} {rel} {other}")
+                continue
+            created.append(f"family {who} {rel} {other}")
+            if dry:
                 continue
             ids.add(str(mem[other]))
             fam[rel] = sorted(ids)
@@ -1005,10 +1001,11 @@ async def main() -> int:
 
         # --- incidents last, so death sync has members to update ------------
         for key, spec in _incidents(mem, muni):
-            if (
-                await existing(Incident, location_text=spec["location_text"])
-                and spec["location_text"]
-            ):
+            # Keyed on (type, sortable_date): distinct across all nine, and unlike
+            # location_text it is never NULL, which the old check read as "not found"
+            # so that a second --apply would have duplicated that incident.
+            sortable = spec["date"].to_sortable_date() if spec["date"] else None
+            if await existing(Incident, type=spec["type"], sortable_date=sortable):
                 skipped.append(f"incident {key}")
                 continue
             created.append(f"incident {key}")
