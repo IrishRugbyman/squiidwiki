@@ -27,6 +27,7 @@ import {
   useAlliance, useSets, useDeleteAlliance, useAllianceMembers,
   useAllianceIncidents, useUpdateSet, useMunicipalities,
 } from '@/lib/queries'
+import { INCIDENT_TYPE_CHIP, INCIDENT_TYPE_LABEL } from '@/lib/incidentColors'
 import type { SetListItem } from '@/lib/types'
 import { useUniverseStore } from '@/stores/universe'
 import { useAuthStore } from '@/stores/auth'
@@ -383,14 +384,8 @@ function AllianceDetailPage() {
                           <tr key={inc.id} className="group hover:bg-zinc-900/40 transition-colors">
                             <td className="p-0">
                               <Link to="/incidents/$id" params={{ id: inc.id }} className="block px-4 py-3">
-                                <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
-                                  inc.type === 'MURDER'
-                                    ? 'bg-rose-950/60 text-rose-300 ring-1 ring-rose-800/50'
-                                    : inc.type === 'FIGHT'
-                                    ? 'bg-violet-950/60 text-violet-300 ring-1 ring-violet-800/50'
-                                    : 'bg-amber-950/60 text-amber-300 ring-1 ring-amber-800/50'
-                                }`}>
-                                  {inc.type}
+                                <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium ${INCIDENT_TYPE_CHIP[inc.type]}`}>
+                                  {INCIDENT_TYPE_LABEL[inc.type]}
                                 </span>
                               </Link>
                             </td>

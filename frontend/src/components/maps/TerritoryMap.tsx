@@ -10,6 +10,7 @@ import intersect from '@turf/intersect'
 import { featureCollection, feature } from '@turf/helpers'
 import type { Feature, Polygon, MultiPolygon } from 'geojson'
 import { BRAND } from '@/lib/brand'
+import { INCIDENT_TYPE_HEX } from '@/lib/statusColors'
 import type { MunicipalityGeoJSON, SetTerritoryPolygon, UUID } from '@/lib/types'
 import type { IncidentPoint } from './MunicipalityMap'
 
@@ -671,9 +672,9 @@ export default function TerritoryMap({
                 'circle-radius': 5,
                 'circle-color': [
                   'match', ['get', 'incidentType'],
-                  'MURDER', '#fb7185',
-                  'FIGHT', BRAND.light,
-                  '#fbbf24',
+                  // Driven by INCIDENT_TYPE_HEX so map dots, chips and charts never drift.
+                  ...Object.entries(INCIDENT_TYPE_HEX).flat(),
+                  '#a1a1aa',
                 ] as unknown as string,
                 'circle-stroke-width': 1.25,
                 'circle-stroke-color': '#18181b',

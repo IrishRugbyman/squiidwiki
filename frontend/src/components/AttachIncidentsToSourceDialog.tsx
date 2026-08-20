@@ -9,6 +9,7 @@ import { FuzzyDate } from '@/components/FuzzyDate'
 import { useDebounce } from '@/hooks/useDebounce'
 import { useIncidentSearch } from '@/lib/queries'
 import { api } from '@/lib/api'
+import { INCIDENT_TYPE_CHIP, INCIDENT_TYPE_LABEL } from '@/lib/incidentColors'
 import type { IncidentListItem, IncidentReadDetail, UUID } from '@/lib/types'
 
 interface AttachIncidentsToSourceDialogProps {
@@ -108,9 +109,9 @@ export function AttachIncidentsToSourceDialog({
                       <div className="flex items-center gap-2 min-w-0">
                         <Badge
                           variant="outline"
-                          className={`text-xs shrink-0 ${inc.type === 'MURDER' ? 'border-rose-800 text-rose-400' : inc.type === 'FIGHT' ? 'border-violet-800 text-violet-400' : 'border-amber-800 text-amber-400'}`}
+                          className={`text-xs shrink-0 ${INCIDENT_TYPE_CHIP[inc.type]}`}
                         >
-                          {inc.type}
+                          {INCIDENT_TYPE_LABEL[inc.type]}
                         </Badge>
                         <span className="truncate text-zinc-300">
                           <FuzzyDate value={inc.date} fallback="Unknown date" />
@@ -141,9 +142,9 @@ export function AttachIncidentsToSourceDialog({
                 <div className="flex items-center gap-2 min-w-0">
                   <Badge
                     variant="outline"
-                    className={`text-xs shrink-0 ${inc.type === 'MURDER' ? 'border-rose-800 text-rose-400' : inc.type === 'FIGHT' ? 'border-violet-800 text-violet-400' : 'border-amber-800 text-amber-400'}`}
+                    className={`text-xs shrink-0 ${INCIDENT_TYPE_CHIP[inc.type]}`}
                   >
-                    {inc.type}
+                    {INCIDENT_TYPE_LABEL[inc.type]}
                   </Badge>
                   <span className="truncate text-zinc-200">
                     <FuzzyDate value={inc.date} fallback="Unknown date" />

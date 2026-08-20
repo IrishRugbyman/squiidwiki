@@ -19,6 +19,7 @@ import { useAuthStore } from '@/stores/auth'
 import { MunicipalityFormSheet } from './_app.municipalities.index'
 import { SetFormSheet } from './_app.sets.index'
 import { IncidentFormSheet } from './_app.incidents.index'
+import { INCIDENT_TYPE_LABEL, INCIDENT_TYPE_TEXT } from '@/lib/incidentColors'
 import type { MunicipalityListItem } from '@/lib/types'
 import { useRecordRecent } from '@/stores/recents'
 import { useEditShortcut } from '@/hooks/useKeymap'
@@ -257,8 +258,8 @@ function MunicipalityDetailPage() {
                   params={{ id: inc.id }}
                   className="group flex items-center gap-3 px-4 py-3 transition-colors hover:bg-zinc-800/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/50"
                 >
-                  <AlertTriangle className={`h-3.5 w-3.5 shrink-0 ${inc.type === 'MURDER' ? 'text-rose-500' : 'text-amber-500'}`} />
-                  <span className="text-sm font-medium text-zinc-300 group-hover:text-white">{inc.type}</span>
+                  <AlertTriangle className={`h-3.5 w-3.5 shrink-0 ${INCIDENT_TYPE_TEXT[inc.type]}`} />
+                  <span className="text-sm font-medium text-zinc-300 group-hover:text-white">{INCIDENT_TYPE_LABEL[inc.type]}</span>
                   {inc.victim_names.length > 0 && (
                     <span className="text-sm text-zinc-400">victims: {inc.victim_names.slice(0, 2).join(', ')}{inc.victim_names.length > 2 ? ` +${inc.victim_names.length - 2}` : ''}</span>
                   )}

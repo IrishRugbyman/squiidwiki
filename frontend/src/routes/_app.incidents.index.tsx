@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useLocation, useNavigate } from '@tanstack/react-router'
-import { Bookmark, BookmarkPlus, CheckCircle2, Download, Pencil, Plus, Search, ShieldAlert, Skull, Swords, Trash2, User, X } from 'lucide-react'
+import { Bomb, Bookmark, BookmarkPlus, CheckCircle2, Download, Flame, HandCoins, Pencil, Plus, Search, ShieldAlert, Skull, Swords, Trash2, User, UserX, X } from 'lucide-react'
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import { toast } from 'sonner'
@@ -46,11 +46,19 @@ export const Route = createFileRoute('/_app/incidents/')({
 
 // ─── Type config ──────────────────────────────────────────────────────────────
 
-const TYPE_CONFIG: Record<IncidentType, { icon: typeof ShieldAlert; color: string; dot: string; label: string }> = {
-  SHOOTING: { icon: Swords,     color: 'text-amber-400',  dot: 'bg-amber-500',  label: 'Shooting' },
-  MURDER:   { icon: Skull,      color: 'text-rose-400',   dot: 'bg-rose-500',   label: 'Murder'   },
-  FIGHT:    { icon: ShieldAlert, color: 'text-violet-400', dot: 'bg-violet-500', label: 'Fight'    },
+// `tile` is spelled out rather than derived from `color` because Tailwind v4
+// only emits classes it can find as literals in the source.
+const TYPE_CONFIG: Record<IncidentType, { icon: typeof ShieldAlert; color: string; dot: string; tile: string; label: string }> = {
+  SHOOTING:   { icon: Swords,      color: 'text-amber-400',  dot: 'bg-amber-500',  tile: 'bg-amber-950/60 text-amber-400',   label: 'Shooting'   },
+  MURDER:     { icon: Skull,       color: 'text-rose-400',   dot: 'bg-rose-500',   tile: 'bg-rose-950/60 text-rose-400',     label: 'Murder'     },
+  FIGHT:      { icon: ShieldAlert, color: 'text-violet-400', dot: 'bg-violet-500', tile: 'bg-violet-950/60 text-violet-400', label: 'Fight'      },
+  BOMBING:    { icon: Bomb,        color: 'text-yellow-400', dot: 'bg-yellow-500', tile: 'bg-yellow-950/60 text-yellow-400', label: 'Bombing'    },
+  ARSON:      { icon: Flame,       color: 'text-pink-400',   dot: 'bg-pink-500',   tile: 'bg-pink-950/60 text-pink-400',     label: 'Arson'      },
+  EXTORTION:  { icon: HandCoins,   color: 'text-teal-400',   dot: 'bg-teal-500',   tile: 'bg-teal-950/60 text-teal-400',     label: 'Extortion'  },
+  KIDNAPPING: { icon: UserX,       color: 'text-blue-400',   dot: 'bg-blue-500',   tile: 'bg-blue-950/60 text-blue-400',     label: 'Kidnapping' },
 }
+
+const TYPE_ORDER = Object.keys(TYPE_CONFIG) as IncidentType[]
 
 function TypeChip({ type }: { type: IncidentType }) {
   const cfg = TYPE_CONFIG[type] ?? { icon: ShieldAlert, color: 'text-zinc-400', dot: 'bg-zinc-500', label: type }
@@ -549,9 +557,9 @@ export function IncidentFormSheet({ universeId, open, onClose, initial, defaultP
               <Select value={type} onValueChange={(v) => setType(v as IncidentType)}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="SHOOTING">Shooting</SelectItem>
-                  <SelectItem value="MURDER">Murder</SelectItem>
-                  <SelectItem value="FIGHT">Fight</SelectItem>
+                  {TYPE_ORDER.map((t) => (
+                    <SelectItem key={t} value={t}>{TYPE_CONFIG[t].label}</SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
@@ -952,15 +960,27 @@ function IncidentsPage() {
   const muniMap: Record<string, string> = {}
   for (const m of munis?.items ?? []) muniMap[m.id] = m.name
 
-  const shootingCount = allItems.filter((i) => i.type === 'SHOOTING').length
-  const murderCount = allItems.filter((i) => i.type === 'MURDER').length
+  const typeCounts = TYPE_ORDER.reduce((acc, t) => {
+    acc[t] = 0
+    return acc
+  }, {} as Record<IncidentType, number>)
+  for (const i of allItems) if (i.type in typeCounts) typeCounts[i.type] += 1
   const verifiedCount = allItems.filter((i) => i.verified).length
+
+  // Only surface the types this universe actually uses. The enum is global, so
+  // Detroit would otherwise grow tabs for bombings and Corsica for shootings.
+  // The active filter stays listed even at zero so it can be switched back off.
+  const presentTypes = TYPE_ORDER.filter((t) => typeCounts[t] > 0 || typeFilter === t)
 
   const headerDesc = isLoading ? undefined
     : allItems.length === 0 ? 'No incidents yet'
     : [
-        shootingCount > 0 && `${shootingCount} shooting${shootingCount !== 1 ? 's' : ''}`,
-        murderCount > 0 && `${murderCount} murder${murderCount !== 1 ? 's' : ''}`,
+        ...presentTypes
+          .filter((t) => typeCounts[t] > 0)
+          .map((t) => {
+            const label = TYPE_CONFIG[t].label.toLowerCase()
+            return `${typeCounts[t]} ${label}${typeCounts[t] !== 1 ? 's' : ''}`
+          }),
         verifiedCount > 0 && `${verifiedCount} verified`,
       ].filter(Boolean).join(' · ')
 
@@ -1055,8 +1075,11 @@ function IncidentsPage() {
           onChange={setTypeFilter}
           options={[
             { key: 'ALL', label: 'All', count: allItems.length },
-            { key: 'SHOOTING', label: 'Shootings', count: shootingCount },
-            { key: 'MURDER', label: 'Murders', count: murderCount },
+            ...presentTypes.map((t) => ({
+              key: t,
+              label: `${TYPE_CONFIG[t].label}s`,
+              count: typeCounts[t],
+            })),
           ]}
         />
         <FilterTabs<VerifiedFilter>
@@ -1183,9 +1206,7 @@ function IncidentsPage() {
                       <td className="py-3 pl-3 pr-1">
                         <Link to="/incidents/$id" params={{ id: incident.id }} tabIndex={-1} aria-hidden>
                           <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-md ${
-                            incident.type === 'MURDER'
-                              ? 'bg-rose-950/60 text-rose-400'
-                              : 'bg-amber-950/60 text-amber-400'
+                            TYPE_CONFIG[incident.type]?.tile ?? 'bg-zinc-900 text-zinc-400'
                           }`}>
                             <Icon className="h-4 w-4" />
                           </div>

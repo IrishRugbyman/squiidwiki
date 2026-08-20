@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
-import { CheckCircle2, ChevronLeft, ChevronRight, Flame, Keyboard, ShieldAlert, Skull, Swords, Unlock } from 'lucide-react'
+import { Bomb, CheckCircle2, ChevronLeft, ChevronRight, Flame, Flower, HandCoins, Keyboard, ShieldAlert, Skull, Swords, Unlock, UserX } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { NoUniverse } from '@/components/NoUniverse'
 import { Button } from '@/components/ui/button'
@@ -7,6 +7,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { useAllIncidents, useAllMembers, useUniverseReleaseEvents } from '@/lib/queries'
 import { useUniverseStore } from '@/stores/universe'
 import type { FuzzyDateValue } from '@/components/FuzzyDate'
+import type { IncidentType } from '@/lib/types'
 
 export const Route = createFileRoute('/_app/calendar')({
   component: CalendarPage,
@@ -22,18 +23,27 @@ const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 
 // ─── Event types ─────────────────────────────────────────────────────────────
 
-type EventKind = 'SHOOTING' | 'MURDER' | 'FIGHT' | 'DEATH' | 'MEMORIAL' | 'RELEASE'
+type EventKind = IncidentType | 'DEATH' | 'MEMORIAL' | 'RELEASE'
 
+// `text` is spelled out rather than derived from `dot` because Tailwind v4 only
+// emits classes it can find as literals in the source.
 const KIND_CONFIG: Record<EventKind, {
-  dot: string; pill: string; pillHover: string; icon: typeof Skull; label: string
+  dot: string; text: string; pill: string; pillHover: string; icon: typeof Skull; label: string
 }> = {
-  SHOOTING: { dot: 'bg-amber-500',   pill: 'bg-amber-950/80 text-amber-300 ring-1 ring-amber-800/50',          pillHover: 'hover:ring-amber-500',   icon: Swords,      label: 'Shooting' },
-  MURDER:   { dot: 'bg-rose-500',    pill: 'bg-rose-950/80 text-rose-300 ring-1 ring-rose-800/50',             pillHover: 'hover:ring-rose-500',    icon: Skull,       label: 'Murder'   },
-  FIGHT:    { dot: 'bg-violet-500',  pill: 'bg-violet-950/80 text-violet-300 ring-1 ring-violet-800/50',       pillHover: 'hover:ring-violet-500',  icon: ShieldAlert, label: 'Fight'    },
-  DEATH:    { dot: 'bg-zinc-500',    pill: 'bg-zinc-900 text-zinc-400 ring-1 ring-zinc-700',                    pillHover: 'hover:ring-zinc-500',    icon: Skull,       label: 'Death'    },
-  MEMORIAL: { dot: 'bg-fuchsia-500', pill: 'bg-fuchsia-950/80 text-fuchsia-300 ring-1 ring-fuchsia-800/50',    pillHover: 'hover:ring-fuchsia-500', icon: Flame,       label: 'Memorial' },
-  RELEASE:  { dot: 'bg-emerald-500', pill: 'bg-emerald-950/80 text-emerald-300 ring-1 ring-emerald-800/50',   pillHover: 'hover:ring-emerald-500', icon: Unlock,      label: 'Release'  },
+  SHOOTING:   { dot: 'bg-amber-500',   text: 'text-amber-400',   pill: 'bg-amber-950/80 text-amber-300 ring-1 ring-amber-800/50',       pillHover: 'hover:ring-amber-500',   icon: Swords,      label: 'Shooting'   },
+  MURDER:     { dot: 'bg-rose-500',    text: 'text-rose-400',    pill: 'bg-rose-950/80 text-rose-300 ring-1 ring-rose-800/50',          pillHover: 'hover:ring-rose-500',    icon: Skull,       label: 'Murder'     },
+  FIGHT:      { dot: 'bg-violet-500',  text: 'text-violet-400',  pill: 'bg-violet-950/80 text-violet-300 ring-1 ring-violet-800/50',    pillHover: 'hover:ring-violet-500',  icon: ShieldAlert, label: 'Fight'      },
+  BOMBING:    { dot: 'bg-yellow-500',  text: 'text-yellow-400',  pill: 'bg-yellow-950/80 text-yellow-300 ring-1 ring-yellow-800/50',    pillHover: 'hover:ring-yellow-500',  icon: Bomb,        label: 'Bombing'    },
+  ARSON:      { dot: 'bg-pink-500',    text: 'text-pink-400',    pill: 'bg-pink-950/80 text-pink-300 ring-1 ring-pink-800/50',          pillHover: 'hover:ring-pink-500',    icon: Flame,       label: 'Arson'      },
+  EXTORTION:  { dot: 'bg-teal-500',    text: 'text-teal-400',    pill: 'bg-teal-950/80 text-teal-300 ring-1 ring-teal-800/50',          pillHover: 'hover:ring-teal-500',    icon: HandCoins,   label: 'Extortion'  },
+  KIDNAPPING: { dot: 'bg-blue-500',    text: 'text-blue-400',    pill: 'bg-blue-950/80 text-blue-300 ring-1 ring-blue-800/50',          pillHover: 'hover:ring-blue-500',    icon: UserX,       label: 'Kidnapping' },
+  DEATH:      { dot: 'bg-zinc-500',    text: 'text-zinc-400',    pill: 'bg-zinc-900 text-zinc-400 ring-1 ring-zinc-700',                pillHover: 'hover:ring-zinc-500',    icon: Skull,       label: 'Death'      },
+  // Flower rather than Flame: ARSON now owns the flame glyph.
+  MEMORIAL:   { dot: 'bg-fuchsia-500', text: 'text-fuchsia-400', pill: 'bg-fuchsia-950/80 text-fuchsia-300 ring-1 ring-fuchsia-800/50', pillHover: 'hover:ring-fuchsia-500', icon: Flower,      label: 'Memorial'   },
+  RELEASE:    { dot: 'bg-emerald-500', text: 'text-emerald-400', pill: 'bg-emerald-950/80 text-emerald-300 ring-1 ring-emerald-800/50', pillHover: 'hover:ring-emerald-500', icon: Unlock,      label: 'Release'    },
 }
+
+const KIND_ORDER = Object.keys(KIND_CONFIG) as EventKind[]
 
 interface CalendarEvent {
   id: string
@@ -104,23 +114,23 @@ function DayDetail({ day, month, year, events, onClose }: {
 // ─── Month summary ────────────────────────────────────────────────────────────
 
 function MonthSummary({ events }: { events: CalendarEvent[] }) {
-  const murders   = events.filter((e) => e.kind === 'MURDER').length
-  const shootings = events.filter((e) => e.kind === 'SHOOTING').length
-  const fights    = events.filter((e) => e.kind === 'FIGHT').length
-  const deaths    = events.filter((e) => e.kind === 'DEATH').length
-  const memorials = events.filter((e) => e.kind === 'MEMORIAL').length
-  const releases  = events.filter((e) => e.kind === 'RELEASE').length
+  const counts = {} as Record<EventKind, number>
+  for (const k of KIND_ORDER) counts[k] = 0
+  for (const e of events) if (e.kind in counts) counts[e.kind] += 1
 
-  if (!murders && !shootings && !fights && !deaths && !memorials && !releases) return null
+  const parts = KIND_ORDER
+    .filter((k) => counts[k] > 0)
+    .map((k) => {
+      const cfg = KIND_CONFIG[k]
+      const n = counts[k]
+      return {
+        label: `${n} ${cfg.label.toLowerCase()}${n !== 1 ? 's' : ''}`,
+        color: cfg.text,
+        dot: cfg.dot,
+      }
+    })
 
-  const parts = [
-    murders   > 0 && { label: `${murders} murder${murders !== 1 ? 's' : ''}`,           color: 'text-rose-400',    dot: 'bg-rose-500'    },
-    shootings > 0 && { label: `${shootings} shooting${shootings !== 1 ? 's' : ''}`,     color: 'text-amber-400',   dot: 'bg-amber-500'   },
-    fights    > 0 && { label: `${fights} fight${fights !== 1 ? 's' : ''}`,              color: 'text-violet-400',  dot: 'bg-violet-500'  },
-    deaths    > 0 && { label: `${deaths} death${deaths !== 1 ? 's' : ''}`,              color: 'text-zinc-400',    dot: 'bg-zinc-500'    },
-    memorials > 0 && { label: `${memorials} memorial${memorials !== 1 ? 's' : ''}`,     color: 'text-fuchsia-400', dot: 'bg-fuchsia-500' },
-    releases  > 0 && { label: `${releases} release${releases !== 1 ? 's' : ''}`,        color: 'text-emerald-400', dot: 'bg-emerald-500' },
-  ].filter(Boolean) as { label: string; color: string; dot: string }[]
+  if (parts.length === 0) return null
 
   return (
     <div className="flex flex-wrap items-center gap-3">
@@ -244,14 +254,15 @@ function CalendarPage() {
     for (const inc of incidents) {
       if (!fuzzyMatchesMonth(inc.date, year, month)) continue
       const victims = inc.victim_names ?? []
+      const typeLabel = KIND_CONFIG[inc.type]?.label ?? inc.type
       const label = victims.length > 0
         ? victims.slice(0, 2).join(', ') + (victims.length > 2 ? ` +${victims.length - 2}` : '')
-        : (KIND_CONFIG[inc.type as EventKind]?.label ?? inc.type)
+        : typeLabel
       evs.push({
         id: inc.id,
-        kind: inc.type as EventKind,
+        kind: inc.type,
         label,
-        sublabel: victims.length > 0 ? (KIND_CONFIG[inc.type as EventKind]?.label ?? inc.type) : undefined,
+        sublabel: victims.length > 0 ? typeLabel : undefined,
         href: `/incidents/${inc.id}`,
         date: inc.date,
         verified: inc.verified,
