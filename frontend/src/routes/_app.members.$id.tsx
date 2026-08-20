@@ -234,6 +234,7 @@ function IncarcerationForm({
 // ─── Family panel (right column) ──────────────────────────────────────────────
 
 const ROLE_COLOR: Record<FamilyRole, string> = {
+  spouse: 'text-rose-400',
   father: 'text-amber-400',
   son: 'text-sky-400',
   brother: 'text-violet-400',
@@ -243,6 +244,7 @@ const ROLE_COLOR: Record<FamilyRole, string> = {
 }
 
 const ROLE_TOOLTIP: Record<FamilyRole, string> = {
+  spouse: 'Married or long-term partner',
   father: 'Biological or adoptive father',
   son: 'Male child of this member',
   brother: 'Brother (shared parent)',
@@ -270,7 +272,7 @@ function FamilyPanel({
   )
 
   const entries = familyDictToEntries(family)
-  const grouped = (['father', 'son', 'brother', 'cousin', 'uncle', 'nephew'] as FamilyRole[])
+  const grouped = (['spouse', 'father', 'son', 'brother', 'cousin', 'uncle', 'nephew'] as FamilyRole[])
     .map((role) => ({ role, ids: entries.filter((e) => e.role === role).map((e) => e.memberId) }))
     .filter((g) => g.ids.length > 0)
 
@@ -391,7 +393,7 @@ function buildMemberMarkdown({
     for (const { role, name } of family) {
       (grouped[role] ??= []).push(name)
     }
-    for (const role of (['father', 'son', 'brother', 'cousin', 'uncle', 'nephew'] as FamilyRole[])) {
+    for (const role of (['spouse', 'father', 'son', 'brother', 'cousin', 'uncle', 'nephew'] as FamilyRole[])) {
       const names = grouped[role]
       if (!names) continue
       const label = ROLE_LABEL[role] + (names.length > 1 ? 's' : '')
