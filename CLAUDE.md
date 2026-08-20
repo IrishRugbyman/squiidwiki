@@ -106,14 +106,17 @@ docker compose up -d
 
 ```
 Universe → Municipality
-         → Sets / Alliances → Members → Incidents → Sources
+         → Gangs → Alliances → Sets → Members → Incidents → Sources
          → ResearchNote (per-universe scratchpad)
 ```
 
 - **Universe** — top-level isolation container; every entity carries `universe_id`
 - **Municipality** — geographic entity (cities, districts) within a Universe — see DB toggle exception below
-- **Sets** — gang crews; allies/enemies are bilateral (normalized `set_a_id < set_b_id`)
+- **Gangs** (`gang` table, `Gang` model) - top-level gang nation (Bloods, Latin Kings). The broad affiliation spanning multiple sets and alliances. `Set`, `Alliance` and `Member` each carry an **independent nullable `gang_id`**, so a member can be tagged to the nation without belonging to a known set. `ON DELETE SET NULL` on all three.
+- **Sets** — gang crews; allies/enemies are bilateral (normalized `set_a_id < set_b_id`). Note the model is `GangSet` and the table is `sets`, not `set`.
 - **Alliances** — organizations of Sets
+
+The three tiers are a hierarchy by convention, not by constraint: nothing forces a Set's `gang_id` to agree with its Alliance's, and every link is nullable. `create_universe` seeds only the reserved sets (Police, Civilian), **not** gangs. But migration `33ac22d53ce8` (2026-05-08) backfilled five Chicago nations into *every universe existing at the time*, which is wrong for any non-US universe - check `gang` and clear it before seeding real data. (Cleared for Corsica on 2026-08-20; Detroit and Chicago still carry theirs.)
 - **Members** — nickname-first identity; `display_name` property always used (nickname default, legal name when `nickname_unknown=True`); `social_media` JSONB stores `{facebook?, instagram?, twitter?}` handles or URLs; `death_incident_id` FK auto-populated when a participant in any incident has `outcome=KILLED` (see "Incident-driven death sync" below)
 - **Incidents** — events with a typed participant table (`incident_participants`: member_id + role + outcome); no shooter/killer dict
 - **Sources** — citations with reliability rating; M2M with Members and Incidents
