@@ -18,10 +18,25 @@ Page-level anchors are chapter files inside the EPUB, cited as `[V:PLn]`.
 
 ---
 
-## The set: Gang de la Brise de Mer
+## The gang: Brise de Mer
 
-Not a "Set" in the Detroit sense so much as an `Alliance` of clans, but it seeds most
-cleanly as a single `Set` with clan sub-structure added later.
+**Seeds as a `Gang`, not a `Set`.** The schema has three tiers, `Gang` > `Alliance` > `Set`
+(table `sets`, model `GangSet`), with `Set`, `Alliance` and `Member` each carrying an
+independent nullable `gang_id`. `Gang` is the "top-level gang nation ... that spans
+multiple sets/alliances" (`backend/app/models/gang.py`).
+
+The Brise was never one crew. It fragmented into clans (Mariani, Guazzelli, Santucci) that
+killed each other through the late 2000s. `SetRelationship` is set-to-set, so modelling the
+Brise as a single `Set` leaves nowhere to record that war. As a `Gang` with each clan as a
+`Set`, the internal war becomes ordinary set relationships, and the `from_date`/`until_date`
+dimension carries "allied until 2007, enemies after".
+
+```
+Gang  Brise de Mer
+  Set clan Mariani     Set clan Guazzelli     Set clan Santucci
+Gang  Petit Bar (Ajaccio)          peer rival, Corse-du-Sud
+Gang  clan Memmi                   the older rival; may stay a bare Set, it had no sub-crews
+```
 
 - Formed late 1970s around the bar **La Brise de Mer** on the old port of Bastia, run by
   Antoine Castelli. The bar gave the group its name.
@@ -253,6 +268,16 @@ After Dijon the Brise was stronger than ever. The Memmi clan no longer existed. 
 
 - All four are `Member` records. Three of the four are also incident victims, so they carry
   `death_incident_id` once the corresponding `Incident` exists.
+- **Affiliation fields**: Moracchini, Santucci and Seatelli each get
+  `gang_id` = Brise de Mer plus a `set_id` for their clan via `MemberSet` (which has the
+  same time dimension, so a clan switch is recordable). Daniel Ziglioli gets no `gang_id`;
+  he was a club owner aligned with the Memmi side, not a member of it. `Member.gang_id` is
+  independent of `set_id`, so a man whose clan is unknown can still be tagged to the Brise.
+- The Corsica universe carried five Chicago gang nations (Black Disciples, Black P. Stones,
+  Gangster Disciples, Latin Kings, Mickey Cobras), backfilled into every then-existing
+  universe by migration `33ac22d53ce8` on 2026-05-08, not by anything Corsica-specific.
+  Deleted 2026-08-20, nothing referenced them. The Corsica `gang` table should hold only
+  Brise de Mer, Petit Bar and the Memmi clan.
 - **The 1982 Ziglioli murder is one `Incident`** linking all four:
   - Daniel Ziglioli - role `VICTIM`, outcome `KILLED`
   - Pierre-Marie Santucci - role `SHOOTER`, outcome `UNHARMED`
