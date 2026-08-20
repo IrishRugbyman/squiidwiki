@@ -26,6 +26,7 @@ export type IncidentType =
   | 'ARSON'
   | 'EXTORTION'
   | 'KIDNAPPING'
+  | 'ROBBERY'
 export type ParticipantRole = 'SHOOTER' | 'ASSISTED' | 'BYSTANDER' | 'VICTIM'
 export type ParticipantOutcome = 'KILLED' | 'INJURED' | 'UNHARMED' | 'UNKNOWN'
 export type SourceReliability = 'HIGH' | 'MEDIUM' | 'LOW' | 'UNVERIFIED'

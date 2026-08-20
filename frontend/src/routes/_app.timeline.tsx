@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
-import { Bomb, Flame, HandCoins, ShieldAlert, Skull, Swords, Unlock, UserX } from 'lucide-react'
+import { Banknote, Bomb, Flame, HandCoins, ShieldAlert, Skull, Swords, Unlock, UserX } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { useMemo } from 'react'
 import { FuzzyDate } from '@/components/FuzzyDate'
@@ -46,6 +46,7 @@ const KIND_CONFIG: Record<EventKind, { icon: LucideIcon; tint: string; label: st
   ARSON: { icon: Flame, tint: 'text-pink-400 bg-pink-950/40 border-pink-800/60', label: 'Arson', route: '/incidents/$id' },
   EXTORTION: { icon: HandCoins, tint: 'text-teal-400 bg-teal-950/40 border-teal-800/60', label: 'Extortion', route: '/incidents/$id' },
   KIDNAPPING: { icon: UserX, tint: 'text-blue-400 bg-blue-950/40 border-blue-800/60', label: 'Kidnapping', route: '/incidents/$id' },
+  ROBBERY: { icon: Banknote, tint: 'text-emerald-400 bg-emerald-950/40 border-emerald-800/60', label: 'Robbery', route: '/incidents/$id' },
   DEATH: { icon: Skull, tint: 'text-rose-300 bg-rose-950/30 border-rose-900/60', label: 'Member died', route: '/members/$id' },
   RELEASE: { icon: Unlock, tint: 'text-emerald-400 bg-emerald-950/30 border-emerald-800/60', label: 'Released', route: '/members/$id' },
 }

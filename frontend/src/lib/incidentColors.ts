@@ -8,6 +8,7 @@ export const INCIDENT_TYPE_CHIP: Record<IncidentType, string> = {
   ARSON: 'border-pink-800/70 text-pink-400 bg-pink-950/30',
   EXTORTION: 'border-teal-800/70 text-teal-400 bg-teal-950/30',
   KIDNAPPING: 'border-blue-800/70 text-blue-400 bg-blue-950/30',
+  ROBBERY: 'border-emerald-800/70 text-emerald-400 bg-emerald-950/30',
 }
 
 /** Foreground-only variant, for glyphs and text that carry no chip background. */
@@ -19,6 +20,7 @@ export const INCIDENT_TYPE_TEXT: Record<IncidentType, string> = {
   ARSON: 'text-pink-400',
   EXTORTION: 'text-teal-400',
   KIDNAPPING: 'text-blue-400',
+  ROBBERY: 'text-emerald-400',
 }
 
 export const INCIDENT_TYPE_LABEL: Record<IncidentType, string> = {
@@ -29,6 +31,7 @@ export const INCIDENT_TYPE_LABEL: Record<IncidentType, string> = {
   ARSON: 'Arson',
   EXTORTION: 'Extortion',
   KIDNAPPING: 'Kidnapping',
+  ROBBERY: 'Robbery',
 }
 
 /**
@@ -43,6 +46,7 @@ export const INCIDENT_VERB: Record<IncidentType, { verb: string; aggressor: stri
   ARSON: { verb: 'torched', aggressor: 'Arsonist' },
   EXTORTION: { verb: 'extorted', aggressor: 'Extortionist' },
   KIDNAPPING: { verb: 'abducted', aggressor: 'Abductor' },
+  ROBBERY: { verb: 'robbed', aggressor: 'Robber' },
 }
 
 export const ROLE_CHIP: Record<ParticipantRole, string> = {
