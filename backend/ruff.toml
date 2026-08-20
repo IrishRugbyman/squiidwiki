@@ -9,6 +9,8 @@ ignore = [
     "C408",   # dict() literal — sometimes needed for keyword clarity
     "B904",   # raise from — not consistently used in existing code
     "C414",   # list() in sorted() — pre-existing style
+    "UP042",  # str+Enum over StrEnum: codebase-wide in core/enums.py. StrEnum
+              # changes what str() returns, so switching is its own migration.
 ]
 
 [lint.per-file-ignores]
