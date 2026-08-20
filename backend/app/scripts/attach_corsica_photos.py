@@ -1,22 +1,28 @@
 """Attach photographs to the Corsica members.
 
-Deliberately table-driven and empty by default. No freely-licensed photograph
-exists for any of these nine people: French Wikipedia explicitly flags the
-absence for Robert Moracchini, the best-documented of them, and a Commons
-search turns up nothing for the Brise de Mer at all. What exists is copyrighted
-press photography, and a URL does not prove whose face is in it. These pages
-carry murder accusations against named people with living relatives, so the
-identification has to be made by a person who can actually recognise them, not
-guessed at from a search result.
+Only two of the nine have a photograph, and that is not for want of looking.
+Searched via a real browser: French Wikipedia flags the absence for Robert
+Moracchini with its "illustration sous licence libre serait bienvenue"
+placeholder, Commons has nothing for the Brise de Mer, and an image search on
+Seatelli, Ziglioli and Louis Memmi returns pure noise, since they belong to
+1981-98 and never reached the indexed web. The French press also routinely
+illustrates these stories with stock photos rather than the subject: both the
+Police & Realites and 20 Minutes pieces on Moracchini's killing use one, the
+latter captioned "Image d'illustration". Those were rejected.
 
-So: fill in PHOTOS with sources you have checked, then run it. Each entry needs
-a caption naming the photograph's origin, because an unattributed portrait on a
-page like this is worth very little.
+Every entry here was opened in the browser and looked at, not taken on trust
+from a filename or an alt attribute. A URL does not prove whose face is in the
+image, and these pages carry murder accusations against named people with
+living relatives. Anything that could not be confirmed was left out rather than
+guessed at, and each caption says where the photograph came from and how far it
+can be trusted.
 
 Images are downloaded and pushed to R2 through the normal media CRUD, which
 also builds the thumbnail and marks the first photo for an entity primary.
 Hotlinking is avoided on purpose: press URLs rot, and a broken portrait on a
 member page reads as a mistake.
+
+Idempotent: a member that already has media is skipped.
 
 Run from backend/:
   .venv/bin/python -m app.scripts.attach_corsica_photos          # dry run
@@ -42,7 +48,24 @@ UNIVERSE_SLUG = "corsica"
 # (member legal_name, url-or-local-path, caption)
 # The caption must say where the photograph came from.
 PHOTOS: list[tuple[str, str, str]] = [
-    # ("Robert Moracchini", "https://…/moracchini.jpg", "Corse-Matin, 30 March 2025."),
+    (
+        "Pierre-Marie Santucci",
+        "https://s.france24.com/media/display/bc0cd8f6-162f-11e9-b43f-005056a964fe"
+        "/w:1024/p:16x9/0210-santucci_m.webp",
+        "Archive photograph published by France 24 with its report of his killing, "
+        "10 February 2009. Undated, and shows him under gendarme escort: the setting "
+        "and the black curls match the custody photograph described in Lazard & "
+        "Galland, Vendetta.",
+    ),
+    (
+        "Robert Moracchini",
+        "https://www.corsenetinfos.corsica/photo/art/grande/72955048-50760898.jpg",
+        "On the summit of Everest with the Corsican bandera, May 2023, aged 63. "
+        "Published by Corse Net Infos, credited Thamserku Expedition. His face is "
+        "covered by mask and goggles, so this identifies the moment rather than the "
+        "man: it is here because the climb is the defining fact of his last years, "
+        "not as a likeness.",
+    ),
 ]
 
 
