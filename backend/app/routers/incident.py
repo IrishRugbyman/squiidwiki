@@ -2,14 +2,13 @@ import uuid
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from fastapi.responses import StreamingResponse
 from sqlalchemy import case, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.dependencies import CurrentUser, require_global_role
+from app.core.csv_export import to_csv_response
 from app.core.database import get_session
 from app.core.enums import GlobalRole
-from app.core.csv_export import to_csv_response
 from app.crud import incident as crud
 from app.models.incident import IncidentParticipant
 from app.models.member import Member
@@ -38,17 +37,19 @@ async def _enrich_participant_names(session: AsyncSession, items: list) -> list:
         (m.c.nickname_unknown | m.c.nickname.is_(None), m.c.legal_name),
         else_=m.c.nickname,
     )
-    rows = (await session.execute(
-        select(ip.c.incident_id, ip.c.role, display_name_expr.label("display_name"))
-        .join(m, m.c.id == ip.c.member_id)
-        .where(ip.c.incident_id.in_(incident_ids))
-        .where(ip.c.role.in_(('VICTIM', 'SHOOTER')))
-    )).fetchall()
+    rows = (
+        await session.execute(
+            select(ip.c.incident_id, ip.c.role, display_name_expr.label("display_name"))
+            .join(m, m.c.id == ip.c.member_id)
+            .where(ip.c.incident_id.in_(incident_ids))
+            .where(ip.c.role.in_(("VICTIM", "SHOOTER")))
+        )
+    ).fetchall()
     victim_map: dict[str, list[str]] = {}
     shooter_map: dict[str, list[str]] = {}
     for incident_id, role, name in rows:
         key = str(incident_id)
-        if role == 'VICTIM':
+        if role == "VICTIM":
             victim_map.setdefault(key, []).append(name)
         else:
             shooter_map.setdefault(key, []).append(name)
@@ -57,9 +58,11 @@ async def _enrich_participant_names(session: AsyncSession, items: list) -> list:
     muni_ids = {inc.municipality_id for inc in items if inc.municipality_id}
     muni_names: dict[uuid.UUID, str] = {}
     if muni_ids:
-        muni_rows = (await session.execute(
-            select(Municipality.id, Municipality.name).where(Municipality.id.in_(muni_ids))
-        )).all()
+        muni_rows = (
+            await session.execute(
+                select(Municipality.id, Municipality.name).where(Municipality.id.in_(muni_ids))
+            )
+        ).all()
         muni_names = {r[0]: r[1] for r in muni_rows}
 
     enriched = []
@@ -79,7 +82,7 @@ async def list_incidents(
     universe_id: uuid.UUID,
     _: CurrentUser,
     session: Annotated[AsyncSession, Depends(get_session)],
-    limit: int = Query(50, ge=1, le=200),
+    limit: int = Query(50, ge=1, le=500),
     cursor: str | None = None,
     set_id: uuid.UUID | None = None,
     member_id: uuid.UUID | None = None,
@@ -91,15 +94,25 @@ async def list_incidents(
         return to_csv_response(items, "incidents.csv")
     if set_id is not None:
         items = await crud.list_incidents_by_set(session, set_id, universe_id, limit=limit)
-        return CursorPage(items=await _enrich_participant_names(session, items), next_cursor=None, total=None)
+        return CursorPage(
+            items=await _enrich_participant_names(session, items), next_cursor=None, total=None
+        )
     if member_id is not None:
         items = await crud.list_incidents_by_member(session, member_id, universe_id, limit=limit)
-        return CursorPage(items=await _enrich_participant_names(session, items), next_cursor=None, total=None)
+        return CursorPage(
+            items=await _enrich_participant_names(session, items), next_cursor=None, total=None
+        )
     if municipality_id is not None:
-        items = await crud.list_incidents_by_municipality(session, municipality_id, universe_id, limit=limit)
-        return CursorPage(items=await _enrich_participant_names(session, items), next_cursor=None, total=None)
+        items = await crud.list_incidents_by_municipality(
+            session, municipality_id, universe_id, limit=limit
+        )
+        return CursorPage(
+            items=await _enrich_participant_names(session, items), next_cursor=None, total=None
+        )
     items, next_cursor = await crud.list_incidents(session, universe_id, limit=limit, cursor=cursor)
-    return CursorPage(items=await _enrich_participant_names(session, items), next_cursor=next_cursor, total=None)
+    return CursorPage(
+        items=await _enrich_participant_names(session, items), next_cursor=next_cursor, total=None
+    )
 
 
 @router.post("/", response_model=IncidentRead, status_code=201)

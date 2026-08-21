@@ -299,14 +299,14 @@ export const useRemoveSetRelationship = (setId: UUID, universeId: UUID) => {
 export const useSetMembers = (setId: UUID, universeId: UUID | null, primaryOnly = false) =>
   useQuery({
     queryKey: ['members', 'set', setId, primaryOnly],
-    queryFn: () => api.get<CursorPage<MemberListItem>>(`/members/?universe_id=${universeId}&set_id=${setId}${primaryOnly ? '&primary_only=true' : ''}`),
+    queryFn: () => api.get<CursorPage<MemberListItem>>(`/members/?universe_id=${universeId}&set_id=${setId}&limit=500${primaryOnly ? '&primary_only=true' : ''}`),
     enabled: !!universeId && !!setId,
   })
 
 export const useSetIncidents = (setId: UUID, universeId: UUID | null) =>
   useQuery({
     queryKey: ['incidents', 'set', setId],
-    queryFn: () => api.get<CursorPage<IncidentListItem>>(`/incidents/?universe_id=${universeId}&set_id=${setId}`),
+    queryFn: () => api.get<CursorPage<IncidentListItem>>(`/incidents/?universe_id=${universeId}&set_id=${setId}&limit=500`),
     enabled: !!universeId && !!setId,
   })
 
@@ -711,7 +711,7 @@ export const useUpdateAllianceStatus = (universeId: UUID) => {
 export const useMemberIncidents = (memberId: UUID | null, universeId: UUID | null) =>
   useQuery({
     queryKey: ['incidents', 'member', memberId],
-    queryFn: () => api.get<CursorPage<IncidentListItem>>(`/incidents/?universe_id=${universeId}&member_id=${memberId}`),
+    queryFn: () => api.get<CursorPage<IncidentListItem>>(`/incidents/?universe_id=${universeId}&member_id=${memberId}&limit=500`),
     enabled: !!universeId && !!memberId,
   })
 
@@ -889,7 +889,7 @@ export const useIncidentsByMunicipality = (municipalityId: UUID | null, universe
     queryKey: ['incidents', 'municipality', municipalityId, universeId],
     queryFn: () =>
       api.get<CursorPage<IncidentListItem>>(
-        `/incidents/?universe_id=${universeId}&municipality_id=${municipalityId}`
+        `/incidents/?universe_id=${universeId}&municipality_id=${municipalityId}&limit=500`
       ),
     enabled: !!municipalityId && !!universeId,
   })

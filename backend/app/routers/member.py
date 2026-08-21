@@ -40,7 +40,7 @@ async def list_members(
     universe_id: uuid.UUID,
     _: CurrentUser,
     session: Annotated[AsyncSession, Depends(get_session)],
-    limit: int = Query(50, ge=1, le=200),
+    limit: int = Query(50, ge=1, le=500),
     cursor: str | None = None,
     set_id: uuid.UUID | None = None,
     primary_only: bool = False,
