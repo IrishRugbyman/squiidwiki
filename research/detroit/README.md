@@ -81,3 +81,14 @@ Nothing in `extraction/` has been written to the database.
 2. Use the extraction doc to drive `POST`s (or a seed script) against the backend -
    Sets and Alliances first, then Members, then Incidents linking them.
 3. Attach the matching rows from `sources/` to each entity as citations.
+
+## Related: the privedatabase WordPress harvest
+
+`../privedatabase/` holds a full harvest of privedatabase.wordpress.com (1,105 pages,
+2026-08-21). **232 of those pages are Detroit**; 448 are Chicago and must not be seeded into
+this universe. Its `detroit.md` carries set membership with allies/enemies, and person pages
+with legal names, aliases and release dates.
+
+It rates `UNVERIFIED` on its own, but it independently reproduces six alias pairs from the
+Playboy Gangster Crips indictment and adds release dates that the indictment never stated.
+See `../privedatabase/README.md`.
