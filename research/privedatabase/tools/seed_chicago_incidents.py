@@ -434,29 +434,37 @@ existing = q(f"SELECT id FROM incident WHERE universe_id='{U}'")
 if existing:
     if "--wipe" not in sys.argv:
         sys.exit(f"{len(existing)} incidents already in the universe - pass --wipe to replace")
+    wiped = 0
     for r in existing:
-        api.call("DELETE", f"incidents/{r['id']}?universe_id={U}")
-    print(f"wiped {len(existing)} existing incidents")
+        x = api.call("DELETE", f"incidents/{r['id']}?universe_id={U}")
+        if x and x.get("_error"):
+            sys.exit(f"wipe failed on {r['id']}: {x} - fix the delete path, nothing was seeded")
+        wiped += 1
+    print(f"wiped {wiped} existing incidents")
 
-src = api.call(
-    "POST",
-    "sources/",
-    {
-        "universe_id": U,
-        "url": SITE,
-        "title": "privedatabase.wordpress.com",
-        "publication": "privedatabase",
-        "reliability": "UNVERIFIED",
-        "accessed_at": "2026-08-21",
-        "notes": (
-            "Full harvest of the site, 2026-08-21. Street research, never tested in "
-            "court; every attribution seeded from it is a research attribution."
-        ),
-    },
-)
-if not src or src.get("_error"):
-    sys.exit(f"source create failed: {src}")
-SRC = src["id"]
+existing_src = q(f"SELECT id FROM source WHERE universe_id='{U}' AND url='{SITE}'")
+if existing_src:
+    SRC = existing_src[0]["id"]
+else:
+    src = api.call(
+        "POST",
+        "sources/",
+        {
+            "universe_id": U,
+            "url": SITE,
+            "title": "privedatabase.wordpress.com",
+            "publication": "privedatabase",
+            "reliability": "UNVERIFIED",
+            "accessed_at": "2026-08-21",
+            "notes": (
+                "Full harvest of the site, 2026-08-21. Street research, never tested in "
+                "court; every attribution seeded from it is a research attribution."
+            ),
+        },
+    )
+    if not src or src.get("_error"):
+        sys.exit(f"source create failed: {src}")
+    SRC = src["id"]
 print(f"source: {SRC}")
 
 made = err = 0

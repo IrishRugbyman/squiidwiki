@@ -13,7 +13,7 @@ Database: `squiidwiki_prod`. Last run: 2026-08-21.
 - **156** sets extracted from the site
 - **154** of them are in the database
 - **2** not yet seeded
-- **181** database sets with no matching extraction
+- **178** database sets with no matching extraction
 
 ### In the database
 
@@ -21,8 +21,8 @@ Database: `squiidwiki_prod`. Last run: 2026-08-21.
 
 | Set | Page | DB slug | Bio | Gang | Mem | Rel |
 |---|---|---|---|---|---|---|
-| 051 YOUNG MONEY | 286 | `051-young-money` | Y | Mickey Cobras | 83 | 26 |
-| 051 YOUNG MONEY | 7494 | `051-young-money` | Y | Mickey Cobras | 83 | 26 |
+| 051 YOUNG MONEY | 286 | `051-young-money` | Y | Mickey Cobras | 82 | 26 |
+| 051 YOUNG MONEY | 7494 | `051-young-money` | Y | Mickey Cobras | 82 | 26 |
 | 1200 | 8291 | `1200` | Y | Gangster Disciples | 7 | 2 |
 | 400E MURDA DRIVE | 7893 | `400e-murda-drive` | - | - | 37 | 11 |
 | 50 STRONG | 290 | `50-strong` | Y | Gangster Disciples | 42 | 6 |
@@ -77,7 +77,7 @@ Database: `squiidwiki_prod`. Last run: 2026-08-21.
 | G-VILLE | 7922 | `g-ville` | Y | Gangster Disciples | 40 | 6 |
 | GEO DRIVE | 7926 | `geo-drive` | Y | Gangster Disciples | 19 | 10 |
 | GGE | 944 | `gge` | Y | Black P. Stones | 11 | 2 |
-| GME/EBE | 7903 | `gmeebe` | Y | Titanic Stones | 15 | 4 |
+| GME/EBE | 7903 | `gmeebe` | Y | Titanic Stones | 16 | 4 |
 | GOONIE GANG | 7965 | `goonie-gang` | Y | Gangster Disciples | 8 | 1 |
 | GRIMEY GANG | 3718 | `grimey-gang` | Y | Black Disciples | 5 | - |
 | GUTTAVILLE | 8002 | `guttaville` | Y | Mickey Cobras | 13 | 6 |
@@ -102,8 +102,8 @@ Database: `squiidwiki_prod`. Last run: 2026-08-21.
 | LANDLORD COV | 972 | `landlord-cov` | Y | Gangster Disciples | 7 | 3 |
 | LIL4MOBB | 7957 | `lil4mobb` | Y | Conservative Vice Lords | 67 | 7 |
 | LOC CITY | 7954 | `loc-city-rogers-park` | Y | Gangster Disciples | 2 | - |
-| LOC CITY (BotY) | 450 | `loc-city-back-of-the-yards` | Y | Gangster Disciples | 106 | 15 |
-| LOC CITY (BotY) | 7991 | `loc-city-back-of-the-yards` | Y | Gangster Disciples | 106 | 15 |
+| LOC CITY (BotY) | 450 | `loc-city-back-of-the-yards` | Y | Gangster Disciples | 104 | 15 |
+| LOC CITY (BotY) | 7991 | `loc-city-back-of-the-yards` | Y | Gangster Disciples | 104 | 15 |
 | LORDSVILLE | 1790 | `lordsville` | Y | Insane Vice Lords | 3 | 3 |
 | LOWELIFE | 7944 | `lowelife` | Y | Black Disciples | 33 | 7 |
 | M.O.M | 978 | `mom` | Y | Gangster Disciples | - | 3 |
@@ -112,7 +112,7 @@ Database: `squiidwiki_prod`. Last run: 2026-08-21.
 | MITCH BLOCK | 7938 | `mitchblock` | Y | Gangster Disciples | 17 | - |
 | MIXX MOBB | 7940 | `mixxmobb` | Y | Gangster Disciples | 27 | 5 |
 | MNA (4CH) | 8005 | `blackmob` | Y | 4 Corner Hustlers | 3 | - |
-| MOB | 7483 | `mob` | Y | Gangster Disciples | 88 | 18 |
+| MOB | 7483 | `mob` | Y | Gangster Disciples | 87 | 18 |
 | MOE | 971 | `sedville` | Y | Conservative Vice Lords | 81 | 10 |
 | MONEY BY ANY MEANS (MBAM) | 7963 | `money-by-any-means` | Y | Gangster Disciples | 22 | 2 |
 | MOOSEBLOCK | 7942 | `mooseblock` | Y | Gangster Disciples | 22 | 2 |
@@ -126,7 +126,7 @@ Database: `squiidwiki_prod`. Last run: 2026-08-21.
 | NO LIMIT 087 | 7937 | `no-limit-087` | Y | Black P. Stones | 27 | 1 |
 | NO LIMIT/MUSKEGON BOYZ | 7487 | `nlmb` | Y | Renegade Black P. Stones | 88 | 14 |
 | NOSEDMOBB | 8000 | `nosedmobb` | Y | Black Disciples | 3 | - |
-| OAK BOYZ NATION (OBN) | 7895 | `obn` | Y | Gangster Disciples | 22 | 7 |
+| OAK BOYZ NATION (OBN) | 7895 | `obn` | Y | Gangster Disciples | 21 | 7 |
 | ONLY THE END (OTE) | 7960 | `only-the-end` | Y | Gangster Disciples | 46 | 11 |
 | OUT7AW CITY | 7949 | `out7aw-city` | Y | Apache Stones | 27 | 1 |
 | O’BLOCK | 1151 | `oblock` | - | - | 102 | 18 |
@@ -149,7 +149,7 @@ Database: `squiidwiki_prod`. Last run: 2026-08-21.
 | SMASHVILLE | 7987 | `smashville` | Y | Gangster Disciples | 25 | 6 |
 | SOUTH KING DRIVE (SKD) | 7928 | `skd` | Y | Gangster Disciples | 25 | 9 |
 | SQUIRTTOWN | 7898 | `squirttown` | Y | Gangster Disciples | 10 | 1 |
-| STL/EBT | 7484 | `stlebt` | Y | Gangster Disciples | 83 | 25 |
+| STL/EBT | 7484 | `stlebt` | Y | Gangster Disciples | 82 | 25 |
 | STONY SPOT | 7929 | `stony-spot` | - | - | 18 | 9 |
 | SUWU MOBB | 7962 | `suwu-mobb` | Y | Titanic Stones | 60 | 4 |
 | SUWU TTB | 7900 | `suwu-ttb` | Y | Black P. Stones | 34 | 12 |
@@ -159,7 +159,7 @@ Database: `squiidwiki_prod`. Last run: 2026-08-21.
 | TEDAMOBB | 7995 | `tedamobb` | Y | New Breeds | 2 | - |
 | TERROR DOME | 7924 | `terror-dome` | Y | Black P. Stones | 34 | 7 |
 | THF 44 | 7902 | `thf-44` | Y | Mickey Cobras | 2 | 3 |
-| THF 46 | 7493 | `thf-46` | Y | Black Disciples | 67 | 28 |
+| THF 46 | 7493 | `thf-46` | Y | Black Disciples | 65 | 28 |
 | TOUCHMONEY | 7967 | `touchmoney` | Y | Gangster Disciples | 23 | 5 |
 | TYMB | 7495 | `tymb` | Y | Black Disciples | 85 | 27 |
 | TYQUAN WORLD | 245 | `tyquan-world` | Y | Gangster Disciples | 39 | 16 |
@@ -170,7 +170,7 @@ Database: `squiidwiki_prod`. Last run: 2026-08-21.
 | WELCH WORLD | 6528 | `welch-world` | Y | Gangster Disciples | 19 | 5 |
 | WHIZ CITY | 7941 | `whiz-city` | Y | Black Disciples | 15 | 7 |
 | WIIIC CITY | 240 | `wiiic-city` | Y | Black Disciples | 44 | 19 |
-| WIIIC CITY/O’BLOCK | 6273 | `wiiic-city` | Y | Black Disciples | 44 | 19 |
+| WIIIC CITY/O’BLOCK | 6273 | `oblock` | - | - | 102 | 18 |
 | WUGA WORLD | 7951 | `wuga-world` | Y | Gangster Disciples | 25 | 7 |
 | YOUNG MONEY ARTGANG | 870 | `young-money-artgang` | Y | Mickey Cobras | 11 | - |
 | ZOLAND | 627 | `zoland` | Y | 4 Corner Hustlers | 16 | - |
@@ -192,7 +192,6 @@ Entered by hand, or named differently on the site. Worth checking for duplicates
 | 072 HooverVille | `072-hooverville` | - | 1 | - |
 | 3 Bs | `3-bs` | - | 1 | - |
 | 3000ST | `3000st` | Latin Kings | - | - |
-| 60 | `60` | - | 1 | - |
 | 7-Deuce | `7-deuce` | - | 1 | - |
 | 808 | `808` | - | 1 | - |
 | A-Block | `a-block` | - | 1 | - |
@@ -207,7 +206,6 @@ Entered by hand, or named differently on the site. Worth checking for duplicates
 | ArtGang | `artgang` | - | 1 | - |
 | assistance sur T-Time | `assistance-sur-t-time` | - | 1 | - |
 | B-Gang | `b-gang` | - | 3 | - |
-| BBG Terror Dome | `bbg-terror-dome` | - | - | - |
 | Bejian Gang | `bejian-gang` | - | 2 | - |
 | Bejian World | `bejian-world` | - | 3 | - |
 | Belden City | `belden-city` | - | 8 | - |
@@ -270,7 +268,6 @@ Entered by hand, or named differently on the site. Worth checking for duplicates
 | German Church Road | `german-church-road` | - | 3 | - |
 | GhostMobb | `ghostmobb` | - | 5 | - |
 | GhostTown | `ghosttown` | - | 2 | - |
-| GMEBE | `gmebe` | - | 4 | - |
 | GoonBlock | `goonblock` | - | 1 | - |
 | GunHead | `gunhead` | - | 2 | - |
 | GunnHead | `gunnhead` | - | 1 | - |
