@@ -24,6 +24,10 @@ class ParticipantRead(BaseModel):
     outcome: ParticipantOutcome
     acquitted: bool
     notes: Optional[str]
+    # Filled by the detail endpoint so the client never joins against a
+    # truncated member dump (4,600+ members; list endpoints cap at 500).
+    member_name: Optional[str] = None
+    member_slug: Optional[str] = None
 
 
 class SetParticipantCreate(BaseModel):
@@ -40,6 +44,8 @@ class SetParticipantRead(BaseModel):
     role: ParticipantRole
     outcome: ParticipantOutcome
     notes: Optional[str]
+    set_name: Optional[str] = None
+    set_slug: Optional[str] = None
 
 
 class IncidentCreate(BaseModel):

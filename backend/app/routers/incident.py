@@ -149,8 +149,22 @@ async def get_incident(
     participants = await crud.list_incident_participants(session, id)
     set_participants = await crud.list_incident_set_participants(session, id)
     source_ids = await crud.list_incident_source_ids(session, id)
-    participant_reads = [ParticipantRead.model_validate(p) for p in participants]
-    set_participant_reads = [SetParticipantRead.model_validate(p) for p in set_participants]
+    members = await crud.participant_member_briefs(session, [p.member_id for p in participants])
+    sets = await crud.participant_set_briefs(session, [p.set_id for p in set_participants])
+    participant_reads = []
+    for p in participants:
+        pr = ParticipantRead.model_validate(p)
+        if m := members.get(p.member_id):
+            pr.member_name = m.display_name
+            pr.member_slug = m.slug
+        participant_reads.append(pr)
+    set_participant_reads = []
+    for p in set_participants:
+        sr = SetParticipantRead.model_validate(p)
+        if s := sets.get(p.set_id):
+            sr.set_name = s.name
+            sr.set_slug = s.slug
+        set_participant_reads.append(sr)
     base = IncidentRead.model_validate(obj)
     return IncidentReadDetail(
         **base.model_dump(),

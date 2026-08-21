@@ -205,7 +205,7 @@ function IncidentDetailPage() {
               ) : (
                 <div className="space-y-2">
                   {incident.participants.map((p) => {
-                    const name = memberName(p.member_id)
+                    const name = p.member_name ?? memberName(p.member_id)
                     return (
                       <div
                         key={p.member_id}
@@ -214,7 +214,7 @@ function IncidentDetailPage() {
                         {name ? (
                           <Link
                             to="/members/$id"
-                            params={{ id: memberSlug(p.member_id) }}
+                            params={{ id: p.member_slug ?? memberSlug(p.member_id) }}
                             className="inline-flex items-center gap-2 text-sm font-medium text-white hover:text-violet-400 transition-colors"
                           >
                             <User className="h-3.5 w-3.5 text-zinc-400" />
@@ -243,7 +243,7 @@ function IncidentDetailPage() {
                     )
                   })}
                   {incident.set_participants.map((p) => {
-                    const set = setMap[p.set_id]
+                    const set = p.set_name ? { id: p.set_id, name: p.set_name, slug: p.set_slug ?? p.set_id } : setMap[p.set_id]
                     return (
                       <div
                         key={p.set_id}
