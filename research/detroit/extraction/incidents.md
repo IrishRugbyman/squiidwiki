@@ -40,7 +40,7 @@ named source. Source IDs map to `source-index.md`.
 | 2013-09/10 | YM | Plot to murder three **Hell Lovers MC** members and then shoot every Hell Lover attending the wake. ATF and FBI intervened before it was carried out. | Antonio Johnson + Phantoms - convicted | legal-033 |
 | 2014-02 | YM | Attempted carjacking outside a **CVS on Schaefer Road**; security guard **Courtney Meeks** murdered while preventing the carjacking of a mother and infant. | Jamare Rucker + Jeremy Jackson (Bounty Hunter Bloods) - convicted, 33-60 years each | legal-035, press-070 |
 | 2014-04-18 | YMD | **Mustafa Al-Yasiry** assaulted by several Latin Counts and shot dead at the **Big Apple Market**, SW Detroit. | Devin Dantzler (shooter) + Victor Vasquez - pleaded guilty; 3 others already pleaded | legal-036 |
-| 2014-07 | YM | **Djuan "Neff" Page** killed; **Michael Davis** shot and survived. **This killing forged the anti-SMB alliance** of Hustle Boys, 6 Mile Chedda Grove, Maxout 220 and others. | unattributed in source | press-122 |
+| 2014-07-14 | YMD | Between 10am and 12pm, a shooting at the **Lawton parole office**. Four men were travelling in a car: **Djuan "Neff" Page**, 22, shot in the eye; **Michael Davis** shot in the chest; his twin **Martaze Davis**; and **Corey Crawford**. Page spent several weeks in a coma and **died in August 2014**. **This killing forged the anti-SMB alliance** of Hustle Boys, 6 Mile Chedda Grove, Maxout 220 and others. | Billy Arnold + Corey Bailey (SMB) - charged; identified by a CHS and by Michael Davis at trial | legal-023, legal-024, press-119, press-122 |
 | 2014-08 | YM | **Donell Hendrix** ("Hardwork Jig") shot at **Eastland Center mall**; survived. | rivals of SMB | press-122 |
 | 2015-02 | YM | **Jason "White Boy" Gill**, 30, killed. | rivals of SMB | press-122 |
 | 2015-03 | YM | **Michael Rogers** shot 18 times; survived. | rivals of SMB | press-122 |
@@ -73,6 +73,10 @@ homicide lists in `homicides/`. The court source alone gave only a month or a ye
   [press-122]
 - The SMB Instagram account `000_big_blood` posted photos of **62 rivals**. A rival account
   posted a hit list of **10 SMB members** after Djuan Page's killing. [press-122]
+- **Date caution on the Page shooting.** The privedatabase site dates it to 24 July 2014.
+  The court record is 14 July 2014 for the shooting and August 2014 for the death, so the
+  site's single date is neither, and 24 looks like a transposition of 14. Where a date in
+  that corpus has no court counterpart, treat it as a lead rather than a correction.
 - **Detroit homicides fell from 386 in 2012 to 300 in 2014.** [legal-033] By 2017, DOJ put the
   post-2013 trend at homicides down 20% and non-fatal shootings down 25%, with 174 fewer
   homicides across four years than the preceding four. [legal-036]
@@ -90,8 +94,11 @@ Three killings and shootings are explicitly unsolved in the sources, which makes
 1. **Devon "Block" McClure**, 2015-05-01 - "remains unsolved and factors prominently into the
    Seven Mile Bloods case as an inciting incident"
 2. **Phillip Peaks** shooting, 2018-02-04 - "The shooting of 'Team Eastside Peezy' is unsolved"
-3. **Djuan "Neff" Page**, 2014-07 - no attribution given, and the surviving victim
-   (Michael Davis) was indicted for refusing to name the shooters
+3. **Djuan "Neff" Page**, 2014-07-14 - *not* unsolved after all. Court filings identify
+   Billy Arnold and Corey Bailey as the shooters, and cell-site data placed Arnold's phone
+   at the Lawton parole office during the shooting window. The complication is the
+   surviving victim: **Michael Davis was indicted for refusing to name them** from the
+   stand, then testified at trial that Arnold and Bailey were the shooters.
 
 ## Cross-reference: the homicide lists corroborate, and fill gaps
 
