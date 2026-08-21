@@ -21,83 +21,83 @@ Database: `squiidwiki_prod`. Last run: 2026-08-21.
 
 | Set | Page | DB slug | Bio | Gang | Mem | Rel |
 |---|---|---|---|---|---|---|
-| 051 YOUNG MONEY | 286 | `051-young-money` | Y | Mickey Cobras | - | 1 |
-| 051 YOUNG MONEY | 7494 | `051-young-money` | Y | Mickey Cobras | - | 1 |
-| 400E MURDA DRIVE | 7893 | `400e-murda-drive` | - | - | - | - |
-| 600 | 227 | `600` | Y | - | - | 6 |
-| 757 | 7891 | `757` | Y | Gangster Disciples | - | 16 |
-| AAB | 7975 | `aab` | - | - | 2 | - |
-| ABG-CPT | 977 | `abg-cpt` | Y | Gangster Disciples | - | 4 |
-| ABM | 7950 | `lil4mobb` | Y | Conservative Vice Lords | - | - |
-| AMG | 7913 | `amg` | Y | Black Disciples | - | 6 |
-| BLACKGATE | 7892 | `blackgate` | Y | Black Disciples | - | 6 |
-| BRICK CITY/600 | 6277 | `600` | Y | - | - | 6 |
-| BRICK$QUAD 069 | 7496 | `brickquad-069` | Y | Insane Gangster Disciples | - | - |
-| CHRIS WORLD | 6535 | `chris-world` | Y | Black Disciples | - | - |
-| CHUCKMOBB | 973 | `chuckmobb` | Y | Gangster Disciples | - | 4 |
-| COREY MONEY BROTHERS (CMB) | 6536 | `corey-money-brothers` | Y | Insane Gangster Disciples | - | - |
-| CRANKTOWN | 7915 | `cranktown` | Y | Black P. Stones | - | - |
-| DAMENVILLE | 366 | `damenville` | Y | Gangster Disciples | - | - |
-| DAMENVILLE | 7992 | `damenville` | Y | Gangster Disciples | - | - |
-| DELL MOB | 7935 | `dell-mob` | Y | Gangster Disciples | - | - |
-| DIPSET/FRONT$TREET | 6278 | `fronttreet` | - | - | - | - |
-| DOGGPOUND | 6537 | `doggpound` | Y | Black Disciples | - | 6 |
-| DRILL CITY | 7918 | `drill-city` | Y | Black Disciples | - | - |
-| DRO CITY | 7971 | `dro-city` | Y | Gangster Disciples | - | - |
-| E-BLOCK | 7919 | `e-block` | Y | Gangster Disciples | - | - |
-| FACEWORLD | 7907 | `faceworld` | Y | Gangster Disciples | - | - |
-| FOSTER PARK | 7986 | `foster-park` | Y | Black P. Stones | - | - |
-| FREE SMOKE | 7920 | `freesmoke` | Y | Gangster Disciples | - | 1 |
-| G-VILLE | 7922 | `g-ville` | Y | Gangster Disciples | - | - |
-| GEO DRIVE | 7926 | `geo-drive` | Y | Gangster Disciples | - | 1 |
-| GGE | 944 | `gge` | Y | Black P. Stones | - | 4 |
-| GUTTAVILLE | 8002 | `guttaville` | Y | Mickey Cobras | - | - |
-| GUTTAVILLE GANGSTAS (GVG) | 7955 | `guttaville-gangstas` | Y | Renegade Gangster Disciples | - | - |
-| HOOLA GANG | 7956 | `hoola-gang` | Y | Black P. Stones | - | - |
-| JACKBOYS | 950 | `jackboys` | Y | Black P. Stones | - | 4 |
-| JARO CITY | 243 | `jaro-city` | Y | Gangster Disciples | - | 1 |
-| JARO CITY | 7486 | `jaro-city` | Y | Gangster Disciples | - | 1 |
-| JUST-US | 951 | `just-us` | Y | Black P. Stones | - | 4 |
-| KTC | 943 | `ktc` | Y | Black P. Stones | - | 4 |
-| LAMRON | 7489 | `lamron` | Y | Black Disciples | - | 6 |
-| LANDLORD COV | 972 | `landlord-cov` | Y | Gangster Disciples | - | 4 |
-| LIL4MOBB | 7957 | `lil4mobb` | Y | Conservative Vice Lords | - | - |
+| 051 YOUNG MONEY | 286 | `051-young-money` | Y | Mickey Cobras | - | 22 |
+| 051 YOUNG MONEY | 7494 | `051-young-money` | Y | Mickey Cobras | - | 22 |
+| 400E MURDA DRIVE | 7893 | `400e-murda-drive` | - | - | - | 9 |
+| 600 | 227 | `600` | Y | - | - | 25 |
+| 757 | 7891 | `757` | Y | Gangster Disciples | - | 18 |
+| AAB | 7975 | `aab` | - | - | 2 | 3 |
+| ABG-CPT | 977 | `abg-cpt` | Y | Gangster Disciples | - | 3 |
+| ABM | 7950 | `lil4mobb` | Y | Conservative Vice Lords | - | 6 |
+| AMG | 7913 | `amg` | Y | Black Disciples | - | 4 |
+| BLACKGATE | 7892 | `blackgate` | Y | Black Disciples | - | 9 |
+| BRICK CITY/600 | 6277 | `600` | Y | - | - | 25 |
+| BRICK$QUAD 069 | 7496 | `brickquad-069` | Y | Insane Gangster Disciples | - | 14 |
+| CHRIS WORLD | 6535 | `chris-world` | Y | Black Disciples | - | 8 |
+| CHUCKMOBB | 973 | `chuckmobb` | Y | Gangster Disciples | - | 3 |
+| COREY MONEY BROTHERS (CMB) | 6536 | `corey-money-brothers` | Y | Insane Gangster Disciples | - | 4 |
+| CRANKTOWN | 7915 | `cranktown` | Y | Black P. Stones | - | 2 |
+| DAMENVILLE | 366 | `damenville` | Y | Gangster Disciples | - | 4 |
+| DAMENVILLE | 7992 | `damenville` | Y | Gangster Disciples | - | 4 |
+| DELL MOB | 7935 | `dell-mob` | Y | Gangster Disciples | - | 4 |
+| DIPSET/FRONT$TREET | 6278 | `fronttreet` | - | - | - | 10 |
+| DOGGPOUND | 6537 | `doggpound` | Y | Black Disciples | - | 4 |
+| DRILL CITY | 7918 | `drill-city` | Y | Black Disciples | - | 4 |
+| DRO CITY | 7971 | `dro-city` | Y | Gangster Disciples | - | 11 |
+| E-BLOCK | 7919 | `e-block` | Y | Gangster Disciples | - | 6 |
+| FACEWORLD | 7907 | `faceworld` | Y | Gangster Disciples | - | 4 |
+| FOSTER PARK | 7986 | `foster-park` | Y | Black P. Stones | - | 3 |
+| FREE SMOKE | 7920 | `freesmoke` | Y | Gangster Disciples | - | 3 |
+| G-VILLE | 7922 | `g-ville` | Y | Gangster Disciples | - | 4 |
+| GEO DRIVE | 7926 | `geo-drive` | Y | Gangster Disciples | - | 10 |
+| GGE | 944 | `gge` | Y | Black P. Stones | - | 2 |
+| GUTTAVILLE | 8002 | `guttaville` | Y | Mickey Cobras | - | 5 |
+| GUTTAVILLE GANGSTAS (GVG) | 7955 | `guttaville-gangstas` | Y | Renegade Gangster Disciples | - | 6 |
+| HOOLA GANG | 7956 | `hoola-gang` | Y | Black P. Stones | - | 5 |
+| JACKBOYS | 950 | `jackboys` | Y | Black P. Stones | - | 2 |
+| JARO CITY | 243 | `jaro-city` | Y | Gangster Disciples | - | 16 |
+| JARO CITY | 7486 | `jaro-city` | Y | Gangster Disciples | - | 16 |
+| JUST-US | 951 | `just-us` | Y | Black P. Stones | - | 2 |
+| KTC | 943 | `ktc` | Y | Black P. Stones | - | 2 |
+| LAMRON | 7489 | `lamron` | Y | Black Disciples | - | 9 |
+| LANDLORD COV | 972 | `landlord-cov` | Y | Gangster Disciples | - | 3 |
+| LIL4MOBB | 7957 | `lil4mobb` | Y | Conservative Vice Lords | - | 6 |
 | LOC CITY | 7954 | `loc-city-rogers-park` | Y | Gangster Disciples | - | - |
-| LOC CITY (BotY) | 450 | `loc-city-back-of-the-yards` | Y | Gangster Disciples | - | - |
-| LOC CITY (BotY) | 7991 | `loc-city-back-of-the-yards` | Y | Gangster Disciples | - | - |
-| LORDSVILLE | 1790 | `lordsville` | Y | Insane Vice Lords | - | - |
-| LOWELIFE | 7944 | `lowelife` | Y | Black Disciples | - | 6 |
-| M.O.M | 978 | `mom` | Y | Gangster Disciples | - | 4 |
-| MET BOYZ | 7936 | `met-boyz` | Y | Gangster Disciples | - | - |
-| MIXX MOBB | 7940 | `mixxmobb` | Y | Gangster Disciples | - | - |
-| MOB | 7483 | `mob` | Y | Gangster Disciples | - | 1 |
-| MOE | 971 | `sedville` | Y | Conservative Vice Lords | - | 4 |
-| MTV | 7906 | `mtv` | Y | Black Disciples | - | - |
-| MURDAFIELD | 963 | `murdafield` | Y | Black P. Stones | - | 4 |
-| MURDATOWN | 7933 | `murdatown` | Y | Gangster Disciples | - | 1 |
-| NICKO GANG | 7925 | `nicko-gang` | Y | Gangster Disciples | - | - |
-| OAK BOYZ NATION (OBN) | 7895 | `obn` | Y | Gangster Disciples | - | 1 |
-| ONLY THE END (OTE) | 7960 | `only-the-end` | Y | Gangster Disciples | - | - |
-| O’BLOCK | 1151 | `oblock` | - | - | - | 1 |
-| PBG/TFG | 7488 | `pbgtfg` | Y | Insane Gangster Disciples | - | - |
-| SEDVILLE | 7897 | `sedville` | Y | Conservative Vice Lords | - | 4 |
-| SHAWN MONEY BOYZ (SMB) | 7899 | `shawn-money-boyz` | Y | Black Disciples | - | 6 |
-| SK | 7974 | `sk` | Y | Gangster Disciples | - | - |
-| SMASHVILLE | 7987 | `smashville` | Y | Gangster Disciples | - | - |
-| SOUTH KING DRIVE (SKD) | 7928 | `skd` | Y | Gangster Disciples | - | 1 |
-| STL/EBT | 7484 | `stlebt` | Y | Gangster Disciples | - | 1 |
-| STONY SPOT | 7929 | `stony-spot` | - | - | - | 1 |
-| SUWU TTB | 7900 | `suwu-ttb` | Y | Black P. Stones | - | 1 |
-| TAETOWN | 7961 | `taetown` | Y | 4 Corner Hustlers | - | - |
-| TERROR DOME | 7924 | `terror-dome` | Y | Black P. Stones | - | - |
-| THF 46 | 7493 | `thf-46` | Y | Black Disciples | - | 1 |
-| TYMB | 7495 | `tymb` | Y | Black Disciples | - | - |
-| TYQUAN WORLD | 245 | `tyquan-world` | Y | Gangster Disciples | - | 1 |
-| TYQUAN WORLD | 7485 | `tyquan-world` | Y | Gangster Disciples | - | 1 |
-| WELCH WORLD | 6528 | `welch-world` | Y | Gangster Disciples | - | 1 |
-| WHIZ CITY | 7941 | `whiz-city` | Y | Black Disciples | - | - |
-| WIIIC CITY/O’BLOCK | 6273 | `oblock` | - | - | - | 1 |
-| WUGA WORLD | 7951 | `wuga-world` | Y | Gangster Disciples | - | - |
+| LOC CITY (BotY) | 450 | `loc-city-back-of-the-yards` | Y | Gangster Disciples | - | 12 |
+| LOC CITY (BotY) | 7991 | `loc-city-back-of-the-yards` | Y | Gangster Disciples | - | 12 |
+| LORDSVILLE | 1790 | `lordsville` | Y | Insane Vice Lords | - | 2 |
+| LOWELIFE | 7944 | `lowelife` | Y | Black Disciples | - | 7 |
+| M.O.M | 978 | `mom` | Y | Gangster Disciples | - | 3 |
+| MET BOYZ | 7936 | `met-boyz` | Y | Gangster Disciples | - | 4 |
+| MIXX MOBB | 7940 | `mixxmobb` | Y | Gangster Disciples | - | 5 |
+| MOB | 7483 | `mob` | Y | Gangster Disciples | - | 14 |
+| MOE | 971 | `sedville` | Y | Conservative Vice Lords | - | 6 |
+| MTV | 7906 | `mtv` | Y | Black Disciples | - | 4 |
+| MURDAFIELD | 963 | `murdafield` | Y | Black P. Stones | - | 2 |
+| MURDATOWN | 7933 | `murdatown` | Y | Gangster Disciples | - | 6 |
+| NICKO GANG | 7925 | `nicko-gang` | Y | Gangster Disciples | - | 8 |
+| OAK BOYZ NATION (OBN) | 7895 | `obn` | Y | Gangster Disciples | - | 6 |
+| ONLY THE END (OTE) | 7960 | `only-the-end` | Y | Gangster Disciples | - | 7 |
+| O’BLOCK | 1151 | `oblock` | - | - | - | 21 |
+| PBG/TFG | 7488 | `pbgtfg` | Y | Insane Gangster Disciples | - | 10 |
+| SEDVILLE | 7897 | `sedville` | Y | Conservative Vice Lords | - | 6 |
+| SHAWN MONEY BOYZ (SMB) | 7899 | `shawn-money-boyz` | Y | Black Disciples | - | 8 |
+| SK | 7974 | `sk` | Y | Gangster Disciples | - | 4 |
+| SMASHVILLE | 7987 | `smashville` | Y | Gangster Disciples | - | 5 |
+| SOUTH KING DRIVE (SKD) | 7928 | `skd` | Y | Gangster Disciples | - | 8 |
+| STL/EBT | 7484 | `stlebt` | Y | Gangster Disciples | - | 19 |
+| STONY SPOT | 7929 | `stony-spot` | - | - | - | 7 |
+| SUWU TTB | 7900 | `suwu-ttb` | Y | Black P. Stones | - | 11 |
+| TAETOWN | 7961 | `taetown` | Y | 4 Corner Hustlers | - | 2 |
+| TERROR DOME | 7924 | `terror-dome` | Y | Black P. Stones | - | 6 |
+| THF 46 | 7493 | `thf-46` | Y | Black Disciples | - | 20 |
+| TYMB | 7495 | `tymb` | Y | Black Disciples | - | 23 |
+| TYQUAN WORLD | 245 | `tyquan-world` | Y | Gangster Disciples | - | 10 |
+| TYQUAN WORLD | 7485 | `tyquan-world` | Y | Gangster Disciples | - | 10 |
+| WELCH WORLD | 6528 | `welch-world` | Y | Gangster Disciples | - | 5 |
+| WHIZ CITY | 7941 | `whiz-city` | Y | Black Disciples | - | 4 |
+| WIIIC CITY/O’BLOCK | 6273 | `oblock` | - | - | - | 21 |
+| WUGA WORLD | 7951 | `wuga-world` | Y | Gangster Disciples | - | 7 |
 
 ### Not yet seeded
 
