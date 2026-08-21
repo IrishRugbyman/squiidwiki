@@ -304,6 +304,21 @@ def _attach_affiliations(obj: Member, affiliations: list[MemberSetAffiliationOut
     object.__setattr__(obj, "primary_set_rank", primary.rank if primary else None)
 
 
+async def _attach_affiliations_bulk(session: AsyncSession, members: list[Member]) -> list[Member]:
+    """Batch-load and attach affiliations for every member in the list.
+
+    Any endpoint returning Members must call this. Without it the Member schema
+    serialises `affiliations` as [] and every `primary_set_*` field as null, so
+    the set column silently goes blank while the data is fine in the database.
+    """
+    if not members:
+        return members
+    aff_map = await load_member_affiliations(session, [m.id for m in members])
+    for m in members:
+        _attach_affiliations(m, aff_map.get(m.id, []))
+    return members
+
+
 async def create_member(session: AsyncSession, data: MemberCreate, actor_id: uuid.UUID) -> Member:
     dump = data.model_dump(exclude={"source_ids", "affiliations", "dob", "date_of_death"})
     dump["dob"] = _fuzzy_to_dict(data.dob)
@@ -379,9 +394,7 @@ async def list_members(
         next_cursor = make_cursor(last.created_at, last.id)
 
     # Attach affiliations to avoid N+1 in the serialization layer
-    aff_map = await load_member_affiliations(session, [m.id for m in items])
-    for m in items:
-        _attach_affiliations(m, aff_map.get(m.id, []))
+    await _attach_affiliations_bulk(session, items)
 
     return items, next_cursor
 
@@ -493,7 +506,7 @@ async def list_members_by_source(
         .limit(limit)
     )
     result = await session.execute(stmt)
-    return result.scalars().all()
+    return await _attach_affiliations_bulk(session, list(result.scalars().all()))
 
 
 async def search_members(session: AsyncSession, universe_id: uuid.UUID, q: str) -> list[Member]:
@@ -510,7 +523,7 @@ async def search_members(session: AsyncSession, universe_id: uuid.UUID, q: str) 
         )
         .distinct()
     )
-    return result.scalars().all()
+    return await _attach_affiliations_bulk(session, list(result.scalars().all()))
 
 
 async def list_member_aliases(session: AsyncSession, member_id: uuid.UUID) -> list[MemberAlias]:
