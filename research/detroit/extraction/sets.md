@@ -38,17 +38,23 @@ the Phantom Outlaw MC and a "Three-Star General" of the Vice Lords in Michigan [
 The schema's independent nullable `gang_id` on Set, Alliance and Member handles this; do not
 force his set and nation to agree.
 
-**5. "Seven Mile Bloods" is a set. "The 5s" is the bloc it grew into.** The east side runs two
-Detroit-born alliances that are named after their founding sets, which is why everyone
-mixes the two levels up. The **5s** are Blood-side and trace to the **55 Seven Mile Bloods**;
-the **4s** are Crip-rooted and trace to the **42 Hustle Boyz**, **24 Boss Hoggs** and **42
-Gutta Boyz** [detroitstreetgangs.com]. The 5s now covers thirty-plus affiliated cliques, so
-the founding set's name gets used for the whole bloc, and **"RedZone Bloods" names both**.
-SMB also has internal cliques of its own, every one of them carrying the 55 prefix (55 OEG,
-55 52, 55 700 WaxGang, 55 TMB, 55 Psykoz, 55 DrenchGang, 55 50 Zone, 55 MG), so from the
-inside it reads as an umbrella too. It is not: it is one `Set`, under the `Bloods` nation,
-inside a `5s` `Alliance`. The 4s side of this is already modelled that way in the DB, as the
-`4Gang` alliance holding Hustle Boyz, Gutta Boyz, Boss Hoggs, 264 and 1000Gang.
+**5. "Seven Mile Bloods" names the umbrella; the core crew is one set inside it.** The east
+side runs two Detroit-born blocs named after their founding gangs, which is why everyone mixes
+the levels up. The Blood-side bloc, called **"the 5s"** on the street, grew out of the **55
+Seven Mile Bloods**; the **4s** are Crip-rooted and trace to the **42 Hustle Boyz**, **24 Boss
+Hoggs** and **42 Gutta Boyz** [detroitstreetgangs.com]. The bloc now covers thirty-plus
+cliques, and media, feds and street all say "Seven Mile Bloods" for the whole thing.
+
+**How the DB models it (decided 2026-08-21):** the `Seven Mile Bloods` **Alliance** carries
+the public name (aliases The 5s, RedZone Bloods, 7 Mile Bloods) - symmetric with `4Gang`,
+which is likewise the umbrella name over Hustle Boyz, Gutta Boyz, Boss Hoggs, 264 and
+1000Gang. Inside it, the **`SMB` core set** holds the people who rep the flag without a named
+clique, and it is where the federal RICO roster (one enterprise, one leadership, 21 charged)
+maps. Cliques with their own name, roster or history get their own set beside it, as HobSquad
+does; cliques known only as a name stay lines in SMB's bio until they earn a record. Members
+who genuinely rep only the umbrella can also carry `member.alliance_id` directly - the schema
+allows alliance membership without any set - but set-level machinery (ranks, war edges,
+set_stats) only exists on sets, so the core set is the primary home.
 
 **Aliases vs cliques.** DetroitStreetGangs lists a set's cliques, its identifiers and its
 sub-sects all together under "Aliases/Nicknames". Copying that field into `name_variants`
@@ -57,8 +63,9 @@ ShottaGang and RyderBloxk as *names for itself*, while Hobsquad also existed as 
 own right, so the same organisation appeared at two levels at once. The rule applied here is
 **one name, one place**: a `name_variant` is another name for the whole organisation, a clique
 is either its own Set or a line in the bio, and an identifier is a line in the bio. Where a
-name genuinely spans two records - "RedZone Bloods" for both SMB and the 5s - it is recorded
-on the narrower one and explained on the wider one.
+name genuinely spans two records - "RedZone Bloods" for both the core set and the bloc - it is
+recorded on one and explained on the other; after the 2026-08-21 rename it lives on the
+alliance.
 
 Two further traps on the same words. The Bounty Hunter Bloods maintain their own **"Seven
 Mile Line"**, about fifteen members who identify with that stretch of their turf [legal-027] -
@@ -71,19 +78,20 @@ when they call SMB a conglomerate.
 
 ## Seven Mile Bloods (SMB)
 
-**Seeded 2026-08-21** as set `seven-mile-bloods`, under the `Bloods` gang and the `5s`
-alliance. See naming caution 5 above before adding anything to it.
+**Seeded 2026-08-21**, restructured the same day per naming caution 5: alliance
+`seven-mile-bloods` carries the public name, core set `smb` (variants SMB/55, 55 Grinch)
+holds the roster. Read that caution before adding anything to either.
 
 | Field | Value |
 |---|---|
 | Nation | Bloods |
-| Alliance | **The 5s** (the bloc SMB founded; do not merge the two) |
+| Alliance | **Seven Mile Bloods** (the umbrella; this table describes the `smb` core set inside it) |
 | Number | **55** |
 | Territory | The **"Red Zone,"** east side 48205, written **4820-DIE**: Gratiot to Kelly, Seven Mile to Eight Mile |
 | Scale | ~20 members and associates controlled the whole zip code, per federal investigators |
 | Internal cliques | 55 OEG, 55 52, 55 700 WaxGang, 55 TMB, 55 Psykoz, 55 DrenchGang, 55 50 Zone, 55 MG, **GrinchGang**, **ShottaGang**, **RyderBloxk** |
 | Sub-sects | **Seven Mile Blood Juniors**, renamed **Hobsquad** - its own set, not an alias |
-| Aliases (whole set) | SMB, 55, 55 Seven Mile Bloods, 7 Mile Bloods, RedZone Bloods, 55 Grinch |
+| Names | core set: SMB, 55, 55 Grinch; alliance: Seven Mile Bloods, The 5s, RedZone Bloods, 7 Mile Bloods |
 | Not aliases | 726 / 762 / 19 13 2 are identifiers; 4820-DIE is the zip; HOBCITY belongs to Hobsquad |
 | Economy | Detroit-to-West-Virginia prescription pill pipeline, reported at $80k/week |
 | Instagram | `000_big_blood` |
