@@ -415,6 +415,8 @@ export interface MemberStats {
 
 // Incident
 export interface ParticipantRead {
+  member_name?: string | null
+  member_slug?: string | null
   member_id: UUID
   role: ParticipantRole
   outcome: ParticipantOutcome
@@ -424,6 +426,8 @@ export interface ParticipantRead {
 }
 
 export interface SetParticipantRead {
+  set_name?: string | null
+  set_slug?: string | null
   set_id: UUID
   role: ParticipantRole
   outcome: ParticipantOutcome

@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select
 
 from app.core.enums import MemberStatus, ParticipantOutcome
+from app.models.gang_set import GangSet
 from app.models.incident import (
     Incident,
     IncidentParticipant,
@@ -246,6 +247,13 @@ async def delete_incident(session: AsyncSession, id: uuid.UUID, universe_id: uui
     obj = await get_incident(session, id, universe_id)
     if obj is None:
         return False
+    # incident_participant and incident_source have NO ACTION FKs - clear them
+    # first or the delete raises. Set participants and media cascade, and
+    # member.death_incident_id is ON DELETE SET NULL.
+    await session.execute(
+        IncidentParticipant.__table__.delete().where(IncidentParticipant.incident_id == id)
+    )
+    await session.execute(IncidentSource.__table__.delete().where(IncidentSource.incident_id == id))
     await session.delete(obj)
     await session.commit()
     return True
@@ -258,6 +266,26 @@ async def list_incident_participants(
         select(IncidentParticipant).where(IncidentParticipant.incident_id == incident_id)
     )
     return result.scalars().all()
+
+
+async def participant_member_briefs(
+    session: AsyncSession, member_ids: list[uuid.UUID]
+) -> dict[uuid.UUID, Member]:
+    """Members referenced by an incident's participants, for name enrichment."""
+    if not member_ids:
+        return {}
+    result = await session.execute(select(Member).where(Member.id.in_(member_ids)))
+    return {m.id: m for m in result.scalars()}
+
+
+async def participant_set_briefs(
+    session: AsyncSession, set_ids: list[uuid.UUID]
+) -> dict[uuid.UUID, GangSet]:
+    """Sets referenced by an incident's set participants, for name enrichment."""
+    if not set_ids:
+        return {}
+    result = await session.execute(select(GangSet).where(GangSet.id.in_(set_ids)))
+    return {s.id: s for s in result.scalars()}
 
 
 async def list_incident_set_participants(
