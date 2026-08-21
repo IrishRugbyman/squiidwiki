@@ -94,16 +94,6 @@ means Gangster **Disciples** and Black Disciples.
 
 ### 1200
 
-`https://privedatabase.wordpress.com/1200-2/` · page 287 · FCK HEAD$HOT · 2020-03-27
-
-- **Members listed:** CORPS:
-
-| Member | Aliases | Nation | Dead | Locked | Bodies | Shootings | Assists |
-|---|---|---|---|---|---|---|---|
-| Lil Harry (SuWu Mobb)Lucky (SuWu Mobb)Jay Jay (SuWu Mobb)D N |  |  |  |  |  |  |  |
-
-### 1200
-
 `https://privedatabase.wordpress.com/1200-2-2/` · page 8291 · FCK HEAD$HOT · 2020-03-10
 
 - **Nations:** Gangster Disciples
@@ -111,6 +101,16 @@ means Gangster **Disciples** and Black Disciples.
 - **Enemies:** OTS, SuWu Mobb, BuckTown, BTBG
 
 - **Bodies attributed to the set:** Lil Harry (SuWu Mobb), Lucky (SuWu Mobb), Jay Jay (SuWu Mobb), D Nice (SuWu Mobb), FIO (SuWu Mobb), Cat (SuWu Mobb)
+
+### 1200
+
+`https://privedatabase.wordpress.com/1200-2/` · page 287 · FCK HEAD$HOT · 2020-03-27
+
+- **Members listed:** CORPS:
+
+| Member | Aliases | Nation | Dead | Locked | Bodies | Shootings | Assists |
+|---|---|---|---|---|---|---|---|
+| Lil Harry (SuWu Mobb)Lucky (SuWu Mobb)Jay Jay (SuWu Mobb)D N |  |  |  |  |  |  |  |
 
 ### 400E MURDA DRIVE
 
@@ -139,19 +139,6 @@ means Gangster **Disciples** and Black Disciples.
 
 ### 50 STRONG
 
-`https://privedatabase.wordpress.com/50-strong/` · page 290 · FCK HEAD$HOT · 2020-03-27
-
-- **Nations:** Gangster Disciples
-- **Allies:** _none_
-- **Enemies:** _none_
-- **Notes:** A few years ago they expanded their territory by taking two blocks from FollyBoyz.
-
-- **Members listed:** CEOKiarKing GregBig Meech (décédé), Dell (décédé), Dougo (décédé), DellstroBraboySlickTaeDoggSolo (décédé), Boss Veze JamesManyNamesTriggah900 Tyree Quise King MurdaBig Squad Boss BullyLil Duwuap Solution Loko YC Big Folks DJJuiceSouljaChief RellTemmo (décédé)
-
-- **Bodies attributed to the set:** Zack (FollyBoyz), Lil Derrick (FollyBoyz), B-Luv-It (FollyBoyz), T-Mac (FollyBoyz), Zio (FollyBoyz), Mazi (FollyBoyz), Scrap (FollyBoyz), Molly (FollyBoyz), Banks (FollyBoyz), Jareem (No Limit 087), Kirby (REC City)
-
-### 50 STRONG
-
 `https://privedatabase.wordpress.com/50-strong-2/` · page 7889 · FCK HEAD$HOT · 2019-11-19
 
 - **Nations:** Gangster Disciples
@@ -171,6 +158,19 @@ means Gangster **Disciples** and Black Disciples.
 | Soulja |  | Gangster Disciple |  |  |  |  | Molly (MoeTown) |
 | Boss Veze |  | Gangster Disciple |  |  | B-Luv-It (MoeTown) | Bobby (MoeTown); Freddy Mac (MoeTown); Swaka (MoeTown); Plies (MoeTown); Wooh (MoeTown); Vell (MoeTown); Almighty Auto (MoeTown) |  |
 | James |  | Gangster Disciple |  |  |  |  | Zack (MoeTown) |
+
+### 50 STRONG
+
+`https://privedatabase.wordpress.com/50-strong/` · page 290 · FCK HEAD$HOT · 2020-03-27
+
+- **Nations:** Gangster Disciples
+- **Allies:** _none_
+- **Enemies:** _none_
+- **Notes:** A few years ago they expanded their territory by taking two blocks from FollyBoyz.
+
+- **Members listed:** CEOKiarKing GregBig Meech (décédé), Dell (décédé), Dougo (décédé), DellstroBraboySlickTaeDoggSolo (décédé), Boss Veze JamesManyNamesTriggah900 Tyree Quise King MurdaBig Squad Boss BullyLil Duwuap Solution Loko YC Big Folks DJJuiceSouljaChief RellTemmo (décédé)
+
+- **Bodies attributed to the set:** Zack (FollyBoyz), Lil Derrick (FollyBoyz), B-Luv-It (FollyBoyz), T-Mac (FollyBoyz), Zio (FollyBoyz), Mazi (FollyBoyz), Scrap (FollyBoyz), Molly (FollyBoyz), Banks (FollyBoyz), Jareem (No Limit 087), Kirby (REC City)
 
 ### 50Shot Mall
 
@@ -317,14 +317,6 @@ means Gangster **Disciples** and Black Disciples.
 
 ### 8TRE MOBB
 
-`https://privedatabase.wordpress.com/8tre-mobb/` · page 345 · FCK HEAD$HOT · 2020-03-27
-
-- **Members listed:** Don Darius (décédé), Murda Mal KennethYoung ChopTayRuga Teddy Lil Moe Mannie (décédé), Shoota Shoota Neko James Lil Jay Lil Scan Pablo KenKen J Moe Lil Edward Jalil Cliff (décédé), Rico Kavontae CT (décédé), KD Poka Marley (décédé)
-
-- **Bodies attributed to the set:** Roc (Whiz City), Blake (MTV), Lil Dejuan (Whiz City)
-
-### 8TRE MOBB
-
 `https://privedatabase.wordpress.com/8tre-mobb-2/` · page 7910 · FCK HEAD$HOT · 2020-01-25
 
 - **Nations:** Gangster Disciples
@@ -335,6 +327,14 @@ means Gangster **Disciples** and Black Disciples.
 - **Members listed:** Don Darius (décédé), Young ChopMurda MalKennethTayRugaTeddyLil MoeMannie (décédé), Shoota ShootaNekoJamesLil JayLil ScanPabloJ MoeLil EdwardCliff (décédé), JalilCT (décédé), KavontaeMarley (décédé)
 
 - **Bodies attributed to the set:** Roc (Whiz City), Lil Dejuan (Whiz City), Blake (MTV)
+
+### 8TRE MOBB
+
+`https://privedatabase.wordpress.com/8tre-mobb/` · page 345 · FCK HEAD$HOT · 2020-03-27
+
+- **Members listed:** Don Darius (décédé), Murda Mal KennethYoung ChopTayRuga Teddy Lil Moe Mannie (décédé), Shoota Shoota Neko James Lil Jay Lil Scan Pablo KenKen J Moe Lil Edward Jalil Cliff (décédé), Rico Kavontae CT (décédé), KD Poka Marley (décédé)
+
+- **Bodies attributed to the set:** Roc (Whiz City), Blake (MTV), Lil Dejuan (Whiz City)
 
 ### 8X13
 
@@ -909,16 +909,6 @@ means Gangster **Disciples** and Black Disciples.
 
 ### DAMENVILLE
 
-`https://privedatabase.wordpress.com/damenville-2/` · page 7992 · FCK HEAD$HOT · 2020-02-01
-
-- **Nations:** Gangster Disciples
-- **Allies:** LOC City, Art Gang, PocketBoyz
-- **Enemies:** JackBoys, Justine, MurdaField, LordsVille, TytoLand
-
-- **Bodies attributed to the set:** AJay (TytoLand), C-Murda (JackBoys), ??? (TytoLand), ??? (TytoLand), ??? (TytoLand), ??? (TytoLand), ??? (TytoLand), ??? (LordsVille), ??? (LordsVille), ??? (LordsVille), ??? (LordsVille), ??? (LordsVille), ??? (LordsVille), ??? (LordsVille), ??? (LordsVille), ??? (LordsVille)
-
-### DAMENVILLE
-
 `https://privedatabase.wordpress.com/damenville/` · page 366 · FCK HEAD$HOT · 2020-03-27
 
 - **Nations:** Gangster Disciples
@@ -930,6 +920,16 @@ means Gangster **Disciples** and Black Disciples.
 - **Members listed:** Steveo (décédé), Tae (décédé), Ill Will (décédé), Bop D (décédé), By (décédé), Tuta (décédé), Mon (décédé), Tra'Don (décédé)
 
 - **Bodies attributed to the set:** Tyto (5th Ward Life), JonJon (5th Ward Life), Stephon (5th Ward Life)
+
+### DAMENVILLE
+
+`https://privedatabase.wordpress.com/damenville-2/` · page 7992 · FCK HEAD$HOT · 2020-02-01
+
+- **Nations:** Gangster Disciples
+- **Allies:** LOC City, Art Gang, PocketBoyz
+- **Enemies:** JackBoys, Justine, MurdaField, LordsVille, TytoLand
+
+- **Bodies attributed to the set:** AJay (TytoLand), C-Murda (JackBoys), ??? (TytoLand), ??? (TytoLand), ??? (TytoLand), ??? (TytoLand), ??? (TytoLand), ??? (LordsVille), ??? (LordsVille), ??? (LordsVille), ??? (LordsVille), ??? (LordsVille), ??? (LordsVille), ??? (LordsVille), ??? (LordsVille), ??? (LordsVille)
 
 ### Darren
 
@@ -1524,6 +1524,19 @@ means Gangster **Disciples** and Black Disciples.
 
 ### JARO CITY
 
+`https://privedatabase.wordpress.com/jaro-city/` · page 243 · FCK HEAD$HOT · 2020-03-26
+
+- **Nations:** Gangster Disciples, Black Disciples
+- **Allies:** _none_
+- **Enemies:** _none_
+- **Notes:** Formerly known as ABM/COB before Jaro was killed.
+
+- **Members listed:** Jarvis « Jaro » Lil MikeLil DarrellDJMattanaJ ManeTuTu (décédé), Lil Panky50ShotsMotor (décédé), WayneTorranceSkinnyDomeTiger (décédé), Dalvin (décédé), Hottie (décédé), Corey (décédé), Sammy Lo (décédé), Archie (décédé), JaJa (décédé), SeanDerrick (décédé), Jeremy (décédé), Mook (décédé), BankHead (décédé), P5 (décédé), Twink (décédé), Lil Ho (décédé), GFredeo (décédé), Boobie (décédée), OJ (décédé), Tommy (décédé), Dashea (décédé), Trell (décédé), Side (décédé), Hood (décédé), Jonrynn (décédé), Lil Wood (décédé), Tyquan (décédé), Phillip (décédé), Dark (décédé), Moon Mo (décédé), Serge (décédé), Don Von (décédé), DP (décédé), Gucci 305Baby DBinkyBlocksBoo ManB-SkoCamCashCoonChadonChief TyCopoCreedDamageDanoDipLowEl RugerDukeGloWopHariJamesJoeKeionKaliffKennyKobeLil AntLil BossLil JoeLil SavageLil WorkaMarquisMaziNicoNumba9Ray Ray Reese GezzyRell RellRichy RichRockRonRonteRubySantanaSmokeyTilgoTravo (décédé)
+
+- **Bodies attributed to the set:** Dameon (TYMB), Stanley (TYMB), Marcus (TYMB), Boo (TYMB), Albert (PocketTown), Big Squirt (SquirtTown), Curt (SquirtTown), Black Boy (SquirtTown), BJ (SquirtTown), Slo-Folkz (SquirtTown), Jizzle (SquirtTown), Don (Brick City), Craig (Brick City), Alonzo (Brick City), Black Steve (Brick City), Leo (Brick City), DD (Brick City), D-Thang (600), White White (O'Block), G-Red (NLMB)
+
+### JARO CITY
+
 `https://privedatabase.wordpress.com/jaro-city-2/` · page 7486 · FCK HEAD$HOT · 2019-11-07
 
 - **Nations:** Gangster Disciples, Black Disciples
@@ -1550,19 +1563,6 @@ means Gangster **Disciples** and Black Disciples.
 | Lil Mike |  | Gangster Disciple |  | Y |  | Trell (TYMB); Jhari (TYMB); Cortney (TYMB); Lil Boo (600); D.Rose (600); T-Slick (Front$treet); Lil Melo (O'Block); B Way (O'Block); BooMan (Geo Drive) |  |
 | JaJa | JaJa Gang | Gangster Disciple | Y |  |  |  | Curt (SquirtTown) |
 | Travis |  | Gangster Disciple | Y |  |  |  | Melly (051 Young Money) |
-
-### JARO CITY
-
-`https://privedatabase.wordpress.com/jaro-city/` · page 243 · FCK HEAD$HOT · 2020-03-26
-
-- **Nations:** Gangster Disciples, Black Disciples
-- **Allies:** _none_
-- **Enemies:** _none_
-- **Notes:** Formerly known as ABM/COB before Jaro was killed.
-
-- **Members listed:** Jarvis « Jaro » Lil MikeLil DarrellDJMattanaJ ManeTuTu (décédé), Lil Panky50ShotsMotor (décédé), WayneTorranceSkinnyDomeTiger (décédé), Dalvin (décédé), Hottie (décédé), Corey (décédé), Sammy Lo (décédé), Archie (décédé), JaJa (décédé), SeanDerrick (décédé), Jeremy (décédé), Mook (décédé), BankHead (décédé), P5 (décédé), Twink (décédé), Lil Ho (décédé), GFredeo (décédé), Boobie (décédée), OJ (décédé), Tommy (décédé), Dashea (décédé), Trell (décédé), Side (décédé), Hood (décédé), Jonrynn (décédé), Lil Wood (décédé), Tyquan (décédé), Phillip (décédé), Dark (décédé), Moon Mo (décédé), Serge (décédé), Don Von (décédé), DP (décédé), Gucci 305Baby DBinkyBlocksBoo ManB-SkoCamCashCoonChadonChief TyCopoCreedDamageDanoDipLowEl RugerDukeGloWopHariJamesJoeKeionKaliffKennyKobeLil AntLil BossLil JoeLil SavageLil WorkaMarquisMaziNicoNumba9Ray Ray Reese GezzyRell RellRichy RichRockRonRonteRubySantanaSmokeyTilgoTravo (décédé)
-
-- **Bodies attributed to the set:** Dameon (TYMB), Stanley (TYMB), Marcus (TYMB), Boo (TYMB), Albert (PocketTown), Big Squirt (SquirtTown), Curt (SquirtTown), Black Boy (SquirtTown), BJ (SquirtTown), Slo-Folkz (SquirtTown), Jizzle (SquirtTown), Don (Brick City), Craig (Brick City), Alonzo (Brick City), Black Steve (Brick City), Leo (Brick City), DD (Brick City), D-Thang (600), White White (O'Block), G-Red (NLMB)
 
 ### JIGDOGS
 
@@ -1852,17 +1852,6 @@ means Gangster **Disciples** and Black Disciples.
 
 ### LOC CITY (BotY)
 
-`https://privedatabase.wordpress.com/loc-city-boty/` · page 450 · FCK HEAD$HOT · 2020-03-27
-
-- **Nations:** Gangster Disciples
-- **Allies:** DamenVille, W.B 057
-- **Enemies:** _none_
-- **Notes:** Not to be confused with the LOC City in North Chicago.
-
-- **Members listed:** GlockBoy BoBoGlockBoy KOGPap (décédé), Heado (décédé), ChiefLocMoney (décédé), Rico (décédé), Mon (décédé), Tra'Don (décédé)
-
-### LOC CITY (BotY)
-
 `https://privedatabase.wordpress.com/loc-city-boty-2/` · page 7991 · FCK HEAD$HOT · 2020-02-01
 
 - **Nations:** Gangster Disciples
@@ -1871,6 +1860,17 @@ means Gangster **Disciples** and Black Disciples.
 - **Notes:** Not to be confused with the LOC City from North Pole; mostly BDK.
 
 - **Bodies attributed to the set:** Tyto (LordsVille), C-Murda (JackBoys), AJ (JackBoys), Kevin (Jackboys, tué en 2019), Jacob (Jackboys, tué en 2019)
+
+### LOC CITY (BotY)
+
+`https://privedatabase.wordpress.com/loc-city-boty/` · page 450 · FCK HEAD$HOT · 2020-03-27
+
+- **Nations:** Gangster Disciples
+- **Allies:** DamenVille, W.B 057
+- **Enemies:** _none_
+- **Notes:** Not to be confused with the LOC City in North Chicago.
+
+- **Members listed:** GlockBoy BoBoGlockBoy KOGPap (décédé), Heado (décédé), ChiefLocMoney (décédé), Rico (décédé), Mon (décédé), Tra'Don (décédé)
 
 ### LORDSVILLE
 
@@ -3385,236 +3385,48 @@ means Gangster **Disciples** and Black Disciples.
 
 ---
 
-## Other Chicago pages (227)
+## Other Chicago pages (141)
 
-Chicago pages with no set bio and no member block: person stubs, empty pages, indexes.
+86 empty pages are omitted: each duplicates the title of a page that does
+have content, so they carry nothing.
+
+### Name-only pages (114)
+
+Empty on the site, but each is the **only** page bearing its name. They are kept because
+those titles are the alias index - `NLMB` is an empty page, and it is what resolves the
+12 references to NLMB onto `NO LIMIT/MUSKEGON BOYZ`. Deleting them would silently break
+143 relationship edge ends. They are also evidence the set exists at all.
+
+8-TRAY (`2561`), 87TH CUTTHROATS (`852`), 9-0 ASHLAND (`858`), 9-5 MOB (`861`), 9-TRAY (`860`), A-BLOCK (`869`), ADA PARK (`836`), ALTGELD MURRAY GARDENS (`1055`), BBG TERROR DOME (`560`), BLACKMOB (`282`), BLOODSTONES (`1035`), BOOGIE WORLD (`867`), BRICK CITY (`241`), BRICKYARD (`285`), BSC (`873`), BURNSIDE (`1033`), BWST (`360`), C-TOWN (`837`), C.A (`851`), CEDWORLD (`1022`), CENTRAL CITY (`856`), CHIEFTOWN (`1028`), CHILL CITY (`847`), CHOPBLOCK (`1027`), CHUNKYCITY (`879`), CMB (`363`), COOPVILLE (`838`), CRANK TOWN (`364`), D-TOWN (`800`), D.O.D (`348`), DOONSQUAD (`868`), DREXSIDE (`798`), DUCKTOWN (`859`), DUKESQUAD (`799`), E-SPOT (`848`), EBE (`402`), FACEWORLD 069 (`395`), FACEWORLD 079 (`396`), FINNTOWN (`854`), FLIN BOYZ (`1024`), FROGANG (`1043`), FRONT$TREET (`244`), FSG (`1048`), FUCKCITY (`1039`), GHETTOWORLD (`1030`), GHOSTMOBB (`1051`), Glo Gang (`4334`), GME (`401`), GOONTOWN 10-5 (`846`), GUCCIGANG (`1041`), GVG (`406`), HITZSQUAD (`1056`), IMM (`440`), INSANE CITY (`876`), KTS (`443`), L-BLOCK (`877`), LACK CITY (`844`), LEXVILLE (`1026`), LONDON TOWN (`834`), MAIN CITY (`845`), MAPLEWOOD (`1042`), MAUL TOWN (`841`), MAYBLOCK (`857`), MBAM (`480`), MetLife (`4349`), MIKE CITY (`853`), MMG (`1031`), MNA (`478`), MNS (`1047`), MOA (`1049`), MONEYBLOCK (`875`), MOTHERLAND (`1052`), NATEVILLE (`863`), NLMB (`274`), OBN (`513`), OTE (`514`), P-BLOCK (`516`), PACOLAND (`840`), PALMER PARK (`835`), PBG (`518`), PIRATEGANG (`1053`), POPPYGANG (`1046`), PRINCETONMOBB (`1040`), QUIETMONEY (`864`), QUILLBLOCK (`1034`), RACKCITY (`862`), RAG TOWN (`839`), REBLUV (`866`), RICOBLOCK (`843`), ROOKIEVILLE 11-5 (`1038`), RUDEVILLE (`1036`), S-DUB (`1021`), S.O.A (`1065`), SAVAGE SQUAD (`1913`), SICKOMOBB (`1045`), SIN CITY (`833`), SKD (`566`), SQUADVILLE (`871`), STAIN CITY (`865`), STATEBOYZ (`1037`), STONE TEZ (`849`), TAYTOWN (`881`), TERROR TOWN (`1020`), TFG (`519`), TONIOMOBB (`1044`), TRAYTOWN (`850`), TRIPLE B’Z (`1032`), TYTO LAND (`576`), UNDERTAKERS (`1050`), WHITEWHITE GANG (`1025`), WILL CITY (`801`), YMM (`1023`), YOSHI CITY (`1112`), YOUNGWORLD (`878`)
+
+### Pages with text but no set structure (27)
 
 | Page | Title | Kind | Text |
 |---|---|---|---|
 | 291 | 757 | person | ROC NATION LAWLESS THE AVE |
-| 2561 | 8-TRAY | empty |  |
-| 852 | 87TH CUTTHROATS | empty |  |
-| 858 | 9-0 ASHLAND | empty |  |
-| 861 | 9-5 MOB | empty |  |
-| 860 | 9-TRAY | empty |  |
-| 869 | A-BLOCK | empty |  |
-| 275 | AAB | empty |  |
-| 276 | ABM | empty |  |
-| 836 | ADA PARK | empty |  |
-| 1055 | ALTGELD MURRAY GARDENS | empty |  |
-| 278 | AMG | empty |  |
-| 279 | BASHVILLE | empty |  |
-| 560 | BBG TERROR DOME | empty |  |
-| 280 | BEAM TEAM | empty |  |
-| 281 | BLACKGATE | empty |  |
-| 282 | BLACKMOB | empty |  |
-| 1035 | BLOODSTONES | empty |  |
-| 284 | BOCO HOOD | empty |  |
-| 867 | BOOGIE WORLD | empty |  |
-| 241 | BRICK CITY | empty |  |
-| 347 | BRICK$QUAD 069 | empty |  |
-| 285 | BRICKYARD | empty |  |
-| 873 | BSC | empty |  |
-| 359 | BUFF CITY | empty |  |
-| 1033 | BURNSIDE | empty |  |
-| 360 | BWST | empty |  |
 | 1813 | By | person | Byron “ By ” Berry était un Gangster Disciple . Il était le frère de Beeski de Lamron . Il est tué le 7 Avril 2020 . |
-| 837 | C-TOWN | empty |  |
-| 851 | C.A | empty |  |
-| 361 | CCG | empty |  |
-| 1022 | CEDWORLD | empty |  |
-| 856 | CENTRAL CITY | empty |  |
-| 1028 | CHIEFTOWN | empty |  |
-| 847 | CHILL CITY | empty |  |
-| 1027 | CHOPBLOCK | empty |  |
 | 1940 | Chris | person | Chris est un Blood . |
-| 362 | CHRIS WORLD | empty |  |
-| 879 | CHUNKYCITY | empty |  |
-| 363 | CMB | empty |  |
-| 838 | COOPVILLE | empty |  |
-| 364 | CRANK TOWN | empty |  |
-| 365 | CUTTAGANG | empty |  |
-| 800 | D-TOWN | empty |  |
-| 348 | D.O.D | empty |  |
-| 367 | DEATHROW 085 | empty |  |
-| 368 | DELL MOB | empty |  |
 | 7317 | DISCOGRAPHIE | admin | Nous ne prenons en compte que les mixtapes, albums ou EPs officiels, même les projets collaboratifs, posthumes ou publiés par un beatmaker. En revanche, il n’y a pas de compilation. JHE Rooga (MOB) I  |
-| 389 | DOGGPOUND | empty |  |
-| 868 | DOONSQUAD | empty |  |
-| 798 | DREXSIDE | empty |  |
-| 391 | DRILL CITY | empty |  |
 | 390 | DRO CITY | person | SNOBLOCK – TPG ROC CREEK BNC SAWBLOCK |
 | 1736 | Dub | person | Richard Langston , aussi connu sous le nom de “ Rich ” ou de “ Blow “, est un Blood . |
-| 859 | DUCKTOWN | empty |  |
-| 799 | DUKESQUAD | empty |  |
-| 392 | DUMPSTREET | empty |  |
-| 393 | E-BLOCK | empty |  |
-| 848 | E-SPOT | empty |  |
-| 402 | EBE | empty |  |
-| 394 | EVANS MOBB | empty |  |
-| 395 | FACEWORLD 069 | empty |  |
-| 396 | FACEWORLD 079 | empty |  |
 | 4106 | Famous Dex | person | Famous Dex est un Gangster Disciple . C’est un rappeur. Il a commencé en ayant était un affilié du Fly Boy Gang et en traînant avec STL/EBT . Il était l’une des personnes présentes lorsque BossTop d’  |
-| 854 | FINNTOWN | empty |  |
-| 1024 | FLIN BOYZ | empty |  |
-| 397 | FOSTER PARK | empty |  |
-| 398 | FREE SMOKE | empty |  |
-| 1043 | FROGANG | empty |  |
-| 244 | FRONT$TREET | empty |  |
-| 1048 | FSG | empty |  |
 | 2136 | FTO BigGuy | person | FTO BigGuy aussi connu sous le nom de “ Khalil ” est un Mickey Cobra . Il était proche de Scrapp . C’est un rappeur. Il est le beau-frère de BenzZoe de BlackGate . |
-| 1039 | FUCKCITY | empty |  |
-| 399 | G-VILLE | empty |  |
-| 400 | GEO DRIVE | empty |  |
-| 1030 | GHETTOWORLD | empty |  |
-| 1051 | GHOSTMOBB | empty |  |
-| 4334 | Glo Gang | empty |  |
-| 401 | GME | empty |  |
-| 403 | GOONIE GANG | empty |  |
-| 846 | GOONTOWN 10-5 | empty |  |
-| 1041 | GUCCIGANG | empty |  |
-| 404 | GUNHEAD | empty |  |
-| 405 | GUTTAVILLE | empty |  |
-| 407 | GUWOPGANG 075 | empty |  |
-| 406 | GVG | empty |  |
-| 436 | HARVEY WORLD | empty |  |
-| 437 | HELLA BANDZ | empty |  |
-| 1056 | HITZSQUAD | empty |  |
-| 438 | HOOLA GANG | empty |  |
-| 440 | IMM | empty |  |
-| 876 | INSANE CITY | empty |  |
-| 441 | JIGDOGS | empty |  |
-| 442 | KEDIZE HOMICIDE KINGS | empty |  |
 | 444 | KILLAWARD | person | NEW MONEY 080 YKN 078 JAYLO WORLD 075TH |
-| 445 | KIMO GANG | empty |  |
 | 7989 | KIMO GANG | person | Le Kimo Gang est un set de Mickey Cobras . |
-| 443 | KTS | empty |  |
-| 877 | L-BLOCK | empty |  |
-| 844 | LACK CITY | empty |  |
-| 446 | LAKESIDE | empty |  |
-| 447 | LAMRON | empty |  |
-| 1026 | LEXVILLE | empty |  |
-| 448 | LIL4MOBB | empty |  |
 | 7702 | LISTE DES RAPPEURS (CHICAGO) + LEURS SETS | person | A – 15 (S-Dub City/PStreet/BaberBlock) 15 – P Street Baby Air Kelso (TYMB) Air Kelso – In My City Ayoo KD (WillyVille) Ayoo KD – Card Crackers ABK Bobo (ABK) ABK BoBo – Pigs Hot Ayoo (JMG) Andrilla (0 |
 | 224 | LISTE DES SETS | city-index | OTF Glo Gang 1200 808 757 600 8X13 3000ST 5TH WARD LIFE 800 YOUNG MONEY 400E MURDA DRIVE 051 YOUNG MONEY 50 STRONG 8-TRAY 9-TRAY 9-0 ASHLAND 9-5 MOB 8TRE MOBB 87TH CUTTHROATS 5TH WARD AAB ABM ABK A-BL |
-| 449 | LOC CITY | empty |  |
-| 834 | LONDON TOWN | empty |  |
-| 473 | LOWELIFE | empty |  |
-| 845 | MAIN CITY | empty |  |
-| 1042 | MAPLEWOOD | empty |  |
-| 474 | MARSHALL FIELD MCs | empty |  |
-| 841 | MAUL TOWN | empty |  |
-| 857 | MAYBLOCK | empty |  |
-| 480 | MBAM | empty |  |
-| 475 | MET BOYZ | empty |  |
-| 4349 | MetLife | empty |  |
-| 853 | MIKE CITY | empty |  |
-| 476 | MITCH BLOCK | empty |  |
-| 477 | MIXX MOBB | empty |  |
-| 1031 | MMG | empty |  |
-| 478 | MNA | empty |  |
-| 1047 | MNS | empty |  |
-| 1049 | MOA | empty |  |
-| 246 | MOB | empty |  |
-| 875 | MONEYBLOCK | empty |  |
-| 481 | MOOSEBLOCK | empty |  |
-| 1052 | MOTHERLAND | empty |  |
-| 482 | MTG | empty |  |
-| 483 | MTV | empty |  |
-| 484 | MURDATOWN | empty |  |
-| 863 | NATEVILLE | empty |  |
-| 485 | NICKO GANG | empty |  |
-| 274 | NLMB | empty |  |
-| 486 | NO LIMIT 083 | empty |  |
-| 487 | NO LIMIT 087 | empty |  |
-| 490 | NOSEDMOBB | empty |  |
-| 513 | OBN | empty |  |
-| 514 | OTE | empty |  |
-| 515 | OUT7AW CITY | empty |  |
-| 516 | P-BLOCK | empty |  |
-| 840 | PACOLAND | empty |  |
-| 835 | PALMER PARK | empty |  |
-| 517 | PAXTOWN | empty |  |
-| 518 | PBG | empty |  |
-| 1053 | PIRATEGANG | empty |  |
-| 520 | POCKETTOWN | empty |  |
 | 1227 | Pooh Bear | person | David “ PB ” ou “ Pooh Bear ” Phillips était un membre du ZoLand . C’était un 4 Corner Hustler . Il était aussi un rappeur. Il est tué le 22 Février 2020 . ARTICLE DE SA MORT: David “PB” Philips |
-| 1046 | POPPYGANG | empty |  |
-| 521 | POTTBLOCK | empty |  |
-| 1040 | PRINCETONMOBB | empty |  |
 | 4888 | Privacy Policy | person | Who we are Our website address is: . What personal data we collect and why we collect it Comments When visitors leave comments on the site we collect the data shown in the comments form, and also the  |
-| 522 | PSYCHO GANG | empty |  |
-| 864 | QUIETMONEY | empty |  |
-| 1034 | QUILLBLOCK | empty |  |
-| 862 | RACKCITY | empty |  |
-| 839 | RAG TOWN | empty |  |
-| 866 | REBLUV | empty |  |
-| 523 | REC CITY | empty |  |
-| 843 | RICOBLOCK | empty |  |
-| 524 | RISKY ROAD | empty |  |
-| 525 | RMG | empty |  |
 | 3655 | Roc | person | Rodney Yeargi , aussi connu sous le nom de “ Doughboy Roc “, était membre du groupe “ Doughboyz Cashout “. Il a été tué le 9 Octobre 2017 à l’âge de 29 ans . Il est considéré par beaucoup comme étant  |
-| 999 | ROC CREEK | empty |  |
-| 526 | ROC CREEK | empty |  |
-| 1038 | ROOKIEVILLE 11-5 | empty |  |
-| 1036 | RUDEVILLE | empty |  |
-| 1021 | S-DUB | empty |  |
-| 1065 | S.O.A | empty |  |
-| 527 | SACKBOYZ | empty |  |
-| 1913 | SAVAGE SQUAD | empty |  |
 | 2147 | Scrapp | person | Scrapp était un Mickey Cobra . Il est décédé . Après sa mort, la Young Money ArtGang adopte le nom de “ Scrapp Gang ” pour lui rendre hommage. Il était proche de FTO BigGuy . |
-| 528 | SEDVILLE | empty |  |
-| 530 | SHIELDS | empty |  |
-| 1045 | SICKOMOBB | empty |  |
-| 833 | SIN CITY | empty |  |
-| 550 | SIRCONN CITY GANGSTERS | empty |  |
-| 551 | SK | empty |  |
-| 566 | SKD | empty |  |
-| 563 | SKEEZE WORLD | empty |  |
-| 564 | SLUTTY BOYZ | empty |  |
-| 565 | SMASHVILLE | empty |  |
-| 871 | SQUADVILLE | empty |  |
-| 567 | SQUIRTTOWN | empty |  |
-| 865 | STAIN CITY | empty |  |
-| 1037 | STATEBOYZ | empty |  |
-| 849 | STONE TEZ | empty |  |
-| 568 | STONY SPOT | empty |  |
 | 2115 | Sugar Ray | person | Sugar Ray était un Insane Vice Lord . Il est décédé . Après sa mort, son cousin Kasper , qui est un officier de police se venge en usant de ses droits d’agent. Il prend part pour le set LordsVille en  |
-| 569 | SUWU MOBB | empty |  |
-| 570 | SUWU TTB | empty |  |
-| 571 | SWIFT CITY | empty |  |
 | 1771 | T-Baby | person | T-Baby est un Gangster Disciple . Il est actuellement incarcéré . Le W.B 057 était prêt à tuer T-Baby parce que ce dernier donnait trop d’informations dans ses musiques. La police l’a arrêté avant par |
 | 2213 | Tae | person | Tae est actuellement incarcéré . |
 | 4239 | TaeDogg | person | TaeDogg aussi connu sous le nom de “ Javonta ” est un Gangster Disciple . Il est originaire de la THF 44 et il est toujours proche d’eux. |
 | 4154 | Tay | person | Tay est un Gangster Disciple . |
-| 573 | TAY CITY | empty |  |
-| 881 | TAYTOWN | empty |  |
-| 558 | TEDAMOBB | empty |  |
-| 1020 | TERROR TOWN | empty |  |
-| 519 | TFG | empty |  |
-| 559 | THF 44 | empty |  |
-| 561 | THF 46 | empty |  |
 | 1186 | Tokyo G | person | Tokyo G était un Black Disciple de la WIIIC City . Il est tué le 23 Septembre 1996 dans le quartier de MurderVille ( STL/EBT ). |
-| 1044 | TONIOMOBB | empty |  |
-| 562 | TOUCHMONEY | empty |  |
-| 850 | TRAYTOWN | empty |  |
 | 3836 | Tra’Don | person | Sanders aussi connu sous le nom de “ Tra’Don ” était un Gangster Disciple . Il est décédé . Il était proche du 50 Strong . |
-| 1032 | TRIPLE B’Z | empty |  |
 | 1181 | Ty | person | Tyrone “ Ty ” White était un Gangster Disciple de MurderVille . C’était un OG . Il est tué le 10 Juin 2018 . |
-| 575 | TYMB | empty |  |
-| 576 | TYTO LAND | empty |  |
-| 1050 | UNDERTAKERS | empty |  |
-| 577 | VON WORLD | empty |  |
-| 578 | WELCH WORLD | empty |  |
-| 1025 | WHITEWHITE GANG | empty |  |
-| 579 | WHIZ CITY | empty |  |
 | 2540 | Will | person | Darryl Gooden , aussi connu sous le nom de “ Big Will ” ou de “ George ” était un des lieutenants des PA Boys à Atlanta . |
-| 801 | WILL CITY | empty |  |
-| 581 | WUGA WORLD | empty |  |
-| 1023 | YMM | empty |  |
-| 1112 | YOSHI CITY | empty |  |
-| 580 | YOUNG LORDS | empty |  |
 | 7968 | YOUNG LORDS | person | Les Young Lords sont un set de GayLords . Ils sont situés dans l’ Uptown . C’est l’un des plus vieux sets GayLords encore présent, ils ont près de 50 ans d’existence . |
-| 878 | YOUNGWORLD | empty |  |
 | 1226 | Zo | person | Lorenzo “ Zo ” McKeithen était un 4 Corner Hustler du Chestnut . Il est tué le 5 Juin 2009 . Après sa mort, le Chestnust se renomme en “ ZoLand ” pour lui rendre hommage. |
-| 608 | ZONE7 | empty |  |
