@@ -151,6 +151,22 @@ curl "https://public-api.wordpress.com/rest/v1.1/sites/184758954/posts/?type=pag
 
 `found` in the response gives the total. No authentication needed for published pages.
 
-**A better source exists if you still have admin on the site.** `Tools → Export → All content`
-produces a WXR file that includes **drafts and private pages**, which this API does not serve.
-292 pages here are empty, and some of those may have draft content the export would recover.
+### Completeness, checked against the site's own dashboard
+
+The wp-admin page list reports **1,109 pages: 1,107 published + 2 drafts**. This harvest holds
+**1,105 published**, and the API's own `found` count agrees at 1,105.
+
+- **The 2 drafts are accounted for and worthless.** Both are templates authored by
+  `irishrugbyman`: "Mise en Page – Set" (the set-page layout) and "Fiches Prison". The set
+  template is already reverse-engineered from the 22 pages that use it, documented above.
+- **2 published pages remain unexplained.** They exist in the dashboard and not in the public
+  API. Password protection is the likely cause - such pages keep `published` status but are
+  excluded from public API listings - but this is unverified. It is 0.2% of the site and was
+  not chased further.
+
+A WXR export (`Settings → Export`) would resolve it, but **requires Administrator**. The
+account used here has Editor rights only; the site owner is `FCK HEAD$HOT`
+(`frenchsquiidape`), who authored 1,025 of the pages.
+
+Note for anyone re-running this: an unauthenticated `status=draft` query returns 0 whether or
+not drafts exist, because the public API cannot see them at all. That zero is not evidence.
