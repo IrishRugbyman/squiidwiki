@@ -50,6 +50,16 @@ inside it reads as an umbrella too. It is not: it is one `Set`, under the `Blood
 inside a `5s` `Alliance`. The 4s side of this is already modelled that way in the DB, as the
 `4Gang` alliance holding Hustle Boyz, Gutta Boyz, Boss Hoggs, 264 and 1000Gang.
 
+**Aliases vs cliques.** DetroitStreetGangs lists a set's cliques, its identifiers and its
+sub-sects all together under "Aliases/Nicknames". Copying that field into `name_variants`
+wholesale is what makes a set look like a federation: SMB arrived carrying HOBCITY, GrinchGang,
+ShottaGang and RyderBloxk as *names for itself*, while Hobsquad also existed as a set in its
+own right, so the same organisation appeared at two levels at once. The rule applied here is
+**one name, one place**: a `name_variant` is another name for the whole organisation, a clique
+is either its own Set or a line in the bio, and an identifier is a line in the bio. Where a
+name genuinely spans two records - "RedZone Bloods" for both SMB and the 5s - it is recorded
+on the narrower one and explained on the wider one.
+
 Two further traps on the same words. The Bounty Hunter Bloods maintain their own **"Seven
 Mile Line"**, about fifteen members who identify with that stretch of their turf [legal-027] -
 no relation to SMB. And several unrelated sets sit on Seven Mile Road: SmokeCamp at Albion,
@@ -71,9 +81,10 @@ alliance. See naming caution 5 above before adding anything to it.
 | Number | **55** |
 | Territory | The **"Red Zone,"** east side 48205, written **4820-DIE**: Gratiot to Kelly, Seven Mile to Eight Mile |
 | Scale | ~20 members and associates controlled the whole zip code, per federal investigators |
-| Internal cliques | 55 OEG, 55 52, 55 700 WaxGang, 55 TMB, 55 Psykoz, 55 DrenchGang, 55 50 Zone, 55 MG |
-| Sub-sects | **Seven Mile Blood Juniors**, renamed **Hobsquad** |
-| Aliases | SMB, 55 SMB, RedZone Bloods, 726, HOBCITY, GrinchGang, ShottaGang, RyderBloxk, 55 Grinch |
+| Internal cliques | 55 OEG, 55 52, 55 700 WaxGang, 55 TMB, 55 Psykoz, 55 DrenchGang, 55 50 Zone, 55 MG, **GrinchGang**, **ShottaGang**, **RyderBloxk** |
+| Sub-sects | **Seven Mile Blood Juniors**, renamed **Hobsquad** - its own set, not an alias |
+| Aliases (whole set) | SMB, 55, 55 Seven Mile Bloods, 7 Mile Bloods, RedZone Bloods, 55 Grinch |
+| Not aliases | 726 / 762 / 19 13 2 are identifiers; 4820-DIE is the zip; HOBCITY belongs to Hobsquad |
 | Economy | Detroit-to-West-Virginia prescription pill pipeline, reported at $80k/week |
 | Instagram | `000_big_blood` |
 | Status | ACTIVE at time of sources |
