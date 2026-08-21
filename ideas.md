@@ -4,6 +4,13 @@ Open items only. Implemented ideas are in git history.
 
 ---
 
+## Known bugs
+
+- [ ] **`_sync_killed_participants` overwrites `date_of_death` with the incident date** (`backend/app/crud/incident.py:106-141`) — correct when the victim dies at the scene, wrong whenever they die later. Djuan "Neff" Page was shot 14 Jul 2014 and died in Aug 2014; saving the incident silently replaced the August date with the shooting date and it had to be patched back by hand. It re-fires on every update of that incident, so the correction does not survive the next edit. Either only copy the date when `date_of_death` is null, or carry a per-participant `died_at` so the shooting and the death it causes stay separate events. The second is the honest model.
+- [ ] **Alliance member counts are always 0** — the alliance page counts `member.alliance_id` (`backend/app/routers/alliance.py:120-136`), a field only 4 of 155 Detroit members carry, so every alliance reads "Members 0" including 4Gang and the 5s. A member's alliance is not inherited from their primary set's alliance. Either backfill `alliance_id` from the primary set universe-wide and keep it in sync on affiliation changes, or drop the field and derive the count through `member_set → sets.alliance_id`. Deriving is less state to keep honest.
+
+---
+
 ## Data model foundations
 
 *Schema changes that unlock multiple downstream features.*
@@ -146,7 +153,7 @@ Open items only. Implemented ideas are in git history.
 - [ ] **Entity references in text** — auto-link `@MemberName` or `#SetName` in biographies and notes to their pages.
 - [ ] **Recent edits feed (global)** *(partial)* — per-set activity feed shipped. Remaining: a universe-wide dashboard widget aggregating latest changes across all entities.
 
-create a test db where you test alembic migration always before applying on prod, to verify it does not alter the data 
+create a test db where you test alembic migration always before applying on prod, to verify it does not alter the data
 
 ---
 
