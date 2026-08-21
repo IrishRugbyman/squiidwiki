@@ -35,7 +35,7 @@
    "MuBu",
    "Geo Drive",
    "MetBoyz",
-   "STL.EBT",
+   "STL/EBT",
    "TYMB (part)"
   ],
   "enemies": [
@@ -220,7 +220,7 @@
    "SKD",
    "051 Young Money",
    "Tyquan World",
-   "STL.EBT",
+   "STL/EBT",
    "Stony Spot",
    "Jaro City",
    "MOB"
@@ -268,7 +268,7 @@
    "MOB",
    "Dro City",
    "TYMB",
-   "STL.EBT",
+   "STL/EBT",
    "600"
   ],
   "former_allies": [
@@ -550,7 +550,7 @@
   ],
   "enemies": [
    "Jaro City",
-   "STL.EBT",
+   "STL/EBT",
    "Tyquan World",
    "MOB",
    "051 Young Money",
@@ -577,7 +577,7 @@
    "CMB",
    "JJ Gang",
    "Wuga World",
-   "STL.EBT",
+   "STL/EBT",
    "Tay City",
    "MOB"
   ],
@@ -684,7 +684,7 @@
    "Mixx Mobb"
   ],
   "enemies": [
-   "STL.EBT",
+   "STL/EBT",
    "TYMB",
    "MTV",
    "Whiz City"
@@ -879,7 +879,7 @@
    "GeoDrive",
    "SKD",
    "Tyquan World",
-   "STL.EBT",
+   "STL/EBT",
    "Jaro City"
   ],
   "former_allies": [],
@@ -969,13 +969,13 @@
    "HadiWay"
   ],
   "allies": [
-   "STL.EBT",
+   "STL/EBT",
    "StonySpot"
   ],
   "enemies": [],
   "former_allies": [],
   "former_enemies": [],
-  "notes": "Tooka and Wooski of STL.EBT originate from this set."
+  "notes": "Tooka and Wooski of STL/EBT originate from this set."
  },
  "7939": {
   "title": "EVANS MOBB",
@@ -1370,7 +1370,7 @@
   "aka": [],
   "allies": [
    "051 Young Money",
-   "STL.EBT",
+   "STL/EBT",
    "Tyquan World",
    "SuWu TTB",
    "MOB",
@@ -1758,10 +1758,10 @@
   "allies": [],
   "enemies": [],
   "former_allies": [
-   "STL.EBT"
+   "STL/EBT"
   ],
   "former_enemies": [],
-  "notes": "Based in the Wild 100's; fell out with STL.EBT and rapper Lil Jay after an extortion attempt, which led to Lil Jay and FBG Butta's imprisonment."
+  "notes": "Based in the Wild 100's; fell out with STL/EBT and rapper Lil Jay after an extortion attempt, which led to Lil Jay and FBG Butta's imprisonment."
  },
  "7940": {
   "title": "MIXX MOBB",
@@ -1804,7 +1804,7 @@
    "Geo Drive",
    "Von World",
    "SKD",
-   "STL.EBT",
+   "STL/EBT",
    "Wuga World",
    "Jaro City"
   ],
@@ -1863,7 +1863,7 @@
    "HB",
    "CMB",
    "Insane City",
-   "STL.EBT"
+   "STL/EBT"
   ],
   "former_allies": [],
   "former_enemies": [],
@@ -2048,7 +2048,7 @@
    "MTG",
    "Black Mobb",
    "Jaro City",
-   "STL.EBT",
+   "STL/EBT",
    "ABKColes Mobb",
    "D-Town"
   ],
@@ -2203,7 +2203,7 @@
   ],
   "allies": [
    "OTE",
-   "STL.EBT"
+   "STL/EBT"
   ],
   "enemies": [
    "LOC City",
@@ -2666,7 +2666,7 @@
   "allies": [
    "051 Young Money",
    "Met Boyz",
-   "STL.EBT",
+   "STL/EBT",
    "Jaro City",
    "MuBu",
    "Dro City"
@@ -2837,7 +2837,7 @@
    "MuBu",
    "800",
    "Jaro City",
-   "STL.EBT",
+   "STL/EBT",
    "TYMB",
    "BocoHood",
    "Glo Gang (GBE)"
@@ -2888,7 +2888,7 @@
    "Stony Spot",
    "Roc Creek",
    "CrankTown",
-   "STL.EBT",
+   "STL/EBT",
    "MuBu",
    "AMG",
    "RowLife",
@@ -2932,7 +2932,7 @@
   "aka": [],
   "allies": [
    "Jaro City",
-   "STL.EBT",
+   "STL/EBT",
    "PaxTown",
    "DDG",
    "Stony Spot"
@@ -2951,7 +2951,7 @@
   ],
   "former_allies": [],
   "former_enemies": [],
-  "notes": "Most members come from Jaro City or STL.EBT; the set was formed after the death of 'Tyquan' from Jaro City."
+  "notes": "Most members come from Jaro City or STL/EBT; the set was formed after the death of 'Tyquan' from Jaro City."
  },
  "7993": {
   "title": "TYTOLAND",
@@ -3072,7 +3072,7 @@
    "NLMB"
   ],
   "enemies": [
-   "STL.EBT",
+   "STL/EBT",
    "Tyquan World",
    "MOB",
    "Jaro City",

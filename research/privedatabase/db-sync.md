@@ -21,31 +21,31 @@ Database: `squiidwiki_prod`. Last run: 2026-08-21.
 
 | Set | Page | DB slug | Bio | Gang | Mem | Rel |
 |---|---|---|---|---|---|---|
-| 051 YOUNG MONEY | 286 | `051-young-money` | Y | Mickey Cobras | - | - |
-| 051 YOUNG MONEY | 7494 | `051-young-money` | Y | Mickey Cobras | - | - |
+| 051 YOUNG MONEY | 286 | `051-young-money` | Y | Mickey Cobras | - | 1 |
+| 051 YOUNG MONEY | 7494 | `051-young-money` | Y | Mickey Cobras | - | 1 |
 | 400E MURDA DRIVE | 7893 | `400e-murda-drive` | - | - | - | - |
 | 600 | 227 | `600` | Y | - | - | - |
-| 757 | 7891 | `757` | Y | Gangster Disciples | - | - |
+| 757 | 7891 | `757` | Y | Gangster Disciples | - | 16 |
 | AAB | 7975 | `aab` | - | - | 2 | - |
 | BRICK CITY/600 | 6277 | `600` | Y | - | - | - |
 | DIPSET/FRONT$TREET | 6278 | `fronttreet` | - | - | - | - |
-| FREE SMOKE | 7920 | `freesmoke` | Y | Gangster Disciples | - | - |
-| GEO DRIVE | 7926 | `geo-drive` | Y | Gangster Disciples | - | - |
-| JARO CITY | 243 | `jaro-city` | Y | Gangster Disciples | - | - |
-| JARO CITY | 7486 | `jaro-city` | Y | Gangster Disciples | - | - |
-| MOB | 7483 | `mob` | Y | Gangster Disciples | - | - |
-| MURDATOWN | 7933 | `murdatown` | Y | Gangster Disciples | - | - |
-| OAK BOYZ NATION (OBN) | 7895 | `obn` | Y | Gangster Disciples | - | - |
-| O’BLOCK | 1151 | `oblock` | - | - | - | - |
-| SOUTH KING DRIVE (SKD) | 7928 | `skd` | Y | Gangster Disciples | - | - |
-| STL/EBT | 7484 | `stlebt` | Y | Gangster Disciples | - | - |
-| STONY SPOT | 7929 | `stony-spot` | - | - | - | - |
-| SUWU TTB | 7900 | `suwu-ttb` | Y | Black P. Stones | - | - |
-| THF 46 | 7493 | `thf-46` | Y | Black Disciples | - | - |
-| TYQUAN WORLD | 245 | `tyquan-world` | Y | Gangster Disciples | - | - |
-| TYQUAN WORLD | 7485 | `tyquan-world` | Y | Gangster Disciples | - | - |
-| WELCH WORLD | 6528 | `welch-world` | Y | Gangster Disciples | - | - |
-| WIIIC CITY/O’BLOCK | 6273 | `oblock` | - | - | - | - |
+| FREE SMOKE | 7920 | `freesmoke` | Y | Gangster Disciples | - | 1 |
+| GEO DRIVE | 7926 | `geo-drive` | Y | Gangster Disciples | - | 1 |
+| JARO CITY | 243 | `jaro-city` | Y | Gangster Disciples | - | 1 |
+| JARO CITY | 7486 | `jaro-city` | Y | Gangster Disciples | - | 1 |
+| MOB | 7483 | `mob` | Y | Gangster Disciples | - | 1 |
+| MURDATOWN | 7933 | `murdatown` | Y | Gangster Disciples | - | 1 |
+| OAK BOYZ NATION (OBN) | 7895 | `obn` | Y | Gangster Disciples | - | 1 |
+| O’BLOCK | 1151 | `oblock` | - | - | - | 1 |
+| SOUTH KING DRIVE (SKD) | 7928 | `skd` | Y | Gangster Disciples | - | 1 |
+| STL/EBT | 7484 | `stlebt` | Y | Gangster Disciples | - | 1 |
+| STONY SPOT | 7929 | `stony-spot` | - | - | - | 1 |
+| SUWU TTB | 7900 | `suwu-ttb` | Y | Black P. Stones | - | 1 |
+| THF 46 | 7493 | `thf-46` | Y | Black Disciples | - | 1 |
+| TYQUAN WORLD | 245 | `tyquan-world` | Y | Gangster Disciples | - | 1 |
+| TYQUAN WORLD | 7485 | `tyquan-world` | Y | Gangster Disciples | - | 1 |
+| WELCH WORLD | 6528 | `welch-world` | Y | Gangster Disciples | - | 1 |
+| WIIIC CITY/O’BLOCK | 6273 | `oblock` | - | - | - | 1 |
 
 ### Not yet seeded
 
@@ -190,4 +190,4 @@ Entered by hand, or named differently on the site. Worth checking for duplicates
 | Set | DB slug | Gang | Mem | Rel |
 |---|---|---|---|---|
 | 3000ST | `3000st` | Latin Kings | 2 | - |
-| Kimo Gang | `kimo-gang` | - | - | - |
+| Kimo Gang | `kimo-gang` | - | - | 1 |
