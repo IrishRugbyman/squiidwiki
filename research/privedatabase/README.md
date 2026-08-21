@@ -18,6 +18,9 @@ Detroit**. Roughly 40% of it is Chicago.
 | `chicago.md` | 448 Chicago pages - **221 sets** with allies, enemies and member rosters. Kept separate so they cannot leak into Detroit seeding |
 | `other-cities.md` | 261 pages: London, Atlanta, New York, Tottenham, Toledo, Louisiana |
 | `unclassified.md` | 155 pages the classifier could not place, listed in full rather than guessed |
+| `db-sync.md` | **Generated.** What has actually reached the database, and what has not |
+| `tools/db_sync.py` | Regenerates `db-sync.md`. Read-only against the DB |
+| `tools/extract-chicago.json` | The 156 parsed Chicago set records the sync reconciles against |
 
 232 + 448 + 261 + 155 = 1,096, plus the 9 remaining city-index stubs (Birmingham, Columbus,
 Floride, Los Angeles, Montreal, Paris, Quebec, Saint-Louis and one titled `18`), all empty.
@@ -192,6 +195,37 @@ Recorded so they can be overridden rather than silently inherited:
 One parser bug worth knowing if you re-run it: `CORPS IMPORTANTS:` is a **set-level** list,
 not the trailing member's kills. Treating it as a member section credited 23 bodies to whoever
 happened to be listed last on the page.
+
+## Keeping track of what reached the database
+
+`db-sync.md` answers "which of this is actually seeded". It is **generated, never
+hand-maintained** - a status table edited by hand drifts from the database within a week and
+then quietly lies. Regenerate it after any seeding pass:
+
+```bash
+python3 research/privedatabase/tools/db_sync.py --db squiidwiki_prod
+```
+
+The script is read-only. It reports three things, and the third is the one that catches
+mistakes:
+
+1. **Extracted and seeded** - with the DB slug, and whether bio, gang, members and
+   relationships are populated, so partial seeds are visible rather than looking done.
+2. **Extracted, not yet seeded** - with nation and relationship counts, so the next batch can
+   be picked by value.
+3. **In the database with no matching extraction** - hand-entered sets, renamed sets, and
+   duplicates. This is where errors surface.
+
+Matching is on normalised names plus `name_variants`, and on the shapes site titles take that
+DB names do not: `OAK BOYZ NATION (OBN)` is stored as `OBN`, and `DIPSET/FRONT$TREET` covers
+two sets. Without that, the reconciliation reports false orphans in both directions - it
+initially flagged OBN, SKD and Front$treet as unmatched when all three were seeded correctly.
+
+Two genuine orphans as of the first run, both expected:
+
+- **3000ST** - predates this work, entered by hand, carries 2 members.
+- **Kimo Gang** - seeded deliberately with no bio. It is the one set referenced by 757 that has
+  no page anywhere on the site, so there is nothing to extract for it.
 
 ## Before seeding any of this
 
