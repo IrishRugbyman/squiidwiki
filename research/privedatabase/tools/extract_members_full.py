@@ -91,6 +91,29 @@ def split_paren(line):
     return line.strip(), ""
 
 
+def split_entries(line):
+    """One roster/event line -> [(name, paren)], tolerating the site's typos.
+
+    Two source defects otherwise turn victims into members of the page's set:
+    a lost closing paren ("E-Dogg (O'Block"), and a second entry run onto the
+    same line after the paren ("Booda (décédé) Q Original").
+    """
+    line = line.strip()
+    m = PAREN.match(line)
+    if m:
+        return [(m.group(1).strip(), m.group(2).strip())]
+    m = re.match(r"^(.*?)\s*\(([^()]+)$", line)  # closing paren lost
+    if m:
+        return [(m.group(1).strip(), m.group(2).strip())]
+    # A second entry run onto the line after the paren. Only when the tail
+    # reads as a bare name - prose enumerations ("..., 9-0, RMG (YKN only).")
+    # have commas and periods and must keep falling through to good_name().
+    m = re.match(r"^(.*?)\s*\(([^)]*)\)\s+([^,.]{2,34})$", line)
+    if m and good_name(m.group(1)):
+        return [(m.group(1).strip(), m.group(2).strip()), (m.group(3).strip(), "")]
+    return [(line, "")]
+
+
 def paren_meaning(paren):
     """Classify a paren: ('dead', extra), ('set', set_name, dead?), ('nation', gang), ('none',)."""
     if not paren:
@@ -106,6 +129,12 @@ def paren_meaning(paren):
     if key in NOT_A_SET or len(first) < 2:
         return ("none",)
     return ("set", first, dead)
+
+
+def year_of(paren):
+    """Pull a plausible event year out of a paren annotation like 'tué en 2018'."""
+    m = re.search(r"\b(19[5-9]\d|20[0-2]\d)\b", paren or "")
+    return int(m.group(0)) if m else None
 
 
 def good_name(n):
@@ -231,69 +260,76 @@ def extract():
                 event = None
                 continue
 
-            # A short entry line.
-            name, paren = split_paren(line)
-            if not good_name(name):
-                continue
-            meaning = paren_meaning(paren)
+            # A short entry line - possibly several entries after a site typo.
+            for name, paren in split_entries(line):
+                if not good_name(name):
+                    continue
+                meaning = paren_meaning(paren)
 
-            if meaning[0] == "set":
-                # Someone from another set: a victim/target of an event.
-                vset, vdead = meaning[1], meaning[2]
-                kind = event or "bodies"
-                dead = vdead or kind == "bodies"
-                see(name, set_title=vset, dead=dead, page=pid, origin=f"event-{kind}")
-                perp = current["name"] if current else None
-                events.append(
-                    {
-                        "page": pid,
-                        "kind": kind,
-                        "perp": perp,
-                        "perp_set": page_set,
-                        "victim": name,
-                        "victim_set": vset,
-                        "victim_dead": dead,
-                    }
-                )
-                continue
+                if meaning[0] == "set":
+                    # Someone from another set: a victim/target of an event.
+                    vset, vdead = meaning[1], meaning[2]
+                    kind = event or "bodies"
+                    dead = vdead or kind == "bodies"
+                    see(name, set_title=vset, dead=dead, page=pid, origin=f"event-{kind}")
+                    perp = current["name"] if current else None
+                    events.append(
+                        {
+                            "page": pid,
+                            "kind": kind,
+                            "perp": perp,
+                            "perp_set": page_set,
+                            "victim": name,
+                            "victim_set": vset,
+                            "victim_dead": dead,
+                            "victim_year": year_of(paren),
+                        }
+                    )
 
-            if meaning[0] == "nation":
-                kind = event or "bodies"
-                dead = meaning[2] or kind == "bodies"
-                see(name, nation=meaning[1], dead=dead, page=pid, origin=f"event-{kind}")
-                events.append(
-                    {
-                        "page": pid,
-                        "kind": kind,
-                        "perp": current["name"] if current else None,
-                        "perp_set": page_set,
-                        "victim": name,
-                        "victim_set": None,
-                        "victim_dead": dead,
-                    }
-                )
-                continue
+                elif meaning[0] == "nation":
+                    kind = event or "bodies"
+                    dead = meaning[2] or kind == "bodies"
+                    see(name, nation=meaning[1], dead=dead, page=pid, origin=f"event-{kind}")
+                    events.append(
+                        {
+                            "page": pid,
+                            "kind": kind,
+                            "perp": current["name"] if current else None,
+                            "perp_set": page_set,
+                            "victim": name,
+                            "victim_set": None,
+                            "victim_dead": dead,
+                            "victim_year": year_of(paren),
+                        }
+                    )
 
-            # No paren, or "(décédé)": a roster name of this page's set.
-            dead = meaning[0] == "dead"
-            if is_alliance_page and in_roster:
-                continue  # alliance rosters list sets, not people
-            if page_set:
-                see(name, set_title=page_set, dead=dead, page=pid, origin="roster")
-            elif subject and event:
-                # On a person page an unparenthesised event entry is still a victim.
-                see(name, dead=dead or event == "bodies", page=pid, origin=f"event-{event}")
-                events.append(
-                    {
-                        "page": pid,
-                        "kind": event,
-                        "perp": subject["name"],
-                        "perp_set": None,
-                        "victim": name,
-                        "victim_set": None,
-                        "victim_dead": dead or event == "bodies",
-                    }
-                )
+                # No paren, or "(décédé)": a roster name of this page's set.
+                elif is_alliance_page and in_roster:
+                    continue  # alliance rosters list sets, not people
+                elif page_set:
+                    see(
+                        name,
+                        set_title=page_set,
+                        dead=meaning[0] == "dead",
+                        page=pid,
+                        origin="roster",
+                    )
+                elif subject and event:
+                    # On a person page an unparenthesised event entry is still a victim.
+                    dead = meaning[0] == "dead" or event == "bodies"
+                    see(name, dead=dead, page=pid, origin=f"event-{event}")
+                    events.append(
+                        {
+                            "page": pid,
+                            "kind": event,
+                            "perp": subject["name"],
+                            "perp_set": None,
+                            "victim": name,
+                            "victim_set": None,
+                            "victim_dead": dead,
+                            "victim_year": None,
+                        }
+                    )
 
     return people, events
 

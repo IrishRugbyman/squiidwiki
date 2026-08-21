@@ -12817,6 +12817,20 @@
  },
  {
   "name": "Ty",
+  "set": "DOD",
+  "nation": null,
+  "dead": false,
+  "locked": false,
+  "aliases": [],
+  "pages": [
+   "7496"
+  ],
+  "origins": [
+   "event-assists"
+  ]
+ },
+ {
+  "name": "Ty",
   "set": "BlackGate",
   "nation": null,
   "dead": false,
@@ -12980,6 +12994,7 @@
   "pages": [
    "1151",
    "7494",
+   "7486",
    "7484"
   ],
   "origins": [
@@ -36541,10 +36556,12 @@
   "locked": false,
   "aliases": [],
   "pages": [
-   "7967"
+   "7967",
+   "7493"
   ],
   "origins": [
-   "roster"
+   "roster",
+   "event-shootings"
   ]
  },
  {
@@ -51319,14 +51336,42 @@
   ]
  },
  {
-  "name": "Lil Dave (RMG",
-  "set": "HELLA BANDZ",
+  "name": "Lil Dave",
+  "set": "RMG",
   "nation": null,
   "dead": false,
   "locked": false,
   "aliases": [],
   "pages": [
    "7947"
+  ],
+  "origins": [
+   "event-shootings"
+  ]
+ },
+ {
+  "name": "Lil Dave",
+  "set": "YatesMobb",
+  "nation": null,
+  "dead": false,
+  "locked": false,
+  "aliases": [],
+  "pages": [
+   "7949"
+  ],
+  "origins": [
+   "event-shootings"
+  ]
+ },
+ {
+  "name": "Lil Dave",
+  "set": "NO LIMIT 087",
+  "nation": null,
+  "dead": false,
+  "locked": false,
+  "aliases": [],
+  "pages": [
+   "7937"
   ],
   "origins": [
    "roster"
@@ -53892,34 +53937,6 @@
   "origins": [
    "event-assists",
    "event-bodies"
-  ]
- },
- {
-  "name": "Lil Dave",
-  "set": "YatesMobb",
-  "nation": null,
-  "dead": false,
-  "locked": false,
-  "aliases": [],
-  "pages": [
-   "7949"
-  ],
-  "origins": [
-   "event-shootings"
-  ]
- },
- {
-  "name": "Lil Dave",
-  "set": "NO LIMIT 087",
-  "nation": null,
-  "dead": false,
-  "locked": false,
-  "aliases": [],
-  "pages": [
-   "7937"
-  ],
-  "origins": [
-   "roster"
   ]
  },
  {
@@ -57072,7 +57089,65 @@
   ]
  },
  {
-  "name": "Booda (décédé) Q Original",
+  "name": "Booda",
+  "set": "SOUTH KING DRIVE (SKD)",
+  "nation": null,
+  "dead": true,
+  "locked": false,
+  "aliases": [],
+  "pages": [
+   "7928"
+  ],
+  "origins": [
+   "roster"
+  ]
+ },
+ {
+  "name": "Booda",
+  "set": "OAK BOYZ NATION (OBN)",
+  "nation": "Black Disciple",
+  "dead": true,
+  "locked": false,
+  "aliases": [
+   "Boss Rell"
+  ],
+  "pages": [
+   "7895"
+  ],
+  "origins": [
+   "member-sentence"
+  ]
+ },
+ {
+  "name": "Booda",
+  "set": "SKD",
+  "nation": null,
+  "dead": true,
+  "locked": false,
+  "aliases": [],
+  "pages": [
+   "7892"
+  ],
+  "origins": [
+   "event-bodies"
+  ]
+ },
+ {
+  "name": "Booda",
+  "set": "Lakeside",
+  "nation": null,
+  "dead": false,
+  "locked": false,
+  "aliases": [],
+  "pages": [
+   "7487"
+  ],
+  "origins": [
+   "event-shootings"
+  ]
+ },
+ {
+  "name": "Q Original",
   "set": "SOUTH KING DRIVE (SKD)",
   "nation": null,
   "dead": false,
@@ -64162,50 +64237,6 @@
   ]
  },
  {
-  "name": "Booda",
-  "set": "OAK BOYZ NATION (OBN)",
-  "nation": "Black Disciple",
-  "dead": true,
-  "locked": false,
-  "aliases": [
-   "Boss Rell"
-  ],
-  "pages": [
-   "7895"
-  ],
-  "origins": [
-   "member-sentence"
-  ]
- },
- {
-  "name": "Booda",
-  "set": "SKD",
-  "nation": null,
-  "dead": true,
-  "locked": false,
-  "aliases": [],
-  "pages": [
-   "7892"
-  ],
-  "origins": [
-   "event-bodies"
-  ]
- },
- {
-  "name": "Booda",
-  "set": "Lakeside",
-  "nation": null,
-  "dead": false,
-  "locked": false,
-  "aliases": [],
-  "pages": [
-   "7487"
-  ],
-  "origins": [
-   "event-shootings"
-  ]
- },
- {
   "name": "Don Juan",
   "set": "SuWu TTB",
   "nation": null,
@@ -65815,20 +65846,6 @@
   ]
  },
  {
-  "name": "Dot (Doggpound",
-  "set": "BRICK$QUAD 069",
-  "nation": null,
-  "dead": false,
-  "locked": false,
-  "aliases": [],
-  "pages": [
-   "7496"
-  ],
-  "origins": [
-   "roster"
-  ]
- },
- {
   "name": "ClayDoe",
   "set": "BRICK$QUAD 069",
   "nation": "Gangster Disciple",
@@ -66450,20 +66467,6 @@
   ],
   "origins": [
    "event-shootings"
-  ]
- },
- {
-  "name": "Ty (DOD",
-  "set": "BRICK$QUAD 069",
-  "nation": null,
-  "dead": false,
-  "locked": false,
-  "aliases": [],
-  "pages": [
-   "7496"
-  ],
-  "origins": [
-   "roster"
   ]
  },
  {
@@ -68136,20 +68139,6 @@
   ],
   "origins": [
    "event-shootings"
-  ]
- },
- {
-  "name": "Josh (TouchMoney",
-  "set": "THF 46",
-  "nation": null,
-  "dead": false,
-  "locked": false,
-  "aliases": [],
-  "pages": [
-   "7493"
-  ],
-  "origins": [
-   "roster"
   ]
  },
  {
@@ -71503,20 +71492,6 @@
   ],
   "origins": [
    "event-shootings"
-  ]
- },
- {
-  "name": "E-Dogg (O'Block",
-  "set": "JARO CITY",
-  "nation": null,
-  "dead": false,
-  "locked": false,
-  "aliases": [],
-  "pages": [
-   "7486"
-  ],
-  "origins": [
-   "roster"
   ]
  },
  {

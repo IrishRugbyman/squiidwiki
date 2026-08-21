@@ -13,7 +13,7 @@ Database: `squiidwiki_prod`. Last run: 2026-08-21.
 - **156** sets extracted from the site
 - **154** of them are in the database
 - **2** not yet seeded
-- **182** database sets with no matching extraction
+- **181** database sets with no matching extraction
 
 ### In the database
 
@@ -49,7 +49,7 @@ Database: `squiidwiki_prod`. Last run: 2026-08-21.
 | BLACKMOBB | 7492 | `black-mobb` | Y | Maniac Black P. Stones | 47 | 2 |
 | BOCO HOOD | 7908 | `boco-hood` | Y | Gangster Disciples | 23 | 5 |
 | BRICK CITY/600 | 6277 | `600` | Y | - | 75 | 34 |
-| BRICK$QUAD 069 | 7496 | `brickquad-069` | Y | Insane Gangster Disciples | 53 | 20 |
+| BRICK$QUAD 069 | 7496 | `brickquad-069` | Y | Insane Gangster Disciples | 51 | 20 |
 | BRICKYARD (4 CORNER GLO GANG) | 7982 | `brickyard` | Y | 4 Corner Hustlers | 18 | - |
 | BUFF CITY | 7964 | `buff-city` | Y | Black Disciples | 11 | 3 |
 | BWst LATIN KINGS | 7997 | `bwst-latin-kings` | Y | Latin Kings | 3 | 1 |
@@ -84,13 +84,13 @@ Database: `squiidwiki_prod`. Last run: 2026-08-21.
 | GUTTAVILLE GANGSTAS (GVG) | 7955 | `guttaville-gangstas` | Y | Renegade Gangster Disciples | 58 | 7 |
 | GUWOPGANG 075 | 7994 | `guwopgang-075` | Y | Black P. Stones | - | - |
 | HARVEY WORLD | 7099 | `harvey-world` | Y | Black P. Stones | 1 | 1 |
-| HELLA BANDZ | 7947 | `hella-bandz` | Y | Gangster Disciples | 7 | 1 |
+| HELLA BANDZ | 7947 | `hella-bandz` | Y | Gangster Disciples | 6 | 1 |
 | HOODGANG | 1029 | `hoodgang` | Y | Gangster Disciples | 2 | - |
 | HOOLA GANG | 7956 | `hoola-gang` | Y | Black P. Stones | 80 | 6 |
 | INSANE MONEY MOB (IMM) | 7923 | `insane-money-mob` | Y | Insane Gangster Disciples | 17 | 1 |
 | JACKBOYS | 950 | `jackboys` | Y | Black P. Stones | 11 | 2 |
-| JARO CITY | 243 | `jaro-city` | Y | Gangster Disciples | 161 | 22 |
-| JARO CITY | 7486 | `jaro-city` | Y | Gangster Disciples | 161 | 22 |
+| JARO CITY | 243 | `jaro-city` | Y | Gangster Disciples | 159 | 22 |
+| JARO CITY | 7486 | `jaro-city` | Y | Gangster Disciples | 159 | 22 |
 | JIGDOGS | 7934 | `jigdogs` | Y | Gangster Disciples | 28 | 4 |
 | JUST-US | 951 | `just-us` | Y | Black P. Stones | 2 | 2 |
 | KEDIZE HOMICIDE KINGS | 7998 | `kedize-homicide-kings` | Y | Latin Kings | - | - |
@@ -102,8 +102,8 @@ Database: `squiidwiki_prod`. Last run: 2026-08-21.
 | LANDLORD COV | 972 | `landlord-cov` | Y | Gangster Disciples | 7 | 3 |
 | LIL4MOBB | 7957 | `lil4mobb` | Y | Conservative Vice Lords | 67 | 7 |
 | LOC CITY | 7954 | `loc-city-rogers-park` | Y | Gangster Disciples | 2 | - |
-| LOC CITY (BotY) | 450 | `loc-city-rogers-park` | Y | Gangster Disciples | 2 | - |
-| LOC CITY (BotY) | 7991 | `loc-city-rogers-park` | Y | Gangster Disciples | 2 | - |
+| LOC CITY (BotY) | 450 | `loc-city-back-of-the-yards` | Y | Gangster Disciples | 106 | 15 |
+| LOC CITY (BotY) | 7991 | `loc-city-back-of-the-yards` | Y | Gangster Disciples | 106 | 15 |
 | LORDSVILLE | 1790 | `lordsville` | Y | Insane Vice Lords | 3 | 3 |
 | LOWELIFE | 7944 | `lowelife` | Y | Black Disciples | 33 | 7 |
 | M.O.M | 978 | `mom` | Y | Gangster Disciples | - | 3 |
@@ -124,7 +124,7 @@ Database: `squiidwiki_prod`. Last run: 2026-08-21.
 | NICKO GANG | 7925 | `nicko-gang` | Y | Gangster Disciples | 15 | 8 |
 | NO LIMIT 083 | 7948 | `no-limit-083` | Y | Black P. Stones | 21 | - |
 | NO LIMIT 087 | 7937 | `no-limit-087` | Y | Black P. Stones | 27 | 1 |
-| NO LIMIT/MUSKEGON BOYZ | 7487 | `nlmb` | Y | Renegade Black P. Stones | 90 | 14 |
+| NO LIMIT/MUSKEGON BOYZ | 7487 | `nlmb` | Y | Renegade Black P. Stones | 88 | 14 |
 | NOSEDMOBB | 8000 | `nosedmobb` | Y | Black Disciples | 3 | - |
 | OAK BOYZ NATION (OBN) | 7895 | `obn` | Y | Gangster Disciples | 22 | 7 |
 | ONLY THE END (OTE) | 7960 | `only-the-end` | Y | Gangster Disciples | 46 | 11 |
@@ -137,7 +137,7 @@ Database: `squiidwiki_prod`. Last run: 2026-08-21.
 | POTTBLOCK | 7970 | `pottblock` | Y | Traveling Vice Lords | 38 | 9 |
 | REC CITY | 6666 | `rec-city` | Y | Gangster Disciples | 16 | 3 |
 | RISKY ROAD | 7946 | `risky-road` | Y | 4 Corner Hustlers | 15 | 2 |
-| RMG | 7985 | `rmg` | Y | Black Disciples | 15 | 3 |
+| RMG | 7985 | `rmg` | Y | Black Disciples | 16 | 3 |
 | ROC CREEK | 7896 | `roc-creek` | Y | Gangster Disciples | 28 | 5 |
 | SACKBOYZ | 7973 | `sackboyz` | Y | Traveling Vice Lords | 65 | 1 |
 | SEDVILLE | 7897 | `sedville` | Y | Conservative Vice Lords | 81 | 10 |
@@ -159,7 +159,7 @@ Database: `squiidwiki_prod`. Last run: 2026-08-21.
 | TEDAMOBB | 7995 | `tedamobb` | Y | New Breeds | 2 | - |
 | TERROR DOME | 7924 | `terror-dome` | Y | Black P. Stones | 34 | 7 |
 | THF 44 | 7902 | `thf-44` | Y | Mickey Cobras | 2 | 3 |
-| THF 46 | 7493 | `thf-46` | Y | Black Disciples | 68 | 28 |
+| THF 46 | 7493 | `thf-46` | Y | Black Disciples | 67 | 28 |
 | TOUCHMONEY | 7967 | `touchmoney` | Y | Gangster Disciples | 23 | 5 |
 | TYMB | 7495 | `tymb` | Y | Black Disciples | 85 | 27 |
 | TYQUAN WORLD | 245 | `tyquan-world` | Y | Gangster Disciples | 39 | 16 |
@@ -236,7 +236,7 @@ Entered by hand, or named differently on the site. Worth checking for duplicates
 | cousine de Lil Zay Osama | `cousine-de-lil-zay-osama` | - | 2 | - |
 | CTG | `ctg` | - | 4 | - |
 | D-Town | `d-town` | - | 4 | - |
-| D.O.D | `dod` | - | 17 | - |
+| D.O.D | `dod` | - | 18 | - |
 | dans la Wild 100's | `dans-la-wild-100s` | - | 1 | - |
 | dans les jambes | `dans-les-jambes` | - | 1 | - |
 | DBK | `dbk` | - | 2 | - |
@@ -294,7 +294,6 @@ Entered by hand, or named differently on the site. Worth checking for duplicates
 | Latin Brothers | `latin-brothers` | - | 4 | - |
 | Latin Eagles | `latin-eagles` | - | 1 | - |
 | Latin Kings | `latin-kings` | - | 6 | - |
-| LOC City (Back of the Yards) | `loc-city-back-of-the-yards` | Gangster Disciples | 106 | 15 |
 | LT | `lt` | - | 3 | - |
 | M-Town | `m-town` | - | 7 | - |
 | MadVille | `madville` | - | 1 | - |
