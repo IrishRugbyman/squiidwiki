@@ -6,7 +6,10 @@ def lines_of(p):
     """Strip HTML tags/links from a page's content and return its non-empty, stripped lines."""
     c = p["content"]
     c = re.sub(r"<br\s*/?>", "\n", c)
-    c = re.sub(r"</p>|</div>|</h\d>", "\n", c)
+    # </li> matters as much as </p>: the site puts every roster and kill-list
+    # entry in its own <li>, so dropping it glues names into one string and no
+    # amount of regex afterwards can tell "Joc Da Block" from "Wayne" again.
+    c = re.sub(r"</p>|</div>|</h\d>|</li>|</ol>|</ul>|</tr>|</td>", "\n", c)
     t = html.unescape(re.sub("<[^>]+>", "", c))
     t = re.sub(r"https?://\S+", "", t)
     t = t.replace("\xa0", " ").replace("’", "'")
