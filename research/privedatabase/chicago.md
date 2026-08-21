@@ -43,19 +43,6 @@ means Gangster **Disciples** and Black Disciples.
 
 ### 051 YOUNG MONEY
 
-`https://privedatabase.wordpress.com/051-young-money/` · page 286 · FCK HEAD$HOT · 2020-03-27
-
-- **Nations:** Mickey Cobras, Black P.Stones
-- **Allies:** _none_
-- **Enemies:** _none_
-- **Notes:** Originally a Gangster Disciples set in the 2000s; in that era they formed one of the most powerful alliances in South Chicago with MetBoyz.
-
-- **Members listed:** AeroAndrillaArioBoom (décédé), Kiddo Da DrillaLil Marc (décédé), Lil MickMelly (décédé), MillzMontanaOochiePriboyRockoRoséSlyTristoWooChopPDKeysoLil Chief (décédé), KeKeTonyRemyJamesB.A.YonnieKeysoKJNewMoneyLawLeakLieemyMatt MoneyLil AntManeskiKellzDJ MoneyKoroKymeon T-LoweLil JoshWackoKD FreekyLil Danny MarcusParisPooh ManWhite MikeShannoHassanJ.RockTwilla No THFMallyBig NoahArrionPolo (décédé), Shawt Mac (décédé), Big Freaky (décédé), Cornbread (décédé), Wank (décédé), T-Berg (décédé), Frump (décédé), T-Streetz (décédé), Big Lonnie (décédé), Los (décédé), Lance (décédé), Big A (décédée), Fathead (décédé), Bankroll Q (décédé), Zeko (décédé)
-
-- **Bodies attributed to the set:** Lex (GuttaVille), Mike (GuttaVille), Quint (THF 46), Black (THF 46), OTF Chino (THF 46), Raheem (THF 46), Trevon (THF 46), Bob-O (THF 46), Dae Dae (THF 44), Stephon (Welch World), KD (Welch World), Wayne (BlackGate), Kedron (Dell Mobb), Shaq (600), Trixx (600), L'A Capone (600), Lil Boo (600), Lil Rob (Lamron), Corey (400E Murda Drive), OTF Nuski (FaceWorld 079), Lil Bit (OBN), Big Moe (DrexSide), Aaron (P-Block), Lil Dell (GGE), Draco (MurdaTown), Terry (MurdaTown), TWhy (GGE), Michael (DrexSide), OTF Baby D (Central City), Lil Tim (Welch World), Tyjuan (THF 46), Richie Jerk (Tyquan World)
-
-### 051 YOUNG MONEY
-
 `https://privedatabase.wordpress.com/051-young-money-2/` · page 7494 · FCK HEAD$HOT · 2019-11-07
 
 - **Nations:** Mickey Cobras, Black P.Stones
@@ -92,15 +79,18 @@ means Gangster **Disciples** and Black Disciples.
 | Fathead | Fatz World | Black P.Stone | Y |  |  |  | Lil Tim (Welch World) |
 | Keyso |  | Black P.Stone |  |  | Draco (MurdaTown); Terry (MurdaTown) |  |  |
 
-### 1200
+### 051 YOUNG MONEY
 
-`https://privedatabase.wordpress.com/1200-2-2/` · page 8291 · FCK HEAD$HOT · 2020-03-10
+`https://privedatabase.wordpress.com/051-young-money/` · page 286 · FCK HEAD$HOT · 2020-03-27
 
-- **Nations:** Gangster Disciples
-- **Allies:** OTE, AMM, OTA, Murda Mafia City, E-Way, Sac Boyz
-- **Enemies:** OTS, SuWu Mobb, BuckTown, BTBG
+- **Nations:** Mickey Cobras, Black P.Stones
+- **Allies:** _none_
+- **Enemies:** _none_
+- **Notes:** Originally a Gangster Disciples set in the 2000s; in that era they formed one of the most powerful alliances in South Chicago with MetBoyz.
 
-- **Bodies attributed to the set:** Lil Harry (SuWu Mobb), Lucky (SuWu Mobb), Jay Jay (SuWu Mobb), D Nice (SuWu Mobb), FIO (SuWu Mobb), Cat (SuWu Mobb)
+- **Members listed:** AeroAndrillaArioBoom (décédé), Kiddo Da DrillaLil Marc (décédé), Lil MickMelly (décédé), MillzMontanaOochiePriboyRockoRoséSlyTristoWooChopPDKeysoLil Chief (décédé), KeKeTonyRemyJamesB.A.YonnieKeysoKJNewMoneyLawLeakLieemyMatt MoneyLil AntManeskiKellzDJ MoneyKoroKymeon T-LoweLil JoshWackoKD FreekyLil Danny MarcusParisPooh ManWhite MikeShannoHassanJ.RockTwilla No THFMallyBig NoahArrionPolo (décédé), Shawt Mac (décédé), Big Freaky (décédé), Cornbread (décédé), Wank (décédé), T-Berg (décédé), Frump (décédé), T-Streetz (décédé), Big Lonnie (décédé), Los (décédé), Lance (décédé), Big A (décédée), Fathead (décédé), Bankroll Q (décédé), Zeko (décédé)
+
+- **Bodies attributed to the set:** Lex (GuttaVille), Mike (GuttaVille), Quint (THF 46), Black (THF 46), OTF Chino (THF 46), Raheem (THF 46), Trevon (THF 46), Bob-O (THF 46), Dae Dae (THF 44), Stephon (Welch World), KD (Welch World), Wayne (BlackGate), Kedron (Dell Mobb), Shaq (600), Trixx (600), L'A Capone (600), Lil Boo (600), Lil Rob (Lamron), Corey (400E Murda Drive), OTF Nuski (FaceWorld 079), Lil Bit (OBN), Big Moe (DrexSide), Aaron (P-Block), Lil Dell (GGE), Draco (MurdaTown), Terry (MurdaTown), TWhy (GGE), Michael (DrexSide), OTF Baby D (Central City), Lil Tim (Welch World), Tyjuan (THF 46), Richie Jerk (Tyquan World)
 
 ### 1200
 
@@ -111,6 +101,16 @@ means Gangster **Disciples** and Black Disciples.
 | Member | Aliases | Nation | Dead | Locked | Bodies | Shootings | Assists |
 |---|---|---|---|---|---|---|---|
 | Lil Harry (SuWu Mobb)Lucky (SuWu Mobb)Jay Jay (SuWu Mobb)D N |  |  |  |  |  |  |  |
+
+### 1200
+
+`https://privedatabase.wordpress.com/1200-2-2/` · page 8291 · FCK HEAD$HOT · 2020-03-10
+
+- **Nations:** Gangster Disciples
+- **Allies:** OTE, AMM, OTA, Murda Mafia City, E-Way, Sac Boyz
+- **Enemies:** OTS, SuWu Mobb, BuckTown, BTBG
+
+- **Bodies attributed to the set:** Lil Harry (SuWu Mobb), Lucky (SuWu Mobb), Jay Jay (SuWu Mobb), D Nice (SuWu Mobb), FIO (SuWu Mobb), Cat (SuWu Mobb)
 
 ### 400E MURDA DRIVE
 
@@ -182,6 +182,14 @@ means Gangster **Disciples** and Black Disciples.
 
 ### 5TH WARD
 
+`https://privedatabase.wordpress.com/5th-ward/` · page 289 · FCK HEAD$HOT · 2020-03-27
+
+- **Members listed:** ManManEightBall RedTay'D Savage Mike Trell Devonte Nappe Ace Boogie Roc (décédé)
+
+- **Bodies attributed to the set:** Boom (051 Young Money)
+
+### 5TH WARD
+
 `https://privedatabase.wordpress.com/5th-ward-2/` · page 7909 · FCK HEAD$HOT · 2020-01-25
 
 - **Nations:** Black Disciples
@@ -198,14 +206,6 @@ means Gangster **Disciples** and Black Disciples.
 |---|---|---|---|---|---|---|---|
 | Boom (051 Young Money) |  |  |  |  |  |  |  |
 | EightBallTay'DSavageMikeTrellDevonteAce BoogieRoc (décédé)LP |  |  | Y |  |  |  |  |
-
-### 5TH WARD
-
-`https://privedatabase.wordpress.com/5th-ward/` · page 289 · FCK HEAD$HOT · 2020-03-27
-
-- **Members listed:** ManManEightBall RedTay'D Savage Mike Trell Devonte Nappe Ace Boogie Roc (décédé)
-
-- **Bodies attributed to the set:** Boom (051 Young Money)
 
 ### 5TH WARD LIFE
 
@@ -276,19 +276,6 @@ means Gangster **Disciples** and Black Disciples.
 
 ### 800 YOUNG MONEY
 
-`https://privedatabase.wordpress.com/800-young-money/` · page 344 · FCK HEAD$HOT · 2020-03-27
-
-- **Nations:** Mickey Cobras
-- **Allies:** _none_
-- **Enemies:** _none_
-- **Notes:** Created after the death of Diddy Grove of CrankTown.
-
-- **Members listed:** AboCeaseLil JockLil NukeLil PrincePo LoRe-UpTrueyVago Lil FatzWonnoOld Head (décédé), Lil Boss (décédé), Damien (décédé), Boss SmoothSkoPyro (décédé)
-
-- **Bodies attributed to the set:** Vic (Roc Creek), Skinz (Roc Creek), Fish (Roc Creek), Boobie (Jaro City), DJ (STL/EBT), Antoinette (051 Young Money)
-
-### 800 YOUNG MONEY
-
 `https://privedatabase.wordpress.com/800-young-money-2/` · page 7890 · FCK HEAD$HOT · 2019-11-19
 
 - **Nations:** Mickey Cobras
@@ -309,11 +296,32 @@ means Gangster **Disciples** and Black Disciples.
 | Boss Smooth |  | Mickey Cobra |  |  |  | Lil J (Roc Creek); Ole Man (Roc Creek); FBG Duck (STL/EBT); Dion (TYMB); Rerock (TYMB); Tyler (Tyquan World) |  |
 | Chief C |  | Mickey Cobra |  |  | Boobie (Jaro City) |  |  |
 
+### 800 YOUNG MONEY
+
+`https://privedatabase.wordpress.com/800-young-money/` · page 344 · FCK HEAD$HOT · 2020-03-27
+
+- **Nations:** Mickey Cobras
+- **Allies:** _none_
+- **Enemies:** _none_
+- **Notes:** Created after the death of Diddy Grove of CrankTown.
+
+- **Members listed:** AboCeaseLil JockLil NukeLil PrincePo LoRe-UpTrueyVago Lil FatzWonnoOld Head (décédé), Lil Boss (décédé), Damien (décédé), Boss SmoothSkoPyro (décédé)
+
+- **Bodies attributed to the set:** Vic (Roc Creek), Skinz (Roc Creek), Fish (Roc Creek), Boobie (Jaro City), DJ (STL/EBT), Antoinette (051 Young Money)
+
 ### 808
 
 `https://privedatabase.wordpress.com/808-2/` · page 855 · FCK HEAD$HOT · 2020-03-28
 
 - **Members listed:** Murda Mal
+
+### 8TRE MOBB
+
+`https://privedatabase.wordpress.com/8tre-mobb/` · page 345 · FCK HEAD$HOT · 2020-03-27
+
+- **Members listed:** Don Darius (décédé), Murda Mal KennethYoung ChopTayRuga Teddy Lil Moe Mannie (décédé), Shoota Shoota Neko James Lil Jay Lil Scan Pablo KenKen J Moe Lil Edward Jalil Cliff (décédé), Rico Kavontae CT (décédé), KD Poka Marley (décédé)
+
+- **Bodies attributed to the set:** Roc (Whiz City), Blake (MTV), Lil Dejuan (Whiz City)
 
 ### 8TRE MOBB
 
@@ -328,13 +336,13 @@ means Gangster **Disciples** and Black Disciples.
 
 - **Bodies attributed to the set:** Roc (Whiz City), Lil Dejuan (Whiz City), Blake (MTV)
 
-### 8TRE MOBB
+### 8X13
 
-`https://privedatabase.wordpress.com/8tre-mobb/` · page 345 · FCK HEAD$HOT · 2020-03-27
+`https://privedatabase.wordpress.com/8x13/` · page 346 · FCK HEAD$HOT · 2020-03-27
 
-- **Members listed:** Don Darius (décédé), Murda Mal KennethYoung ChopTayRuga Teddy Lil Moe Mannie (décédé), Shoota Shoota Neko James Lil Jay Lil Scan Pablo KenKen J Moe Lil Edward Jalil Cliff (décédé), Rico Kavontae CT (décédé), KD Poka Marley (décédé)
+- **Members listed:** ELowJeff Gotti (décédé), Dee Santana Mike (décédé), Carlton Meech Sherm (décédé), Lil Duke Osuma Jon Jon (décédé), Chris (décédé), T-Stunna P-Nut Fame (décédé), Alex (décédé), Babo Johnny (décédé)
 
-- **Bodies attributed to the set:** Roc (Whiz City), Blake (MTV), Lil Dejuan (Whiz City)
+- **Bodies attributed to the set:** Reggis (DOD), Antonio (DOD), Christian (DOD), Raphael (DOD), Lil Rickey (KTS), Raymond (Lakeside), Rashard (400E Murda Drive), Sharman (400E Murda Drive), Deonte (400E Murda Drive)
 
 ### 8X13
 
@@ -353,14 +361,6 @@ means Gangster **Disciples** and Black Disciples.
 |---|---|---|---|---|---|---|---|
 | Lil Rickey (KTS) |  |  |  |  |  | Vinnie (KTS) |  |
 | Gotti (décédé)Mike (décédé)Sherm (décédé)Jon Jon (décédé)Chr |  |  | Y |  |  |  |  |
-
-### 8X13
-
-`https://privedatabase.wordpress.com/8x13/` · page 346 · FCK HEAD$HOT · 2020-03-27
-
-- **Members listed:** ELowJeff Gotti (décédé), Dee Santana Mike (décédé), Carlton Meech Sherm (décédé), Lil Duke Osuma Jon Jon (décédé), Chris (décédé), T-Stunna P-Nut Fame (décédé), Alex (décédé), Babo Johnny (décédé)
-
-- **Bodies attributed to the set:** Reggis (DOD), Antonio (DOD), Christian (DOD), Raphael (DOD), Lil Rickey (KTS), Raymond (Lakeside), Rashard (400E Murda Drive), Sharman (400E Murda Drive), Deonte (400E Murda Drive)
 
 ### AAB
 
@@ -534,20 +534,6 @@ means Gangster **Disciples** and Black Disciples.
 
 ### BLACKMOBB
 
-`https://privedatabase.wordpress.com/blackmobb/` · page 283 · FCK HEAD$HOT · 2020-03-27
-
-- **Nations:** Maniac Black P.Stones, Black P.Stones
-- **Allies:** _none_
-- **Enemies:** _none_
-- **Former allies:** ABK
-- **Notes:** Formerly allied with ABK until ABK turned against them and allied with NLMB instead.
-
-- **Members listed:** Bow Wow (décédé), BooSGHShakeyAwolMeechShawtyHittKing Scoobz (décédé), ShootaShellz (décédé), DBlack (décédé), BoogieCurfewJig Jay JordanJovanMaine ManeMoeManTacoVonnieBlack LordD-BoyT-Bone (décédé), TrappMoeDeo (décédé), Rhonell (décédé), Melvin (décédé), Sheldo (décédé), Hakeem (décédé), Ravon (décédé), Jordan (décédé), Eric (décédé), Lucky (décédé), Taco (décédé), Kasto (décédé)
-
-- **Bodies attributed to the set:** Frederick (NLMB), Alfredo (NLMB), Vito (NLMB), C-Moe (NLMB), 1Eye (NLMB), Chico (NLMB), Pistol P (NLMB), Richie Rich (NLMB), Molly (NLMB), Big Wet (NLMB), G-Slim (NLMB), Madd Maxx (NLMB), Lil Von (NLMB), Jermaine (ABK), Joc (ABK), DeDe (ABK), Yogi (ABK), Rio (ABK), Lil Fame (ABK), PacMan (ABK), Diddy Bop (ABK), Errol (C-Block), Willie (C-Block), Daniel (C-Block), BobO (ABK)
-
-### BLACKMOBB
-
 `https://privedatabase.wordpress.com/blackmobb-2/` · page 7492 · FCK HEAD$HOT · 2019-11-07
 
 - **Nations:** Maniac Black P.Stones, Black P.Stones
@@ -568,6 +554,20 @@ means Gangster **Disciples** and Black Disciples.
 | Shakey |  | Black Disciple |  |  | Lil Fame (ABK) |  |  |
 | SGH | Squad Go Hard |  |  | Y | Daniel (C-Block); Big Wet (NLMB) | Grece (NLMB); Rellski (NLMB); Copo (NLMB); Keemo (NLMB); Levar (NLMB); Doowop (NLMB); Larro (NLMB); G-Marco (NLMB); Lil D (C-Block); Shawn Moe (C-Block); T-Glizzy (ABK); Bobo (ABK); Ken (ABK); Shmuney (ABK) | C-Moe (NLMB); Errol (C-Block); DeDe (ABK); Yogi (ABK) |
 | Boo |  |  |  | Y | Vito (NLMB) |  |  |
+
+### BLACKMOBB
+
+`https://privedatabase.wordpress.com/blackmobb/` · page 283 · FCK HEAD$HOT · 2020-03-27
+
+- **Nations:** Maniac Black P.Stones, Black P.Stones
+- **Allies:** _none_
+- **Enemies:** _none_
+- **Former allies:** ABK
+- **Notes:** Formerly allied with ABK until ABK turned against them and allied with NLMB instead.
+
+- **Members listed:** Bow Wow (décédé), BooSGHShakeyAwolMeechShawtyHittKing Scoobz (décédé), ShootaShellz (décédé), DBlack (décédé), BoogieCurfewJig Jay JordanJovanMaine ManeMoeManTacoVonnieBlack LordD-BoyT-Bone (décédé), TrappMoeDeo (décédé), Rhonell (décédé), Melvin (décédé), Sheldo (décédé), Hakeem (décédé), Ravon (décédé), Jordan (décédé), Eric (décédé), Lucky (décédé), Taco (décédé), Kasto (décédé)
+
+- **Bodies attributed to the set:** Frederick (NLMB), Alfredo (NLMB), Vito (NLMB), C-Moe (NLMB), 1Eye (NLMB), Chico (NLMB), Pistol P (NLMB), Richie Rich (NLMB), Molly (NLMB), Big Wet (NLMB), G-Slim (NLMB), Madd Maxx (NLMB), Lil Von (NLMB), Jermaine (ABK), Joc (ABK), DeDe (ABK), Yogi (ABK), Rio (ABK), Lil Fame (ABK), PacMan (ABK), Diddy Bop (ABK), Errol (C-Block), Willie (C-Block), Daniel (C-Block), BobO (ABK)
 
 ### BlastHisAss
 
@@ -909,6 +909,16 @@ means Gangster **Disciples** and Black Disciples.
 
 ### DAMENVILLE
 
+`https://privedatabase.wordpress.com/damenville-2/` · page 7992 · FCK HEAD$HOT · 2020-02-01
+
+- **Nations:** Gangster Disciples
+- **Allies:** LOC City, Art Gang, PocketBoyz
+- **Enemies:** JackBoys, Justine, MurdaField, LordsVille, TytoLand
+
+- **Bodies attributed to the set:** AJay (TytoLand), C-Murda (JackBoys), ??? (TytoLand), ??? (TytoLand), ??? (TytoLand), ??? (TytoLand), ??? (TytoLand), ??? (LordsVille), ??? (LordsVille), ??? (LordsVille), ??? (LordsVille), ??? (LordsVille), ??? (LordsVille), ??? (LordsVille), ??? (LordsVille), ??? (LordsVille)
+
+### DAMENVILLE
+
 `https://privedatabase.wordpress.com/damenville/` · page 366 · FCK HEAD$HOT · 2020-03-27
 
 - **Nations:** Gangster Disciples
@@ -920,16 +930,6 @@ means Gangster **Disciples** and Black Disciples.
 - **Members listed:** Steveo (décédé), Tae (décédé), Ill Will (décédé), Bop D (décédé), By (décédé), Tuta (décédé), Mon (décédé), Tra'Don (décédé)
 
 - **Bodies attributed to the set:** Tyto (5th Ward Life), JonJon (5th Ward Life), Stephon (5th Ward Life)
-
-### DAMENVILLE
-
-`https://privedatabase.wordpress.com/damenville-2/` · page 7992 · FCK HEAD$HOT · 2020-02-01
-
-- **Nations:** Gangster Disciples
-- **Allies:** LOC City, Art Gang, PocketBoyz
-- **Enemies:** JackBoys, Justine, MurdaField, LordsVille, TytoLand
-
-- **Bodies attributed to the set:** AJay (TytoLand), C-Murda (JackBoys), ??? (TytoLand), ??? (TytoLand), ??? (TytoLand), ??? (TytoLand), ??? (TytoLand), ??? (LordsVille), ??? (LordsVille), ??? (LordsVille), ??? (LordsVille), ??? (LordsVille), ??? (LordsVille), ??? (LordsVille), ??? (LordsVille), ??? (LordsVille)
 
 ### Darren
 
@@ -1524,19 +1524,6 @@ means Gangster **Disciples** and Black Disciples.
 
 ### JARO CITY
 
-`https://privedatabase.wordpress.com/jaro-city/` · page 243 · FCK HEAD$HOT · 2020-03-26
-
-- **Nations:** Gangster Disciples, Black Disciples
-- **Allies:** _none_
-- **Enemies:** _none_
-- **Notes:** Formerly known as ABM/COB before Jaro was killed.
-
-- **Members listed:** Jarvis « Jaro » Lil MikeLil DarrellDJMattanaJ ManeTuTu (décédé), Lil Panky50ShotsMotor (décédé), WayneTorranceSkinnyDomeTiger (décédé), Dalvin (décédé), Hottie (décédé), Corey (décédé), Sammy Lo (décédé), Archie (décédé), JaJa (décédé), SeanDerrick (décédé), Jeremy (décédé), Mook (décédé), BankHead (décédé), P5 (décédé), Twink (décédé), Lil Ho (décédé), GFredeo (décédé), Boobie (décédée), OJ (décédé), Tommy (décédé), Dashea (décédé), Trell (décédé), Side (décédé), Hood (décédé), Jonrynn (décédé), Lil Wood (décédé), Tyquan (décédé), Phillip (décédé), Dark (décédé), Moon Mo (décédé), Serge (décédé), Don Von (décédé), DP (décédé), Gucci 305Baby DBinkyBlocksBoo ManB-SkoCamCashCoonChadonChief TyCopoCreedDamageDanoDipLowEl RugerDukeGloWopHariJamesJoeKeionKaliffKennyKobeLil AntLil BossLil JoeLil SavageLil WorkaMarquisMaziNicoNumba9Ray Ray Reese GezzyRell RellRichy RichRockRonRonteRubySantanaSmokeyTilgoTravo (décédé)
-
-- **Bodies attributed to the set:** Dameon (TYMB), Stanley (TYMB), Marcus (TYMB), Boo (TYMB), Albert (PocketTown), Big Squirt (SquirtTown), Curt (SquirtTown), Black Boy (SquirtTown), BJ (SquirtTown), Slo-Folkz (SquirtTown), Jizzle (SquirtTown), Don (Brick City), Craig (Brick City), Alonzo (Brick City), Black Steve (Brick City), Leo (Brick City), DD (Brick City), D-Thang (600), White White (O'Block), G-Red (NLMB)
-
-### JARO CITY
-
 `https://privedatabase.wordpress.com/jaro-city-2/` · page 7486 · FCK HEAD$HOT · 2019-11-07
 
 - **Nations:** Gangster Disciples, Black Disciples
@@ -1563,6 +1550,19 @@ means Gangster **Disciples** and Black Disciples.
 | Lil Mike |  | Gangster Disciple |  | Y |  | Trell (TYMB); Jhari (TYMB); Cortney (TYMB); Lil Boo (600); D.Rose (600); T-Slick (Front$treet); Lil Melo (O'Block); B Way (O'Block); BooMan (Geo Drive) |  |
 | JaJa | JaJa Gang | Gangster Disciple | Y |  |  |  | Curt (SquirtTown) |
 | Travis |  | Gangster Disciple | Y |  |  |  | Melly (051 Young Money) |
+
+### JARO CITY
+
+`https://privedatabase.wordpress.com/jaro-city/` · page 243 · FCK HEAD$HOT · 2020-03-26
+
+- **Nations:** Gangster Disciples, Black Disciples
+- **Allies:** _none_
+- **Enemies:** _none_
+- **Notes:** Formerly known as ABM/COB before Jaro was killed.
+
+- **Members listed:** Jarvis « Jaro » Lil MikeLil DarrellDJMattanaJ ManeTuTu (décédé), Lil Panky50ShotsMotor (décédé), WayneTorranceSkinnyDomeTiger (décédé), Dalvin (décédé), Hottie (décédé), Corey (décédé), Sammy Lo (décédé), Archie (décédé), JaJa (décédé), SeanDerrick (décédé), Jeremy (décédé), Mook (décédé), BankHead (décédé), P5 (décédé), Twink (décédé), Lil Ho (décédé), GFredeo (décédé), Boobie (décédée), OJ (décédé), Tommy (décédé), Dashea (décédé), Trell (décédé), Side (décédé), Hood (décédé), Jonrynn (décédé), Lil Wood (décédé), Tyquan (décédé), Phillip (décédé), Dark (décédé), Moon Mo (décédé), Serge (décédé), Don Von (décédé), DP (décédé), Gucci 305Baby DBinkyBlocksBoo ManB-SkoCamCashCoonChadonChief TyCopoCreedDamageDanoDipLowEl RugerDukeGloWopHariJamesJoeKeionKaliffKennyKobeLil AntLil BossLil JoeLil SavageLil WorkaMarquisMaziNicoNumba9Ray Ray Reese GezzyRell RellRichy RichRockRonRonteRubySantanaSmokeyTilgoTravo (décédé)
+
+- **Bodies attributed to the set:** Dameon (TYMB), Stanley (TYMB), Marcus (TYMB), Boo (TYMB), Albert (PocketTown), Big Squirt (SquirtTown), Curt (SquirtTown), Black Boy (SquirtTown), BJ (SquirtTown), Slo-Folkz (SquirtTown), Jizzle (SquirtTown), Don (Brick City), Craig (Brick City), Alonzo (Brick City), Black Steve (Brick City), Leo (Brick City), DD (Brick City), D-Thang (600), White White (O'Block), G-Red (NLMB)
 
 ### JIGDOGS
 
@@ -1852,17 +1852,6 @@ means Gangster **Disciples** and Black Disciples.
 
 ### LOC CITY (BotY)
 
-`https://privedatabase.wordpress.com/loc-city-boty-2/` · page 7991 · FCK HEAD$HOT · 2020-02-01
-
-- **Nations:** Gangster Disciples
-- **Allies:** DamenVille, ArtGang, PocketBoyz
-- **Enemies:** Justine (MoeTown), MurdaField (MoeTown), LordsVille, JackBoys (MoeTown)
-- **Notes:** Not to be confused with the LOC City from North Pole; mostly BDK.
-
-- **Bodies attributed to the set:** Tyto (LordsVille), C-Murda (JackBoys), AJ (JackBoys), Kevin (Jackboys, tué en 2019), Jacob (Jackboys, tué en 2019)
-
-### LOC CITY (BotY)
-
 `https://privedatabase.wordpress.com/loc-city-boty/` · page 450 · FCK HEAD$HOT · 2020-03-27
 
 - **Nations:** Gangster Disciples
@@ -1871,6 +1860,17 @@ means Gangster **Disciples** and Black Disciples.
 - **Notes:** Not to be confused with the LOC City in North Chicago.
 
 - **Members listed:** GlockBoy BoBoGlockBoy KOGPap (décédé), Heado (décédé), ChiefLocMoney (décédé), Rico (décédé), Mon (décédé), Tra'Don (décédé)
+
+### LOC CITY (BotY)
+
+`https://privedatabase.wordpress.com/loc-city-boty-2/` · page 7991 · FCK HEAD$HOT · 2020-02-01
+
+- **Nations:** Gangster Disciples
+- **Allies:** DamenVille, ArtGang, PocketBoyz
+- **Enemies:** Justine (MoeTown), MurdaField (MoeTown), LordsVille, JackBoys (MoeTown)
+- **Notes:** Not to be confused with the LOC City from North Pole; mostly BDK.
+
+- **Bodies attributed to the set:** Tyto (LordsVille), C-Murda (JackBoys), AJ (JackBoys), Kevin (Jackboys, tué en 2019), Jacob (Jackboys, tué en 2019)
 
 ### LORDSVILLE
 
@@ -2076,29 +2076,6 @@ means Gangster **Disciples** and Black Disciples.
 
 ### MOETOWN
 
-`https://privedatabase.wordpress.com/moetown/` · page 479 · FCK HEAD$HOT · 2020-03-27
-
-- **Bodies attributed to the set:** NuNe (Insane City), Woo (Shields), Migo (Shields), Tonio (Dumpstreet), Eddy (La Raza), Ju (No Luv City), Rusty (Shields), Malachi (Shields), Fatz (No Luv City), Tell (Jaro City), Zoey Zoe (CMB), G-Nauch (Insane City), Johno (Pocket Boyz), Nelly (Pocket Boyz), Kae (Pocket Boyz)
-
-| Member | Aliases | Nation | Dead | Locked | Bodies | Shootings | Assists |
-|---|---|---|---|---|---|---|---|
-| YCK |  |  |  |  |  |  |  |
-| FOLLYBOYZ |  |  |  |  |  |  |  |
-| BBG |  |  |  |  |  |  |  |
-| MACTOWN |  |  |  |  |  |  |  |
-| KTC |  |  |  |  |  |  |  |
-| GGE |  |  |  |  |  |  |  |
-| JETGANG |  |  |  |  |  |  |  |
-| 5400 |  |  |  |  |  |  |  |
-| AMB |  |  |  |  |  |  |  |
-| BACKBLOCK |  |  |  |  |  |  |  |
-| OTL |  |  |  |  |  |  |  |
-| JACKBOYS |  |  |  |  |  |  |  |
-| JUST-US |  |  |  |  |  |  |  |
-| MURDAFIELD |  |  |  |  |  |  |  |
-
-### MOETOWN
-
 `https://privedatabase.wordpress.com/moetown-2/` · page 7490 · FCK HEAD$HOT · 2019-11-07
 
 - **Nations:** Black P.Stones
@@ -2134,6 +2111,29 @@ means Gangster **Disciples** and Black Disciples.
 | YG Shorty |  | Black P.Stone |  |  |  |  |  |
 | TWhy |  | Black P.Stone | Y |  |  |  | Bankroll Q (051 Young Money) |
 | Malik |  | Black P.Stone |  | Y | G-Nuk (MoeTown) |  |  |
+
+### MOETOWN
+
+`https://privedatabase.wordpress.com/moetown/` · page 479 · FCK HEAD$HOT · 2020-03-27
+
+- **Bodies attributed to the set:** NuNe (Insane City), Woo (Shields), Migo (Shields), Tonio (Dumpstreet), Eddy (La Raza), Ju (No Luv City), Rusty (Shields), Malachi (Shields), Fatz (No Luv City), Tell (Jaro City), Zoey Zoe (CMB), G-Nauch (Insane City), Johno (Pocket Boyz), Nelly (Pocket Boyz), Kae (Pocket Boyz)
+
+| Member | Aliases | Nation | Dead | Locked | Bodies | Shootings | Assists |
+|---|---|---|---|---|---|---|---|
+| YCK |  |  |  |  |  |  |  |
+| FOLLYBOYZ |  |  |  |  |  |  |  |
+| BBG |  |  |  |  |  |  |  |
+| MACTOWN |  |  |  |  |  |  |  |
+| KTC |  |  |  |  |  |  |  |
+| GGE |  |  |  |  |  |  |  |
+| JETGANG |  |  |  |  |  |  |  |
+| 5400 |  |  |  |  |  |  |  |
+| AMB |  |  |  |  |  |  |  |
+| BACKBLOCK |  |  |  |  |  |  |  |
+| OTL |  |  |  |  |  |  |  |
+| JACKBOYS |  |  |  |  |  |  |  |
+| JUST-US |  |  |  |  |  |  |  |
+| MURDAFIELD |  |  |  |  |  |  |  |
 
 ### MONEY BY ANY MEANS (MBAM)
 
@@ -2824,14 +2824,6 @@ means Gangster **Disciples** and Black Disciples.
 
 ### STL/EBT
 
-`https://privedatabase.wordpress.com/stl-ebt/` · page 242 · FCK HEAD$HOT · 2020-03-26
-
-- **Members listed:** BGSkoK.I. (décédée), WeeWeeSo IceyLil DonLil B (décédé), TakiDrizzyChickenFBG Brick (décédé), BossTrell (décédé), FBG YoungWooskiTooka (décédé), King Lil JayButtaDutchieFBG DuckManny FreshCray CrayCheChoC-BallFBG CashCantGetRight (décédé), BlinkBillionaire BlackBig DeeCelloDale (décédé), Day DayDieselDoc (décédé), Fay FayFlameJialeJyronKing ColeLil PLuckyMeechieModell (décédé), MoonHeadMr.HotSauce (décédé), NaroPharoahRastaRicoRoRoTy (décédé), SpoonVonnaWaldoZoe (décédé), Keonte (décédé), Marcus (décédé), Carl (décédé), Michael (décédé), Robert (décédé), Lil Arron (décédé)
-
-- **Bodies attributed to the set:** Ty (TYMB), Jimmie (TYMB), Larry (TYMB), Lee (TYMB), Solomon (TYMB), Lil Chris (TYMB), Rozelle (TYMB), Ray (TYMB), Lil James (TYMB), Fella (WIIIC City), Reezy (WIIIC City), Odee (WIIIC City), D-Thang (600), Patoon (O'Block), Sheroid (O'Block), J-Money (O'Block), Sam (O'Block), HK (O'Block), Jawan (Chris World), Moe (Tyquan World), Rico (Nicko Gang), Valentino (Nicko Gang), Copo (Will City), Levonne (RMG), True (Zone7), Juicy (MetLife), P-Nut (Saint World)
-
-### STL/EBT
-
 `https://privedatabase.wordpress.com/stl-ebt-2/` · page 7484 · FCK HEAD$HOT · 2019-11-07
 
 - **Nations:** Gangster Disciples
@@ -2870,6 +2862,14 @@ means Gangster **Disciples** and Black Disciples.
 | K.I | Snoop, Tyquan | Gangster Disciple | Y |  | Odee (WIIIC City); Innocent (O'Block); Dealer de drogue (Chicago) | Lil C (TYMB); E-Dogg (O'Block); King Von (O'Block); Travis (O'Block); T-Roy (O'Block); Sharona (O'Block); Big A (O'Block); Scudd (O'Block); Ronn Taylor (O'Block); D.Rose (600); Makado (600); S.Dot (600); Rickey (Chris World); Law (DOD); Boss Smooth (800); Wonno (800); Big Mike (800); Oshay (Whiz City); Pig (GeoDrive); Salo (Lamron) | Jizzle (SquirtTown); Sheroid (O'Block); Patoon (O'Block); Juicy (MetLife); J-Money (O'Block); Blood Money (Front$treet) |
 | BG |  | Gangster Disciple |  | Y |  |  | Ty (YMB) |
 | Sko |  | Gangster Disciple |  |  | Jaydo (O'Block) |  |  |
+
+### STL/EBT
+
+`https://privedatabase.wordpress.com/stl-ebt/` · page 242 · FCK HEAD$HOT · 2020-03-26
+
+- **Members listed:** BGSkoK.I. (décédée), WeeWeeSo IceyLil DonLil B (décédé), TakiDrizzyChickenFBG Brick (décédé), BossTrell (décédé), FBG YoungWooskiTooka (décédé), King Lil JayButtaDutchieFBG DuckManny FreshCray CrayCheChoC-BallFBG CashCantGetRight (décédé), BlinkBillionaire BlackBig DeeCelloDale (décédé), Day DayDieselDoc (décédé), Fay FayFlameJialeJyronKing ColeLil PLuckyMeechieModell (décédé), MoonHeadMr.HotSauce (décédé), NaroPharoahRastaRicoRoRoTy (décédé), SpoonVonnaWaldoZoe (décédé), Keonte (décédé), Marcus (décédé), Carl (décédé), Michael (décédé), Robert (décédé), Lil Arron (décédé)
+
+- **Bodies attributed to the set:** Ty (TYMB), Jimmie (TYMB), Larry (TYMB), Lee (TYMB), Solomon (TYMB), Lil Chris (TYMB), Rozelle (TYMB), Ray (TYMB), Lil James (TYMB), Fella (WIIIC City), Reezy (WIIIC City), Odee (WIIIC City), D-Thang (600), Patoon (O'Block), Sheroid (O'Block), J-Money (O'Block), Sam (O'Block), HK (O'Block), Jawan (Chris World), Moe (Tyquan World), Rico (Nicko Gang), Valentino (Nicko Gang), Copo (Will City), Levonne (RMG), True (Zone7), Juicy (MetLife), P-Nut (Saint World)
 
 ### STONY SPOT
 
@@ -3385,21 +3385,12 @@ means Gangster **Disciples** and Black Disciples.
 
 ---
 
-## Other Chicago pages (141)
+## Other Chicago pages (27)
 
-86 empty pages are omitted: each duplicates the title of a page that does
-have content, so they carry nothing.
-
-### Name-only pages (114)
-
-Empty on the site, but each is the **only** page bearing its name. They are kept because
-those titles are the alias index - `NLMB` is an empty page, and it is what resolves the
-12 references to NLMB onto `NO LIMIT/MUSKEGON BOYZ`. Deleting them would silently break
-143 relationship edge ends. They are also evidence the set exists at all.
-
-8-TRAY (`2561`), 87TH CUTTHROATS (`852`), 9-0 ASHLAND (`858`), 9-5 MOB (`861`), 9-TRAY (`860`), A-BLOCK (`869`), ADA PARK (`836`), ALTGELD MURRAY GARDENS (`1055`), BBG TERROR DOME (`560`), BLACKMOB (`282`), BLOODSTONES (`1035`), BOOGIE WORLD (`867`), BRICK CITY (`241`), BRICKYARD (`285`), BSC (`873`), BURNSIDE (`1033`), BWST (`360`), C-TOWN (`837`), C.A (`851`), CEDWORLD (`1022`), CENTRAL CITY (`856`), CHIEFTOWN (`1028`), CHILL CITY (`847`), CHOPBLOCK (`1027`), CHUNKYCITY (`879`), CMB (`363`), COOPVILLE (`838`), CRANK TOWN (`364`), D-TOWN (`800`), D.O.D (`348`), DOONSQUAD (`868`), DREXSIDE (`798`), DUCKTOWN (`859`), DUKESQUAD (`799`), E-SPOT (`848`), EBE (`402`), FACEWORLD 069 (`395`), FACEWORLD 079 (`396`), FINNTOWN (`854`), FLIN BOYZ (`1024`), FROGANG (`1043`), FRONT$TREET (`244`), FSG (`1048`), FUCKCITY (`1039`), GHETTOWORLD (`1030`), GHOSTMOBB (`1051`), Glo Gang (`4334`), GME (`401`), GOONTOWN 10-5 (`846`), GUCCIGANG (`1041`), GVG (`406`), HITZSQUAD (`1056`), IMM (`440`), INSANE CITY (`876`), KTS (`443`), L-BLOCK (`877`), LACK CITY (`844`), LEXVILLE (`1026`), LONDON TOWN (`834`), MAIN CITY (`845`), MAPLEWOOD (`1042`), MAUL TOWN (`841`), MAYBLOCK (`857`), MBAM (`480`), MetLife (`4349`), MIKE CITY (`853`), MMG (`1031`), MNA (`478`), MNS (`1047`), MOA (`1049`), MONEYBLOCK (`875`), MOTHERLAND (`1052`), NATEVILLE (`863`), NLMB (`274`), OBN (`513`), OTE (`514`), P-BLOCK (`516`), PACOLAND (`840`), PALMER PARK (`835`), PBG (`518`), PIRATEGANG (`1053`), POPPYGANG (`1046`), PRINCETONMOBB (`1040`), QUIETMONEY (`864`), QUILLBLOCK (`1034`), RACKCITY (`862`), RAG TOWN (`839`), REBLUV (`866`), RICOBLOCK (`843`), ROOKIEVILLE 11-5 (`1038`), RUDEVILLE (`1036`), S-DUB (`1021`), S.O.A (`1065`), SAVAGE SQUAD (`1913`), SICKOMOBB (`1045`), SIN CITY (`833`), SKD (`566`), SQUADVILLE (`871`), STAIN CITY (`865`), STATEBOYZ (`1037`), STONE TEZ (`849`), TAYTOWN (`881`), TERROR TOWN (`1020`), TFG (`519`), TONIOMOBB (`1044`), TRAYTOWN (`850`), TRIPLE B’Z (`1032`), TYTO LAND (`576`), UNDERTAKERS (`1050`), WHITEWHITE GANG (`1025`), WILL CITY (`801`), YMM (`1023`), YOSHI CITY (`1112`), YOUNGWORLD (`878`)
-
-### Pages with text but no set structure (27)
+200 empty pages are omitted. The site uses blank placeholder pages as stand-ins
+for sets nobody has written up; referencing one resolves to nothing, so they are not
+carried here. What they were doing implicitly - recording that a name exists - is now
+explicit in `tools/alias-map.json` under `no_content`.
 
 | Page | Title | Kind | Text |
 |---|---|---|---|
@@ -3430,3 +3421,171 @@ those titles are the alias index - `NLMB` is an empty page, and it is what resol
 | 2540 | Will | person | Darryl Gooden , aussi connu sous le nom de “ Big Will ” ou de “ George ” était un des lieutenants des PA Boys à Atlanta . |
 | 7968 | YOUNG LORDS | person | Les Young Lords sont un set de GayLords . Ils sont situés dans l’ Uptown . C’est l’un des plus vieux sets GayLords encore présent, ils ont près de 50 ans d’existence . |
 | 1226 | Zo | person | Lorenzo “ Zo ” McKeithen était un 4 Corner Hustler du Chestnut . Il est tué le 5 Juin 2009 . Après sa mort, le Chestnust se renomme en “ ZoLand ” pour lui rendre hommage. |
+
+---
+
+## Referenced but never written (155)
+
+Sets that other sets name as an ally or enemy, but which no page describes. Together
+they account for **244 relationship edge ends**.
+
+These should **not** become empty records in the wiki either. An edge to a set with no
+content is not worth a row; seed them only if and when someone writes them up.
+
+| Set | Times referenced |
+|---|---|
+| No Luv City | 11 |
+| TBG | 7 |
+| IBM | 6 |
+| D-Town | 5 |
+| MayBlock | 5 |
+| MuBu | 5 |
+| AMM | 4 |
+| BuckTown | 4 |
+| DukeSquad | 4 |
+| E-Way | 4 |
+| OTA | 4 |
+| Sac Boyz | 4 |
+| 87th Cutthroat | 3 |
+| GMEBE | 3 |
+| JJ Gang | 3 |
+| OTS | 3 |
+| QuietMoney | 3 |
+| SDub | 3 |
+| W.B 057 | 3 |
+| YH | 3 |
+| 8Tray | 2 |
+| ArtGang | 2 |
+| BH | 2 |
+| BlockBurna | 2 |
+| Buck Town | 2 |
+| CAst | 2 |
+| CrossAshland | 2 |
+| DDG | 2 |
+| DrexSide | 2 |
+| DuckTown | 2 |
+| E-Spot | 2 |
+| GhostMobb | 2 |
+| MME | 2 |
+| NuneWorld | 2 |
+| PocketBoyz | 2 |
+| RowLife | 2 |
+| SouthEnd | 2 |
+| TNG | 2 |
+| TrayTown | 2 |
+| WB 057 | 2 |
+| WW | 2 |
+| Will City | 2 |
+| 3rd Ward | 1 |
+| 4100 | 1 |
+| 4400 | 1 |
+| 600 CVLs | 1 |
+| 7200 | 1 |
+| 87th Cutthroats | 1 |
+| 8×13 | 1 |
+| 9-0 | 1 |
+| ABKColes Mobb | 1 |
+| Art Gang | 1 |
+| B-Gang | 1 |
+| BTBG | 1 |
+| Bejian Gang | 1 |
+| Bejian World | 1 |
+| Belden City | 1 |
+| Bird Gang | 1 |
+| BoysTown | 1 |
+| C-Block | 1 |
+| CPL | 1 |
+| CTG | 1 |
+| CampCity | 1 |
+| Central City | 1 |
+| Cicero Assassins | 1 |
+| Clark Latin Kings | 1 |
+| CrossAhland | 1 |
+| Da Stain | 1 |
+| Death Trap | 1 |
+| DoonSquad | 1 |
+| Drake City | 1 |
+| EastEnd | 1 |
+| Evil Side Latin Brothers | 1 |
+| FlinBoyz | 1 |
+| FlipSide | 1 |
+| Fuck City | 1 |
+| G-Block | 1 |
+| GhostTown | 1 |
+| Glo Gang (GBE) | 1 |
+| Grand City | 1 |
+| GreedyGang | 1 |
+| Grimy Gang | 1 |
+| HB | 1 |
+| Hitzsquad | 1 |
+| Homicide Latin Kings | 1 |
+| Insane Block | 1 |
+| Insane City | 1 |
+| JamariWorld | 1 |
+| JayloGang | 1 |
+| Justine | 1 |
+| KP-Gang | 1 |
+| KTSMB | 1 |
+| Koz Park Insane Albany | 1 |
+| Koz Park YLOCs | 1 |
+| LA Gang | 1 |
+| LDubb GDs | 1 |
+| LMG | 1 |
+| LT | 1 |
+| La Raza | 1 |
+| Latin Dragons | 1 |
+| Latin Eagles | 1 |
+| MOA | 1 |
+| MacBlock | 1 |
+| MachetteVille | 1 |
+| MadVille | 1 |
+| Mafia Murda City | 1 |
+| Marshall Fields MCs | 1 |
+| Marshfield MCs | 1 |
+| MetLife | 1 |
+| Mike City | 1 |
+| MikeCity | 1 |
+| Mobile and Dickens | 1 |
+| Monticello YLOCs | 1 |
+| Motherland YLOCs | 1 |
+| Murda Mafia City | 1 |
+| NateVille | 1 |
+| NewMoney | 1 |
+| OTG | 1 |
+| OTL | 1 |
+| P-Streets | 1 |
+| PA | 1 |
+| Peterson LKs | 1 |
+| PoppyGang | 1 |
+| Princeton Mobb | 1 |
+| Push Squad | 1 |
+| QuietMoney TTM | 1 |
+| QuillBlock | 1 |
+| RCst | 1 |
+| Rack City | 1 |
+| RebLuv | 1 |
+| Saint World | 1 |
+| Sane Gang | 1 |
+| Savage Squad | 1 |
+| ScrappVille | 1 |
+| SickoMobb | 1 |
+| Sin City YLOCs | 1 |
+| SnoBlock | 1 |
+| Solo City | 1 |
+| StainCity | 1 |
+| StoneVille | 1 |
+| StoneVilles | 1 |
+| Stoneville | 1 |
+| SuWu | 1 |
+| TLove | 1 |
+| TTE | 1 |
+| TVL sets | 1 |
+| TYB | 1 |
+| Trap Squad | 1 |
+| TunechiVille | 1 |
+| Uptown Lawds | 1 |
+| Vice Lords | 1 |
+| Winona Stones | 1 |
+| YKN | 1 |
+| YatesMobb | 1 |
+| YoungWorld | 1 |
