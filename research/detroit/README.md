@@ -67,12 +67,17 @@ plus the blog's statistics pages.
 - `people.md` - consolidated roster of every named individual, grouped by set, with a
   `MemberStatus` enum mapping. Separates gang members from victims and from officials.
 - `sets.md` - sets and gangs with territory, aliases, rivals and internal rank vocabulary.
-  **Read its "Naming caution" section before seeding anything** - four distinct traps there
-  will corrupt the Set table (gangs rename themselves; "Band" is three different gangs).
+  **Read its "Naming caution" section before seeding anything** - five distinct traps there
+  will corrupt the Set table (gangs rename themselves; "Band" is three different gangs;
+  "Seven Mile Bloods" is a set while "the 5s" is the bloc it grew into).
 - `incidents.md` - dated incident timeline with FuzzyDate precision marked per row.
 - `homicides/` - 4,019 Detroit homicide victims, 2003-2013, one markdown file per year.
 
-Nothing in `extraction/` has been written to the database.
+Almost nothing in `extraction/` has been written to the database. The exceptions, all
+seeded 2026-08-21, are the Seven Mile Bloods set, the `5s` alliance, HobSquad's placement
+under both, Billy Arnold and Corey Bailey, and the 14 July 2014 shooting that killed Djuan
+"Neff" Page along with the four Hustle Boys who were in the car. Sections that have been
+seeded say so.
 
 ## Workflow
 

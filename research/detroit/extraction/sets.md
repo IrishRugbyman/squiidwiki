@@ -6,13 +6,13 @@ federal agency release, or named press reporting. Source IDs map to `source-inde
 This complements `bloods-sets-extraction.md`, which covers the DetroitStreetGangs.com Bloods
 overview. Where the two disagree, the primary source here should win.
 
-**Nothing here has been written to the database.**
+Most of this has **not** been written to the database. What has is marked per section.
 
 ---
 
 ## Naming caution: read this before seeding
 
-Four distinct problems will corrupt the Set table if handled naively.
+Five distinct problems will corrupt the Set table if handled naively.
 
 **1. Gangs rename themselves.** Smokecamp went **Runyon Boys → Original Paid Bosses (OPB) →
 Paid Bosses Inc. → Smokecamp** [legal-037]. All four names appear across sources for the same
@@ -38,18 +38,51 @@ the Phantom Outlaw MC and a "Three-Star General" of the Vice Lords in Michigan [
 The schema's independent nullable `gang_id` on Set, Alliance and Member handles this; do not
 force his set and nation to agree.
 
+**5. "Seven Mile Bloods" is a set. "The 5s" is the bloc it grew into.** The east side runs two
+Detroit-born alliances that are named after their founding sets, which is why everyone
+mixes the two levels up. The **5s** are Blood-side and trace to the **55 Seven Mile Bloods**;
+the **4s** are Crip-rooted and trace to the **42 Hustle Boyz**, **24 Boss Hoggs** and **42
+Gutta Boyz** [detroitstreetgangs.com]. The 5s now covers thirty-plus affiliated cliques, so
+the founding set's name gets used for the whole bloc, and **"RedZone Bloods" names both**.
+SMB also has internal cliques of its own, every one of them carrying the 55 prefix (55 OEG,
+55 52, 55 700 WaxGang, 55 TMB, 55 Psykoz, 55 DrenchGang, 55 50 Zone, 55 MG), so from the
+inside it reads as an umbrella too. It is not: it is one `Set`, under the `Bloods` nation,
+inside a `5s` `Alliance`. The 4s side of this is already modelled that way in the DB, as the
+`4Gang` alliance holding Hustle Boyz, Gutta Boyz, Boss Hoggs, 264 and 1000Gang.
+
+Two further traps on the same words. The Bounty Hunter Bloods maintain their own **"Seven
+Mile Line"**, about fifteen members who identify with that stretch of their turf [legal-027] -
+no relation to SMB. And several unrelated sets sit on Seven Mile Road: SmokeCamp at Albion,
+MOB Pirus at Fenkell, Black P. Stones at Telegraph, 5674 at Van Dyke. **"The Bloods on Seven
+Mile" is a geography, not an organisation**, and it is the thing people are usually describing
+when they call SMB a conglomerate.
+
 ---
 
 ## Seven Mile Bloods (SMB)
 
+**Seeded 2026-08-21** as set `seven-mile-bloods`, under the `Bloods` gang and the `5s`
+alliance. See naming caution 5 above before adding anything to it.
+
 | Field | Value |
 |---|---|
 | Nation | Bloods |
-| Territory | The **"Red Zone,"** east side Detroit |
+| Alliance | **The 5s** (the bloc SMB founded; do not merge the two) |
+| Number | **55** |
+| Territory | The **"Red Zone,"** east side 48205, written **4820-DIE**: Gratiot to Kelly, Seven Mile to Eight Mile |
+| Scale | ~20 members and associates controlled the whole zip code, per federal investigators |
+| Internal cliques | 55 OEG, 55 52, 55 700 WaxGang, 55 TMB, 55 Psykoz, 55 DrenchGang, 55 50 Zone, 55 MG |
 | Sub-sects | **Seven Mile Blood Juniors**, renamed **Hobsquad** |
+| Aliases | SMB, 55 SMB, RedZone Bloods, 726, HOBCITY, GrinchGang, ShottaGang, RyderBloxk, 55 Grinch |
+| Economy | Detroit-to-West-Virginia prescription pill pipeline, reported at $80k/week |
 | Instagram | `000_big_blood` |
 | Status | ACTIVE at time of sources |
-| Sources | press-120 to press-128, legal-023 to legal-026 |
+| Sources | press-120 to press-128, legal-023 to legal-026; clique list and the 5s/4s framing from detroitstreetgangs.com (`UNVERIFIED`) |
+
+Case outcome: 21 charged in *US v. Arnold*, E.D. Mich. 2:15-cr-20652. Corey "Cocaine Sonny"
+Bailey convicted 27 Aug 2018, sentenced Oct 2019 to two life terms plus three ten-year terms
+concurrent. Billy Arnold convicted Dec 2023 on 22 counts, sentenced to life 10 Apr 2024 by
+Chief Judge Sean Cox, the 20th member or associate convicted.
 
 Historically the stronger east-side gang, which is why its rivals eventually combined against
 it. The Juniors were "a sect initially composed of schoolkids from The Red Zone" who renamed
