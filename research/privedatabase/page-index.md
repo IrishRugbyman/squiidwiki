@@ -15,7 +15,7 @@ All **1,105 pages** harvested 2026-08-21 via the WordPress.com public REST API
 ## Columns
 
 `City` is derived, not stored on the site - see `README.md` for how and how reliable.
-`Kind`: `set` (has ALLIÉS/ENNEMIS/MEMBRES structure or is listed on a city index), `person`,
+`Kind`: `set` (carries a set bio, a member list, or is listed on a city index), `person`,
 `city-index`, `admin` (site furniture), `empty` (page exists, no content).
 `D`/`L` mark text asserting the subject is deceased / incarcerated.
 
@@ -297,261 +297,255 @@ All **1,105 pages** harvested 2026-08-21 via the WordPress.com public REST API
 | 580 | YOUNG LORDS | chicago | empty | FCK HEAD$HOT | 2020-03-27 | 2020-03-27 | 0 |  |  |  | https://privedatabase.wordpress.com/young-lords/ |
 | 878 | YOUNGWORLD | chicago | empty | FCK HEAD$HOT | 2020-03-28 | 2020-03-28 | 0 |  |  |  | https://privedatabase.wordpress.com/youngworld/ |
 | 608 | ZONE7 | chicago | empty | FCK HEAD$HOT | 2020-03-27 | 2020-03-27 | 0 |  |  |  | https://privedatabase.wordpress.com/zone7/ |
-| 7494 | 051 YOUNG MONEY | chicago | person | FCK HEAD$HOT | 2019-11-07 | 2019-11-07 | 10084 | 23 | Y | Y | https://privedatabase.wordpress.com/051-young-money-2/ |
-| 287 | 1200 | chicago | person | FCK HEAD$HOT | 2020-03-27 | 2020-03-27 | 270 |  |  |  | https://privedatabase.wordpress.com/1200-2/ |
-| 8291 | 1200 | chicago | person | FCK HEAD$HOT | 2020-03-10 | 2020-03-10 | 324 |  |  |  | https://privedatabase.wordpress.com/1200-2-2/ |
-| 288 | 400E MURDA DRIVE | chicago | person | FCK HEAD$HOT | 2020-03-27 | 2020-03-27 | 636 | 1 | Y |  | https://privedatabase.wordpress.com/400e-murda-drive/ |
-| 7893 | 400E MURDA DRIVE | chicago | person | FCK HEAD$HOT | 2019-11-19 | 2019-11-19 | 1080 | 3 |  |  | https://privedatabase.wordpress.com/400e-murda-drive-2/ |
-| 290 | 50 STRONG | chicago | person | FCK HEAD$HOT | 2020-03-27 | 2020-03-27 | 863 | 1 | Y |  | https://privedatabase.wordpress.com/50-strong/ |
-| 7889 | 50 STRONG | chicago | person | FCK HEAD$HOT | 2019-11-19 | 2019-11-19 | 2077 | 9 | Y | Y | https://privedatabase.wordpress.com/50-strong-2/ |
-| 3797 | 50Shot Mall | chicago | person | FCK HEAD$HOT | 2020-04-22 | 2020-04-22 | 576 | 1 |  |  | https://privedatabase.wordpress.com/50shot-mall/ |
-| 289 | 5TH WARD | chicago | person | FCK HEAD$HOT | 2020-03-27 | 2020-03-27 | 310 | 1 | Y |  | https://privedatabase.wordpress.com/5th-ward/ |
-| 7909 | 5TH WARD | chicago | person | FCK HEAD$HOT | 2020-01-25 | 2020-01-25 | 613 | 2 | Y | Y | https://privedatabase.wordpress.com/5th-ward-2/ |
-| 1767 | 5TH WARD LIFE | chicago | person | FCK HEAD$HOT | 2020-04-10 | 2020-04-10 | 551 |  | Y |  | https://privedatabase.wordpress.com/5th-ward-life/ |
-| 227 | 600 | chicago | person | FCK HEAD$HOT | 2020-03-26 | 2020-03-26 | 1910 | 1 | Y |  | https://privedatabase.wordpress.com/600-2/ |
-| 4743 | 600Breezy | chicago | person | FCK HEAD$HOT | 2020-05-10 | 2020-05-10 | 841 | 1 |  |  | https://privedatabase.wordpress.com/600breezy/ |
-| 4114 | 6Shots | chicago | person | FCK HEAD$HOT | 2020-04-23 | 2020-04-23 | 137 | 1 |  | Y | https://privedatabase.wordpress.com/6shots/ |
 | 291 | 757 | chicago | person | FCK HEAD$HOT | 2020-03-27 | 2020-03-27 | 26 |  |  |  | https://privedatabase.wordpress.com/757-2/ |
-| 7891 | 757 | chicago | person | FCK HEAD$HOT | 2019-11-19 | 2019-11-19 | 2465 | 10 | Y | Y | https://privedatabase.wordpress.com/757-2-2/ |
-| 7890 | 800 YOUNG MONEY | chicago | person | FCK HEAD$HOT | 2019-11-19 | 2019-11-19 | 2097 | 6 | Y |  | https://privedatabase.wordpress.com/800-young-money-2/ |
-| 855 | 808 | chicago | person | FCK HEAD$HOT | 2020-03-28 | 2020-03-28 | 120 |  |  |  | https://privedatabase.wordpress.com/808-2/ |
-| 345 | 8TRE MOBB | chicago | person | FCK HEAD$HOT | 2020-03-27 | 2020-03-27 | 443 | 1 | Y |  | https://privedatabase.wordpress.com/8tre-mobb/ |
-| 7910 | 8TRE MOBB | chicago | person | FCK HEAD$HOT | 2020-01-25 | 2020-01-25 | 416 | 1 | Y |  | https://privedatabase.wordpress.com/8tre-mobb-2/ |
-| 346 | 8X13 | chicago | person | FCK HEAD$HOT | 2020-03-27 | 2020-03-27 | 527 | 1 | Y |  | https://privedatabase.wordpress.com/8x13/ |
-| 7911 | 8X13 | chicago | person | FCK HEAD$HOT | 2020-01-25 | 2020-01-25 | 614 | 2 | Y |  | https://privedatabase.wordpress.com/8x13-2/ |
-| 7975 | AAB | chicago | person | FCK HEAD$HOT | 2020-01-27 | 2020-01-27 | 552 | 3 | Y |  | https://privedatabase.wordpress.com/aab-2/ |
-| 977 | ABG-CPT | chicago | person | FCK HEAD$HOT | 2020-03-28 | 2020-03-28 | 274 | 1 |  |  | https://privedatabase.wordpress.com/abg-cpt/ |
-| 277 | ABK | chicago | person | FCK HEAD$HOT | 2020-03-27 | 2020-03-27 | 541 | 1 | Y |  | https://privedatabase.wordpress.com/abk/ |
-| 7912 | ABK | chicago | person | FCK HEAD$HOT | 2020-01-25 | 2020-01-25 | 683 | 1 | Y |  | https://privedatabase.wordpress.com/abk-2/ |
-| 7950 | ABM | chicago | person | FCK HEAD$HOT | 2020-01-26 | 2020-01-26 | 419 |  | Y |  | https://privedatabase.wordpress.com/abm-2/ |
-| 7913 | AMG | chicago | person | FCK HEAD$HOT | 2020-01-25 | 2020-01-25 | 1151 | 4 | Y | Y | https://privedatabase.wordpress.com/amg-2/ |
-| 1194 | Bang Man | chicago | person | FCK HEAD$HOT | 2020-03-28 | 2020-03-28 | 384 | 1 |  | Y | https://privedatabase.wordpress.com/bang-man/ |
-| 7914 | BASHVILLE | chicago | person | FCK HEAD$HOT | 2020-01-25 | 2020-01-25 | 187 |  |  |  | https://privedatabase.wordpress.com/bashville-2/ |
-| 7966 | BEAM TEAM | chicago | person | FCK HEAD$HOT | 2020-01-27 | 2020-01-27 | 385 | 1 | Y |  | https://privedatabase.wordpress.com/beam-team-2/ |
-| 4744 | Bitedown | chicago | person | FCK HEAD$HOT | 2020-05-10 | 2020-05-10 | 880 | 1 |  | Y | https://privedatabase.wordpress.com/bitedown/ |
-| 7892 | BLACKGATE | chicago | person | FCK HEAD$HOT | 2019-11-19 | 2019-11-19 | 863 | 3 |  | Y | https://privedatabase.wordpress.com/blackgate-2/ |
-| 8004 | BLACKMOB (4CH) | chicago | person | FCK HEAD$HOT | 2020-02-10 | 2020-02-10 | 277 | 2 |  | Y | https://privedatabase.wordpress.com/7164-2/ |
-| 283 | BLACKMOBB | chicago | person | FCK HEAD$HOT | 2020-03-27 | 2020-03-27 | 1091 | 1 | Y |  | https://privedatabase.wordpress.com/blackmobb/ |
-| 7492 | BLACKMOBB | chicago | person | FCK HEAD$HOT | 2019-11-07 | 2019-11-07 | 2789 | 5 | Y | Y | https://privedatabase.wordpress.com/blackmobb-2/ |
-| 4745 | BlastHisAss | chicago | person | FCK HEAD$HOT | 2020-05-10 | 2020-05-10 | 444 | 1 |  | Y | https://privedatabase.wordpress.com/blasthisass/ |
-| 7908 | BOCO HOOD | chicago | person | FCK HEAD$HOT | 2019-11-21 | 2019-11-21 | 832 |  | Y |  | https://privedatabase.wordpress.com/boco-hood-2/ |
-| 4753 | Booka | chicago | person | FCK HEAD$HOT | 2020-05-11 | 2020-05-11 | 660 | 1 |  |  | https://privedatabase.wordpress.com/booka/ |
-| 3876 | Breeze | chicago | person | FCK HEAD$HOT | 2020-04-22 | 2020-04-22 | 386 | 1 | Y | Y | https://privedatabase.wordpress.com/breeze/ |
-| 6277 | BRICK CITY/600 | chicago | person | FCK HEAD$HOT | 2019-11-07 | 2019-11-07 | 22507 | 32 | Y | Y | https://privedatabase.wordpress.com/brick-city-600/ |
-| 7496 | BRICK$QUAD 069 | chicago | person | FCK HEAD$HOT | 2019-11-08 | 2019-11-08 | 7869 | 18 | Y | Y | https://privedatabase.wordpress.com/brickquad-069-2/ |
-| 7982 | BRICKYARD (4 CORNER GLO GANG) | chicago | person | FCK HEAD$HOT | 2020-01-27 | 2020-01-27 | 1721 | 5 | Y | Y | https://privedatabase.wordpress.com/brickyard-4-corner-glo-gang/ |
-| 7964 | BUFF CITY | chicago | person | FCK HEAD$HOT | 2020-01-27 | 2020-01-27 | 943 |  | Y | Y | https://privedatabase.wordpress.com/buff-city-2/ |
-| 7997 | BWst LATIN KINGS | chicago | person | FCK HEAD$HOT | 2020-02-05 | 2020-02-05 | 559 | 3 |  | Y | https://privedatabase.wordpress.com/bwst-latin-kings/ |
 | 1813 | By | chicago | person | FCK HEAD$HOT | 2020-04-10 | 2020-04-10 | 116 | 1 |  |  | https://privedatabase.wordpress.com/by/ |
-| 1897 | Cadarro | chicago | person | FCK HEAD$HOT | 2020-04-10 | 2020-04-10 | 143 | 1 | Y |  | https://privedatabase.wordpress.com/cadarro/ |
-| 4746 | CapFck12 | chicago | person | FCK HEAD$HOT | 2020-05-10 | 2020-05-10 | 548 | 1 |  | Y | https://privedatabase.wordpress.com/capfck12/ |
-| 8001 | CCG | chicago | person | FCK HEAD$HOT | 2020-02-08 | 2020-02-08 | 215 | 1 | Y |  | https://privedatabase.wordpress.com/ccg-2/ |
-| 4754 | Cdai | chicago | person | FCK HEAD$HOT | 2020-05-11 | 2020-05-11 | 1024 | 1 |  | Y | https://privedatabase.wordpress.com/cdai/ |
-| 4231 | CEO | chicago | person | FCK HEAD$HOT | 2020-04-23 | 2020-04-23 | 208 | 1 |  |  | https://privedatabase.wordpress.com/ceo/ |
-| 3799 | Chief Diddy | chicago | person | FCK HEAD$HOT | 2020-04-22 | 2020-04-22 | 481 | 1 |  |  | https://privedatabase.wordpress.com/chief-diddy/ |
 | 1940 | Chris | chicago | person | FCK HEAD$HOT | 2020-04-10 | 2020-04-10 | 20 | 1 |  |  | https://privedatabase.wordpress.com/chris/ |
-| 6535 | CHRIS WORLD | chicago | person | FCK HEAD$HOT | 2019-11-21 | 2019-11-21 | 547 | 1 | Y |  | https://privedatabase.wordpress.com/chris-world-2/ |
-| 973 | CHUCKMOBB | chicago | person | FCK HEAD$HOT | 2020-03-28 | 2020-03-28 | 193 | 1 | Y |  | https://privedatabase.wordpress.com/chuckmobb/ |
-| 3800 | CoKilla | chicago | person | FCK HEAD$HOT | 2020-04-22 | 2020-04-22 | 526 | 1 |  | Y | https://privedatabase.wordpress.com/cokilla/ |
-| 6536 | COREY MONEY BROTHERS (CMB) | chicago | person | FCK HEAD$HOT | 2019-11-21 | 2019-11-21 | 1738 | 4 |  | Y | https://privedatabase.wordpress.com/corey-money-brothers-cmb/ |
-| 2462 | CORPS 🔞 | chicago | person | FCK HEAD$HOT | 2020-04-13 | 2020-04-13 | 470 | 22 |  |  | https://privedatabase.wordpress.com/corps/ |
-| 7915 | CRANKTOWN | chicago | person | FCK HEAD$HOT | 2020-01-25 | 2020-01-25 | 505 |  | Y |  | https://privedatabase.wordpress.com/cranktown/ |
-| 7988 | CUTTAGANG | chicago | person | FCK HEAD$HOT | 2020-01-30 | 2020-01-30 | 253 |  |  |  | https://privedatabase.wordpress.com/cuttagang-2/ |
-| 4755 | D.Rose | chicago | person | FCK HEAD$HOT | 2020-05-11 | 2020-05-11 | 1600 | 1 |  | Y | https://privedatabase.wordpress.com/d-rose/ |
-| 366 | DAMENVILLE | chicago | person | FCK HEAD$HOT | 2020-03-27 | 2020-03-27 | 563 | 1 | Y |  | https://privedatabase.wordpress.com/damenville/ |
-| 7992 | DAMENVILLE | chicago | person | FCK HEAD$HOT | 2020-02-01 | 2020-02-01 | 559 |  |  |  | https://privedatabase.wordpress.com/damenville-2/ |
-| 3879 | Darren | chicago | person | FCK HEAD$HOT | 2020-04-22 | 2020-04-22 | 152 | 1 |  |  | https://privedatabase.wordpress.com/darren/ |
-| 7904 | DEATHROW 085 | chicago | person | FCK HEAD$HOT | 2019-11-21 | 2019-11-21 | 963 | 3 | Y | Y | https://privedatabase.wordpress.com/deathrow-085-2/ |
-| 4235 | Dell | chicago | person | FCK HEAD$HOT | 2020-04-23 | 2020-04-23 | 102 | 1 | Y |  | https://privedatabase.wordpress.com/dell/ |
-| 7935 | DELL MOB | chicago | person | FCK HEAD$HOT | 2020-01-25 | 2020-01-25 | 731 |  | Y |  | https://privedatabase.wordpress.com/dell-mob-2/ |
-| 7999 | DIPSET BLVD | chicago | person | FCK HEAD$HOT | 2020-02-05 | 2020-02-05 | 410 | 1 |  |  | https://privedatabase.wordpress.com/dipset-blvd-2/ |
-| 6278 | DIPSET/FRONT$TREET | chicago | person | FCK HEAD$HOT | 2019-11-07 | 2019-11-07 | 7417 | 20 | Y | Y | https://privedatabase.wordpress.com/dipset-fronttreet/ |
-| 7917 | DISCIPLES OF DAVID (D.O.D) | chicago | person | FCK HEAD$HOT | 2020-01-25 | 2020-01-25 | 165 |  |  |  | https://privedatabase.wordpress.com/disciples-of-david-d-o-d/ |
-| 4115 | DMoney | chicago | person | FCK HEAD$HOT | 2020-04-23 | 2020-04-23 | 85 | 1 |  | Y | https://privedatabase.wordpress.com/dmoney/ |
-| 6537 | DOGGPOUND | chicago | person | FCK HEAD$HOT | 2019-11-21 | 2019-11-21 | 1744 | 4 | Y | Y | https://privedatabase.wordpress.com/doggpound-2/ |
-| 7918 | DRILL CITY | chicago | person | FCK HEAD$HOT | 2020-01-25 | 2020-01-25 | 325 |  |  |  | https://privedatabase.wordpress.com/drill-city/ |
 | 390 | DRO CITY | chicago | person | FCK HEAD$HOT | 2020-03-27 | 2020-03-27 | 37 |  |  |  | https://privedatabase.wordpress.com/dro-city/ |
-| 7971 | DRO CITY | chicago | person | FCK HEAD$HOT | 2020-01-27 | 2020-01-27 | 1782 | 4 | Y |  | https://privedatabase.wordpress.com/dro-city-2/ |
 | 1736 | Dub | chicago | person | FCK HEAD$HOT | 2020-04-09 | 2020-04-09 | 85 | 1 |  |  | https://privedatabase.wordpress.com/dub/ |
-| 6479 | DUMPSTREET | chicago | person | FCK HEAD$HOT | 2019-11-19 | 2019-11-19 | 879 | 2 |  | Y | https://privedatabase.wordpress.com/dumpstreet-2/ |
-| 7919 | E-BLOCK | chicago | person | FCK HEAD$HOT | 2020-01-25 | 2020-01-25 | 1574 | 3 | Y | Y | https://privedatabase.wordpress.com/e-block-2/ |
-| 3885 | EBK Trigga | chicago | person | FCK HEAD$HOT | 2020-04-22 | 2020-04-22 | 178 | 1 |  |  | https://privedatabase.wordpress.com/ebk-trigga/ |
-| 7939 | EVANS MOBB | chicago | person | FCK HEAD$HOT | 2020-01-26 | 2020-01-26 | 737 | 1 |  | Y | https://privedatabase.wordpress.com/evans-mobb-2/ |
-| 7907 | FACEWORLD | chicago | person | FCK HEAD$HOT | 2019-11-21 | 2019-11-21 | 1299 | 5 | Y | Y | https://privedatabase.wordpress.com/faceworld/ |
 | 4106 | Famous Dex | chicago | person | FCK HEAD$HOT | 2020-04-23 | 2020-04-23 | 229 | 1 |  |  | https://privedatabase.wordpress.com/famous-dex/ |
-| 3801 | Five Star | chicago | person | FCK HEAD$HOT | 2020-04-22 | 2020-04-22 | 464 | 1 |  | Y | https://privedatabase.wordpress.com/five-star/ |
-| 940 | FOLLYBOYZ | chicago | person | FCK HEAD$HOT | 2020-03-28 | 2020-03-28 | 1682 | 1 | Y |  | https://privedatabase.wordpress.com/follyboyz/ |
-| 7986 | FOSTER PARK | chicago | person | FCK HEAD$HOT | 2020-01-30 | 2020-01-30 | 854 |  | Y |  | https://privedatabase.wordpress.com/foster-park-2/ |
-| 7920 | FREE SMOKE | chicago | person | FCK HEAD$HOT | 2020-01-25 | 2020-01-25 | 441 |  | Y |  | https://privedatabase.wordpress.com/free-smoke-2/ |
 | 2136 | FTO BigGuy | chicago | person | FCK HEAD$HOT | 2020-04-11 | 2020-04-11 | 163 | 1 |  |  | https://privedatabase.wordpress.com/fto-bigguy/ |
-| 3802 | G-Nuk | chicago | person | FCK HEAD$HOT | 2020-04-22 | 2020-04-22 | 383 | 1 | Y |  | https://privedatabase.wordpress.com/g-nuk/ |
-| 7922 | G-VILLE | chicago | person | FCK HEAD$HOT | 2020-01-25 | 2020-01-25 | 1676 | 1 | Y | Y | https://privedatabase.wordpress.com/g-ville-2/ |
-| 2116 | Gary Miller | chicago | person | FCK HEAD$HOT | 2020-04-11 | 2020-04-11 | 148 | 1 | Y |  | https://privedatabase.wordpress.com/gary-miller/ |
-| 7926 | GEO DRIVE | chicago | person | FCK HEAD$HOT | 2020-01-25 | 2020-01-25 | 864 | 2 | Y | Y | https://privedatabase.wordpress.com/geo-drive-2/ |
-| 944 | GGE | chicago | person | FCK HEAD$HOT | 2020-03-28 | 2020-03-28 | 428 | 1 | Y |  | https://privedatabase.wordpress.com/gge/ |
-| 7903 | GME/EBE | chicago | person | FCK HEAD$HOT | 2019-11-21 | 2019-11-21 | 570 |  | Y |  | https://privedatabase.wordpress.com/gme-ebe/ |
-| 7965 | GOONIE GANG | chicago | person | FCK HEAD$HOT | 2020-01-27 | 2020-01-27 | 939 | 3 |  | Y | https://privedatabase.wordpress.com/goonie-gang-2/ |
-| 3718 | GRIMEY GANG | chicago | person | FCK HEAD$HOT | 2020-04-21 | 2020-04-21 | 253 | 1 | Y |  | https://privedatabase.wordpress.com/grimey-gang/ |
-| 7921 | GUNHEAD | chicago | person | FCK HEAD$HOT | 2020-01-25 | 2020-01-25 | 82 |  |  |  | https://privedatabase.wordpress.com/gunhead-2/ |
-| 8002 | GUTTAVILLE | chicago | person | FCK HEAD$HOT | 2020-02-10 | 2020-02-10 | 775 | 2 |  | Y | https://privedatabase.wordpress.com/guttaville-2/ |
-| 7955 | GUTTAVILLE GANGSTAS (GVG) | chicago | person | FCK HEAD$HOT | 2020-01-27 | 2020-01-27 | 2704 | 8 | Y | Y | https://privedatabase.wordpress.com/guttaville-gangstas-gvg/ |
-| 7994 | GUWOPGANG 075 | chicago | person | FCK HEAD$HOT | 2020-02-05 | 2020-02-05 | 270 |  |  |  | https://privedatabase.wordpress.com/guwopgang-075-2/ |
-| 7099 | HARVEY WORLD | chicago | person | FCK HEAD$HOT | 2020-02-07 | 2020-02-07 | 494 |  | Y |  | https://privedatabase.wordpress.com/harvey-world-2/ |
-| 7947 | HELLA BANDZ | chicago | person | FCK HEAD$HOT | 2020-01-27 | 2020-01-27 | 785 | 2 | Y |  | https://privedatabase.wordpress.com/hella-bandz-2/ |
-| 1029 | HOODGANG | chicago | person | FCK HEAD$HOT | 2020-03-28 | 2020-03-28 | 229 | 1 | Y |  | https://privedatabase.wordpress.com/hoodgang/ |
-| 7956 | HOOLA GANG | chicago | person | FCK HEAD$HOT | 2020-01-27 | 2020-01-27 | 4642 | 14 | Y | Y | https://privedatabase.wordpress.com/hoola-gang-2/ |
-| 4747 | Inky D | chicago | person | FCK HEAD$HOT | 2020-05-11 | 2020-05-11 | 559 | 1 |  | Y | https://privedatabase.wordpress.com/inky-d/ |
-| 7923 | INSANE MONEY MOB (IMM) | chicago | person | FCK HEAD$HOT | 2020-01-25 | 2020-01-25 | 696 | 1 | Y |  | https://privedatabase.wordpress.com/insane-money-mob-imm/ |
-| 3886 | J-Roc | chicago | person | FCK HEAD$HOT | 2020-04-22 | 2020-04-22 | 139 | 1 | Y |  | https://privedatabase.wordpress.com/j-roc/ |
-| 950 | JACKBOYS | chicago | person | FCK HEAD$HOT | 2020-03-28 | 2020-03-28 | 726 | 1 | Y |  | https://privedatabase.wordpress.com/jackville/ |
-| 1769 | Jacoby | chicago | person | FCK HEAD$HOT | 2020-04-10 | 2020-04-10 | 203 | 1 |  |  | https://privedatabase.wordpress.com/jacoby/ |
-| 243 | JARO CITY | chicago | person | FCK HEAD$HOT | 2020-03-26 | 2020-03-26 | 1769 | 1 | Y |  | https://privedatabase.wordpress.com/jaro-city/ |
-| 7486 | JARO CITY | chicago | person | FCK HEAD$HOT | 2019-11-07 | 2019-11-07 | 5149 | 15 | Y | Y | https://privedatabase.wordpress.com/jaro-city-2/ |
-| 7934 | JIGDOGS | chicago | person | FCK HEAD$HOT | 2020-01-25 | 2020-01-25 | 520 |  | Y |  | https://privedatabase.wordpress.com/jigdogs-2/ |
-| 1773 | Jilla | chicago | person | FCK HEAD$HOT | 2020-04-10 | 2020-04-10 | 189 | 1 | Y |  | https://privedatabase.wordpress.com/jilla/ |
-| 2185 | Jordan | chicago | person | FCK HEAD$HOT | 2020-04-11 | 2020-04-11 | 387 | 1 |  | Y | https://privedatabase.wordpress.com/jordan/ |
-| 4748 | Jusblow | chicago | person | FCK HEAD$HOT | 2020-05-11 | 2020-05-11 | 1112 | 1 |  |  | https://privedatabase.wordpress.com/jusblow/ |
-| 951 | JUST-US | chicago | person | FCK HEAD$HOT | 2020-03-28 | 2020-03-28 | 284 |  | Y |  | https://privedatabase.wordpress.com/just-us/ |
-| 7998 | KEDIZE HOMICIDE KINGS | chicago | person | FCK HEAD$HOT | 2020-02-05 | 2020-02-05 | 202 |  |  |  | https://privedatabase.wordpress.com/kedize-homicide-kings-2/ |
-| 4232 | Kiar | chicago | person | FCK HEAD$HOT | 2020-04-23 | 2020-04-23 | 153 | 1 |  | Y | https://privedatabase.wordpress.com/kiar/ |
-| 7491 | KILL TO SURVIVE (KTS) | chicago | person | FCK HEAD$HOT | 2019-11-07 | 2019-11-07 | 3010 | 7 | Y | Y | https://privedatabase.wordpress.com/kill-to-survive-kts/ |
 | 444 | KILLAWARD | chicago | person | FCK HEAD$HOT | 2020-03-27 | 2020-03-27 | 39 |  |  |  | https://privedatabase.wordpress.com/killaward/ |
-| 7894 | KILLAWARD 078 | chicago | person | FCK HEAD$HOT | 2019-11-19 | 2019-11-19 | 4255 | 3 | Y | Y | https://privedatabase.wordpress.com/killaward-078/ |
 | 7989 | KIMO GANG | chicago | person | FCK HEAD$HOT | 2020-01-30 | 2020-01-30 | 42 | 1 |  |  | https://privedatabase.wordpress.com/kimo-gang-2/ |
-| 4233 | King Greg | chicago | person | FCK HEAD$HOT | 2020-04-23 | 2020-04-23 | 396 | 1 |  |  | https://privedatabase.wordpress.com/king-greg/ |
-| 943 | KTC | chicago | person | FCK HEAD$HOT | 2020-03-28 | 2020-03-28 | 206 |  | Y |  | https://privedatabase.wordpress.com/ktc/ |
-| 7952 | LAKESIDE | chicago | person | FCK HEAD$HOT | 2020-01-26 | 2020-01-26 | 1493 | 3 | Y | Y | https://privedatabase.wordpress.com/lakeside-2/ |
-| 7489 | LAMRON | chicago | person | FCK HEAD$HOT | 2019-11-07 | 2019-11-07 | 6223 | 20 | Y | Y | https://privedatabase.wordpress.com/lamron-2/ |
-| 972 | LANDLORD COV | chicago | person | FCK HEAD$HOT | 2020-03-28 | 2020-03-28 | 520 | 1 | Y |  | https://privedatabase.wordpress.com/landlord-cov/ |
-| 8007 | LEXIQUE | chicago | person | FCK HEAD$HOT | 2020-02-18 | 2020-02-18 | 1564 |  | Y |  | https://privedatabase.wordpress.com/lexique/ |
-| 4749 | Lil Dee | chicago | person | FCK HEAD$HOT | 2020-05-11 | 2020-05-11 | 318 | 1 |  |  | https://privedatabase.wordpress.com/lil-dee-2/ |
-| 1770 | Lil Zo | chicago | person | FCK HEAD$HOT | 2020-04-10 | 2020-04-10 | 139 |  |  | Y | https://privedatabase.wordpress.com/lil-zo/ |
-| 7957 | LIL4MOBB | chicago | person | FCK HEAD$HOT | 2020-01-27 | 2020-01-27 | 2366 | 7 | Y | Y | https://privedatabase.wordpress.com/lil4mobb-2/ |
 | 7702 | LISTE DES RAPPEURS (CHICAGO) + LEURS SETS | chicago | person | FCK HEAD$HOT | 2020-02-29 | 2020-02-29 | 22592 | 1 | Y |  | https://privedatabase.wordpress.com/liste-des-rappeurs-chicago-leurs-sets/ |
-| 7954 | LOC CITY | chicago | person | FCK HEAD$HOT | 2020-01-27 | 2020-01-27 | 6243 | 18 | Y | Y | https://privedatabase.wordpress.com/loc-city-2/ |
-| 450 | LOC CITY (BotY) | chicago | person | FCK HEAD$HOT | 2020-03-27 | 2020-03-27 | 436 |  | Y |  | https://privedatabase.wordpress.com/loc-city-boty/ |
-| 7991 | LOC CITY (BotY) | chicago | person | FCK HEAD$HOT | 2020-02-01 | 2020-02-01 | 504 |  |  |  | https://privedatabase.wordpress.com/loc-city-boty-2/ |
-| 1790 | LORDSVILLE | chicago | person | FCK HEAD$HOT | 2020-04-10 | 2020-04-10 | 379 |  | Y |  | https://privedatabase.wordpress.com/lordsville/ |
-| 7944 | LOWELIFE | chicago | person | FCK HEAD$HOT | 2020-01-26 | 2020-01-26 | 2758 | 9 | Y | Y | https://privedatabase.wordpress.com/lowelife-2/ |
-| 978 | M.O.M | chicago | person | FCK HEAD$HOT | 2020-03-28 | 2020-03-28 | 164 |  |  |  | https://privedatabase.wordpress.com/m-o-m/ |
-| 3877 | Maintain | chicago | person | FCK HEAD$HOT | 2020-04-22 | 2020-04-22 | 264 | 1 |  |  | https://privedatabase.wordpress.com/maintain/ |
-| 4752 | Makado | chicago | person | FCK HEAD$HOT | 2020-05-11 | 2020-05-11 | 770 | 1 |  | Y | https://privedatabase.wordpress.com/makado/ |
-| 4242 | ManyNames | chicago | person | FCK HEAD$HOT | 2020-04-23 | 2020-04-23 | 255 | 1 |  | Y | https://privedatabase.wordpress.com/manynames/ |
-| 4147 | Marlon | chicago | person | FCK HEAD$HOT | 2020-04-23 | 2020-04-23 | 95 | 1 |  | Y | https://privedatabase.wordpress.com/marlon/ |
-| 7959 | MARSHALL FIELD MCs | chicago | person | FCK HEAD$HOT | 2020-01-27 | 2020-01-27 | 401 | 1 | Y |  | https://privedatabase.wordpress.com/marshall-field-mcs-2/ |
-| 7936 | MET BOYZ | chicago | person | FCK HEAD$HOT | 2020-01-25 | 2020-01-25 | 1087 | 2 | Y | Y | https://privedatabase.wordpress.com/met-boyz-2/ |
-| 7938 | MITCH BLOCK | chicago | person | FCK HEAD$HOT | 2020-01-26 | 2020-01-26 | 475 | 1 | Y | Y | https://privedatabase.wordpress.com/mitch-block-2/ |
-| 7940 | MIXX MOBB | chicago | person | FCK HEAD$HOT | 2020-01-26 | 2020-01-26 | 1278 | 2 | Y | Y | https://privedatabase.wordpress.com/mixx-mobb-2/ |
-| 8005 | MNA (4CH) | chicago | person | FCK HEAD$HOT | 2020-02-10 | 2020-02-10 | 299 |  |  |  | https://privedatabase.wordpress.com/mna-4ch/ |
-| 7483 | MOB | chicago | person | FCK HEAD$HOT | 2019-11-07 | 2019-11-07 | 6976 | 19 | Y | Y | https://privedatabase.wordpress.com/mob/ |
-| 971 | MOE | chicago | person | FCK HEAD$HOT | 2020-03-28 | 2020-03-28 | 701 | 1 | Y |  | https://privedatabase.wordpress.com/moe/ |
-| 479 | MOETOWN | chicago | person | FCK HEAD$HOT | 2020-03-27 | 2020-03-27 | 442 |  |  |  | https://privedatabase.wordpress.com/moetown/ |
-| 7490 | MOETOWN | chicago | person | FCK HEAD$HOT | 2019-11-07 | 2019-11-07 | 6708 | 23 | Y | Y | https://privedatabase.wordpress.com/moetown-2/ |
-| 7963 | MONEY BY ANY MEANS (MBAM) | chicago | person | FCK HEAD$HOT | 2020-01-27 | 2020-01-27 | 1064 | 2 | Y |  | https://privedatabase.wordpress.com/money-by-any-means-mbam/ |
-| 7942 | MOOSEBLOCK | chicago | person | FCK HEAD$HOT | 2020-01-26 | 2020-01-26 | 966 | 1 | Y | Y | https://privedatabase.wordpress.com/mooseblock-2/ |
-| 7953 | MTG | chicago | person | FCK HEAD$HOT | 2020-01-26 | 2020-01-26 | 677 | 1 | Y |  | https://privedatabase.wordpress.com/mtg-2/ |
-| 7906 | MTV | chicago | person | FCK HEAD$HOT | 2019-11-21 | 2019-11-21 | 957 | 3 |  | Y | https://privedatabase.wordpress.com/mtv-2/ |
-| 963 | MURDAFIELD | chicago | person | FCK HEAD$HOT | 2020-03-28 | 2020-03-28 | 168 |  |  |  | https://privedatabase.wordpress.com/murdafield/ |
-| 7933 | MURDATOWN | chicago | person | FCK HEAD$HOT | 2020-01-25 | 2020-01-25 | 1522 | 2 | Y | Y | https://privedatabase.wordpress.com/murdatown-2/ |
-| 1152 | MURDERVILLE | chicago | person | FCK HEAD$HOT | 2020-03-28 | 2020-03-28 | 483 | 1 | Y |  | https://privedatabase.wordpress.com/murderville/ |
-| 7925 | NICKO GANG | chicago | person | FCK HEAD$HOT | 2020-01-25 | 2020-01-25 | 1694 | 7 | Y | Y | https://privedatabase.wordpress.com/nicko-gang-2/ |
-| 7948 | NO LIMIT 083 | chicago | person | FCK HEAD$HOT | 2020-01-26 | 2020-01-26 | 332 | 1 | Y |  | https://privedatabase.wordpress.com/no-limit-083-2/ |
-| 7937 | NO LIMIT 087 | chicago | person | FCK HEAD$HOT | 2020-01-26 | 2020-01-26 | 653 | 1 | Y |  | https://privedatabase.wordpress.com/no-limit-087-2/ |
-| 7487 | NO LIMIT/MUSKEGON BOYZ | chicago | person | FCK HEAD$HOT | 2019-11-07 | 2019-11-07 | 8902 | 22 | Y | Y | https://privedatabase.wordpress.com/no-limit-muskegon-boyz/ |
-| 8000 | NOSEDMOBB | chicago | person | FCK HEAD$HOT | 2020-02-07 | 2020-02-07 | 193 |  | Y |  | https://privedatabase.wordpress.com/nosedmobb-2/ |
-| 7895 | OAK BOYZ NATION (OBN) | chicago | person | FCK HEAD$HOT | 2019-11-19 | 2019-11-19 | 1057 | 3 | Y | Y | https://privedatabase.wordpress.com/oak-boyz-nation-obn/ |
-| 1189 | Odee | chicago | person | FCK HEAD$HOT | 2020-03-28 | 2020-03-28 | 517 | 1 |  |  | https://privedatabase.wordpress.com/odee/ |
-| 3884 | OMillie | chicago | person | FCK HEAD$HOT | 2020-04-22 | 2020-04-22 | 245 | 1 |  | Y | https://privedatabase.wordpress.com/omillie/ |
-| 7960 | ONLY THE END (OTE) | chicago | person | FCK HEAD$HOT | 2020-01-27 | 2020-01-27 | 4539 | 8 | Y | Y | https://privedatabase.wordpress.com/only-the-end-ote/ |
-| 7949 | OUT7AW CITY | chicago | person | FCK HEAD$HOT | 2020-01-26 | 2020-01-26 | 944 | 3 | Y | Y | https://privedatabase.wordpress.com/out7aw-city-2/ |
-| 1151 | O’BLOCK | chicago | person | FCK HEAD$HOT | 2020-03-28 | 2020-03-28 | 1721 | 1 | Y |  | https://privedatabase.wordpress.com/oblock/ |
-| 8006 | P-BLOCK (4CH) | chicago | person | FCK HEAD$HOT | 2020-02-10 | 2020-02-10 | 264 |  |  |  | https://privedatabase.wordpress.com/p-block-4ch/ |
-| 7943 | PAXTOWN | chicago | person | FCK HEAD$HOT | 2020-01-26 | 2020-01-26 | 779 |  | Y |  | https://privedatabase.wordpress.com/paxtown-2/ |
-| 7488 | PBG/TFG | chicago | person | FCK HEAD$HOT | 2019-11-07 | 2019-11-07 | 12173 | 40 | Y | Y | https://privedatabase.wordpress.com/pbg-tfg/ |
-| 7930 | POCKETTOWN | chicago | person | FCK HEAD$HOT | 2020-01-25 | 2020-01-25 | 3110 | 6 | Y | Y | https://privedatabase.wordpress.com/pockettown-2/ |
 | 1227 | Pooh Bear | chicago | person | FCK HEAD$HOT | 2020-03-28 | 2020-03-28 | 194 | 1 |  |  | https://privedatabase.wordpress.com/pooh-bear/ |
-| 7970 | POTTBLOCK | chicago | person | FCK HEAD$HOT | 2020-01-27 | 2020-01-27 | 938 | 2 | Y |  | https://privedatabase.wordpress.com/pottblock-2/ |
 | 4888 | Privacy Policy | chicago | person | FCK HEAD$HOT | 2020-03-25 | 2020-03-25 | 3685 |  |  |  | https://privedatabase.wordpress.com/privacy-policy/ |
-| 7996 | PSYCHO GANG | chicago | person | FCK HEAD$HOT | 2020-02-05 | 2020-02-05 | 230 | 1 | Y |  | https://privedatabase.wordpress.com/psycho-gang-2/ |
-| 4047 | Ray Bands | chicago | person | FCK HEAD$HOT | 2020-04-23 | 2020-04-23 | 214 | 1 |  | Y | https://privedatabase.wordpress.com/ray-bands/ |
-| 3880 | Raysko | chicago | person | FCK HEAD$HOT | 2020-04-22 | 2020-04-22 | 134 | 1 |  |  | https://privedatabase.wordpress.com/raysko/ |
-| 6666 | REC CITY | chicago | person | FCK HEAD$HOT | 2020-01-25 | 2020-01-25 | 191 |  |  |  | https://privedatabase.wordpress.com/rec-city-2/ |
-| 7946 | RISKY ROAD | chicago | person | FCK HEAD$HOT | 2020-01-26 | 2020-01-26 | 485 | 1 | Y |  | https://privedatabase.wordpress.com/risky-road-2/ |
-| 7985 | RMG | chicago | person | FCK HEAD$HOT | 2020-01-30 | 2020-01-30 | 278 |  | Y |  | https://privedatabase.wordpress.com/rmg-2/ |
 | 3655 | Roc | chicago | person | FCK HEAD$HOT | 2020-04-19 | 2020-04-19 | 236 | 1 | Y |  | https://privedatabase.wordpress.com/roc/ |
-| 7896 | ROC CREEK | chicago | person | FCK HEAD$HOT | 2019-11-21 | 2019-11-21 | 591 |  | Y |  | https://privedatabase.wordpress.com/roc-creek-3/ |
-| 7973 | SACKBOYZ | chicago | person | FCK HEAD$HOT | 2020-01-27 | 2020-01-27 | 1004 | 1 | Y |  | https://privedatabase.wordpress.com/sackboyz-2/ |
-| 3882 | Scrap | chicago | person | FCK HEAD$HOT | 2020-04-22 | 2020-04-22 | 145 | 1 | Y |  | https://privedatabase.wordpress.com/scrap/ |
 | 2147 | Scrapp | chicago | person | FCK HEAD$HOT | 2020-04-11 | 2020-04-11 | 174 | 1 | Y |  | https://privedatabase.wordpress.com/scrapp/ |
-| 7897 | SEDVILLE | chicago | person | FCK HEAD$HOT | 2019-11-21 | 2019-11-21 | 1558 | 1 | Y |  | https://privedatabase.wordpress.com/sedville-2/ |
-| 7899 | SHAWN MONEY BOYZ (SMB) | chicago | person | FCK HEAD$HOT | 2019-11-21 | 2019-11-21 | 1483 | 1 |  |  | https://privedatabase.wordpress.com/shawn-money-boyz-smb/ |
-| 7927 | SHIELDS | chicago | person | FCK HEAD$HOT | 2020-01-25 | 2020-01-25 | 1262 | 3 | Y | Y | https://privedatabase.wordpress.com/shields-2/ |
-| 7905 | SIRCONN CITY GANGSTERS | chicago | person | FCK HEAD$HOT | 2019-11-21 | 2019-11-21 | 1034 |  | Y |  | https://privedatabase.wordpress.com/sirconn-city-gangsters-2/ |
-| 7974 | SK | chicago | person | FCK HEAD$HOT | 2020-01-27 | 2020-01-27 | 907 | 1 | Y |  | https://privedatabase.wordpress.com/sk-2/ |
-| 7931 | SKEEZE WORLD | chicago | person | FCK HEAD$HOT | 2020-01-25 | 2020-01-25 | 319 | 1 | Y |  | https://privedatabase.wordpress.com/skeeze-world-2/ |
-| 7969 | SLUTTY BOYZ | chicago | person | FCK HEAD$HOT | 2020-01-27 | 2020-01-27 | 719 | 1 | Y |  | https://privedatabase.wordpress.com/slutty-boyz-2/ |
-| 3883 | Smalls | chicago | person | FCK HEAD$HOT | 2020-04-22 | 2020-04-22 | 219 | 1 |  |  | https://privedatabase.wordpress.com/smalls/ |
-| 7987 | SMASHVILLE | chicago | person | FCK HEAD$HOT | 2020-01-30 | 2020-01-30 | 628 |  | Y |  | https://privedatabase.wordpress.com/smashville-2/ |
-| 1187 | Snap D | chicago | person | FCK HEAD$HOT | 2020-03-28 | 2020-03-28 | 443 | 1 |  | Y | https://privedatabase.wordpress.com/snap-d/ |
-| 7928 | SOUTH KING DRIVE (SKD) | chicago | person | FCK HEAD$HOT | 2020-01-25 | 2020-01-25 | 434 | 1 | Y |  | https://privedatabase.wordpress.com/south-king-drive-skd/ |
-| 7898 | SQUIRTTOWN | chicago | person | FCK HEAD$HOT | 2019-11-21 | 2019-11-21 | 433 |  | Y |  | https://privedatabase.wordpress.com/squirttown-2/ |
-| 4750 | Stello | chicago | person | FCK HEAD$HOT | 2020-05-11 | 2020-05-11 | 378 | 1 | Y |  | https://privedatabase.wordpress.com/stello/ |
-| 242 | STL/EBT | chicago | person | FCK HEAD$HOT | 2020-03-26 | 2020-03-26 | 1471 | 1 | Y |  | https://privedatabase.wordpress.com/stl-ebt/ |
-| 7484 | STL/EBT | chicago | person | FCK HEAD$HOT | 2019-11-07 | 2019-11-07 | 16167 | 27 | Y | Y | https://privedatabase.wordpress.com/stl-ebt-2/ |
-| 7929 | STONY SPOT | chicago | person | FCK HEAD$HOT | 2020-01-25 | 2020-01-25 | 512 |  | Y |  | https://privedatabase.wordpress.com/stony-spot-2/ |
 | 2115 | Sugar Ray | chicago | person | FCK HEAD$HOT | 2020-04-11 | 2020-04-11 | 553 | 1 | Y |  | https://privedatabase.wordpress.com/sugar-ray/ |
-| 7962 | SUWU MOBB | chicago | person | FCK HEAD$HOT | 2020-01-27 | 2020-01-27 | 1016 |  | Y |  | https://privedatabase.wordpress.com/suwu-mobb-2/ |
-| 7900 | SUWU TTB | chicago | person | FCK HEAD$HOT | 2019-11-21 | 2019-11-21 | 1257 | 2 |  |  | https://privedatabase.wordpress.com/suwu-ttb-2/ |
-| 7984 | SWIFT CITY | chicago | person | FCK HEAD$HOT | 2020-01-27 | 2020-01-27 | 3205 | 16 | Y | Y | https://privedatabase.wordpress.com/swift-city-2/ |
 | 1771 | T-Baby | chicago | person | FCK HEAD$HOT | 2020-04-10 | 2020-04-10 | 212 | 1 |  | Y | https://privedatabase.wordpress.com/t-baby/ |
 | 2213 | Tae | chicago | person | FCK HEAD$HOT | 2020-04-11 | 2020-04-11 | 32 | 1 |  | Y | https://privedatabase.wordpress.com/tae/ |
 | 4239 | TaeDogg | chicago | person | FCK HEAD$HOT | 2020-04-23 | 2020-04-23 | 137 | 1 |  |  | https://privedatabase.wordpress.com/taedogg/ |
-| 7961 | TAETOWN | chicago | person | FCK HEAD$HOT | 2020-01-27 | 2020-01-27 | 964 | 1 | Y |  | https://privedatabase.wordpress.com/taetown-2/ |
 | 4154 | Tay | chicago | person | FCK HEAD$HOT | 2020-04-23 | 2020-04-23 | 30 | 1 |  |  | https://privedatabase.wordpress.com/tay/ |
-| 7901 | TAY CITY | chicago | person | FCK HEAD$HOT | 2019-11-21 | 2019-11-21 | 507 |  | Y |  | https://privedatabase.wordpress.com/tay-city-2/ |
-| 7995 | TEDAMOBB | chicago | person | FCK HEAD$HOT | 2020-02-05 | 2020-02-05 | 281 | 1 |  | Y | https://privedatabase.wordpress.com/tedamobb-2/ |
-| 7924 | TERROR DOME | chicago | person | FCK HEAD$HOT | 2020-01-25 | 2020-01-25 | 1872 | 2 | Y |  | https://privedatabase.wordpress.com/terror-dome/ |
-| 4183 | The God Father | chicago | person | FCK HEAD$HOT | 2020-04-23 | 2020-04-23 | 326 | 1 |  | Y | https://privedatabase.wordpress.com/the-god-father/ |
-| 7902 | THF 44 | chicago | person | FCK HEAD$HOT | 2019-11-21 | 2019-11-21 | 532 | 2 |  | Y | https://privedatabase.wordpress.com/thf-44-2/ |
-| 7493 | THF 46 | chicago | person | FCK HEAD$HOT | 2019-11-07 | 2019-11-07 | 12106 | 30 | Y | Y | https://privedatabase.wordpress.com/thf-46-2/ |
 | 1186 | Tokyo G | chicago | person | FCK HEAD$HOT | 2020-03-28 | 2020-03-28 | 127 | 1 |  |  | https://privedatabase.wordpress.com/tokyo-g/ |
-| 4148 | Tone Bone | chicago | person | FCK HEAD$HOT | 2020-04-23 | 2020-04-23 | 142 | 1 |  | Y | https://privedatabase.wordpress.com/tone-bone/ |
-| 7967 | TOUCHMONEY | chicago | person | FCK HEAD$HOT | 2020-01-27 | 2020-01-27 | 387 | 1 | Y |  | https://privedatabase.wordpress.com/touchmoney-2/ |
 | 3836 | Tra’Don | chicago | person | FCK HEAD$HOT | 2020-04-22 | 2020-04-22 | 122 | 1 | Y |  | https://privedatabase.wordpress.com/tradon/ |
-| 4243 | Triggah900 | chicago | person | FCK HEAD$HOT | 2020-04-23 | 2020-04-23 | 129 | 1 |  |  | https://privedatabase.wordpress.com/triggah900/ |
 | 1181 | Ty | chicago | person | FCK HEAD$HOT | 2020-03-28 | 2020-03-28 | 108 | 1 |  |  | https://privedatabase.wordpress.com/ty/ |
-| 7495 | TYMB | chicago | person | FCK HEAD$HOT | 2019-11-07 | 2019-11-07 | 7263 | 18 | Y | Y | https://privedatabase.wordpress.com/tymb-2/ |
-| 245 | TYQUAN WORLD | chicago | person | FCK HEAD$HOT | 2020-03-26 | 2020-03-26 | 926 | 1 | Y |  | https://privedatabase.wordpress.com/tyquan-world/ |
-| 7485 | TYQUAN WORLD | chicago | person | FCK HEAD$HOT | 2019-11-07 | 2019-11-07 | 5072 | 12 | Y | Y | https://privedatabase.wordpress.com/tyquan-world-2/ |
-| 1772 | Tyto | chicago | person | FCK HEAD$HOT | 2020-04-10 | 2020-04-10 | 156 | 1 | Y |  | https://privedatabase.wordpress.com/tyto/ |
-| 7993 | TYTOLAND | chicago | person | FCK HEAD$HOT | 2020-02-01 | 2020-02-01 | 254 |  |  |  | https://privedatabase.wordpress.com/tytoland/ |
-| 7990 | VON WORLD | chicago | person | FCK HEAD$HOT | 2020-01-30 | 2020-01-30 | 792 | 3 | Y | Y | https://privedatabase.wordpress.com/von-world-2/ |
-| 874 | W.B | chicago | person | FCK HEAD$HOT | 2020-03-28 | 2020-03-28 | 497 | 1 | Y |  | https://privedatabase.wordpress.com/w-b/ |
-| 4751 | Waldo | chicago | person | FCK HEAD$HOT | 2020-05-11 | 2020-05-11 | 290 | 1 | Y |  | https://privedatabase.wordpress.com/waldo/ |
-| 6528 | WELCH WORLD | chicago | person | FCK HEAD$HOT | 2019-11-21 | 2019-11-21 | 1220 | 1 |  | Y | https://privedatabase.wordpress.com/welch-world-3/ |
-| 7941 | WHIZ CITY | chicago | person | FCK HEAD$HOT | 2020-01-26 | 2020-01-26 | 501 |  |  |  | https://privedatabase.wordpress.com/whiz-city-2/ |
-| 240 | WIIIC CITY | chicago | person | FCK HEAD$HOT | 2020-03-26 | 2020-03-26 | 791 | 1 | Y |  | https://privedatabase.wordpress.com/wiiic-city/ |
-| 6273 | WIIIC CITY/O’BLOCK | chicago | person | FCK HEAD$HOT | 2019-11-07 | 2019-11-07 | 13332 | 28 | Y | Y | https://privedatabase.wordpress.com/wiiic-city-oblock/ |
 | 2540 | Will | chicago | person | FCK HEAD$HOT | 2020-04-13 | 2020-04-13 | 121 |  |  |  | https://privedatabase.wordpress.com/will/ |
-| 7951 | WUGA WORLD | chicago | person | FCK HEAD$HOT | 2020-01-26 | 2020-01-26 | 1424 | 2 | Y | Y | https://privedatabase.wordpress.com/wuga-world-2/ |
 | 7968 | YOUNG LORDS | chicago | person | FCK HEAD$HOT | 2020-01-27 | 2020-01-27 | 167 |  |  |  | https://privedatabase.wordpress.com/young-lords-2/ |
-| 870 | YOUNG MONEY ARTGANG | chicago | person | FCK HEAD$HOT | 2020-03-28 | 2020-03-28 | 428 | 1 | Y |  | https://privedatabase.wordpress.com/young-money-artgang/ |
-| 4046 | Zo | chicago | person | FCK HEAD$HOT | 2020-04-23 | 2020-04-23 | 624 | 1 |  | Y | https://privedatabase.wordpress.com/zo-2/ |
 | 1226 | Zo | chicago | person | FCK HEAD$HOT | 2020-03-28 | 2020-03-28 | 170 | 1 |  |  | https://privedatabase.wordpress.com/zo/ |
-| 627 | ZOLAND | chicago | person | FCK HEAD$HOT | 2020-03-27 | 2020-03-27 | 627 | 1 | Y |  | https://privedatabase.wordpress.com/zoland/ |
-| 7945 | ZONE7 | chicago | person | FCK HEAD$HOT | 2020-01-26 | 2020-01-26 | 275 |  | Y |  | https://privedatabase.wordpress.com/zone7-2/ |
 | 286 | 051 YOUNG MONEY | chicago | set | FCK HEAD$HOT | 2020-03-27 | 2020-03-27 | 1935 | 1 | Y |  | https://privedatabase.wordpress.com/051-young-money/ |
+| 7494 | 051 YOUNG MONEY | chicago | set | FCK HEAD$HOT | 2019-11-07 | 2019-11-07 | 10084 | 23 | Y | Y | https://privedatabase.wordpress.com/051-young-money-2/ |
+| 287 | 1200 | chicago | set | FCK HEAD$HOT | 2020-03-27 | 2020-03-27 | 270 |  |  |  | https://privedatabase.wordpress.com/1200-2/ |
+| 8291 | 1200 | chicago | set | FCK HEAD$HOT | 2020-03-10 | 2020-03-10 | 324 |  |  |  | https://privedatabase.wordpress.com/1200-2-2/ |
+| 288 | 400E MURDA DRIVE | chicago | set | FCK HEAD$HOT | 2020-03-27 | 2020-03-27 | 636 | 1 | Y |  | https://privedatabase.wordpress.com/400e-murda-drive/ |
+| 7893 | 400E MURDA DRIVE | chicago | set | FCK HEAD$HOT | 2019-11-19 | 2019-11-19 | 1080 | 3 |  |  | https://privedatabase.wordpress.com/400e-murda-drive-2/ |
+| 290 | 50 STRONG | chicago | set | FCK HEAD$HOT | 2020-03-27 | 2020-03-27 | 863 | 1 | Y |  | https://privedatabase.wordpress.com/50-strong/ |
+| 7889 | 50 STRONG | chicago | set | FCK HEAD$HOT | 2019-11-19 | 2019-11-19 | 2077 | 9 | Y | Y | https://privedatabase.wordpress.com/50-strong-2/ |
+| 3797 | 50Shot Mall | chicago | set | FCK HEAD$HOT | 2020-04-22 | 2020-04-22 | 576 | 1 |  |  | https://privedatabase.wordpress.com/50shot-mall/ |
+| 289 | 5TH WARD | chicago | set | FCK HEAD$HOT | 2020-03-27 | 2020-03-27 | 310 | 1 | Y |  | https://privedatabase.wordpress.com/5th-ward/ |
+| 7909 | 5TH WARD | chicago | set | FCK HEAD$HOT | 2020-01-25 | 2020-01-25 | 613 | 2 | Y | Y | https://privedatabase.wordpress.com/5th-ward-2/ |
+| 1767 | 5TH WARD LIFE | chicago | set | FCK HEAD$HOT | 2020-04-10 | 2020-04-10 | 551 |  | Y |  | https://privedatabase.wordpress.com/5th-ward-life/ |
+| 227 | 600 | chicago | set | FCK HEAD$HOT | 2020-03-26 | 2020-03-26 | 1910 | 1 | Y |  | https://privedatabase.wordpress.com/600-2/ |
+| 4743 | 600Breezy | chicago | set | FCK HEAD$HOT | 2020-05-10 | 2020-05-10 | 841 | 1 |  |  | https://privedatabase.wordpress.com/600breezy/ |
+| 4114 | 6Shots | chicago | set | FCK HEAD$HOT | 2020-04-23 | 2020-04-23 | 137 | 1 |  | Y | https://privedatabase.wordpress.com/6shots/ |
+| 7891 | 757 | chicago | set | FCK HEAD$HOT | 2019-11-19 | 2019-11-19 | 2465 | 10 | Y | Y | https://privedatabase.wordpress.com/757-2-2/ |
 | 344 | 800 YOUNG MONEY | chicago | set | FCK HEAD$HOT | 2020-03-27 | 2020-03-27 | 572 | 1 | Y |  | https://privedatabase.wordpress.com/800-young-money/ |
+| 7890 | 800 YOUNG MONEY | chicago | set | FCK HEAD$HOT | 2019-11-19 | 2019-11-19 | 2097 | 6 | Y |  | https://privedatabase.wordpress.com/800-young-money-2/ |
+| 855 | 808 | chicago | set | FCK HEAD$HOT | 2020-03-28 | 2020-03-28 | 120 |  |  |  | https://privedatabase.wordpress.com/808-2/ |
+| 345 | 8TRE MOBB | chicago | set | FCK HEAD$HOT | 2020-03-27 | 2020-03-27 | 443 | 1 | Y |  | https://privedatabase.wordpress.com/8tre-mobb/ |
+| 7910 | 8TRE MOBB | chicago | set | FCK HEAD$HOT | 2020-01-25 | 2020-01-25 | 416 | 1 | Y |  | https://privedatabase.wordpress.com/8tre-mobb-2/ |
+| 346 | 8X13 | chicago | set | FCK HEAD$HOT | 2020-03-27 | 2020-03-27 | 527 | 1 | Y |  | https://privedatabase.wordpress.com/8x13/ |
+| 7911 | 8X13 | chicago | set | FCK HEAD$HOT | 2020-01-25 | 2020-01-25 | 614 | 2 | Y |  | https://privedatabase.wordpress.com/8x13-2/ |
+| 7975 | AAB | chicago | set | FCK HEAD$HOT | 2020-01-27 | 2020-01-27 | 552 | 3 | Y |  | https://privedatabase.wordpress.com/aab-2/ |
+| 977 | ABG-CPT | chicago | set | FCK HEAD$HOT | 2020-03-28 | 2020-03-28 | 274 | 1 |  |  | https://privedatabase.wordpress.com/abg-cpt/ |
+| 277 | ABK | chicago | set | FCK HEAD$HOT | 2020-03-27 | 2020-03-27 | 541 | 1 | Y |  | https://privedatabase.wordpress.com/abk/ |
+| 7912 | ABK | chicago | set | FCK HEAD$HOT | 2020-01-25 | 2020-01-25 | 683 | 1 | Y |  | https://privedatabase.wordpress.com/abk-2/ |
+| 7950 | ABM | chicago | set | FCK HEAD$HOT | 2020-01-26 | 2020-01-26 | 419 |  | Y |  | https://privedatabase.wordpress.com/abm-2/ |
+| 7913 | AMG | chicago | set | FCK HEAD$HOT | 2020-01-25 | 2020-01-25 | 1151 | 4 | Y | Y | https://privedatabase.wordpress.com/amg-2/ |
+| 1194 | Bang Man | chicago | set | FCK HEAD$HOT | 2020-03-28 | 2020-03-28 | 384 | 1 |  | Y | https://privedatabase.wordpress.com/bang-man/ |
+| 7914 | BASHVILLE | chicago | set | FCK HEAD$HOT | 2020-01-25 | 2020-01-25 | 187 |  |  |  | https://privedatabase.wordpress.com/bashville-2/ |
+| 7966 | BEAM TEAM | chicago | set | FCK HEAD$HOT | 2020-01-27 | 2020-01-27 | 385 | 1 | Y |  | https://privedatabase.wordpress.com/beam-team-2/ |
+| 4744 | Bitedown | chicago | set | FCK HEAD$HOT | 2020-05-10 | 2020-05-10 | 880 | 1 |  | Y | https://privedatabase.wordpress.com/bitedown/ |
+| 7892 | BLACKGATE | chicago | set | FCK HEAD$HOT | 2019-11-19 | 2019-11-19 | 863 | 3 |  | Y | https://privedatabase.wordpress.com/blackgate-2/ |
+| 8004 | BLACKMOB (4CH) | chicago | set | FCK HEAD$HOT | 2020-02-10 | 2020-02-10 | 277 | 2 |  | Y | https://privedatabase.wordpress.com/7164-2/ |
+| 283 | BLACKMOBB | chicago | set | FCK HEAD$HOT | 2020-03-27 | 2020-03-27 | 1091 | 1 | Y |  | https://privedatabase.wordpress.com/blackmobb/ |
+| 7492 | BLACKMOBB | chicago | set | FCK HEAD$HOT | 2019-11-07 | 2019-11-07 | 2789 | 5 | Y | Y | https://privedatabase.wordpress.com/blackmobb-2/ |
+| 4745 | BlastHisAss | chicago | set | FCK HEAD$HOT | 2020-05-10 | 2020-05-10 | 444 | 1 |  | Y | https://privedatabase.wordpress.com/blasthisass/ |
+| 7908 | BOCO HOOD | chicago | set | FCK HEAD$HOT | 2019-11-21 | 2019-11-21 | 832 |  | Y |  | https://privedatabase.wordpress.com/boco-hood-2/ |
+| 4753 | Booka | chicago | set | FCK HEAD$HOT | 2020-05-11 | 2020-05-11 | 660 | 1 |  |  | https://privedatabase.wordpress.com/booka/ |
+| 3876 | Breeze | chicago | set | FCK HEAD$HOT | 2020-04-22 | 2020-04-22 | 386 | 1 | Y | Y | https://privedatabase.wordpress.com/breeze/ |
+| 6277 | BRICK CITY/600 | chicago | set | FCK HEAD$HOT | 2019-11-07 | 2019-11-07 | 22507 | 32 | Y | Y | https://privedatabase.wordpress.com/brick-city-600/ |
+| 7496 | BRICK$QUAD 069 | chicago | set | FCK HEAD$HOT | 2019-11-08 | 2019-11-08 | 7869 | 18 | Y | Y | https://privedatabase.wordpress.com/brickquad-069-2/ |
+| 7982 | BRICKYARD (4 CORNER GLO GANG) | chicago | set | FCK HEAD$HOT | 2020-01-27 | 2020-01-27 | 1721 | 5 | Y | Y | https://privedatabase.wordpress.com/brickyard-4-corner-glo-gang/ |
+| 7964 | BUFF CITY | chicago | set | FCK HEAD$HOT | 2020-01-27 | 2020-01-27 | 943 |  | Y | Y | https://privedatabase.wordpress.com/buff-city-2/ |
+| 7997 | BWst LATIN KINGS | chicago | set | FCK HEAD$HOT | 2020-02-05 | 2020-02-05 | 559 | 3 |  | Y | https://privedatabase.wordpress.com/bwst-latin-kings/ |
+| 1897 | Cadarro | chicago | set | FCK HEAD$HOT | 2020-04-10 | 2020-04-10 | 143 | 1 | Y |  | https://privedatabase.wordpress.com/cadarro/ |
+| 4746 | CapFck12 | chicago | set | FCK HEAD$HOT | 2020-05-10 | 2020-05-10 | 548 | 1 |  | Y | https://privedatabase.wordpress.com/capfck12/ |
+| 8001 | CCG | chicago | set | FCK HEAD$HOT | 2020-02-08 | 2020-02-08 | 215 | 1 | Y |  | https://privedatabase.wordpress.com/ccg-2/ |
+| 4754 | Cdai | chicago | set | FCK HEAD$HOT | 2020-05-11 | 2020-05-11 | 1024 | 1 |  | Y | https://privedatabase.wordpress.com/cdai/ |
+| 4231 | CEO | chicago | set | FCK HEAD$HOT | 2020-04-23 | 2020-04-23 | 208 | 1 |  |  | https://privedatabase.wordpress.com/ceo/ |
+| 3799 | Chief Diddy | chicago | set | FCK HEAD$HOT | 2020-04-22 | 2020-04-22 | 481 | 1 |  |  | https://privedatabase.wordpress.com/chief-diddy/ |
+| 6535 | CHRIS WORLD | chicago | set | FCK HEAD$HOT | 2019-11-21 | 2019-11-21 | 547 | 1 | Y |  | https://privedatabase.wordpress.com/chris-world-2/ |
+| 973 | CHUCKMOBB | chicago | set | FCK HEAD$HOT | 2020-03-28 | 2020-03-28 | 193 | 1 | Y |  | https://privedatabase.wordpress.com/chuckmobb/ |
+| 3800 | CoKilla | chicago | set | FCK HEAD$HOT | 2020-04-22 | 2020-04-22 | 526 | 1 |  | Y | https://privedatabase.wordpress.com/cokilla/ |
+| 6536 | COREY MONEY BROTHERS (CMB) | chicago | set | FCK HEAD$HOT | 2019-11-21 | 2019-11-21 | 1738 | 4 |  | Y | https://privedatabase.wordpress.com/corey-money-brothers-cmb/ |
+| 2462 | CORPS 🔞 | chicago | set | FCK HEAD$HOT | 2020-04-13 | 2020-04-13 | 470 | 22 |  |  | https://privedatabase.wordpress.com/corps/ |
+| 7915 | CRANKTOWN | chicago | set | FCK HEAD$HOT | 2020-01-25 | 2020-01-25 | 505 |  | Y |  | https://privedatabase.wordpress.com/cranktown/ |
+| 7988 | CUTTAGANG | chicago | set | FCK HEAD$HOT | 2020-01-30 | 2020-01-30 | 253 |  |  |  | https://privedatabase.wordpress.com/cuttagang-2/ |
+| 4755 | D.Rose | chicago | set | FCK HEAD$HOT | 2020-05-11 | 2020-05-11 | 1600 | 1 |  | Y | https://privedatabase.wordpress.com/d-rose/ |
+| 366 | DAMENVILLE | chicago | set | FCK HEAD$HOT | 2020-03-27 | 2020-03-27 | 563 | 1 | Y |  | https://privedatabase.wordpress.com/damenville/ |
+| 7992 | DAMENVILLE | chicago | set | FCK HEAD$HOT | 2020-02-01 | 2020-02-01 | 559 |  |  |  | https://privedatabase.wordpress.com/damenville-2/ |
+| 3879 | Darren | chicago | set | FCK HEAD$HOT | 2020-04-22 | 2020-04-22 | 152 | 1 |  |  | https://privedatabase.wordpress.com/darren/ |
+| 7904 | DEATHROW 085 | chicago | set | FCK HEAD$HOT | 2019-11-21 | 2019-11-21 | 963 | 3 | Y | Y | https://privedatabase.wordpress.com/deathrow-085-2/ |
+| 4235 | Dell | chicago | set | FCK HEAD$HOT | 2020-04-23 | 2020-04-23 | 102 | 1 | Y |  | https://privedatabase.wordpress.com/dell/ |
+| 7935 | DELL MOB | chicago | set | FCK HEAD$HOT | 2020-01-25 | 2020-01-25 | 731 |  | Y |  | https://privedatabase.wordpress.com/dell-mob-2/ |
+| 7999 | DIPSET BLVD | chicago | set | FCK HEAD$HOT | 2020-02-05 | 2020-02-05 | 410 | 1 |  |  | https://privedatabase.wordpress.com/dipset-blvd-2/ |
+| 6278 | DIPSET/FRONT$TREET | chicago | set | FCK HEAD$HOT | 2019-11-07 | 2019-11-07 | 7417 | 20 | Y | Y | https://privedatabase.wordpress.com/dipset-fronttreet/ |
+| 7917 | DISCIPLES OF DAVID (D.O.D) | chicago | set | FCK HEAD$HOT | 2020-01-25 | 2020-01-25 | 165 |  |  |  | https://privedatabase.wordpress.com/disciples-of-david-d-o-d/ |
+| 4115 | DMoney | chicago | set | FCK HEAD$HOT | 2020-04-23 | 2020-04-23 | 85 | 1 |  | Y | https://privedatabase.wordpress.com/dmoney/ |
+| 6537 | DOGGPOUND | chicago | set | FCK HEAD$HOT | 2019-11-21 | 2019-11-21 | 1744 | 4 | Y | Y | https://privedatabase.wordpress.com/doggpound-2/ |
+| 7918 | DRILL CITY | chicago | set | FCK HEAD$HOT | 2020-01-25 | 2020-01-25 | 325 |  |  |  | https://privedatabase.wordpress.com/drill-city/ |
+| 7971 | DRO CITY | chicago | set | FCK HEAD$HOT | 2020-01-27 | 2020-01-27 | 1782 | 4 | Y |  | https://privedatabase.wordpress.com/dro-city-2/ |
+| 6479 | DUMPSTREET | chicago | set | FCK HEAD$HOT | 2019-11-19 | 2019-11-19 | 879 | 2 |  | Y | https://privedatabase.wordpress.com/dumpstreet-2/ |
+| 7919 | E-BLOCK | chicago | set | FCK HEAD$HOT | 2020-01-25 | 2020-01-25 | 1574 | 3 | Y | Y | https://privedatabase.wordpress.com/e-block-2/ |
+| 3885 | EBK Trigga | chicago | set | FCK HEAD$HOT | 2020-04-22 | 2020-04-22 | 178 | 1 |  |  | https://privedatabase.wordpress.com/ebk-trigga/ |
+| 7939 | EVANS MOBB | chicago | set | FCK HEAD$HOT | 2020-01-26 | 2020-01-26 | 737 | 1 |  | Y | https://privedatabase.wordpress.com/evans-mobb-2/ |
+| 7907 | FACEWORLD | chicago | set | FCK HEAD$HOT | 2019-11-21 | 2019-11-21 | 1299 | 5 | Y | Y | https://privedatabase.wordpress.com/faceworld/ |
+| 3801 | Five Star | chicago | set | FCK HEAD$HOT | 2020-04-22 | 2020-04-22 | 464 | 1 |  | Y | https://privedatabase.wordpress.com/five-star/ |
+| 940 | FOLLYBOYZ | chicago | set | FCK HEAD$HOT | 2020-03-28 | 2020-03-28 | 1682 | 1 | Y |  | https://privedatabase.wordpress.com/follyboyz/ |
+| 7986 | FOSTER PARK | chicago | set | FCK HEAD$HOT | 2020-01-30 | 2020-01-30 | 854 |  | Y |  | https://privedatabase.wordpress.com/foster-park-2/ |
+| 7920 | FREE SMOKE | chicago | set | FCK HEAD$HOT | 2020-01-25 | 2020-01-25 | 441 |  | Y |  | https://privedatabase.wordpress.com/free-smoke-2/ |
+| 3802 | G-Nuk | chicago | set | FCK HEAD$HOT | 2020-04-22 | 2020-04-22 | 383 | 1 | Y |  | https://privedatabase.wordpress.com/g-nuk/ |
+| 7922 | G-VILLE | chicago | set | FCK HEAD$HOT | 2020-01-25 | 2020-01-25 | 1676 | 1 | Y | Y | https://privedatabase.wordpress.com/g-ville-2/ |
+| 2116 | Gary Miller | chicago | set | FCK HEAD$HOT | 2020-04-11 | 2020-04-11 | 148 | 1 | Y |  | https://privedatabase.wordpress.com/gary-miller/ |
+| 7926 | GEO DRIVE | chicago | set | FCK HEAD$HOT | 2020-01-25 | 2020-01-25 | 864 | 2 | Y | Y | https://privedatabase.wordpress.com/geo-drive-2/ |
+| 944 | GGE | chicago | set | FCK HEAD$HOT | 2020-03-28 | 2020-03-28 | 428 | 1 | Y |  | https://privedatabase.wordpress.com/gge/ |
+| 7903 | GME/EBE | chicago | set | FCK HEAD$HOT | 2019-11-21 | 2019-11-21 | 570 |  | Y |  | https://privedatabase.wordpress.com/gme-ebe/ |
+| 7965 | GOONIE GANG | chicago | set | FCK HEAD$HOT | 2020-01-27 | 2020-01-27 | 939 | 3 |  | Y | https://privedatabase.wordpress.com/goonie-gang-2/ |
+| 3718 | GRIMEY GANG | chicago | set | FCK HEAD$HOT | 2020-04-21 | 2020-04-21 | 253 | 1 | Y |  | https://privedatabase.wordpress.com/grimey-gang/ |
+| 7921 | GUNHEAD | chicago | set | FCK HEAD$HOT | 2020-01-25 | 2020-01-25 | 82 |  |  |  | https://privedatabase.wordpress.com/gunhead-2/ |
+| 8002 | GUTTAVILLE | chicago | set | FCK HEAD$HOT | 2020-02-10 | 2020-02-10 | 775 | 2 |  | Y | https://privedatabase.wordpress.com/guttaville-2/ |
+| 7955 | GUTTAVILLE GANGSTAS (GVG) | chicago | set | FCK HEAD$HOT | 2020-01-27 | 2020-01-27 | 2704 | 8 | Y | Y | https://privedatabase.wordpress.com/guttaville-gangstas-gvg/ |
+| 7994 | GUWOPGANG 075 | chicago | set | FCK HEAD$HOT | 2020-02-05 | 2020-02-05 | 270 |  |  |  | https://privedatabase.wordpress.com/guwopgang-075-2/ |
+| 7099 | HARVEY WORLD | chicago | set | FCK HEAD$HOT | 2020-02-07 | 2020-02-07 | 494 |  | Y |  | https://privedatabase.wordpress.com/harvey-world-2/ |
+| 7947 | HELLA BANDZ | chicago | set | FCK HEAD$HOT | 2020-01-27 | 2020-01-27 | 785 | 2 | Y |  | https://privedatabase.wordpress.com/hella-bandz-2/ |
+| 1029 | HOODGANG | chicago | set | FCK HEAD$HOT | 2020-03-28 | 2020-03-28 | 229 | 1 | Y |  | https://privedatabase.wordpress.com/hoodgang/ |
+| 7956 | HOOLA GANG | chicago | set | FCK HEAD$HOT | 2020-01-27 | 2020-01-27 | 4642 | 14 | Y | Y | https://privedatabase.wordpress.com/hoola-gang-2/ |
+| 4747 | Inky D | chicago | set | FCK HEAD$HOT | 2020-05-11 | 2020-05-11 | 559 | 1 |  | Y | https://privedatabase.wordpress.com/inky-d/ |
+| 7923 | INSANE MONEY MOB (IMM) | chicago | set | FCK HEAD$HOT | 2020-01-25 | 2020-01-25 | 696 | 1 | Y |  | https://privedatabase.wordpress.com/insane-money-mob-imm/ |
+| 3886 | J-Roc | chicago | set | FCK HEAD$HOT | 2020-04-22 | 2020-04-22 | 139 | 1 | Y |  | https://privedatabase.wordpress.com/j-roc/ |
+| 950 | JACKBOYS | chicago | set | FCK HEAD$HOT | 2020-03-28 | 2020-03-28 | 726 | 1 | Y |  | https://privedatabase.wordpress.com/jackville/ |
+| 1769 | Jacoby | chicago | set | FCK HEAD$HOT | 2020-04-10 | 2020-04-10 | 203 | 1 |  |  | https://privedatabase.wordpress.com/jacoby/ |
+| 243 | JARO CITY | chicago | set | FCK HEAD$HOT | 2020-03-26 | 2020-03-26 | 1769 | 1 | Y |  | https://privedatabase.wordpress.com/jaro-city/ |
+| 7486 | JARO CITY | chicago | set | FCK HEAD$HOT | 2019-11-07 | 2019-11-07 | 5149 | 15 | Y | Y | https://privedatabase.wordpress.com/jaro-city-2/ |
+| 7934 | JIGDOGS | chicago | set | FCK HEAD$HOT | 2020-01-25 | 2020-01-25 | 520 |  | Y |  | https://privedatabase.wordpress.com/jigdogs-2/ |
+| 1773 | Jilla | chicago | set | FCK HEAD$HOT | 2020-04-10 | 2020-04-10 | 189 | 1 | Y |  | https://privedatabase.wordpress.com/jilla/ |
+| 2185 | Jordan | chicago | set | FCK HEAD$HOT | 2020-04-11 | 2020-04-11 | 387 | 1 |  | Y | https://privedatabase.wordpress.com/jordan/ |
+| 4748 | Jusblow | chicago | set | FCK HEAD$HOT | 2020-05-11 | 2020-05-11 | 1112 | 1 |  |  | https://privedatabase.wordpress.com/jusblow/ |
+| 951 | JUST-US | chicago | set | FCK HEAD$HOT | 2020-03-28 | 2020-03-28 | 284 |  | Y |  | https://privedatabase.wordpress.com/just-us/ |
+| 7998 | KEDIZE HOMICIDE KINGS | chicago | set | FCK HEAD$HOT | 2020-02-05 | 2020-02-05 | 202 |  |  |  | https://privedatabase.wordpress.com/kedize-homicide-kings-2/ |
+| 4232 | Kiar | chicago | set | FCK HEAD$HOT | 2020-04-23 | 2020-04-23 | 153 | 1 |  | Y | https://privedatabase.wordpress.com/kiar/ |
+| 7491 | KILL TO SURVIVE (KTS) | chicago | set | FCK HEAD$HOT | 2019-11-07 | 2019-11-07 | 3010 | 7 | Y | Y | https://privedatabase.wordpress.com/kill-to-survive-kts/ |
+| 7894 | KILLAWARD 078 | chicago | set | FCK HEAD$HOT | 2019-11-19 | 2019-11-19 | 4255 | 3 | Y | Y | https://privedatabase.wordpress.com/killaward-078/ |
+| 4233 | King Greg | chicago | set | FCK HEAD$HOT | 2020-04-23 | 2020-04-23 | 396 | 1 |  |  | https://privedatabase.wordpress.com/king-greg/ |
+| 943 | KTC | chicago | set | FCK HEAD$HOT | 2020-03-28 | 2020-03-28 | 206 |  | Y |  | https://privedatabase.wordpress.com/ktc/ |
+| 7952 | LAKESIDE | chicago | set | FCK HEAD$HOT | 2020-01-26 | 2020-01-26 | 1493 | 3 | Y | Y | https://privedatabase.wordpress.com/lakeside-2/ |
+| 7489 | LAMRON | chicago | set | FCK HEAD$HOT | 2019-11-07 | 2019-11-07 | 6223 | 20 | Y | Y | https://privedatabase.wordpress.com/lamron-2/ |
+| 972 | LANDLORD COV | chicago | set | FCK HEAD$HOT | 2020-03-28 | 2020-03-28 | 520 | 1 | Y |  | https://privedatabase.wordpress.com/landlord-cov/ |
+| 8007 | LEXIQUE | chicago | set | FCK HEAD$HOT | 2020-02-18 | 2020-02-18 | 1564 |  | Y |  | https://privedatabase.wordpress.com/lexique/ |
+| 4749 | Lil Dee | chicago | set | FCK HEAD$HOT | 2020-05-11 | 2020-05-11 | 318 | 1 |  |  | https://privedatabase.wordpress.com/lil-dee-2/ |
+| 1770 | Lil Zo | chicago | set | FCK HEAD$HOT | 2020-04-10 | 2020-04-10 | 139 |  |  | Y | https://privedatabase.wordpress.com/lil-zo/ |
+| 7957 | LIL4MOBB | chicago | set | FCK HEAD$HOT | 2020-01-27 | 2020-01-27 | 2366 | 7 | Y | Y | https://privedatabase.wordpress.com/lil4mobb-2/ |
+| 7954 | LOC CITY | chicago | set | FCK HEAD$HOT | 2020-01-27 | 2020-01-27 | 6243 | 18 | Y | Y | https://privedatabase.wordpress.com/loc-city-2/ |
+| 450 | LOC CITY (BotY) | chicago | set | FCK HEAD$HOT | 2020-03-27 | 2020-03-27 | 436 |  | Y |  | https://privedatabase.wordpress.com/loc-city-boty/ |
+| 7991 | LOC CITY (BotY) | chicago | set | FCK HEAD$HOT | 2020-02-01 | 2020-02-01 | 504 |  |  |  | https://privedatabase.wordpress.com/loc-city-boty-2/ |
+| 1790 | LORDSVILLE | chicago | set | FCK HEAD$HOT | 2020-04-10 | 2020-04-10 | 379 |  | Y |  | https://privedatabase.wordpress.com/lordsville/ |
+| 7944 | LOWELIFE | chicago | set | FCK HEAD$HOT | 2020-01-26 | 2020-01-26 | 2758 | 9 | Y | Y | https://privedatabase.wordpress.com/lowelife-2/ |
+| 978 | M.O.M | chicago | set | FCK HEAD$HOT | 2020-03-28 | 2020-03-28 | 164 |  |  |  | https://privedatabase.wordpress.com/m-o-m/ |
+| 3877 | Maintain | chicago | set | FCK HEAD$HOT | 2020-04-22 | 2020-04-22 | 264 | 1 |  |  | https://privedatabase.wordpress.com/maintain/ |
+| 4752 | Makado | chicago | set | FCK HEAD$HOT | 2020-05-11 | 2020-05-11 | 770 | 1 |  | Y | https://privedatabase.wordpress.com/makado/ |
+| 4242 | ManyNames | chicago | set | FCK HEAD$HOT | 2020-04-23 | 2020-04-23 | 255 | 1 |  | Y | https://privedatabase.wordpress.com/manynames/ |
+| 4147 | Marlon | chicago | set | FCK HEAD$HOT | 2020-04-23 | 2020-04-23 | 95 | 1 |  | Y | https://privedatabase.wordpress.com/marlon/ |
+| 7959 | MARSHALL FIELD MCs | chicago | set | FCK HEAD$HOT | 2020-01-27 | 2020-01-27 | 401 | 1 | Y |  | https://privedatabase.wordpress.com/marshall-field-mcs-2/ |
+| 7936 | MET BOYZ | chicago | set | FCK HEAD$HOT | 2020-01-25 | 2020-01-25 | 1087 | 2 | Y | Y | https://privedatabase.wordpress.com/met-boyz-2/ |
+| 7938 | MITCH BLOCK | chicago | set | FCK HEAD$HOT | 2020-01-26 | 2020-01-26 | 475 | 1 | Y | Y | https://privedatabase.wordpress.com/mitch-block-2/ |
+| 7940 | MIXX MOBB | chicago | set | FCK HEAD$HOT | 2020-01-26 | 2020-01-26 | 1278 | 2 | Y | Y | https://privedatabase.wordpress.com/mixx-mobb-2/ |
+| 8005 | MNA (4CH) | chicago | set | FCK HEAD$HOT | 2020-02-10 | 2020-02-10 | 299 |  |  |  | https://privedatabase.wordpress.com/mna-4ch/ |
+| 7483 | MOB | chicago | set | FCK HEAD$HOT | 2019-11-07 | 2019-11-07 | 6976 | 19 | Y | Y | https://privedatabase.wordpress.com/mob/ |
+| 971 | MOE | chicago | set | FCK HEAD$HOT | 2020-03-28 | 2020-03-28 | 701 | 1 | Y |  | https://privedatabase.wordpress.com/moe/ |
+| 479 | MOETOWN | chicago | set | FCK HEAD$HOT | 2020-03-27 | 2020-03-27 | 442 |  |  |  | https://privedatabase.wordpress.com/moetown/ |
+| 7490 | MOETOWN | chicago | set | FCK HEAD$HOT | 2019-11-07 | 2019-11-07 | 6708 | 23 | Y | Y | https://privedatabase.wordpress.com/moetown-2/ |
+| 7963 | MONEY BY ANY MEANS (MBAM) | chicago | set | FCK HEAD$HOT | 2020-01-27 | 2020-01-27 | 1064 | 2 | Y |  | https://privedatabase.wordpress.com/money-by-any-means-mbam/ |
+| 7942 | MOOSEBLOCK | chicago | set | FCK HEAD$HOT | 2020-01-26 | 2020-01-26 | 966 | 1 | Y | Y | https://privedatabase.wordpress.com/mooseblock-2/ |
+| 7953 | MTG | chicago | set | FCK HEAD$HOT | 2020-01-26 | 2020-01-26 | 677 | 1 | Y |  | https://privedatabase.wordpress.com/mtg-2/ |
+| 7906 | MTV | chicago | set | FCK HEAD$HOT | 2019-11-21 | 2019-11-21 | 957 | 3 |  | Y | https://privedatabase.wordpress.com/mtv-2/ |
+| 963 | MURDAFIELD | chicago | set | FCK HEAD$HOT | 2020-03-28 | 2020-03-28 | 168 |  |  |  | https://privedatabase.wordpress.com/murdafield/ |
+| 7933 | MURDATOWN | chicago | set | FCK HEAD$HOT | 2020-01-25 | 2020-01-25 | 1522 | 2 | Y | Y | https://privedatabase.wordpress.com/murdatown-2/ |
+| 1152 | MURDERVILLE | chicago | set | FCK HEAD$HOT | 2020-03-28 | 2020-03-28 | 483 | 1 | Y |  | https://privedatabase.wordpress.com/murderville/ |
+| 7925 | NICKO GANG | chicago | set | FCK HEAD$HOT | 2020-01-25 | 2020-01-25 | 1694 | 7 | Y | Y | https://privedatabase.wordpress.com/nicko-gang-2/ |
+| 7948 | NO LIMIT 083 | chicago | set | FCK HEAD$HOT | 2020-01-26 | 2020-01-26 | 332 | 1 | Y |  | https://privedatabase.wordpress.com/no-limit-083-2/ |
+| 7937 | NO LIMIT 087 | chicago | set | FCK HEAD$HOT | 2020-01-26 | 2020-01-26 | 653 | 1 | Y |  | https://privedatabase.wordpress.com/no-limit-087-2/ |
+| 7487 | NO LIMIT/MUSKEGON BOYZ | chicago | set | FCK HEAD$HOT | 2019-11-07 | 2019-11-07 | 8902 | 22 | Y | Y | https://privedatabase.wordpress.com/no-limit-muskegon-boyz/ |
+| 8000 | NOSEDMOBB | chicago | set | FCK HEAD$HOT | 2020-02-07 | 2020-02-07 | 193 |  | Y |  | https://privedatabase.wordpress.com/nosedmobb-2/ |
+| 7895 | OAK BOYZ NATION (OBN) | chicago | set | FCK HEAD$HOT | 2019-11-19 | 2019-11-19 | 1057 | 3 | Y | Y | https://privedatabase.wordpress.com/oak-boyz-nation-obn/ |
+| 1189 | Odee | chicago | set | FCK HEAD$HOT | 2020-03-28 | 2020-03-28 | 517 | 1 |  |  | https://privedatabase.wordpress.com/odee/ |
+| 3884 | OMillie | chicago | set | FCK HEAD$HOT | 2020-04-22 | 2020-04-22 | 245 | 1 |  | Y | https://privedatabase.wordpress.com/omillie/ |
+| 7960 | ONLY THE END (OTE) | chicago | set | FCK HEAD$HOT | 2020-01-27 | 2020-01-27 | 4539 | 8 | Y | Y | https://privedatabase.wordpress.com/only-the-end-ote/ |
 | 4333 | OTF | chicago | set | FCK HEAD$HOT | 2020-04-24 | 2020-04-24 | 146 |  |  |  | https://privedatabase.wordpress.com/otf/ |
+| 7949 | OUT7AW CITY | chicago | set | FCK HEAD$HOT | 2020-01-26 | 2020-01-26 | 944 | 3 | Y | Y | https://privedatabase.wordpress.com/out7aw-city-2/ |
+| 1151 | O’BLOCK | chicago | set | FCK HEAD$HOT | 2020-03-28 | 2020-03-28 | 1721 | 1 | Y |  | https://privedatabase.wordpress.com/oblock/ |
+| 8006 | P-BLOCK (4CH) | chicago | set | FCK HEAD$HOT | 2020-02-10 | 2020-02-10 | 264 |  |  |  | https://privedatabase.wordpress.com/p-block-4ch/ |
+| 7943 | PAXTOWN | chicago | set | FCK HEAD$HOT | 2020-01-26 | 2020-01-26 | 779 |  | Y |  | https://privedatabase.wordpress.com/paxtown-2/ |
+| 7488 | PBG/TFG | chicago | set | FCK HEAD$HOT | 2019-11-07 | 2019-11-07 | 12173 | 40 | Y | Y | https://privedatabase.wordpress.com/pbg-tfg/ |
+| 7930 | POCKETTOWN | chicago | set | FCK HEAD$HOT | 2020-01-25 | 2020-01-25 | 3110 | 6 | Y | Y | https://privedatabase.wordpress.com/pockettown-2/ |
+| 7970 | POTTBLOCK | chicago | set | FCK HEAD$HOT | 2020-01-27 | 2020-01-27 | 938 | 2 | Y |  | https://privedatabase.wordpress.com/pottblock-2/ |
+| 7996 | PSYCHO GANG | chicago | set | FCK HEAD$HOT | 2020-02-05 | 2020-02-05 | 230 | 1 | Y |  | https://privedatabase.wordpress.com/psycho-gang-2/ |
+| 4047 | Ray Bands | chicago | set | FCK HEAD$HOT | 2020-04-23 | 2020-04-23 | 214 | 1 |  | Y | https://privedatabase.wordpress.com/ray-bands/ |
+| 3880 | Raysko | chicago | set | FCK HEAD$HOT | 2020-04-22 | 2020-04-22 | 134 | 1 |  |  | https://privedatabase.wordpress.com/raysko/ |
+| 6666 | REC CITY | chicago | set | FCK HEAD$HOT | 2020-01-25 | 2020-01-25 | 191 |  |  |  | https://privedatabase.wordpress.com/rec-city-2/ |
+| 7946 | RISKY ROAD | chicago | set | FCK HEAD$HOT | 2020-01-26 | 2020-01-26 | 485 | 1 | Y |  | https://privedatabase.wordpress.com/risky-road-2/ |
+| 7985 | RMG | chicago | set | FCK HEAD$HOT | 2020-01-30 | 2020-01-30 | 278 |  | Y |  | https://privedatabase.wordpress.com/rmg-2/ |
+| 7896 | ROC CREEK | chicago | set | FCK HEAD$HOT | 2019-11-21 | 2019-11-21 | 591 |  | Y |  | https://privedatabase.wordpress.com/roc-creek-3/ |
+| 7973 | SACKBOYZ | chicago | set | FCK HEAD$HOT | 2020-01-27 | 2020-01-27 | 1004 | 1 | Y |  | https://privedatabase.wordpress.com/sackboyz-2/ |
+| 3882 | Scrap | chicago | set | FCK HEAD$HOT | 2020-04-22 | 2020-04-22 | 145 | 1 | Y |  | https://privedatabase.wordpress.com/scrap/ |
+| 7897 | SEDVILLE | chicago | set | FCK HEAD$HOT | 2019-11-21 | 2019-11-21 | 1558 | 1 | Y |  | https://privedatabase.wordpress.com/sedville-2/ |
+| 7899 | SHAWN MONEY BOYZ (SMB) | chicago | set | FCK HEAD$HOT | 2019-11-21 | 2019-11-21 | 1483 | 1 |  |  | https://privedatabase.wordpress.com/shawn-money-boyz-smb/ |
+| 7927 | SHIELDS | chicago | set | FCK HEAD$HOT | 2020-01-25 | 2020-01-25 | 1262 | 3 | Y | Y | https://privedatabase.wordpress.com/shields-2/ |
+| 7905 | SIRCONN CITY GANGSTERS | chicago | set | FCK HEAD$HOT | 2019-11-21 | 2019-11-21 | 1034 |  | Y |  | https://privedatabase.wordpress.com/sirconn-city-gangsters-2/ |
+| 7974 | SK | chicago | set | FCK HEAD$HOT | 2020-01-27 | 2020-01-27 | 907 | 1 | Y |  | https://privedatabase.wordpress.com/sk-2/ |
+| 7931 | SKEEZE WORLD | chicago | set | FCK HEAD$HOT | 2020-01-25 | 2020-01-25 | 319 | 1 | Y |  | https://privedatabase.wordpress.com/skeeze-world-2/ |
+| 7969 | SLUTTY BOYZ | chicago | set | FCK HEAD$HOT | 2020-01-27 | 2020-01-27 | 719 | 1 | Y |  | https://privedatabase.wordpress.com/slutty-boyz-2/ |
+| 3883 | Smalls | chicago | set | FCK HEAD$HOT | 2020-04-22 | 2020-04-22 | 219 | 1 |  |  | https://privedatabase.wordpress.com/smalls/ |
+| 7987 | SMASHVILLE | chicago | set | FCK HEAD$HOT | 2020-01-30 | 2020-01-30 | 628 |  | Y |  | https://privedatabase.wordpress.com/smashville-2/ |
+| 1187 | Snap D | chicago | set | FCK HEAD$HOT | 2020-03-28 | 2020-03-28 | 443 | 1 |  | Y | https://privedatabase.wordpress.com/snap-d/ |
+| 7928 | SOUTH KING DRIVE (SKD) | chicago | set | FCK HEAD$HOT | 2020-01-25 | 2020-01-25 | 434 | 1 | Y |  | https://privedatabase.wordpress.com/south-king-drive-skd/ |
+| 7898 | SQUIRTTOWN | chicago | set | FCK HEAD$HOT | 2019-11-21 | 2019-11-21 | 433 |  | Y |  | https://privedatabase.wordpress.com/squirttown-2/ |
+| 4750 | Stello | chicago | set | FCK HEAD$HOT | 2020-05-11 | 2020-05-11 | 378 | 1 | Y |  | https://privedatabase.wordpress.com/stello/ |
+| 242 | STL/EBT | chicago | set | FCK HEAD$HOT | 2020-03-26 | 2020-03-26 | 1471 | 1 | Y |  | https://privedatabase.wordpress.com/stl-ebt/ |
+| 7484 | STL/EBT | chicago | set | FCK HEAD$HOT | 2019-11-07 | 2019-11-07 | 16167 | 27 | Y | Y | https://privedatabase.wordpress.com/stl-ebt-2/ |
+| 7929 | STONY SPOT | chicago | set | FCK HEAD$HOT | 2020-01-25 | 2020-01-25 | 512 |  | Y |  | https://privedatabase.wordpress.com/stony-spot-2/ |
+| 7962 | SUWU MOBB | chicago | set | FCK HEAD$HOT | 2020-01-27 | 2020-01-27 | 1016 |  | Y |  | https://privedatabase.wordpress.com/suwu-mobb-2/ |
+| 7900 | SUWU TTB | chicago | set | FCK HEAD$HOT | 2019-11-21 | 2019-11-21 | 1257 | 2 |  |  | https://privedatabase.wordpress.com/suwu-ttb-2/ |
+| 7984 | SWIFT CITY | chicago | set | FCK HEAD$HOT | 2020-01-27 | 2020-01-27 | 3205 | 16 | Y | Y | https://privedatabase.wordpress.com/swift-city-2/ |
+| 7961 | TAETOWN | chicago | set | FCK HEAD$HOT | 2020-01-27 | 2020-01-27 | 964 | 1 | Y |  | https://privedatabase.wordpress.com/taetown-2/ |
+| 7901 | TAY CITY | chicago | set | FCK HEAD$HOT | 2019-11-21 | 2019-11-21 | 507 |  | Y |  | https://privedatabase.wordpress.com/tay-city-2/ |
+| 7995 | TEDAMOBB | chicago | set | FCK HEAD$HOT | 2020-02-05 | 2020-02-05 | 281 | 1 |  | Y | https://privedatabase.wordpress.com/tedamobb-2/ |
+| 7924 | TERROR DOME | chicago | set | FCK HEAD$HOT | 2020-01-25 | 2020-01-25 | 1872 | 2 | Y |  | https://privedatabase.wordpress.com/terror-dome/ |
+| 4183 | The God Father | chicago | set | FCK HEAD$HOT | 2020-04-23 | 2020-04-23 | 326 | 1 |  | Y | https://privedatabase.wordpress.com/the-god-father/ |
+| 7902 | THF 44 | chicago | set | FCK HEAD$HOT | 2019-11-21 | 2019-11-21 | 532 | 2 |  | Y | https://privedatabase.wordpress.com/thf-44-2/ |
+| 7493 | THF 46 | chicago | set | FCK HEAD$HOT | 2019-11-07 | 2019-11-07 | 12106 | 30 | Y | Y | https://privedatabase.wordpress.com/thf-46-2/ |
+| 4148 | Tone Bone | chicago | set | FCK HEAD$HOT | 2020-04-23 | 2020-04-23 | 142 | 1 |  | Y | https://privedatabase.wordpress.com/tone-bone/ |
+| 7967 | TOUCHMONEY | chicago | set | FCK HEAD$HOT | 2020-01-27 | 2020-01-27 | 387 | 1 | Y |  | https://privedatabase.wordpress.com/touchmoney-2/ |
+| 4243 | Triggah900 | chicago | set | FCK HEAD$HOT | 2020-04-23 | 2020-04-23 | 129 | 1 |  |  | https://privedatabase.wordpress.com/triggah900/ |
+| 7495 | TYMB | chicago | set | FCK HEAD$HOT | 2019-11-07 | 2019-11-07 | 7263 | 18 | Y | Y | https://privedatabase.wordpress.com/tymb-2/ |
+| 245 | TYQUAN WORLD | chicago | set | FCK HEAD$HOT | 2020-03-26 | 2020-03-26 | 926 | 1 | Y |  | https://privedatabase.wordpress.com/tyquan-world/ |
+| 7485 | TYQUAN WORLD | chicago | set | FCK HEAD$HOT | 2019-11-07 | 2019-11-07 | 5072 | 12 | Y | Y | https://privedatabase.wordpress.com/tyquan-world-2/ |
+| 1772 | Tyto | chicago | set | FCK HEAD$HOT | 2020-04-10 | 2020-04-10 | 156 | 1 | Y |  | https://privedatabase.wordpress.com/tyto/ |
+| 7993 | TYTOLAND | chicago | set | FCK HEAD$HOT | 2020-02-01 | 2020-02-01 | 254 |  |  |  | https://privedatabase.wordpress.com/tytoland/ |
+| 7990 | VON WORLD | chicago | set | FCK HEAD$HOT | 2020-01-30 | 2020-01-30 | 792 | 3 | Y | Y | https://privedatabase.wordpress.com/von-world-2/ |
+| 874 | W.B | chicago | set | FCK HEAD$HOT | 2020-03-28 | 2020-03-28 | 497 | 1 | Y |  | https://privedatabase.wordpress.com/w-b/ |
+| 4751 | Waldo | chicago | set | FCK HEAD$HOT | 2020-05-11 | 2020-05-11 | 290 | 1 | Y |  | https://privedatabase.wordpress.com/waldo/ |
+| 6528 | WELCH WORLD | chicago | set | FCK HEAD$HOT | 2019-11-21 | 2019-11-21 | 1220 | 1 |  | Y | https://privedatabase.wordpress.com/welch-world-3/ |
+| 7941 | WHIZ CITY | chicago | set | FCK HEAD$HOT | 2020-01-26 | 2020-01-26 | 501 |  |  |  | https://privedatabase.wordpress.com/whiz-city-2/ |
+| 240 | WIIIC CITY | chicago | set | FCK HEAD$HOT | 2020-03-26 | 2020-03-26 | 791 | 1 | Y |  | https://privedatabase.wordpress.com/wiiic-city/ |
+| 6273 | WIIIC CITY/O’BLOCK | chicago | set | FCK HEAD$HOT | 2019-11-07 | 2019-11-07 | 13332 | 28 | Y | Y | https://privedatabase.wordpress.com/wiiic-city-oblock/ |
+| 7951 | WUGA WORLD | chicago | set | FCK HEAD$HOT | 2020-01-26 | 2020-01-26 | 1424 | 2 | Y | Y | https://privedatabase.wordpress.com/wuga-world-2/ |
+| 870 | YOUNG MONEY ARTGANG | chicago | set | FCK HEAD$HOT | 2020-03-28 | 2020-03-28 | 428 | 1 | Y |  | https://privedatabase.wordpress.com/young-money-artgang/ |
+| 4046 | Zo | chicago | set | FCK HEAD$HOT | 2020-04-23 | 2020-04-23 | 624 | 1 |  | Y | https://privedatabase.wordpress.com/zo-2/ |
+| 627 | ZOLAND | chicago | set | FCK HEAD$HOT | 2020-03-27 | 2020-03-27 | 627 | 1 | Y |  | https://privedatabase.wordpress.com/zoland/ |
+| 7945 | ZONE7 | chicago | set | FCK HEAD$HOT | 2020-01-26 | 2020-01-26 | 275 |  | Y |  | https://privedatabase.wordpress.com/zone7-2/ |
 | 665 | LISTE DES SETS | columbus | city-index | FCK HEAD$HOT | 2020-03-27 | 2020-03-27 | 49 |  |  |  | https://privedatabase.wordpress.com/columbus/liste-des-sets/ |
 | 8 | Contact | detroit | admin | FCK HEAD$HOT | 2020-10-27 | 2020-10-27 | 255 |  |  |  | https://privedatabase.wordpress.com/contact/ |
 | 785 | LISTE DES SETS | detroit | city-index | FCK HEAD$HOT | 2020-03-27 | 2021-03-20 | 480 |  |  |  | https://privedatabase.wordpress.com/detroit/liste-des-sets/ |
-| 1385 | 6 Mile Rollin’ 60s Crips | detroit | empty | FCK HEAD$HOT | 2020-04-02 | 2020-04-02 | 0 |  |  |  | https://privedatabase.wordpress.com/6-mile-rollin-60s-crips/ |
-| 1393 | Cadet Mafia Counts | detroit | empty | FCK HEAD$HOT | 2020-04-02 | 2020-04-02 | 0 |  |  |  | https://privedatabase.wordpress.com/cadet-mafia-counts/ |
-| 1394 | Chopin Boy Mafia Counts | detroit | empty | FCK HEAD$HOT | 2020-04-02 | 2020-04-02 | 0 |  |  |  | https://privedatabase.wordpress.com/chopin-boy-mafia-counts/ |
-| 1395 | Downriver Mafia Counts | detroit | empty | FCK HEAD$HOT | 2020-04-02 | 2020-04-02 | 0 |  |  |  | https://privedatabase.wordpress.com/downriver-mafia-counts/ |
-| 1397 | Hustle Hard | detroit | empty | FCK HEAD$HOT | 2020-04-02 | 2020-04-02 | 0 |  |  |  | https://privedatabase.wordpress.com/hustle-hard/ |
-| 1399 | Norton Shores | detroit | empty | FCK HEAD$HOT | 2020-04-02 | 2020-04-02 | 0 |  |  |  | https://privedatabase.wordpress.com/norton-shores/ |
 | 1598 | AJ | detroit | person | FCK HEAD$HOT | 2020-04-07 | 2020-12-27 | 161 | 1 | Y |  | https://privedatabase.wordpress.com/aj/ |
 | 2266 | Anno | detroit | person | FCK HEAD$HOT | 2020-04-12 | 2020-04-12 | 61 | 1 | Y |  | https://privedatabase.wordpress.com/anno/ |
 | 2803 | B-Mo | detroit | person | FCK HEAD$HOT | 2020-04-16 | 2020-04-16 | 310 | 1 |  | Y | https://privedatabase.wordpress.com/b-mo/ |
@@ -740,6 +734,7 @@ All **1,105 pages** harvested 2026-08-21 via the WordPress.com public REST API
 | 3895 | YCK | detroit | person | FCK HEAD$HOT | 2020-04-22 | 2020-04-22 | 169 | 1 |  | Y | https://privedatabase.wordpress.com/yck/ |
 | 1273 | 4 Gang | detroit | set | FCK HEAD$HOT | 2020-03-30 | 2021-03-06 | 548 | 1 | Y |  | https://privedatabase.wordpress.com/4-gang/ |
 | 1263 | 6 Mile Chedda Grove | detroit | set | FCK HEAD$HOT | 2020-03-30 | 2020-12-26 | 335 |  | Y |  | https://privedatabase.wordpress.com/6-mile-chedda-grove/ |
+| 1385 | 6 Mile Rollin’ 60s Crips | detroit | set | FCK HEAD$HOT | 2020-04-02 | 2020-04-02 | 0 |  |  |  | https://privedatabase.wordpress.com/6-mile-rollin-60s-crips/ |
 | 1264 | 7 Mile Bloods | detroit | set | FCK HEAD$HOT | 2020-03-30 | 2020-12-26 | 925 | 1 | Y |  | https://privedatabase.wordpress.com/7-mile-bloods/ |
 | 6279 | 700 | detroit | set | irishrugbyman | 2020-11-15 | 2021-03-14 | 263 |  | Y |  | https://privedatabase.wordpress.com/700-2/ |
 | 1386 | 8 Mile Bloods | detroit | set | FCK HEAD$HOT | 2020-04-02 | 2020-04-02 | 59 |  |  |  | https://privedatabase.wordpress.com/8-mile-bloods/ |
@@ -755,14 +750,19 @@ All **1,105 pages** harvested 2026-08-21 via the WordPress.com public REST API
 | 1266 | BCB | detroit | set | FCK HEAD$HOT | 2020-03-30 | 2020-03-30 | 77 |  |  |  | https://privedatabase.wordpress.com/bcb/ |
 | 1392 | Bounty Hunter Bloods | detroit | set | FCK HEAD$HOT | 2020-04-02 | 2020-04-02 | 1177 |  |  |  | https://privedatabase.wordpress.com/bounty-hunter-bloods/ |
 | 4215 | BroncoBoyz | detroit | set | FCK HEAD$HOT | 2020-04-23 | 2020-12-21 | 295 | 1 | Y |  | https://privedatabase.wordpress.com/broncoboyz/ |
+| 1393 | Cadet Mafia Counts | detroit | set | FCK HEAD$HOT | 2020-04-02 | 2020-04-02 | 0 |  |  |  | https://privedatabase.wordpress.com/cadet-mafia-counts/ |
 | 1267 | CashGang | detroit | set | FCK HEAD$HOT | 2020-03-30 | 2021-02-12 | 411 | 1 | Y |  | https://privedatabase.wordpress.com/cashgang/ |
+| 1394 | Chopin Boy Mafia Counts | detroit | set | FCK HEAD$HOT | 2020-04-02 | 2020-04-02 | 0 |  |  |  | https://privedatabase.wordpress.com/chopin-boy-mafia-counts/ |
 | 4613 | CMH | detroit | set | FCK HEAD$HOT | 2020-05-09 | 2021-01-23 | 314 | 1 | Y |  | https://privedatabase.wordpress.com/cmh/ |
 | 1268 | Dexter Boyz | detroit | set | FCK HEAD$HOT | 2020-03-30 | 2020-03-30 | 148 |  | Y |  | https://privedatabase.wordpress.com/dexter-boyz/ |
+| 1395 | Downriver Mafia Counts | detroit | set | FCK HEAD$HOT | 2020-04-02 | 2020-04-02 | 0 |  |  |  | https://privedatabase.wordpress.com/downriver-mafia-counts/ |
 | 6946 | DWBI | detroit | set | irishrugbyman | 2020-12-27 | 2020-12-27 | 59 |  |  |  | https://privedatabase.wordpress.com/dwbi/ |
 | 1294 | GlockBoyz | detroit | set | FCK HEAD$HOT | 2020-03-30 | 2021-02-07 | 536 | 1 | Y |  | https://privedatabase.wordpress.com/glockboyz/ |
+| 1397 | Hustle Hard | detroit | set | FCK HEAD$HOT | 2020-04-02 | 2020-04-02 | 0 |  |  |  | https://privedatabase.wordpress.com/hustle-hard/ |
 | 1274 | Joy Road Hitsquad | detroit | set | FCK HEAD$HOT | 2020-03-30 | 2020-03-30 | 80 |  |  |  | https://privedatabase.wordpress.com/joy-road-hitsquad/ |
 | 6698 | Maxout | detroit | set | irishrugbyman | 2020-12-20 | 2020-12-21 | 199 |  |  |  | https://privedatabase.wordpress.com/maxout/ |
 | 7117 | MPR | detroit | set | irishrugbyman | 2021-01-08 | 2021-02-19 | 273 |  |  |  | https://privedatabase.wordpress.com/mpr/ |
+| 1399 | Norton Shores | detroit | set | FCK HEAD$HOT | 2020-04-02 | 2020-04-02 | 0 |  |  |  | https://privedatabase.wordpress.com/norton-shores/ |
 | 4601 | PBF | detroit | set | FCK HEAD$HOT | 2020-05-07 | 2021-02-20 | 323 |  |  |  | https://privedatabase.wordpress.com/pbf-foe-life/ |
 | 2183 | Puritan Avenue Boys | detroit | set | FCK HEAD$HOT | 2020-04-11 | 2021-06-08 | 901 | 1 | Y |  | https://privedatabase.wordpress.com/puritan-avenue-boys/ |
 | 1401 | RTM | detroit | set | FCK HEAD$HOT | 2020-04-02 | 2021-01-18 | 300 |  |  |  | https://privedatabase.wordpress.com/rtm/ |

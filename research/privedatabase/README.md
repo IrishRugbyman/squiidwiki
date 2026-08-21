@@ -15,7 +15,7 @@ Detroit**. Roughly 40% of it is Chicago.
 |---|---|
 | `page-index.md` | **All 1,105 pages** - ID, title, city, kind, **author**, created, modified, size, image count, deceased/incarcerated flags, URL |
 | `detroit.md` | 232 Detroit pages: sets with their allies/enemies/members, then people |
-| `chicago.md` | 448 Chicago pages, kept separate so they cannot leak into Detroit seeding |
+| `chicago.md` | 448 Chicago pages - **221 sets** with allies, enemies and member rosters. Kept separate so they cannot leak into Detroit seeding |
 | `other-cities.md` | 261 pages: London, Atlanta, New York, Tottenham, Toledo, Louisiana |
 | `unclassified.md` | 155 pages the classifier could not place, listed in full rather than guessed |
 
@@ -129,6 +129,69 @@ And it revives dead Facebook links. `social-links.txt` has `kavaughn.clark` tagg
 aughn"; the `9000` set page lists a member **"Othaside Vaughn."** Same for `atb.mal` → `ATB`,
 `bcb.nutty` → `Nutty`, `9000 Richy` → `Richy`. Profiles that are now unreachable become
 identifiable people again without touching Facebook.
+
+## Chicago extraction: two tracks, and why
+
+The Chicago set pages carry more structure than Detroit's, and the two halves of a page needed
+completely different handling.
+
+**Member blocks were parsed by machine.** `FUSILLADES IMPORTANTES:` / `CORPS:` /
+`ASSISTANCE(S):` are newline-separated lists of `Name (Set)` entries, regular enough for a
+parser. Yield: **726 members, 3,469 shootings, 586 member-level bodies, 515 assists**, plus
+**1,772 set-level bodies** and 618 listed member names.
+
+Each event entry names a target *and* the target's own set, so these are **directed edges
+between sets**, not prose. That is the most directly seedable material on the whole site.
+
+**Bios were read, not parsed.** The opening paragraph is irregular French and regex mangled
+it, so each of the **156 set bios** was read and normalised by hand. Yield: **335 ally links,
+497 enemy links, 24 former alliances.**
+
+| French | Meaning | Mapped to |
+|---|---|---|
+| `fusionnés avec` | merged with | **allies** |
+| `alliés avec`, `cools avec`, `en bonne entente avec` | allied / on good terms | **allies** |
+| `ennemis avec`, `ennemis directs avec` | enemies | **enemies**, one list |
+| `en guerre contre`, `en embrouille avec` | at war / recent beef | **enemies** |
+| `étaient autrefois alliés`, `mais ne le sont plus` | formerly allied | **former_allies** |
+
+Merges fold into allies because the wiki has one ally relationship, not a separate merge
+concept. `former_allies` stays split, because collapsing it would assert alliances that
+ended - 800 Young Money *was* merged with 051 Young Money and is not any more, with only the
+Mickey Cobra OGs still linked across both. Nation names are expanded where the author elided:
+"un set de Gangster et Black Disciples" means Gangster **Disciples** and Black Disciples.
+
+### Judgement calls flagged during extraction
+
+Recorded so they can be overridden rather than silently inherited:
+
+- **DIPSET BLVD** (7999) - described as a faction of OTE that OTE later turned against.
+  `former_allies` is inferred from "faction du set OTE", never stated outright. PBG is not
+  listed as an enemy because the bio never says so directly.
+- **GUTTAVILLE** (8002) - "proches de la THF 46" (close to) read as an alliance, though it is
+  not one of the standard ally phrasings.
+- **HARVEY WORLD** (7099) - "des clashs entre O'Block et le Harvey World" read as enmity;
+  "clash" is not standard enemy phrasing here.
+- **KILLAWARD 078** (7894) - RMG appears as both a plain enemy and as "RMG (YKN)" ally. Both
+  kept, on the assumption the qualifier marks a distinct clique.
+- **TAY CITY** (7901) - "devenus BDK" after Lil Jojo's death read as turning against the 600
+  specifically, though the bio only states the general anti-Black-Disciples stance.
+- **WIIIC CITY / O'BLOCK** (6273) - "Brick City" placed in `former_enemies`; unclear whether
+  that should resolve to the present-day 600, which used to carry that name.
+- **051 YOUNG MONEY** (286) - the MetBoyz alliance is past tense on this page but current on
+  the companion page 7494. Left out of both lists on 286, kept in prose.
+- **BLACKMOBB** (283, 7492) - required resolving an ambiguous French pronoun to decide whether
+  the NLMB alliance belongs to BlackMobb or to ABK. Settled as ABK, cross-checked against
+  ABK's own page.
+- **CCG** (8001) - "ennemis avec des sets TVLs" names no specific set; recorded as the generic
+  "TVL sets" rather than inventing names.
+- **LEXIQUE** (8007) - not a set at all, a glossary entry defining "BACKDOOR".
+- **OAK BOYZ NATION / OBN** (7895) - source bio is truncated mid-sentence on the site itself,
+  so only the nations could be recovered.
+
+One parser bug worth knowing if you re-run it: `CORPS IMPORTANTS:` is a **set-level** list,
+not the trailing member's kills. Treating it as a member section credited 23 bodies to whoever
+happened to be listed last on the page.
 
 ## Before seeding any of this
 
