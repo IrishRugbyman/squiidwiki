@@ -6,6 +6,7 @@ it's source material to extract from, structured by how ready it is to use.
 ```
 sources/       Bookmark exports - citations to feed the Source entity
 raw/           Unprocessed copy-paste dumps - need triage before they're usable
+raw/fetched/   Full text retrieved from the sources/ URLs on 2026-08-21 (see below)
 extraction/    Curated notes, ready (or close to ready) to seed Set/Alliance/Member records
 ```
 
@@ -37,12 +38,41 @@ capture date weren't recorded - each file's header says what's known and what to
 Both need to be split up and cross-referenced against existing wiki entities before
 anything in them turns into a Set, Member, or Incident record.
 
+## raw/fetched/
+
+Full text of every reachable URL in `sources/`, retrieved 2026-08-21 with a headless browser.
+**97 of 147 documents** yielded usable text (1.4 MB). Filenames are the source IDs used
+throughout `extraction/`.
+
+The 50 that failed are not dead links, they are refusals: `documentcloud.org`,
+`law.justia.com`, `casetext.com`, `casemine.com`, `leagle.com`, `mlive.com` and
+`cases.justia.com` sit behind Cloudflare and return 403 to this server's datacenter IP. A
+browser on a residential connection reaches them normally, so **these are worth opening by
+hand** - the DocumentCloud set in particular holds the Seven Mile Bloods indictment and
+chronology and two plea deals. Two federal PDFs downloaded but are scanned images needing OCR.
+
+`raw/fetched/chamspage/` holds eleven years of Detroit homicide victim lists (2003-2013)
+plus the blog's statistics pages.
+
 ## extraction/
 
 - `bloods-sets-extraction.md` - curated extraction from DetroitStreetGangs.com's Detroit
   Bloods overview page: 9 main sets, 3 alliances, ~40+ sub-cliques, with territory and
   status notes, ready to drive Set/Alliance creation. Covers Bloods only - Crips, GDs,
   Vice Lords etc. seen in `raw/sets.txt` aren't extracted yet.
+- `source-index.md` - all 147 citations with fetch result and a proposed `SourceReliability`
+  rating (HIGH for court records and federal releases, down to UNVERIFIED for forums).
+- `federal-cases.md` - twelve gang prosecutions, case by case, with every named defendant,
+  alias, sentence, and an explicit **charged / pleaded / convicted / acquitted** column.
+- `people.md` - consolidated roster of every named individual, grouped by set, with a
+  `MemberStatus` enum mapping. Separates gang members from victims and from officials.
+- `sets.md` - sets and gangs with territory, aliases, rivals and internal rank vocabulary.
+  **Read its "Naming caution" section before seeding anything** - four distinct traps there
+  will corrupt the Set table (gangs rename themselves; "Band" is three different gangs).
+- `incidents.md` - dated incident timeline with FuzzyDate precision marked per row.
+- `homicides/` - 4,019 Detroit homicide victims, 2003-2013, one markdown file per year.
+
+Nothing in `extraction/` has been written to the database.
 
 ## Workflow
 
