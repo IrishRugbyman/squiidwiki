@@ -124,9 +124,12 @@ sentencing shape rather than the federal one. That distinction already matters e
 this project, and it means these dates should populate the earliest/maximum release fields
 separately, not a single date.
 
-It also sharpens the court record. `Neff` dates Djuan Page's killing to **24 July 2014**; the
-Detroit News gave only "July 2014" for the death that formed the anti-Seven-Mile-Bloods
-alliance.
+It does **not** sharpen the court record, and the one place it looked like it did is a
+warning. `Neff` dates Djuan Page's killing to **24 July 2014**. The federal orders of 9 May
+2018 in *US v. Arnold* (2:15-cr-20652) date the shooting to **14 July 2014** and say Page
+"eventually died in August 2014" after weeks in a coma. So the site's single date is neither
+the shooting nor the death, and 24 reads like a transposition of 14. Where a date here has no
+court counterpart, treat it as a lead, not as a correction.
 
 And it revives dead Facebook links. `social-links.txt` has `kavaughn.clark` tagged "Othaside
 aughn"; the `9000` set page lists a member **"Othaside Vaughn."** Same for `atb.mal` → `ATB`,
