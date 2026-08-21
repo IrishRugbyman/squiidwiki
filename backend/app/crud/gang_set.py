@@ -93,27 +93,54 @@ async def _sync_set_relationships(
     Closed links (until_date set) are the historical record and are never
     touched here: ending a relationship is an explicit dated action, not a side
     effect of editing the current lists. See `end_set_relationship`.
+
+    Reconciles by diff rather than clear-and-rebuild. Deleting every row and
+    re-adding looks equivalent but is not: SQLAlchemy's unit of work flushes
+    INSERTs before DELETEs, so re-adding a pair that is still wanted collides
+    with the surviving row on ``uq_set_relationship_current`` and surfaces as a
+    500. Diffing also leaves untouched edges on their original rows instead of
+    churning an id and an audit entry for every neighbour on every save.
     """
+
+    def _pair(other: uuid.UUID) -> tuple[uuid.UUID, uuid.UUID]:
+        return (set_id, other) if set_id < other else (other, set_id)
+
+    desired: dict[tuple[uuid.UUID, uuid.UUID], SetRelationshipType] = {}
+    for fid in friend_ids:
+        desired[_pair(fid)] = SetRelationshipType.FRIEND
+    for eid in enemy_ids:
+        # An id in both lists is contradictory; enemy wins, matching the
+        # precedence the API already applies elsewhere.
+        desired[_pair(eid)] = SetRelationshipType.ENEMY
+    desired.pop((set_id, set_id), None)
+
     existing = await session.execute(
         select(SetRelationship).where(
             (SetRelationship.set_a_id == set_id) | (SetRelationship.set_b_id == set_id),
             SetRelationship.until_date.is_(None),
         )
     )
+
+    seen: set[tuple[uuid.UUID, uuid.UUID]] = set()
+    stale = False
     for rel in existing.scalars().all():
+        key = (rel.set_a_id, rel.set_b_id)
+        want = desired.get(key)
+        if want is not None and want == rel.relationship_type and key not in seen:
+            seen.add(key)
+            continue
         await session.delete(rel)
+        stale = True
 
-    for fid in friend_ids:
-        a, b = (set_id, fid) if set_id < fid else (fid, set_id)
-        session.add(
-            SetRelationship(set_a_id=a, set_b_id=b, relationship_type=SetRelationshipType.FRIEND)
-        )
+    if stale:
+        # Land the deletes before any insert, so a pair whose type changed does
+        # not race its own replacement.
+        await session.flush()
 
-    for eid in enemy_ids:
-        a, b = (set_id, eid) if set_id < eid else (eid, set_id)
-        session.add(
-            SetRelationship(set_a_id=a, set_b_id=b, relationship_type=SetRelationshipType.ENEMY)
-        )
+    for (a, b), rel_type in desired.items():
+        if (a, b) in seen:
+            continue
+        session.add(SetRelationship(set_a_id=a, set_b_id=b, relationship_type=rel_type))
 
 
 async def _sync_alliance_auto_allies(
