@@ -3,7 +3,7 @@ import { MapPin, AlertTriangle, ChevronRight, ListFilter, X, Crosshair, Users } 
 import { Suspense, lazy, useMemo, useState } from 'react'
 import { NoUniverse } from '@/components/NoUniverse'
 import { useUniverseStore } from '@/stores/universe'
-import { useMunicipalities, useMunicipalityGeoJSON, useAllIncidents, useAllSets } from '@/lib/queries'
+import { useMunicipalities, useMunicipalityGeoJSON, useMappableIncidents, useAllSets } from '@/lib/queries'
 import type { MunicipalityListItem, UUID } from '@/lib/types'
 import type { MapMetric, IncidentPoint, SetPoint } from '@/components/maps/MunicipalityMap'
 
@@ -49,7 +49,7 @@ function MapPage() {
   const [previewId, setPreviewId] = useState<UUID | null>(null)
   const { data: listData, isLoading: listLoading } = useMunicipalities(universeId)
   const { data: geojson, isLoading: geoLoading } = useMunicipalityGeoJSON(universeId, 'top')
-  const { data: incidentsData } = useAllIncidents(showIncidents ? universeId : null)
+  const { data: incidentsData } = useMappableIncidents(showIncidents ? universeId : null)
   const { data: setsData } = useAllSets(showSets ? universeId : null)
 
   const incidentPoints: IncidentPoint[] = showIncidents
