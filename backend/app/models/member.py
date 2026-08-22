@@ -86,7 +86,7 @@ class Member(SQLModel, table=True):
     nickname: str | None = Field(default=None, index=True)
     legal_name: str | None = Field(default=None, index=True)
     nickname_unknown: bool = False  # True → use legal_name as display_name
-    aliases: list | None = Field(default=None, sa_column=Column(JSONB))
+    aliases: list | None = Field(default=None, sa_column=Column(JSONB(none_as_null=True)))
 
     biography: str = ""
 
@@ -95,11 +95,14 @@ class Member(SQLModel, table=True):
 
     status: MemberStatus = MemberStatus.UNKNOWN
 
-    dob: dict | None = Field(default=None, sa_column=Column(JSONB))
-    date_of_death: dict | None = Field(default=None, sa_column=Column(JSONB))
+    # none_as_null, same reason as MemberSet above: without it SQLAlchemy stores
+    # Python None as the JSON scalar 'null', which IS NULL cannot see - so every
+    # "who is missing a date of birth" query silently returns nothing.
+    dob: dict | None = Field(default=None, sa_column=Column(JSONB(none_as_null=True)))
+    date_of_death: dict | None = Field(default=None, sa_column=Column(JSONB(none_as_null=True)))
 
-    family: dict | None = Field(default=None, sa_column=Column(JSONB))
-    social_media: dict | None = Field(default=None, sa_column=Column(JSONB))
+    family: dict | None = Field(default=None, sa_column=Column(JSONB(none_as_null=True)))
+    social_media: dict | None = Field(default=None, sa_column=Column(JSONB(none_as_null=True)))
 
     # Auto-populated by the incident CRUD when this member is a participant with
     # outcome=KILLED. ON DELETE SET NULL so deleting an incident gracefully unlinks.
