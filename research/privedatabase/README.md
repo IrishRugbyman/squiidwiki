@@ -506,6 +506,26 @@ does not say they died - and matches on **aliases** as well as the name, or
 source states in a set's prose rather than an entry annotation cannot be seen this
 way and are listed in `KEEP_DEAD` (Jaro: "jusqu'a que «Jaro» ne soit tue").
 
+### A variant row holds a name, its acronym and its number together
+
+`name_variants` is not a list of strings. Each row has three slots - `name`,
+`initials`, `number` - and a `lead` saying which one heads the display, so one row
+can carry "Never Leave My Brothers", "NLMB" and a number at once and render as
+`NLMB (Never Leave My Brothers)`.
+
+`backfill_set_name_variants.py` filled the slots but split each stored variant on
+its own and never joined rows, so NLMB kept an initials-only row beside a
+name-only row saying the same thing - five entries in the edit form for three
+names. `merge_set_variants.py` joins them where the acronym is demonstrably the
+initials of the name: MOB with "Mind On Business", THF with "Trigga Happy Family",
+NLMB with "Never Leave My Brothers". The acronym keeps leading, since the set is
+filed under it.
+
+Numbers stay separate on purpose. "1212", "8X13", "0725" and "500" sit beside
+names on LOC City, 8X13, SackBoyz and No Limit 087, but they are numeric
+**aliases** - names in their own right - not qualifiers of the name next to them.
+Folding one in would invent a set number the source never states.
+
 ### A name must never restate its own set
 
 "KTS Von" on the set KTS says KTS twice. The rule is that a member's name carries
