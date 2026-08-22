@@ -377,6 +377,32 @@ whose victim has no member row (Lil Harvey), nor one seeded under the wrong type
 calls it a body). Those need a re-seed of incidents, which would also destroy every
 hand-made record, so it remains a deliberate decision rather than a cleanup.
 
+### The two LOC City sets were labelled the wrong way round
+
+The site carries two sets it explicitly says not to confuse: p7954 "LOC CITY"
+(312 lines, "un set de Gangster et de Black Disciples a Rogers Park", also known
+as 1212, MMG, Jeffery Boyz, Get Rich, Blake Block, Montana Gang, Keno World,
+Munchie Gang, Lawless) and p450 / p7991 "LOC CITY (BotY)" in Back of the Yards,
+"a ne pas confondre avec le LOC City dans le Nord de Chicago".
+
+Both titles reduce to the same comparison key `loccity` - `candidates()` strips
+the parenthetical - so every unqualified sighting went to whichever row
+registered that key first. The result was inverted: the row **named** "LOC City
+(Back of the Yards)" held the 105 members and 15 relationships that come off the
+Rogers Park page, while "LOC City (Rogers Park)" held two Rogers Park men and the
+Rogers Park name variants.
+
+`tools/fix_loc_city.py` relabels each row to match the content it actually holds,
+drops the parenthetical from both names (**LOC City**, 100 members; **LOC City
+BotY**, 7) and moves the nine members that sat on the wrong one. Four names -
+ChiefLocMoney, Heado, Mon and Rico - appear on *both* source lists and were left
+on LOC City: splitting them needs evidence that they are two different men, and
+the source does not give it.
+
+No set name in the universe carries a parenthetical any more. Any future set whose
+title differs from another only by a parenthetical will collide the same way -
+`candidates()` is the place to look.
+
 ## Before seeding any of this
 
 - **It is `UNVERIFIED`.** Where a fact here also appears in `../detroit/extraction/`, cite the
