@@ -29,9 +29,6 @@ from chiparse import HDR, SETHDR, lines_of, parse_member  # noqa: E402
 from db_sync import norm  # noqa: E402
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-SCRATCH = pathlib.Path(
-    "/tmp/claude-1000/-home-lbzgiu-squiidwiki/e162f253-b7e6-408b-a995-a5bb3bb9c68d/scratchpad"
-)
 
 VERB = re.compile(r"\b(est|était|etait|sont|étaient|a été|fut|deviendra|devient)\b", re.I)
 DEADP = re.compile(r"d[ée]c[ée]d|tu[ée]e?\b|poignard|mort", re.I)
@@ -149,8 +146,8 @@ def good_name(n):
 def extract():
     """Walk every Chicago page and collect people and events."""
     pages = json.loads((ROOT / "raw/pages.json").read_text())
-    owner = json.loads((SCRATCH / "wp_owner4.json").read_text())
-    alliance_pages = set(json.loads((SCRATCH / "chi_alliance_pages.json").read_text()))
+    owner = json.loads((ROOT / "tools/wp-owner.json").read_text())
+    alliance_pages = set(json.loads((ROOT / "tools/chi-alliance-pages.json").read_text()))
 
     people = []  # raw sightings; deduped later
     events = []
@@ -163,6 +160,7 @@ def extract():
         dead=False,
         locked=False,
         aliases=None,
+        legal=None,
         page=None,
         origin=None,
     ):
@@ -176,6 +174,7 @@ def extract():
                 "dead": dead,
                 "locked": locked,
                 "aliases": aliases or [],
+                "legal": legal,
                 "page": page,
                 "origin": origin,
             }
@@ -215,6 +214,7 @@ def extract():
                 dead=subject["dead"],
                 locked=subject["locked"],
                 aliases=subject["aliases"],
+                legal=subject["legal"],
                 page=pid,
                 origin="person-page",
             )
@@ -253,6 +253,7 @@ def extract():
                         dead=m["dead"],
                         locked=m["locked"],
                         aliases=m["aliases"],
+                        legal=m["legal"],
                         page=pid,
                         origin="member-sentence",
                     )
@@ -348,12 +349,14 @@ def dedupe(people):
                 "dead": False,
                 "locked": False,
                 "aliases": [],
+                "legal": None,
                 "pages": [],
                 "origins": [],
             },
         )
         if len(s["name"]) > len(r["name"]):
             r["name"] = s["name"]
+        r["legal"] = r["legal"] or s.get("legal")
         r["nation"] = r["nation"] or s["nation"]
         r["dead"] = r["dead"] or s["dead"]
         r["locked"] = r["locked"] or s["locked"]
@@ -380,6 +383,7 @@ def dedupe(people):
                 keep["dead"] = keep["dead"] or r["dead"]
                 keep["locked"] = keep["locked"] or r["locked"]
                 keep["nation"] = keep["nation"] or r["nation"]
+                keep["legal"] = keep["legal"] or r.get("legal")
                 for a in r["aliases"]:
                     if norm(a) not in {norm(x) for x in keep["aliases"]}:
                         keep["aliases"].append(a)

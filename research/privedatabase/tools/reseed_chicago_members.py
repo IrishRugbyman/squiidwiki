@@ -204,10 +204,12 @@ for p in people:
             "dead": False,
             "locked": False,
             "aliases": [],
+            "legal": None,
         },
     )
     if len(p["name"]) > len(r["name"]):
         r["name"] = p["name"]
+    r["legal"] = r["legal"] or p.get("legal")
     r["nation"] = r["nation"] or p["nation"]
     r["dead"] = r["dead"] or p["dead"]
     r["locked"] = r["locked"] or p["locked"]
@@ -231,6 +233,8 @@ for r in merged.values():
         body["gang_id"] = gid
     if r["aliases"]:
         body["aliases"] = r["aliases"]
+    if r["legal"]:
+        body["legal_name"] = r["legal"]
     if r["set_id"]:
         body["affiliations"] = [{"set_id": r["set_id"], "is_primary": True}]
     if r.get("alliance_id"):

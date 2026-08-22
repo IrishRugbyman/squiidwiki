@@ -4,7 +4,7 @@ import {
   Pencil, Plus, Skull, Trash2, X,
 } from 'lucide-react'
 import { FacebookIcon, InstagramIcon, TwitterIcon } from '@/components/icons/SocialIcons'
-import { lazy, Suspense, useState } from 'react'
+import { lazy, Suspense, useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import { FuzzyDate } from '@/components/FuzzyDate'
 import { FuzzyDateInput } from '@/components/FuzzyDateInput'
@@ -24,10 +24,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import {
   useMember,
-  useDeleteMember, useMemberIncidents, useAllMembers, useUpdateMember,
+  useDeleteMember, useMemberIncidents, useMembersByIds, useUpdateMember,
   useCreateMemberIncarceration, useUpdateMemberIncarceration, useDeleteMemberIncarceration,
 } from '@/lib/queries'
-import type { IncidentListItem, MemberIncarcerationRead, MemberListItem, MemberRead } from '@/lib/types'
+import type { IncidentListItem, MemberIncarcerationRead, MemberRead } from '@/lib/types'
 import type { FuzzyDateValue } from '@/components/FuzzyDate'
 import { downloadText } from '@/lib/download'
 import { INCIDENT_TYPE_CHIP, INCIDENT_TYPE_LABEL } from '@/lib/incidentColors'
@@ -113,7 +113,7 @@ function socialUrl(platform: string, value: string): string | null {
 
 // ─── Family member inline link ─────────────────────────────────────────────────
 
-function FamilyMemberLink({ memberId, member }: { memberId: string; member: MemberListItem | undefined }) {
+function FamilyMemberLink({ memberId, member }: { memberId: string; member: MemberRead | undefined }) {
   if (!member) {
     return <span className="text-xs text-zinc-400 font-mono">{memberId.slice(0, 8)}…</span>
   }
@@ -255,21 +255,18 @@ const ROLE_TOOLTIP: Record<FamilyRole, string> = {
 
 function FamilyPanel({
   family,
-  universeId,
+  relatives,
   familyCount,
   onAdd,
   onOpenGraph,
 }: {
   family: Record<string, unknown> | null
-  universeId: string
+  relatives: Record<string, MemberRead>
   familyCount: number
   onAdd: () => void
   onOpenGraph: () => void
 }) {
-  const { data: allMembers } = useAllMembers(universeId)
-  const memberMap: Record<string, MemberListItem> = Object.fromEntries(
-    (allMembers?.items ?? []).map((m) => [m.id, m])
-  )
+  const memberMap = relatives
 
   const entries = familyDictToEntries(family)
   const grouped = (['spouse', 'father', 'son', 'brother', 'cousin', 'uncle', 'nephew'] as FamilyRole[])
@@ -492,17 +489,21 @@ function MemberDetailPage() {
     }
   }
 
-  const familyCount = member?.family ? familyDictToEntries(member.family as Record<string, unknown>).length : 0
-
-  const { data: allMembers } = useAllMembers(universe?.id ?? null)
+  const familyEntryList = useMemo(
+    () => familyDictToEntries((member?.family as Record<string, unknown> | null) ?? null),
+    [member?.family],
+  )
+  const familyCount = familyEntryList.length
+  const familyIds = useMemo(
+    () => Array.from(new Set(familyEntryList.map((e) => e.memberId))),
+    [familyEntryList],
+  )
+  const relatives = useMembersByIds(universe?.id ?? null, familyIds)
 
   function handleExport() {
     if (!member) return
-    const memberMap: Record<string, string> = Object.fromEntries(
-      (allMembers?.items ?? []).map((m) => [m.id, m.display_name]),
-    )
-    const familyEntries = familyDictToEntries(member.family as Record<string, unknown> | null)
-      .map((e) => ({ role: e.role, name: memberMap[e.memberId] ?? e.memberId.slice(0, 8) + '…' }))
+    const familyEntries = familyEntryList
+      .map((e) => ({ role: e.role, name: relatives[e.memberId]?.display_name ?? e.memberId.slice(0, 8) + '…' }))
     const md = buildMemberMarkdown({
       member,
       setName: member.primary_set_name ?? null,
@@ -966,7 +967,7 @@ function MemberDetailPage() {
 
                 <FamilyPanel
                   family={member.family as Record<string, unknown> | null}
-                  universeId={universe.id}
+                  relatives={relatives}
                   familyCount={familyCount}
                   onAdd={() => setAddingFamily(true)}
                   onOpenGraph={() => setFamilyGraphOpen(true)}
@@ -1058,11 +1059,7 @@ function MemberDetailPage() {
                   <DialogDescription>Direct kin links recorded for this member.</DialogDescription>
                 </DialogHeader>
                 <Suspense fallback={<Skeleton className="h-[480px] w-full" />}>
-                  <MemberFamilyGraph
-                    centerMember={member}
-                    universeId={universe.id}
-                    allMembers={allMembers?.items ?? []}
-                  />
+                  <MemberFamilyGraph centerMember={member} universeId={universe.id} />
                 </Suspense>
               </DialogContent>
             </Dialog>

@@ -6,14 +6,14 @@
 python3 research/privedatabase/tools/db_sync.py --db squiidwiki_prod
 ```
 
-Database: `squiidwiki_prod`. Last run: 2026-08-21.
+Database: `squiidwiki_prod`. Last run: 2026-08-22.
 
 ## Metro Chicago
 
 - **156** sets extracted from the site
 - **154** of them are in the database
 - **2** not yet seeded
-- **178** database sets with no matching extraction
+- **163** database sets with no matching extraction
 
 ### In the database
 
@@ -77,7 +77,7 @@ Database: `squiidwiki_prod`. Last run: 2026-08-21.
 | G-VILLE | 7922 | `g-ville` | Y | Gangster Disciples | 40 | 6 |
 | GEO DRIVE | 7926 | `geo-drive` | Y | Gangster Disciples | 19 | 10 |
 | GGE | 944 | `gge` | Y | Black P. Stones | 11 | 2 |
-| GME/EBE | 7903 | `gmeebe` | Y | Titanic Stones | 16 | 4 |
+| GME/EBE | 7903 | `gmeebe` | Y | Titanic Stones | 18 | 4 |
 | GOONIE GANG | 7965 | `goonie-gang` | Y | Gangster Disciples | 8 | 1 |
 | GRIMEY GANG | 3718 | `grimey-gang` | Y | Black Disciples | 5 | - |
 | GUTTAVILLE | 8002 | `guttaville` | Y | Mickey Cobras | 13 | 6 |
@@ -102,8 +102,8 @@ Database: `squiidwiki_prod`. Last run: 2026-08-21.
 | LANDLORD COV | 972 | `landlord-cov` | Y | Gangster Disciples | 7 | 3 |
 | LIL4MOBB | 7957 | `lil4mobb` | Y | Conservative Vice Lords | 67 | 7 |
 | LOC CITY | 7954 | `loc-city-rogers-park` | Y | Gangster Disciples | 2 | - |
-| LOC CITY (BotY) | 450 | `loc-city-back-of-the-yards` | Y | Gangster Disciples | 104 | 15 |
-| LOC CITY (BotY) | 7991 | `loc-city-back-of-the-yards` | Y | Gangster Disciples | 104 | 15 |
+| LOC CITY (BotY) | 450 | `loc-city-rogers-park` | Y | Gangster Disciples | 2 | - |
+| LOC CITY (BotY) | 7991 | `loc-city-rogers-park` | Y | Gangster Disciples | 2 | - |
 | LORDSVILLE | 1790 | `lordsville` | Y | Insane Vice Lords | 3 | 3 |
 | LOWELIFE | 7944 | `lowelife` | Y | Black Disciples | 33 | 7 |
 | M.O.M | 978 | `mom` | Y | Gangster Disciples | - | 3 |
@@ -131,12 +131,12 @@ Database: `squiidwiki_prod`. Last run: 2026-08-21.
 | OUT7AW CITY | 7949 | `out7aw-city` | Y | Apache Stones | 27 | 1 |
 | O’BLOCK | 1151 | `oblock` | - | - | 102 | 18 |
 | P-BLOCK (4CH) | 8006 | `blackmob` | Y | 4 Corner Hustlers | 3 | - |
-| PAXTOWN | 7943 | `paxtown` | Y | Gangster Disciples | 21 | 2 |
+| PAXTOWN | 7943 | `paxtown` | Y | Gangster Disciples | 22 | 2 |
 | PBG/TFG | 7488 | `pbgtfg` | Y | Insane Gangster Disciples | 119 | 15 |
 | POCKETTOWN | 7930 | `pockettown` | Y | Gangster Disciples | 38 | 3 |
 | POTTBLOCK | 7970 | `pottblock` | Y | Traveling Vice Lords | 38 | 9 |
 | REC CITY | 6666 | `rec-city` | Y | Gangster Disciples | 16 | 3 |
-| RISKY ROAD | 7946 | `risky-road` | Y | 4 Corner Hustlers | 15 | 2 |
+| RISKY ROAD | 7946 | `risky-road` | Y | 4 Corner Hustlers | 16 | 2 |
 | RMG | 7985 | `rmg` | Y | Black Disciples | 16 | 3 |
 | ROC CREEK | 7896 | `roc-creek` | Y | Gangster Disciples | 28 | 5 |
 | SACKBOYZ | 7973 | `sackboyz` | Y | Traveling Vice Lords | 65 | 1 |
@@ -155,7 +155,7 @@ Database: `squiidwiki_prod`. Last run: 2026-08-21.
 | SUWU TTB | 7900 | `suwu-ttb` | Y | Black P. Stones | 34 | 12 |
 | SWIFT CITY | 7984 | `swift-city` | Y | Milwaukee Kings | 19 | - |
 | TAETOWN | 7961 | `taetown` | Y | 4 Corner Hustlers | 50 | 4 |
-| TAY CITY | 7901 | `tay-city` | Y | Insane Gangster Disciples | 6 | 2 |
+| TAY CITY | 7901 | `tay-city` | Y | Insane Gangster Disciples | 8 | 2 |
 | TEDAMOBB | 7995 | `tedamobb` | Y | New Breeds | 2 | - |
 | TERROR DOME | 7924 | `terror-dome` | Y | Black P. Stones | 34 | 7 |
 | THF 44 | 7902 | `thf-44` | Y | Mickey Cobras | 2 | 3 |
@@ -170,7 +170,7 @@ Database: `squiidwiki_prod`. Last run: 2026-08-21.
 | WELCH WORLD | 6528 | `welch-world` | Y | Gangster Disciples | 19 | 5 |
 | WHIZ CITY | 7941 | `whiz-city` | Y | Black Disciples | 15 | 7 |
 | WIIIC CITY | 240 | `wiiic-city` | Y | Black Disciples | 44 | 19 |
-| WIIIC CITY/O’BLOCK | 6273 | `oblock` | - | - | 102 | 18 |
+| WIIIC CITY/O’BLOCK | 6273 | `wiiic-city` | Y | Black Disciples | 44 | 19 |
 | WUGA WORLD | 7951 | `wuga-world` | Y | Gangster Disciples | 25 | 7 |
 | YOUNG MONEY ARTGANG | 870 | `young-money-artgang` | Y | Mickey Cobras | 11 | - |
 | ZOLAND | 627 | `zoland` | Y | 4 Corner Hustlers | 16 | - |
@@ -228,10 +228,6 @@ Entered by hand, or named differently on the site. Worth checking for duplicates
 | ChiefTown | `chieftown` | - | 3 | - |
 | Church Street | `church-street` | - | 1 | - |
 | condamné à 50 ans | `condamne-a-50-ans` | - | 1 | - |
-| cousin de L'A Capone de la 600 | `cousin-de-la-capone-de-la-600` | - | 1 | - |
-| cousin de Lil Zay Osama | `cousin-de-lil-zay-osama` | - | 1 | - |
-| cousin de TB et de Big TB | `cousin-de-tb-et-de-big-tb` | - | 1 | - |
-| cousine de Lil Zay Osama | `cousine-de-lil-zay-osama` | - | 2 | - |
 | CTG | `ctg` | - | 4 | - |
 | D-Town | `d-town` | - | 4 | - |
 | D.O.D | `dod` | - | 18 | - |
@@ -241,8 +237,6 @@ Entered by hand, or named differently on the site. Worth checking for duplicates
 | Dearborn | `dearborn` | - | 1 | - |
 | Death Trap | `death-trap` | - | 9 | - |
 | Dell Mobb | `dell-mobb` | - | 1 | - |
-| demi-frère de Duke Da Beast | `demi-frere-de-duke-da-beast` | - | 1 | - |
-| demi-frère de Snowball | `demi-frere-de-snowball` | - | 1 | - |
 | Deuce Life | `deuce-life` | - | 2 | - |
 | DoonSquad | `doonsquad` | - | 1 | - |
 | DrexSide | `drexside` | - | 5 | - |
@@ -253,16 +247,9 @@ Entered by hand, or named differently on the site. Worth checking for duplicates
 | enfant de 9 ans | `enfant-de-9-ans` | - | 1 | - |
 | FaceWorld 079 | `faceworld-079` | - | 1 | - |
 | Familia Stones | `familia-stones` | - | 1 | - |
-| fils de Bro Man | `fils-de-bro-man` | - | 1 | - |
 | Flin Boyz | `flin-boyz` | - | 2 | - |
 | FMG | `fmg` | - | 1 | - |
 | FollyBoyz | `follyboyz` | - | 75 | - |
-| frère de 5ive et de 051 Young Money Zeko | `frere-de-5ive-et-de-051-young-money-zeko` | - | 1 | - |
-| frère de Lil Ant et de 051 Young Money Zeko | `frere-de-lil-ant-et-de-051-young-money-zeko` | - | 1 | - |
-| frère de Lil Chief Dinero | `frere-de-lil-chief-dinero` | - | 1 | - |
-| frère de RondoNumba9 de la 600 et cousin de Rio G du KTS et Lil Les du PocketTown | `frere-de-rondonumba9-de-la-600-et-cousin-de-rio-g-du-kts-et-lil-les-du-pockettown` | - | 1 | - |
-| frère de sang de Wooh Gotti | `frere-de-sang-de-wooh-gotti` | - | 1 | - |
-| frère de Trey Savage | `frere-de-trey-savage` | - | 1 | - |
 | FuckTown | `fucktown` | - | 3 | - |
 | Gangster Disciple | `gangster-disciple` | - | 1 | - |
 | German Church Road | `german-church-road` | - | 3 | - |
@@ -291,6 +278,7 @@ Entered by hand, or named differently on the site. Worth checking for duplicates
 | Latin Brothers | `latin-brothers` | - | 4 | - |
 | Latin Eagles | `latin-eagles` | - | 1 | - |
 | Latin Kings | `latin-kings` | - | 6 | - |
+| LOC City (Back of the Yards) | `loc-city-back-of-the-yards` | Gangster Disciples | 104 | 15 |
 | LT | `lt` | - | 3 | - |
 | M-Town | `m-town` | - | 7 | - |
 | MadVille | `madville` | - | 1 | - |
@@ -312,7 +300,6 @@ Entered by hand, or named differently on the site. Worth checking for duplicates
 | PacoLand | `pacoland` | - | 2 | - |
 | Peterson Latin Kings | `peterson-latin-kings` | - | 5 | - |
 | Peterson LKs | `peterson-lks` | - | 3 | - |
-| petit frère de MuBu Krump | `petit-frere-de-mubu-krump` | - | 1 | - |
 | PillzVille | `pillzville` | - | 2 | - |
 | PMBMB | `pmbmb` | - | 2 | - |
 | PMBMB affiliée | `pmbmb-affiliee` | - | 1 | - |
@@ -339,7 +326,6 @@ Entered by hand, or named differently on the site. Worth checking for duplicates
 | Simon City Royals | `simon-city-royals` | - | 1 | - |
 | Sirconn City Gangster | `sirconn-city-gangster` | - | 5 | - |
 | Sirconn City Gangsters | `sirconn-city-gangsters` | - | 42 | - |
-| soeur de 051 Montana et Fathead | `soeur-de-051-montana-et-fathead` | - | 1 | - |
 | Solo City | `solo-city` | - | 1 | - |
 | South End | `south-end` | - | 4 | - |
 | SquadVille | `squadville` | - | 1 | - |
@@ -366,4 +352,3 @@ Entered by hand, or named differently on the site. Worth checking for duplicates
 | YLOC | `yloc` | - | 1 | - |
 | YMB | `ymb` | - | 1 | - |
 | Young Morgan Mafia | `young-morgan-mafia` | - | 1 | - |
-| ZoLand. C'était un 4 Corne | `zoland-cetait-un-4-corne` | - | 1 | - |

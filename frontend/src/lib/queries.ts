@@ -1,4 +1,4 @@
-import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { keepPreviousData, useMutation, useQueries, useQuery, useQueryClient } from '@tanstack/react-query'
 import type { QueryClient } from '@tanstack/react-query'
 import { api } from './api'
 import type {
@@ -428,6 +428,28 @@ export const useAllMembers = (universeId: UUID | null) =>
     queryFn: () => api.get<CursorPage<MemberListItem>>(`/members/?universe_id=${universeId}&limit=200`),
     enabled: !!universeId,
     staleTime: 30_000,
+  })
+
+/**
+ * Resolve a handful of members by id (family relatives, graph hops). One request per
+ * id, cached under the same ['members', id] key as the detail page, so a relative
+ * already visited costs nothing. Never use the universe-wide list for this: the list
+ * endpoint is capped, and a universe with thousands of members would leave most ids
+ * unresolved.
+ */
+export const useMembersByIds = (universeId: UUID | null, ids: UUID[]) =>
+  useQueries({
+    queries: ids.map((id) => ({
+      queryKey: ['members', id],
+      queryFn: () => api.get<MemberRead>(`/members/${id}?universe_id=${universeId}`),
+      enabled: !!universeId,
+      staleTime: 30_000,
+    })),
+    combine: (results) => {
+      const map: Record<UUID, MemberRead> = {}
+      for (const r of results) if (r.data) map[r.data.id] = r.data
+      return map
+    },
   })
 
 export const useMemberSearch = (universeId: UUID | null, q: string) =>

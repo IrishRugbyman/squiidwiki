@@ -60,7 +60,25 @@ NATION = re.compile(
     r"(Gangster Disciples?|Black Disciples?|Black P\.?\s?Stones?|Four Corner Hustlers?|Vice Lords?|Latin Kings?|Mickey Cobras?)",
     re.I,
 )
-ALIAS = re.compile(r"[«\"“]\s*([^»\"”]+?)\s*[»\"”]")
+# The site mixes WordPress smart quotes, French guillemets and straight quotes,
+# and uses opening and closing marks interchangeably (“Wop“, «Dooski»). So any
+# quote mark opens or closes an alias and an alias never contains one: the
+# class has to be the same on both sides, or “Wop“, «Dooski» reads as one alias.
+QUOTE = r"[«»\"“”„]"
+NOT_QUOTE = r"[^«»\"“”„]"
+ALIAS = re.compile(rf"{QUOTE}\s*({NOT_QUOTE}{{1,40}}?)\s*{QUOTE}")
+# Aliases only live in the naming clause, before the first verb ("X, aussi
+# connu sous le nom de “A”, “B” ou “C” est ..."). Quotes after it are prose:
+# «Steve Day», a quoted remark, 'était un “BDK”'.
+CLAUSE_END = re.compile(r"\s+(?:est|était|etait|sont|étaient|a été|s'occupait)\b|\s+\(")
+# Firstname “Nick” Lastname, optionally 'Firstname “Nick” ou “Nick2” Lastname':
+# a legal name wrapping the nickname. The nickname is the member's name, the
+# outer words are the legal name, never an alias.
+_CAP = r"[A-Z][\w.'\-]*(?:\s+[A-Z][\w.'\-]*)?"
+EMBEDDED_NICK = re.compile(
+    rf"^(?P<first>{_CAP})\s+(?P<nicks>{QUOTE}{NOT_QUOTE}+?{QUOTE}"
+    rf"(?:(?:\s+ou\s+|,\s*|\s+){QUOTE}{NOT_QUOTE}+?{QUOTE})*)(?:\s+(?P<last>{_CAP}))?$"
+)
 
 MARK = [
     ("nations", r"est une? set de|est une? sets? de|sont des"),
@@ -121,13 +139,28 @@ def entries(line):
 
 
 def parse_member(line):
-    """Parse a member sentence into a dict with name, aliases, nation, and dead/locked flags."""
-    m = {"raw": line}
-    nm = re.split(
-        r"\s+(?:est|était|etait)\s+(?:un|une)\b|,\s*aussi connue?\s|\s+ou\s+[«\"“]", line
-    )[0]
-    m["name"] = nm.strip(" ,.")[:60]
-    m["aliases"] = [x for x in ALIAS.findall(line) if x.lower() != m["name"].lower()]
+    """Parse a member sentence into a dict with name, legal name, aliases, nation, dead/locked."""
+    m = {"raw": line, "legal": None}
+    clause = CLAUSE_END.split(line, 1)[0]
+    parts = re.split(
+        r",?\s*(?:aussi\s+)?connue?\s+sous\s+le\s+nom\s+(?:de|d')\s*", clause, maxsplit=1
+    )
+    head, tail = parts[0].strip(), parts[1] if len(parts) > 1 else ""
+    emb = EMBEDDED_NICK.match(head)
+    if emb:
+        nicks = ALIAS.findall(emb.group("nicks"))
+        m["name"] = nicks[0][:60]
+        m["aliases"] = nicks[1:]
+        m["legal"] = " ".join(x for x in (emb.group("first"), emb.group("last")) if x)
+    else:
+        nm = re.split(r"\s+(?:est|était|etait)\s+(?:un|une)\b|\s+ou\s+" + QUOTE, head)[0]
+        m["name"] = nm.strip(" ,.")[:60]
+        m["aliases"] = [x for x in ALIAS.findall(head) if x.lower() != m["name"].lower()]
+    seen = {m["name"].lower()} | {a.lower() for a in m["aliases"]}
+    for x in ALIAS.findall(tail):
+        if x.lower() not in seen:
+            m["aliases"].append(x)
+            seen.add(x.lower())
     n = NATION.search(line)
     m["nation"] = n.group(1) if n else ""
     m["dead"] = bool(re.search(r"décédée?|est morte?|a été tué", line, re.I))

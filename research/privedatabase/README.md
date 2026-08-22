@@ -230,6 +230,45 @@ Two genuine orphans as of the first run, both expected:
 - **Kimo Gang** - seeded deliberately with no bio. It is the one set referenced by 757 that has
   no page anywhere on the site, so there is nothing to extract for it.
 
+## Family ties, and the quote-regex repair (2026-08-22)
+
+The member seed never read kinship. The site states it in prose ("Il est le petit frère de
+GBE Capo et l'oncle de T-Slick", "Darius Jones (frère d'Eastside Ivo)"), so Chicago sat at 0
+family links on 4,577 members while Detroit and Corsica had theirs. `tools/extract_chicago_family.py`
+walks the same pages and sentences as `extract_members_full.py`, pulls every
+`<rel> de <name> [du même set | de la <set> | (<set>)]` clause, resolves subject and object to
+DB rows (nickname, legal name or alias, narrowed by the set hint, then by the subject's own set,
+then by exact-nickname over alias-only matches) and writes through the API, whose member update
+mirrors the inverse link on the relative. Result: 267 links on 260 members, 534 directed edges,
+every one with its inverse. The full list with its source sentence is committed as
+`tools/chicago-family-links.json`; 64 clauses stayed unresolved (relatives who are not members,
+"MOB Lil Mike" with no MOB Lil Mike row, two Marcos) and are listed by the dry run. Sister,
+mother, daughter and in-law have no key in the wiki's family model and were counted, not written
+(8 mentions). Twenty-odd cases were adjudicated by hand in the script's `OVERRIDES` tables with
+the reasoning beside each.
+
+Two bugs surfaced on the way:
+
+- `chiparse.ALIAS` opened on `« " “` but only closed on `» " ”`. The site uses opening and
+  closing marks interchangeably (`“Wop“, «Dooski»`), so Doowop's aliases came through as one
+  string and a quote in later prose could swallow a paragraph (Jusblow). The class is now
+  symmetric, aliases are only read from the naming clause before the first verb, and
+  `Firstname “Nick” Lastname` yields nickname + legal name instead of a quoted alias.
+  `tools/fix_chicago_aliases.py` re-derived the 11 damaged alias rows and 3 quoted nicknames
+  from the source sentences. The committed `extract-chicago-people.json` predates this fix and
+  was deliberately not regenerated: it is what the database was seeded from, and a regeneration
+  also changes set-name casing and record counts for reasons unrelated to the regex.
+- Roster parentheticals that held a relation instead of a set ("Big Swirl (frère de
+  RondoNumba9 de la 600 ...)") had been seeded as sets. `tools/cleanup_chicago_junk_sets.py`
+  deleted the 16 of them, re-attaching the member to the page's set only when the entry sat
+  under a MEMBRES roster (under CORPS it is a victim of that set, whose own set is unknown).
+  Three junk member rows it could not fix remain and are real victims without a name on the
+  site: "Innocente" (x2), "Sa petite amie", "Frère de sa petite amie".
+
+`tools/wikiapi.py` is the shared admin API client + psql helper these scripts use; the
+page-to-city owner map and alliance-page list the extractor needs now live in `tools/`
+(`wp-owner.json`, `chi-alliance-pages.json`) instead of a session scratchpad.
+
 ## Before seeding any of this
 
 - **It is `UNVERIFIED`.** Where a fact here also appears in `../detroit/extraction/`, cite the
