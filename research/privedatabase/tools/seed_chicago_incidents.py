@@ -277,6 +277,18 @@ def resolve_person(name, set_title, perp_page=None):
         match = [m for m in ids if status[m] == want] if want else []
         if len(match) == 1:
             return match[0], False
+    # The source writes a man as "<SET> <Name>" - "KTS Von", "PBG Kemo" - while the
+    # database files him under the bare name on that very set, because a name must
+    # not restate the set it sits in. Strip the tag and look for the bare name
+    # inside the tagged set: it is the same man, said the long way.
+    if not ids:
+        head, _, rest = (name or "").partition(" ")
+        if rest and head.isupper():
+            for scope in resolve_scopes(head):
+                mid = scoped.get((norm(rest), scope))
+                if mid:
+                    return mid, True
+
     # "G Herbo ou Lil Herb" names one man twice; either half may be the record.
     if not ids and re.search(r"\s+ou\s+", name):
         for part in re.split(r"\s+ou\s+", name):

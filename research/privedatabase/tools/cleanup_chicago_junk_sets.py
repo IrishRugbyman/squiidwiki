@@ -22,13 +22,39 @@ from db_sync import candidates, norm  # noqa: E402
 from wikiapi import CHICAGO, Api, q  # noqa: E402
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-JUNK = re.compile(
+# Kinship parentheticals ("frere de X"), a truncated sentence ("ZoLand. C'etait"),
+# and the rest of what a roster puts in brackets that is not a set at all: a
+# status, a charge, an age, a slur, a role. All of them reached the sets table
+# because the seed read "Name (anything)" as "Name, of the set 'anything'".
+#
+# The lowercase-start test is deliberately NOT case-insensitive: with re.I the
+# class matches capitals too and the pattern swallows every set in the universe.
+JUNK_KIN = re.compile(
     r"^(fr[èe]re|soeur|sœur|cousine?|fils|p[èe]re|oncle|neveu|femme|mari|demi-fr[èe]re|"
-    r"petit fr[èe]re|grand fr[èe]re) d|\. [A-Z]"
+    r"petit fr[èe]re|grand fr[èe]re) d|\. [A-Z]",
+    re.I,
 )
+JUNK_LOWER = re.compile(r"^[a-zà-ÿ]")
+JUNK_WORD = re.compile(
+    r"^(affili[ée]|condamn[ée]|arr[êe]t[ée]|enfant|tireur|assistance|rappeu)", re.I
+)
+# "PMBMB affiliee" is a qualifier trailing a real set name, not a set of its own:
+# the source calls Ayanna an affiliate of PMBMB, and PMBMB itself exists.
+JUNK_SUFFIX = re.compile(r"\saffili[ée]e?$", re.I)
+
+
+def is_junk(name):
+    """True when this set name is really a roster parenthetical, not a set."""
+    return bool(
+        JUNK_KIN.search(name)
+        or JUNK_LOWER.match(name)
+        or JUNK_WORD.match(name)
+        or JUNK_SUFFIX.search(name)
+    )
+
 
 sets = q(f"SELECT id, name FROM sets WHERE universe_id='{CHICAGO}'")
-junk = [s for s in sets if JUNK.search(s["name"])]
+junk = [s for s in sets if is_junk(s["name"])]
 setidx = {}
 for s in sets:
     if s in junk:

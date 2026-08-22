@@ -468,6 +468,44 @@ does not say they died - and matches on **aliases** as well as the name, or
 source states in a set's prose rather than an entry annotation cannot be seen this
 way and are listed in `KEEP_DEAD` (Jaro: "jusqu'a que «Jaro» ne soit tue").
 
+### A name must never restate its own set
+
+"KTS Von" on the set KTS says KTS twice. The rule is that a member's name carries
+only what the set does not, so he is **Von**, filed under KTS. Six members broke
+it and were renamed - Bigz, Spazz, Tay, Bandz - and applying the rule exposed two
+duplicates that were one man written both ways, "PBG Kemo" beside "Kemo" and
+"O'Block Ocho" beside "Ocho".
+
+The rule has a cost that has to be paid in the resolvers, not worked around in
+the data: **the source still writes the long form.** Every page that mentions Von
+calls him "KTS Von". So resolution has to bridge both directions:
+
+- the row is tagged and the source is bare ("PBG Kemo" in the database, "Kemo" on
+  the page) - `tagged_idx` in `sync_chicago_members.py`;
+- the row is bare and the source is tagged ("Von" in the database, "KTS Von" on
+  the page) - strip the leading tag, resolve it as a set, and look for the bare
+  name inside it, in both `sync_chicago_members.py` and the seed's
+  `resolve_person`.
+
+Without the second half, removing "KTS Von" from his aliases - which is the right
+thing to do under the rule - made the reconcilers want to strip Dre and Von from
+30 incidents and re-create them as new members. Aliases are a crutch here, not the
+mechanism; the resolvers must understand the naming rule directly.
+
+### Roster parentheticals that were never sets
+
+Thirteen sets existed only because the seed read "Name (anything)" as "Name, of
+the set 'anything'": a charge ("condamne a 50 ans"), an arrest ("arrete en 2017"),
+an age ("enfant de 9 ans" - Tyshawn Lee, the nine-year-old killed in 2015), a
+slur, a role ("rappeuse", "tireur actif"), and a qualifier trailing a real set
+name ("PMBMB affiliee"). `cleanup_chicago_junk_sets.py` covers all of them now.
+
+Members are re-attached only from a MEMBRES roster: under CORPS or ASSISTANCE the
+entry is a victim or a target, whose own set the page never states, so they are
+left set-less rather than given a set they may not belong to. Four were attached
+that way (CK and Snake to No Limit 087, Boss Kat to GME/EBE, Mook Da Murderer to
+FreeSmoke); the rest stay unattached, which is what the source supports.
+
 ### A resolution trap worth knowing
 
 `candidates()` returns an **unordered set**, and a parenthetical title yields both

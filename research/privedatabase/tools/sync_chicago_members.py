@@ -138,6 +138,14 @@ for p in people:
     # duplicate, which is exactly what happened on the first run of this script.
     if sid:
         cands |= {c for c in tagged_idx.get(norm(name), ()) if sid in by_id[c]["set_ids"]}
+    # And the mirror: the source says "KTS Von" while the row is "Von" on KTS,
+    # because a name must not restate the set it sits in. Strip the tag and match
+    # the bare name inside the tagged set - it is the same man, said the long way.
+    if not cands:
+        head, _, rest = name.partition(" ")
+        tag_sid = resolve_set(head) if rest and head.isupper() else None
+        if tag_sid:
+            cands |= {c for c in name_idx.get(norm(rest), ()) if tag_sid in by_id[c]["set_ids"]}
     if not sid:
         if cands:
             skipped["deja present (sans set a verifier)"] += 1
