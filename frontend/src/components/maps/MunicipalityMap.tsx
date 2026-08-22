@@ -13,6 +13,8 @@ export interface IncidentPoint {
   type: IncidentType
   lat: number
   lng: number
+  /** Victim names, for the hover label. A pin you have to click blind is no use. */
+  label?: string
 }
 
 export interface SetPoint {
@@ -127,7 +129,7 @@ export default function MunicipalityMap({
       features: incidentPoints.map((p) => ({
         type: 'Feature' as const,
         geometry: { type: 'Point' as const, coordinates: [p.lng, p.lat] },
-        properties: { id: p.id, incidentType: p.type },
+        properties: { id: p.id, incidentType: p.type, label: p.label ?? '' },
       })),
     }
   }, [incidentPoints])
@@ -278,6 +280,10 @@ export default function MunicipalityMap({
   const onClick = useCallback((e: MapLayerMouseEvent) => {
     if (!e.features || e.features.length === 0) return
     const f = e.features[0]
+    if (f.layer?.id === 'incident-points-layer' && f.properties?.id) {
+      navigate({ to: '/incidents/$id', params: { id: f.properties.id as string } })
+      return
+    }
     if (f.layer?.id === 'incident-clusters') {
       const map = mapRef.current?.getMap()
       const clusterId = (f.properties as { cluster_id?: number }).cluster_id
@@ -316,7 +322,7 @@ export default function MunicipalityMap({
         initialViewState={initialViewState}
         style={{ width: '100%', height: '100%' }}
         mapStyle={TILE_STYLE}
-        interactiveLayerIds={['municipalities-fill', 'incident-clusters']}
+        interactiveLayerIds={['municipalities-fill', 'incident-clusters', 'incident-points-layer']}
         onMouseMove={onMouseMove}
         onMouseLeave={onMouseLeave}
         onClick={onClick}

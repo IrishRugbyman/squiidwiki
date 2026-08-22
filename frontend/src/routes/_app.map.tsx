@@ -169,7 +169,10 @@ function TerritoryMapPage() {
     if (!showIncidents) return []
     return (incidentsData?.items ?? []).flatMap((inc) =>
       inc.lat != null && inc.lng != null
-        ? [{ id: inc.id, type: inc.type, lat: inc.lat, lng: inc.lng }]
+        ? [{
+            id: inc.id, type: inc.type, lat: inc.lat, lng: inc.lng,
+            label: inc.victim_names.join(', '),
+          }]
         : [],
     )
   }, [showIncidents, incidentsData])
@@ -546,6 +549,7 @@ function TerritoryMapPage() {
               subDistrictGeoJSON={showSubDistricts ? (subDistrictGeoJSON ?? null) : null}
               showSubDistrictOutlines={showSubDistricts}
               incidentPoints={incidentPoints}
+              onSelectIncident={(id) => navigate({ to: '/incidents/$id', params: { id } })}
               addressMarkers={editTab === 'address' ? addressMarkers : []}
               viewMode={view}
               onPolygonComplete={handlePolygonComplete}
