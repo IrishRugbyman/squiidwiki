@@ -206,6 +206,30 @@ async def list_incidents(
     return items, next_cursor
 
 
+async def list_incidents_with_coords(
+    session: AsyncSession, universe_id: uuid.UUID, limit: int = 2000
+) -> list[Incident]:
+    """Every incident that can actually be drawn on a map.
+
+    The generic listing is paged by creation date, so a map built on it plots
+    whichever incidents happen to be newest rather than the ones that have a
+    position. Filtering on the coordinates instead keeps the result naturally
+    small - most incidents have none - and stops a geocoded incident from
+    silently falling outside the page.
+    """
+    stmt = (
+        select(Incident)
+        .where(
+            Incident.universe_id == universe_id,
+            Incident.lat.is_not(None),
+            Incident.lng.is_not(None),
+        )
+        .order_by(Incident.sortable_date.desc().nullslast(), Incident.created_at.desc())
+        .limit(limit)
+    )
+    return list((await session.execute(stmt)).scalars().all())
+
+
 async def update_incident(
     session: AsyncSession, id: uuid.UUID, universe_id: uuid.UUID, data: IncidentUpdate
 ) -> Incident | None:

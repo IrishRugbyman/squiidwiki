@@ -750,6 +750,21 @@ export const useIncidents = (universeId: UUID | null, cursor?: string) =>
     placeholderData: keepPreviousData,
   })
 
+/**
+ * Incidents that carry coordinates, for the maps. Deliberately not useAllIncidents:
+ * that one pages by creation date and caps at 200 of several thousand, so a map
+ * built on it plots whichever incidents are newest rather than the ones that have
+ * a position.
+ */
+export const useMappableIncidents = (universeId: UUID | null) =>
+  useQuery({
+    queryKey: ['incidents', 'mappable', universeId],
+    queryFn: () =>
+      api.get<CursorPage<IncidentListItem>>(`/incidents/?universe_id=${universeId}&with_coords=true`),
+    enabled: !!universeId,
+    staleTime: 30_000,
+  })
+
 export const useAllIncidents = (universeId: UUID | null) =>
   useQuery({
     queryKey: ['incidents', 'all', universeId],

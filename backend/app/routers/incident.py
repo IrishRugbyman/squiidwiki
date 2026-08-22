@@ -105,8 +105,16 @@ async def list_incidents(
     set_id: uuid.UUID | None = None,
     member_id: uuid.UUID | None = None,
     municipality_id: uuid.UUID | None = None,
+    with_coords: bool = Query(False, description="Only incidents carrying lat/lng, for maps."),
     format: str = Query("json"),
 ):
+    if with_coords:
+        items = await crud.list_incidents_with_coords(session, universe_id)
+        return CursorPage(
+            items=await _enrich_participant_names(session, items),
+            next_cursor=None,
+            total=len(items),
+        )
     if format == "csv":
         items, _ = await crud.list_incidents(session, universe_id, limit=1000)
         return to_csv_response(items, "incidents.csv")

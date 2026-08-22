@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { useDebounce } from '@/hooks/useDebounce'
 import {
   useAllSets,
-  useAllIncidents,
+  useMappableIncidents,
   useMunicipalityGeoJSON,
   useSet,
   useSetTerritoryPolygons,
@@ -139,7 +139,7 @@ function TerritoryMapPage() {
   // Where to sit when the universe has nothing drawn yet. Without this the map
   // component falls back to a hardcoded Detroit centre, so Chicago and Corsica
   // both opened on the wrong city.
-  const { data: universeGeo } = useMunicipalityGeoJSON(universeId)
+  const { data: universeGeo, isPending: universeGeoPending } = useMunicipalityGeoJSON(universeId)
   const fallbackCenter = useMemo(() => {
     const features = (universeGeo as { features?: { geometry?: unknown }[] } | undefined)?.features
     if (!features?.length) return undefined
@@ -164,7 +164,7 @@ function TerritoryMapPage() {
     return { longitude: (minLng + maxLng) / 2, latitude: (minLat + maxLat) / 2, zoom }
   }, [universeGeo])
 
-  const { data: incidentsData } = useAllIncidents(showIncidents ? universeId : null)
+  const { data: incidentsData } = useMappableIncidents(showIncidents ? universeId : null)
   const incidentPoints: IncidentPoint[] = useMemo(() => {
     if (!showIncidents) return []
     return (incidentsData?.items ?? []).flatMap((inc) =>
@@ -533,8 +533,12 @@ function TerritoryMapPage() {
 
         {/* Map */}
         <div className="relative h-[55vh] overflow-hidden rounded-lg border border-zinc-800 lg:h-auto lg:flex-1">
+          {/* Hold the map back until the universe's geometry has landed. maplibre
+              reads initialViewState once, at mount, so a fallback centre that
+              arrives a tick later is simply ignored - which is how every universe
+              ended up opening over Detroit. */}
           <Suspense fallback={<MapPlaceholder />}>
-            <TerritoryMap
+            {universeGeoPending ? <MapPlaceholder /> : <TerritoryMap
               setPolygons={setPolygons ?? []}
               selectedSetId={selected ?? null}
               drawingFor={editTab === 'draw' ? drawingFor : null}
@@ -552,7 +556,7 @@ function TerritoryMapPage() {
               pendingPoint={editTab === 'pin' ? pendingPoint : null}
               pendingPointColor={selectedSet?.gang_color ?? null}
               onPinPlaced={(lng, lat) => setPendingPoint({ lng, lat })}
-            />
+            />}
           </Suspense>
         </div>
       </div>
