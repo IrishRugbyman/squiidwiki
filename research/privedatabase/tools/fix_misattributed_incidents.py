@@ -1,5 +1,8 @@
 """Repair incidents credited to the wrong member by the block-leak parse bug.
 
+SUPERSEDED by sync_chicago_incidents.py, which does the same job with the seed's
+own resolver. This one is kept as a diagnostic and refuses to write.
+
 On a set page the extractor attributes each CORPS / ASSISTANCE / FUSILLADES
 block to the member sentence above it. When `parse_member` could not produce a
 usable name it left `current` pointing at the PREVIOUS member, who then absorbed
@@ -323,6 +326,16 @@ if who:
     for p in plans:
         if who in p["removed"] or who in p["added"]:
             print(f"   {p['type']:8} victim={p['victim']!r:16} -{p['removed']} +{p['added']}")
+
+if "--go" in sys.argv:
+    sys.exit(
+        "SUPPLANTE par sync_chicago_incidents.py.\n"
+        "Ce script fut la premiere reparation, ecrite avant que le resolveur du seed\n"
+        "soit importable. Le sien est plus faible - il avait estime 236 groupes\n"
+        "manquants la ou celui du seed en a trouve 20 - et les trois correctifs qu'il\n"
+        "propose encore sont rejetes par le resolveur autoritatif, qui annonce 0.\n"
+        "Il reste lisible comme diagnostic; pour ecrire, utilisez sync_chicago_incidents.py."
+    )
 
 if "--go" not in sys.argv:
     print("\nDRY RUN - re-run with --go to apply")
