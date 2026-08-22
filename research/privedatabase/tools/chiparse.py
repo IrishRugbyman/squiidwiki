@@ -147,6 +147,9 @@ def parse_member(line):
         r",?\s*(?:aussi\s+)?connue?\s+sous\s+le\s+nom\s+(?:de\s+|d')?\s*", clause, maxsplit=1
     )
     head, tail = parts[0].strip(), parts[1] if len(parts) > 1 else ""
+    # "Darryl “Jilla” Jonhson ou aussi connu sous le nom de “AJ”" leaves a dangling
+    # connector on the head once the naming clause is split off.
+    head = re.sub(r"[,\s]+(?:ou|et)\s*$", "", head).strip()
     emb = EMBEDDED_NICK.match(head)
     if emb:
         nicks = ALIAS.findall(emb.group("nicks"))

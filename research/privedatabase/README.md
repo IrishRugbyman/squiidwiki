@@ -334,28 +334,48 @@ dangling ids, 0 missing inverses and 0 orphaned incidents**. Every absorbed
 nickname survives as an alias, so a search for "Brick" or "007" still finds the
 man. Re-running the query above now returns nothing.
 
-### 154 incidents are credited to the wrong member
+### The block-leak bug: 171 incidents repaired (2026-08-22)
 
-Chasing the KTS Von duplicate turned up a bigger problem. On a set page the
-extractor attributes each CORPS / ASSISTANCE / FUSILLADES block to the member
-sentence above it - but when `parse_member` could not produce a usable name, it
-left `current` pointing at the *previous* member, so that member absorbed the
-next man's whole kill list. KTS Von's sentence ("KTS Von aussi connu sous le nom
-de « Big Kutthroat Da Smoker » etait...", no comma before "aussi") parsed to a
-60-character string, failed `good_name`, and his six bodies and sixteen
-shootings were credited to **KTS Dre**, who sits directly above him on page 7491.
+On a set page the extractor attributes each CORPS / ASSISTANCE / FUSILLADES block
+to the member sentence above it. When `parse_member` could not produce a usable
+name, `good_name` rejected it and `current` was never advanced - so the **previous**
+member absorbed the next man's entire kill list.
 
-The parser fixes committed here (symmetric quote class, optional "de" after
-"sous le nom", trailing relative clause dropped) resolve all of these sentences.
-Re-running the extraction against the corrected parser changes **183 event
-attributions: 29 cosmetic** (same person, cleaner name string) and **154 real** -
-credited to the wrong member. Concentrated on pages 7488 (65), 7493 (25), 7491
-(22), 7484 (16), 7954 (13).
+The sentences that broke all share one shape: `<Name> aussi connu sous le nom de
+«X» est un ...` with no comma before "aussi", sometimes with no "de" before the
+quote, sometimes with a dangling "ou". Three `chiparse` fixes cover them (plus a
+regression I introduced on 2026-08-21 by requiring that "de", which cost BiteDown
+his block).
 
-The database still carries the wrong 154: fixing them means re-seeding incidents
-(`seed_chicago_incidents.py` wipes and rebuilds), which would also destroy any
-hand-made incident or edit since the last seed - the T-Slick murder among them.
-That is a deliberate decision, not a cleanup, so it has not been done.
+What it had done, on the two pages the user spotted:
+
+- **Gullie Gibson** (p7488, PBG/TFG) - his fiche gives him exactly two bodies,
+  Slutty and Pig. The database credited him with **61 shootings, 5 assists and 11
+  kills**: 75 event lines belonging to **Lil $hawn** (41), **Lil Dutty** (13),
+  **Kemo** (13) and **Mosey** (8), the four men whose sentences follow his.
+- **Bad Luck** (p7954, LOC City) - absorbed 13 lines belonging to **DB**
+  ("DB aussi connu sous le nom de «Derry»").
+- **KTS Dre** (p7491) - absorbed KTS Von's six bodies and sixteen shootings, which
+  is why KTS Von showed 0 kills.
+
+`tools/fix_misattributed_incidents.py` re-derives the perpetrators for every
+affected victim from the corrected extraction and PATCHes only the incidents whose
+participant list actually changes. It never creates or deletes an incident, so the
+hand-made T-Slick murder and all set-level claims survive untouched. **171
+incidents repaired**; Gullie Gibson is back to 2 kills, KTS Von has his 6.
+
+Four men had to be created first: the old parse never produced a row for them, so
+the seed could not resolve their name and dropped every event naming them -
+**Kemo** (PBG/TFG), **DB** (LOC City), **No Good Loso** (Out7aw City) and **The God
+Father** (the No Luv City *alliance*, not a set). Two shared names with no set hint
+are pinned by page in `PERP_OVERRIDES` (Zo of Landlord COV, Tyto of p1772).
+
+**What this pass cannot reach.** It only moves attributions between rows that
+already exist inside an incident that already exists. It cannot recover an event
+whose victim has no member row (Lil Harvey), nor one seeded under the wrong type
+(The God Father's kill of Anthony sits as a SHOOTING, the corrected extraction
+calls it a body). Those need a re-seed of incidents, which would also destroy every
+hand-made record, so it remains a deliberate decision rather than a cleanup.
 
 ## Before seeding any of this
 
