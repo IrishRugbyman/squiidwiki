@@ -28,16 +28,16 @@ SP = pathlib.Path(
 )
 # The source says outright that these three did not do it; the charge alone would
 # read as a conviction the site does not claim.
-# The source has a typo here - "pour le mettre de Duski" for "le meurtre de Duski".
-# The agent correctly refused to guess and rendered it literally, which leaves an
-# unusable note; the French is kept so a reader can see why.
+# The source is typo'd here - "pour le mettre de Duski" for "le meurtre de Duski" -
+# so the agent rendered it literally rather than guess. The note carries the fact,
+# not the story of how it got there.
 NOTE_OVERRIDE = {
-    "s144": "Murder of Duski (Hoola Gang) - source reads \u00ab pour le mettre \u00bb, a typo",
+    "s144": "Murder of Duski (Hoola Gang)",
 }
 EXCULPATED = {
-    "s57": "source states he did not commit it",
-    "s119": "source states he did not commit it",
-    "s180": "source states he did not commit it, but was present",
+    "s57": "said not to have committed it",
+    "s119": "said not to have committed it",
+    "s180": "said not to have committed it, but present",
 }
 
 

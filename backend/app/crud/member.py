@@ -641,13 +641,20 @@ async def update_member_incarceration(
             setattr(obj, field, v)
     if data.life_sentence is not None:
         obj.life_sentence = data.life_sentence
-    obj.from_date = _fuzzy_to_dict(data.from_date)
+    # Only touch a date the caller actually sent: these fields default to None, so
+    # assigning unconditionally makes a PATCH of nothing but `notes` wipe the whole
+    # spell's dates. `model_fields_set` keeps "not mentioned" apart from "cleared",
+    # the same way update_member does for dob and date_of_death.
+    if "from_date" in data.model_fields_set:
+        obj.from_date = _fuzzy_to_dict(data.from_date)
     if obj.life_sentence:
+        # A life term has no release dates by definition, whatever was sent.
         obj.earliest_release_date = None
         obj.max_discharge_date = None
     else:
-        obj.earliest_release_date = _fuzzy_to_dict(data.earliest_release_date)
-        obj.max_discharge_date = _fuzzy_to_dict(data.max_discharge_date)
+        for field in ("earliest_release_date", "max_discharge_date"):
+            if field in data.model_fields_set:
+                setattr(obj, field, _fuzzy_to_dict(getattr(data, field)))
     session.add(obj)
     await session.commit()
     await session.refresh(obj)
