@@ -24,6 +24,7 @@ on the first seed.
 | `db-sync.md` | **Generated.** What has actually reached the database, and what has not |
 | `tools/db_sync.py` | Regenerates `db-sync.md`. Read-only against the DB |
 | `tools/extract-chicago.json` | The 156 parsed Chicago set records the sync reconciles against |
+| `tools/reddit_fetch.py` | Reads Reddit threads through the Arctic Shift archive, since Reddit itself 403s this box ([Reading Reddit](#reading-reddit)) |
 
 232 + 448 + 261 + 155 = 1,096, plus the 9 remaining city-index stubs (Birmingham, Columbus,
 Floride, Los Angeles, Montreal, Paris, Quebec, Saint-Louis and one titled `18`), all empty.
@@ -627,17 +628,54 @@ and a comment thread that supplies three things the corpus does not have:
   database before this. He is now a member with the photo, the NLMB affiliation and the
   thread as his only source.
 
-Reddit is unreachable from this box - `www.reddit.com`, `old.reddit.com` and the redlib
-mirrors all return 403 to this IP, and WebFetch refuses the domain outright - so the
-thread text was pasted in by hand and only the image, on `preview.redd.it`, could be
-pulled directly. A search for press coverage of a Michael Smith found dead in Chicago in
-September 2015 returned nothing, and the thread's own author says the article they once
-had has since disappeared. The source row is therefore `UNVERIFIED`, the same rating this
-site carries, and the biography says plainly that everything rests on one anonymous
-forum thread.
+The thread text was pasted in by hand, because Reddit itself refuses this box: as of
+2026-08-22 `www.reddit.com`, `old.reddit.com` and `oauth.reddit.com` all return 403 to
+this IP, and WebFetch refuses the domain outright. Only the image, on `preview.redd.it`,
+could be pulled directly. That hand-pasting is no longer necessary - see
+[Reading Reddit](#reading-reddit) below - but nothing about the rating changes: a search
+for press coverage of a Michael Smith found dead in Chicago in September 2015 returned
+nothing, and the thread's own author says the article they once had has since
+disappeared. The source row is therefore `UNVERIFIED`, the same rating this site carries,
+and the biography says plainly that everything rests on one anonymous forum thread.
 
 `tools/seed_1eye_gfarro.py` applies it, and is idempotent: it finds the source by URL and
 the member by nickname, and skips a photo whose caption is already attached.
+
+## Reading Reddit
+
+Reddit's own endpoints are closed to this server (403 on `www.`, `old.` and
+`oauth.reddit.com`, checked 2026-08-22), and registering a script app would not obviously
+help: the token endpoint answers, but `oauth.reddit.com` serves the block page to this IP
+and that was never tested with a live token.
+
+`tools/reddit_fetch.py` goes around it via **Arctic Shift**, the Pushshift successor - an
+independent archive of roughly 2.5B posts and comments, reachable from here with no key
+and no account. Stdlib only, markdown on stdout, `--json` for the raw archive objects.
+
+```bash
+python3 tools/reddit_fetch.py posts Chiraqology --query "NLMB" --after 2015-01-01   # find threads
+python3 tools/reddit_fetch.py thread pzbx9c                                         # read one whole
+python3 tools/reddit_fetch.py comments --link-id pzbx9c --body "smith"              # inside one thread
+python3 tools/reddit_fetch.py comments --author dream-tha-menace9
+python3 tools/reddit_fetch.py user dream-tha-menace9                                # where they post
+```
+
+`thread pzbx9c` returns the 1 Eye thread in full - all 12 comments, correctly nested,
+including the two the seeding relied on (`his full name was michael smith`) and the
+contradiction that kept the 2012 claim out (`Nah that's false, he died in September
+2015`). Everything that was pasted in by hand is now reproducible.
+
+**What it will not do.** Subreddit-wide comment *body* search times out and cannot be
+narrowed into working - a two-month window with `--limit 2` on r/Chiraqology still fails,
+and `--author` with `--body` fails too. Body search only works scoped to a single post, so
+the working shape is `posts --query` to find threads, then `thread` to read one. Post
+search is fast.
+
+**What it changes about sourcing: nothing.** This is an archive, not Reddit. Posts are
+captured when made, so `score` and `num_comments` are only right after ~36h; deleted
+comments survive as `[deleted]`; anything past the last sync is missing. And a forum
+thread is `UNVERIFIED` whether it was read here, on Reddit, or pasted in by hand. Reading
+a thread mechanically makes it easier to quote exactly - it does not make it a source.
 
 ## Before seeding any of this
 

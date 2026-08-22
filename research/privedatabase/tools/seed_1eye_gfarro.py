@@ -5,9 +5,10 @@ The thread (2021) is the only source for three things the database did not have:
 thread itself split on the exact day), and the existence of G Farro, an NLMB
 member who appears nowhere in the privedatabase corpus.
 
-Reddit is unreachable from this box (403), so the thread text was pasted in by
-hand and the photo pulled from its preview.redd.it URL. The source row is
-UNVERIFIED: a search for press coverage of a Michael Smith found dead in Chicago
+Reddit itself 403s this box, so the thread text was pasted in by hand and the
+photo pulled from its preview.redd.it URL. `reddit_fetch.py thread pzbx9c` now
+re-reads the same thread from the Arctic Shift archive, so the quotes below can
+be checked against it. The source row is UNVERIFIED: a search for press coverage of a Michael Smith found dead in Chicago
 in September 2015 turned up nothing, and the thread's own author says the
 article they once had has since disappeared.
 
