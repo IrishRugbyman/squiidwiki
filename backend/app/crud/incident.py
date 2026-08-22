@@ -206,27 +206,35 @@ async def list_incidents(
     return items, next_cursor
 
 
-async def list_incidents_with_coords(
-    session: AsyncSession, universe_id: uuid.UUID, limit: int = 2000
+async def list_incidents_by_capability(
+    session: AsyncSession,
+    universe_id: uuid.UUID,
+    *,
+    needs: str,
+    limit: int = 2000,
 ) -> list[Incident]:
-    """Every incident that can actually be drawn on a map.
+    """Incidents a given view can actually render.
 
-    The generic listing is paged by creation date, so a map built on it plots
-    whichever incidents happen to be newest rather than the ones that have a
-    position. Filtering on the coordinates instead keeps the result naturally
-    small - most incidents have none - and stops a geocoded incident from
-    silently falling outside the page.
+    The generic listing pages by creation date, so a map or a calendar built on it
+    shows whichever incidents happen to be newest rather than the ones carrying
+    what it needs. Selecting on the field itself is both correct and naturally
+    bounded: almost no incident has coordinates, and only a small minority has a
+    date precise enough to place.
+
+    `needs` is "coords" or "date".
     """
-    stmt = (
-        select(Incident)
-        .where(
-            Incident.universe_id == universe_id,
-            Incident.lat.is_not(None),
-            Incident.lng.is_not(None),
-        )
-        .order_by(Incident.sortable_date.desc().nullslast(), Incident.created_at.desc())
-        .limit(limit)
-    )
+    stmt = select(Incident).where(Incident.universe_id == universe_id)
+    if needs == "coords":
+        stmt = stmt.where(Incident.lat.is_not(None), Incident.lng.is_not(None))
+    elif needs == "date":
+        # sortable_date is written only when the fuzzy date has at least a year,
+        # which is exactly what both the calendar and the timeline require.
+        stmt = stmt.where(Incident.sortable_date.is_not(None))
+    else:
+        raise ValueError(f"unknown capability {needs!r}")
+    stmt = stmt.order_by(
+        Incident.sortable_date.desc().nullslast(), Incident.created_at.desc()
+    ).limit(limit)
     return list((await session.execute(stmt)).scalars().all())
 
 

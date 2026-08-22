@@ -7,7 +7,7 @@ import { NoUniverse } from '@/components/NoUniverse'
 import { PageHeader } from '@/components/PageHeader'
 import { Skeleton } from '@/components/ui/skeleton'
 import { INCIDENT_VERB } from '@/lib/incidentColors'
-import { useAllIncidents, useAllMembers } from '@/lib/queries'
+import { useDatedIncidents, useAllMembers } from '@/lib/queries'
 import { useUniverseStore } from '@/stores/universe'
 import type { FuzzyDateValue } from '@/components/FuzzyDate'
 import type { IncidentType, UUID } from '@/lib/types'
@@ -53,7 +53,7 @@ const KIND_CONFIG: Record<EventKind, { icon: LucideIcon; tint: string; label: st
 
 function TimelinePage() {
   const universeId = useUniverseStore((s) => s.activeUniverse?.id ?? null)
-  const { data: incidentsData, isLoading: incidentsLoading } = useAllIncidents(universeId)
+  const { data: incidentsData, isLoading: incidentsLoading } = useDatedIncidents(universeId)
   const { data: membersData, isLoading: membersLoading } = useAllMembers(universeId)
 
   const events = useMemo<TimelineEvent[]>(() => {

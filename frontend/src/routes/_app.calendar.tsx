@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { NoUniverse } from '@/components/NoUniverse'
 import { Button } from '@/components/ui/button'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
-import { useAllIncidents, useAllMembers, useUniverseReleaseEvents } from '@/lib/queries'
+import { useDatedIncidents, useAllMembers, useUniverseReleaseEvents } from '@/lib/queries'
 import { useUniverseStore } from '@/stores/universe'
 import type { FuzzyDateValue } from '@/components/FuzzyDate'
 import type { IncidentType } from '@/lib/types'
@@ -237,7 +237,7 @@ function CalendarPage() {
     return () => window.removeEventListener('keydown', handle)
   }, [])
 
-  const { data: incidentData } = useAllIncidents(universe?.id ?? null)
+  const { data: incidentData } = useDatedIncidents(universe?.id ?? null)
   const { data: memberData }   = useAllMembers(universe?.id ?? null)
   const { data: releaseData }  = useUniverseReleaseEvents(universe?.id ?? null, year)
 

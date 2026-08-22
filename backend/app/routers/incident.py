@@ -106,10 +106,13 @@ async def list_incidents(
     member_id: uuid.UUID | None = None,
     municipality_id: uuid.UUID | None = None,
     with_coords: bool = Query(False, description="Only incidents carrying lat/lng, for maps."),
+    with_date: bool = Query(False, description="Only incidents carrying a date, for the calendar."),
     format: str = Query("json"),
 ):
-    if with_coords:
-        items = await crud.list_incidents_with_coords(session, universe_id)
+    if with_coords or with_date:
+        items = await crud.list_incidents_by_capability(
+            session, universe_id, needs="coords" if with_coords else "date"
+        )
         return CursorPage(
             items=await _enrich_participant_names(session, items),
             next_cursor=None,
