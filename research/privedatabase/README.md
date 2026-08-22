@@ -24,6 +24,7 @@ on the first seed.
 | `db-sync.md` | **Generated.** What has actually reached the database, and what has not |
 | `tools/db_sync.py` | Regenerates `db-sync.md`. Read-only against the DB |
 | `tools/extract-chicago.json` | The 156 parsed Chicago set records the sync reconciles against |
+| `tools/seed_alamo_roc.py` | Merges the split Alamo/Roc murders into one dated, press-sourced incident |
 | `tools/reddit_fetch.py` | Reads Reddit threads through the Arctic Shift archive, since Reddit itself 403s this box ([Reading Reddit](#reading-reddit)) |
 
 232 + 448 + 261 + 155 = 1,096, plus the 9 remaining city-index stubs (Birmingham, Columbus,
@@ -640,6 +641,60 @@ and the biography says plainly that everything rests on one anonymous forum thre
 
 `tools/seed_1eye_gfarro.py` applies it, and is idempotent: it finds the source by URL and
 the member by nickname, and skips a photo whose caption is already attached.
+
+## Alamo and Roc were one shooting, not two (2026-08-22)
+
+The first Chicago material here that is **not** `UNVERIFIED`, and the first correction the
+outside world forced on the corpus rather than the other way round.
+
+Two r/Chiraqology threads name NLMB Alamo and NLMB Roc as killed together in 2012, and the
+second is an anniversary post - "It has been 13 years since the murders" - dated
+2025-02-19, which points at 19 February. Three independent public records confirm it:
+
+| Source | What it fixes |
+|---|---|
+| Chicago open crime data | Two homicide records under **one case number, HV164849**, both stamped `2012-02-19T18:40` at `025XX E 79TH ST`, community area 43 (South Shore), arrest true |
+| RedEye homicide tracker, archived 27 Feb 2012 | `Jamal Harris, 19` and `Gregory Glinsey, 54`, both 2/19/12 at 2500 E. 79th St. |
+| ABC7 / NBC Chicago / gunmemorial.org | Drive-by from a beige vehicle, seven shot; Harris found **inside** the store, Glinsey shot **outside** and called an innocent victim by police |
+
+`gunmemorial.org` carries both street names in public - Gregory "Alamo" Glinsey and Jamal
+"Roc" Harris - so neither nickname rests on the forum threads. The press rows are `HIGH`;
+the two threads stay `UNVERIFIED` and are kept because they carry what the press does not:
+the NLMB affiliation, that Alamo was an OG, and the Lil Herb lyric about Roc.
+
+The threads survive the check well. `u/madayuhsuck`'s "just an old head standing outside a
+liquor store, not an intended target" is what police said in different words, and the 2025
+OP's "Roc made an attempt to escape inside the store but did not make it" is why Harris was
+found inside. Two things they got wrong: it was a liquor store, not a gas station (the OP
+was wrong and a commenter in his own thread was right), and it is 79th, not 78th. Ages
+disagree by one - 53 in the press, on gunmemorial and in both threads, 54 in RedEye - and
+both are recorded rather than reconciled.
+
+### What it exposed
+
+Alamo and Roc each already had a `death_incident_id`, pointing at **two different**
+undated, unlocated incidents, each with KTS Von as shooter. They were killed by the same
+burst of gunfire. The corpus lists bodies one name at a time under the man credited with
+them, so the extraction turned one double murder into two.
+
+This is not a one-off. Across Chicago there are **1,407 undated incidents with exactly one
+killed victim and not a single undated incident with two**, which is not what homicide
+looks like - it is the shape of a parser walking a comma-separated body list. The shooters
+with the most solo undated incidents (Wooski 39, Lil $hawn 35, DaDa 33, D.Rose 33) are
+where co-victims are most likely hiding. Nothing has been merged except this one, because
+merging needs an outside source to prove two names belong to one event, and that source
+has to be found per incident.
+
+`tools/seed_alamo_roc.py` performs the merge. Order matters: the duplicate incident is
+deleted **first**, because `death_incident_id` is `ON DELETE SET NULL` and
+`_sync_killed_participants` never moves a member that already points at a different
+incident - so the delete releases Roc and the following PATCH re-links him.
+
+The shooter attribution is deliberately unchanged. No press or official record of this
+shooting names anyone, and although case HV164849 carries an arrest, no source held here
+says who was arrested. KTS Von keeps `SHOOTER` and KTS Dre `ASSISTED`, both with
+`acquitted=False` - the documented baseline for a role attributed by research and never
+tested in court - and both now carry participant notes saying precisely that.
 
 ## Reading Reddit
 
