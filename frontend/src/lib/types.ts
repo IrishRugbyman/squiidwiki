@@ -491,7 +491,7 @@ export interface UniverseAnalytics {
   top_sources_by_references: Array<{ id: string; title: string; ref_count: number }>
   incidents_by_month: Array<{ month: string; count: number }>
   source_by_reliability: Record<string, number>
-  top_members_by_incidents: Array<{ id: string; display_name: string; incident_count: number }>
+  top_members_by_incidents: Array<{ id: string; slug: string | null; display_name: string; incident_count: number }>
 }
 
 // Media

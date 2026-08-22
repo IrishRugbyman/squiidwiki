@@ -195,6 +195,7 @@ async def get_member(
         created_at=obj.created_at,
         updated_at=obj.updated_at,
         display_name=obj.display_name,
+        slug=obj.slug,
         primary_photo_url=getattr(obj, "primary_photo_url", None),
         primary_photo_thumb_url=getattr(obj, "primary_photo_thumb_url", None),
     )

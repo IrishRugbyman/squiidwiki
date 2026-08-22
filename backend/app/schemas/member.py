@@ -111,6 +111,10 @@ class MemberRead(BaseModel):
     primary_set_id: Optional[uuid.UUID] = None
     primary_set_name: Optional[str] = None
     primary_set_slug: Optional[str] = None
+    # The member's own slug, not the set's. Its absence here meant every consumer
+    # reading a member through the detail endpoint had to fall back to the UUID for
+    # links, while the list endpoint returned it all along.
+    slug: Optional[str] = None
     primary_set_rank: Optional[SetRank] = None
     alliance_id: Optional[uuid.UUID]
     gang_id: Optional[uuid.UUID] = None
