@@ -516,10 +516,21 @@ can carry "Never Leave My Brothers", "NLMB" and a number at once and render as
 `backfill_set_name_variants.py` filled the slots but split each stored variant on
 its own and never joined rows, so NLMB kept an initials-only row beside a
 name-only row saying the same thing - five entries in the edit form for three
-names. `merge_set_variants.py` joins them where the acronym is demonstrably the
-initials of the name: MOB with "Mind On Business", THF with "Trigga Happy Family",
-NLMB with "Never Leave My Brothers". The acronym keeps leading, since the set is
-filed under it.
+names. `merge_set_variants.py` joins them where the acronym is demonstrably the shortened
+name: MOB with "Mind On Business", THF with "Trigga Happy Family", NLMB with
+"Never Leave My Brothers". The acronym keeps leading, since the set is filed under
+it.
+
+Initials alone were not enough. STL is not the initials of "Saint Lawrence" - it
+is the word contracted, the way EBT contracts "Eberhart" - so STL/EBT kept five
+rows for three things until the test also accepted a contraction: the acronym's
+letters in order, starting on the same letter. It now reads
+`STL/EBT | Saint Lawrence (STL) | Eberhart (EBT)`.
+
+Nineteen sets still carry a lone acronym beside a lone name and are correct that
+way: LCMG is not "Young Money" shortened, BNR is not "Hoola Gang", MMG is not "LOC
+City". They are separate aliases that happen to be acronyms, and pairing them
+would assert an expansion the source never gives.
 
 Numbers stay separate on purpose. "1212", "8X13", "0725" and "500" sit beside
 names on LOC City, 8X13, SackBoyz and No Limit 087, but they are numeric

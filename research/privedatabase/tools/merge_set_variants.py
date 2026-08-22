@@ -33,6 +33,27 @@ def letters(s):
     return re.sub(r"[^A-Za-z0-9]", "", s or "").upper()
 
 
+def is_abbreviation(name, acro):
+    """True when `acro` is `name` shortened, by initials or by contraction.
+
+    STL is not the initials of "Saint Lawrence" - it is the word contracted, the
+    way EBT contracts "Eberhart". Requiring initials alone left STL/EBT with five
+    variant rows for three things. A contraction must keep the letters in order
+    and start on the same letter, which is tight enough to reject unrelated pairs.
+    """
+    a = letters(acro)
+    n = letters(name)
+    if len(a) < 2 or not n or a[0] != n[0]:
+        return False
+    if a == initials_of(name):
+        return True
+    i = 0
+    for ch in n:
+        if i < len(a) and ch == a[i]:
+            i += 1
+    return i == len(a)
+
+
 sets = q(
     f"""SELECT id, name, coalesce(name_variants,'[]'::jsonb) nv
         FROM sets WHERE universe_id='{CHICAGO}' AND NOT is_reserved ORDER BY name"""
@@ -48,7 +69,7 @@ for s in sets:
         for j, named in enumerate(variants):
             if j == i or j in consumed or not named.get("name") or named.get("initials"):
                 continue
-            if initials_of(named["name"]) != letters(acro["initials"]):
+            if not is_abbreviation(named["name"], acro["initials"]):
                 continue
             consumed |= {i, j}
             merged.append(
