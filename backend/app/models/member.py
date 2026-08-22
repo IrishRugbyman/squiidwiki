@@ -64,9 +64,17 @@ class MemberIncarceration(SQLModel, table=True):
 
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
     member_id: uuid.UUID = Field(foreign_key="member.id", index=True)
-    from_date: dict | None = Field(default=None, sa_column=Column(JSONB))
-    earliest_release_date: dict | None = Field(default=None, sa_column=Column(JSONB))
-    max_discharge_date: dict | None = Field(default=None, sa_column=Column(JSONB))
+    # none_as_null for the same reason as everywhere else in this file: without it
+    # an absent date is stored as the JSON scalar 'null', which IS NULL cannot see.
+    # A federal spell legitimately has no earliest_release_date, so "no parole"
+    # and "unknown" must stay distinguishable.
+    from_date: dict | None = Field(default=None, sa_column=Column(JSONB(none_as_null=True)))
+    earliest_release_date: dict | None = Field(
+        default=None, sa_column=Column(JSONB(none_as_null=True))
+    )
+    max_discharge_date: dict | None = Field(
+        default=None, sa_column=Column(JSONB(none_as_null=True))
+    )
     life_sentence: bool = False
     facility: str | None = None
     case_id: str | None = None

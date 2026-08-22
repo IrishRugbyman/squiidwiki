@@ -1,0 +1,99 @@
+[
+ {
+  "ref": "s76",
+  "charge_fr": "pour le meurtre de Khalil du Pointe Drive",
+  "charge_en": "murder of Khalil from Pointe Drive"
+ },
+ {
+  "ref": "s77"
+ },
+ {
+  "ref": "s78"
+ },
+ {
+  "ref": "s79",
+  "charge_fr": "pour le meurtre de Taedoe",
+  "charge_en": "murder of Taedoe"
+ },
+ {
+  "ref": "s80",
+  "earliest_release": {"year": 2022, "month": null, "day": null},
+  "earliest_release_quote": "sortira de prison en 2022",
+  "charge_fr": "pour le meurtre de Boom",
+  "charge_en": "murder of Boom"
+ },
+ {
+  "ref": "s81"
+ },
+ {
+  "ref": "s82"
+ },
+ {
+  "ref": "s83",
+  "sentence_years": 120,
+  "sentence_years_quote": "purge une peine de 120 ans de prison",
+  "charge_fr": "pour double meurtres",
+  "charge_en": "double murders"
+ },
+ {
+  "ref": "s84"
+ },
+ {
+  "ref": "s85"
+ },
+ {
+  "ref": "s86"
+ },
+ {
+  "ref": "s87",
+  "charge_fr": "pour meurtre",
+  "charge_en": "murder"
+ },
+ {
+  "ref": "s88"
+ },
+ {
+  "ref": "s89",
+  "charge_fr": "pour un triple meurtre",
+  "charge_en": "triple murder"
+ },
+ {
+  "ref": "s90",
+  "charge_fr": "pour meurtre",
+  "charge_en": "murder"
+ },
+ {
+  "ref": "s91"
+ },
+ {
+  "ref": "s92"
+ },
+ {
+  "ref": "s93",
+  "charge_fr": "pour sa participation à 2 meurtres",
+  "charge_en": "participation in 2 murders"
+ },
+ {
+  "ref": "s94"
+ },
+ {
+  "ref": "s95"
+ },
+ {
+  "ref": "s96"
+ },
+ {
+  "ref": "s97"
+ },
+ {
+  "ref": "s98"
+ },
+ {
+  "ref": "s99",
+  "charge_fr": "pour un trafique de méthamphétamine (en kilogrammes)",
+  "charge_en": "methamphetamine trafficking"
+ },
+ {
+  "ref": "s100"
+ }
+]

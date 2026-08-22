@@ -1,0 +1,47 @@
+[
+  {"ref": "s26"},
+  {"ref": "s27"},
+  {"ref": "s28"},
+  {"ref": "s29"},
+  {"ref": "s30"},
+  {
+    "ref": "s31",
+    "charge_fr": "pour le meurtre de son ami Huncho",
+    "charge_en": "murder of his friend Huncho"
+  },
+  {"ref": "s32"},
+  {"ref": "s33"},
+  {
+    "ref": "s34",
+    "charge_fr": "pour meurtre",
+    "charge_en": "murder"
+  },
+  {"ref": "s35"},
+  {
+    "ref": "s36",
+    "charge_fr": "pour meurtre",
+    "charge_en": "murder"
+  },
+  {"ref": "s37"},
+  {"ref": "s38"},
+  {
+    "ref": "s39",
+    "charge_fr": "pour 7 meurtres",
+    "charge_en": "7 murders"
+  },
+  {"ref": "s40"},
+  {"ref": "s41"},
+  {"ref": "s42"},
+  {"ref": "s43"},
+  {"ref": "s44"},
+  {"ref": "s45"},
+  {
+    "ref": "s46",
+    "charge_fr": "pour le meurtre de TFG Save",
+    "charge_en": "murder of TFG Save"
+  },
+  {"ref": "s47"},
+  {"ref": "s48"},
+  {"ref": "s49"},
+  {"ref": "s50"}
+]
