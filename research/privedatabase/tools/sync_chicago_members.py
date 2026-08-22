@@ -73,6 +73,15 @@ for m in members:
         if n and norm(n):
             name_idx[norm(n)].add(m["id"])
 
+# Members whose nickname is "<TAG> Name", indexed by the bare Name.
+tagged_idx = collections.defaultdict(set)
+for m in members:
+    nick = (m["nickname"] or "").strip()
+    if " " in nick:
+        head, rest = nick.split(" ", 1)
+        if rest.strip() and head.isupper():
+            tagged_idx[norm(rest)].add(m["id"])
+
 setidx, set_gang = {}, {}
 for r in q(
     f"""SELECT id, name, gang_id::text gid, coalesce(name_variants,'[]'::jsonb) nv
@@ -124,6 +133,11 @@ for p in people:
     sid = resolve_set(p["set"]) if p["set"] else None
     keys = {norm(name), *(norm(a) for a in [*extra_aliases, *p["aliases"]] if a)}
     cands = {c for k in keys if k for c in name_idx.get(k, ())}
+    # A row may be filed under the tagged form of the same name - "PBG Kemo" for
+    # the Kemo of PBG/TFG. Looking up the bare name alone misses it and creates a
+    # duplicate, which is exactly what happened on the first run of this script.
+    if sid:
+        cands |= {c for c in tagged_idx.get(norm(name), ()) if sid in by_id[c]["set_ids"]}
     if not sid:
         if cands:
             skipped["deja present (sans set a verifier)"] += 1

@@ -231,6 +231,32 @@ PAIRS = [
             "sightings that name a set agree on it."
         ),
     },
+    # --- names that repeat their own set -----------------------------------
+    # A member's name must never restate the set he is already filed under, so
+    # "PBG Kemo" on PBG/TFG is just "Kemo". Applying that rule surfaced two rows
+    # that were one man written both ways.
+    {
+        "key": "kemo",
+        "keep": "8ada2aed-b6c7-4aba-a63a-2e40250b07ba",  # Kemo, PBG/TFG, 13 incidents
+        "absorb": "463cc4af-e081-4b23-bbc8-c3a76e2d4659",  # PBG Kemo, PBG/TFG
+        "why": (
+            "p7488 (PBG/TFG) carries his sentence: 'Kemo aussi connu sous le nom de "
+            "NotThaBopper est un Insane Gangster Disciple de la PBG'; the rapper list on "
+            "p7702 writes the same man 'PBG Kemo (PBG)'. This duplicate is mine - the member "
+            "sync looked up 'Kemo' and never saw the existing row was filed as 'PBG Kemo'. "
+            "The Kemos on SackBoyz and SedVille are other men."
+        ),
+    },
+    {
+        "key": "ocho",
+        "keep": "0cbb9085-1c45-4954-b426-35174508309f",  # O'Block Ocho, O'Block, 1 incident
+        "absorb": "67ce9023-fcd8-44fb-ad12-6e69c40647fe",  # Ocho, O'Block
+        "rename": "Ocho",
+        "why": (
+            "The O'Block roster on p1151 lists 'Ocho'; the rapper list on p7702 writes the "
+            "same man as \"O'Block Ocho (O'Block)\". One Ocho on O'Block, written two ways."
+        ),
+    },
 ]
 
 
@@ -393,8 +419,13 @@ def plan_one(pair):
     rewrites = list(rewrites.values())
 
     # Scalars: keeper wins, absorbed fills blanks.
-    aliases, seen = [], {norm(keep["nickname"] or "")}
+    aliases, seen = [], {norm(pair.get("rename") or keep["nickname"] or "")}
     candidates = list(keep["aliases"] or [])
+    if pair.get("rename"):
+        # The name being replaced is how other pages write him, so it has to stay
+        # searchable - otherwise the member sync sees an unknown name and re-creates
+        # the row we just merged away.
+        candidates.append(keep["nickname"])
     for row in absorbs:
         candidates += [row["nickname"], *(row["aliases"] or [])]
     for a in [*candidates, *pair.get("add_aliases", [])]:
@@ -412,7 +443,11 @@ def plan_one(pair):
             next(iter(by_set), None),
         ),
     )
-    body = {
+    body = {}
+    if pair.get("rename"):
+        # A name must not restate the set the member is already filed under.
+        body["nickname"] = pair["rename"]
+    body |= {
         "status": max(
             [keep["status"], *(r["status"] for r in absorbs)],
             key=lambda s: STATUS_RANK.get(s, 0),
@@ -486,6 +521,8 @@ def describe(plan):
     print(f"  keeper sets      -> {[a['name'] for a in body_sets(plan)]}")
     print(f"  keeper family    -> {json.dumps(plan['body']['family'])}")
     print(f"  keeper status    -> {plan['body']['status']}")
+    if plan["body"].get("nickname"):
+        print(f"  keeper renomme   -> {plan['body']['nickname']!r}")
 
 
 def apply(plan, api):
