@@ -189,6 +189,43 @@ for mid in wrong_dead[:15]:
     tgt = "LOCKED" if mid in says_locked else "UNKNOWN"
     print(f"   {by_id[mid]['nickname']!r:22} DEAD -> {tgt}")
 
+# --- alias and affiliation drift -------------------------------------------
+# Same write-once problem as status: a member's aliases and sets are written at
+# creation and never revisited, so every parser fix that recovers an alias leaves
+# the existing rows behind. Aliases are merged (purely additive, and each one
+# makes future resolution stronger). A missing SET is only reported: adding one
+# changes who belongs to what, and several of these are the same ambiguous names
+# that produced the tag-prefix duplicates.
+add_aliases, wrong_set = {}, []
+for p_ in people:
+    nm, extra = clean_name(p_["name"])
+    sid_ = resolve_set(p_["set"]) if p_["set"] else None
+    cands = set(name_idx.get(norm(nm), ()))
+    if sid_:
+        cands = {c for c in cands if sid_ in by_id[c]["set_ids"]} or cands
+    if len(cands) != 1:
+        continue
+    c = next(iter(cands))
+    have = {norm(a) for a in (by_id[c]["aliases"] or [])} | {norm(by_id[c]["nickname"] or "")}
+    fresh = [a for a in [*extra, *p_["aliases"]] if a and norm(a) not in have]
+    if fresh:
+        cur = add_aliases.setdefault(c, list(by_id[c]["aliases"] or []))
+        for a in fresh:
+            if norm(a) not in {norm(x) for x in cur} | {norm(by_id[c]["nickname"] or "")}:
+                cur.append(a)
+    if sid_ and sid_ not in by_id[c]["set_ids"]:
+        wrong_set.append((c, p_["set"], sid_))
+
+print(f"membres a qui il manque des alias : {len(add_aliases)}")
+for mid, al in list(add_aliases.items())[:10]:
+    prev_al = set(by_id[mid]["aliases"] or [])
+    print(f"   {by_id[mid]['nickname']!r:22} + {[a for a in al if a not in prev_al]}")
+print(
+    f"membres dont la source indique un set absent de la fiche (signale, non modifie) : {len(wrong_set)}"
+)
+for mid, src, _sid in wrong_set[:10]:
+    print(f"   {by_id[mid]['nickname']!r:22} source dit {src!r}")
+
 print(f"personnes extraites : {len(people)}")
 print(f"deja en base        : {sum(skipped.values())}  {dict(skipped)}")
 print(f"a creer             : {len(create)}\n")
@@ -225,6 +262,15 @@ for mid in wrong_dead:
     else:
         fixed += 1
 print(f"statuts corriges: {fixed}")
+
+alias_done = 0
+for mid, al in add_aliases.items():
+    r = api.call("PATCH", f"members/{mid}?universe_id={CHICAGO}", {"aliases": al})
+    if r and r.get("_error"):
+        print(f"  echec alias {by_id[mid]['nickname']!r}: {r}")
+    else:
+        alias_done += 1
+print(f"alias completes: {alias_done}")
 
 made = err = 0
 for p, name, aliases, sid in create:
