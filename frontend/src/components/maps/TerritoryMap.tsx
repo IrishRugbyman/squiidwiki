@@ -30,6 +30,8 @@ export interface TerritoryMapProps {
   showSubDistrictOutlines: boolean
   /** Optional incident points overlay. */
   incidentPoints: IncidentPoint[]
+  /** Called when a single incident pin is clicked. */
+  onSelectIncident?: (id: UUID) => void
   /** Numbered markers for address-mode polygon construction. */
   addressMarkers?: { lng: number; lat: number }[]
   viewMode: 'sets' | 'alliances'
@@ -127,6 +129,7 @@ export default function TerritoryMap({
   subDistrictGeoJSON,
   showSubDistrictOutlines,
   incidentPoints,
+  onSelectIncident,
   addressMarkers,
   viewMode,
   onPolygonComplete,
@@ -301,7 +304,7 @@ export default function TerritoryMap({
       features: incidentPoints.map((p) => ({
         type: 'Feature',
         geometry: { type: 'Point', coordinates: [p.lng, p.lat] },
-        properties: { id: p.id, incidentType: p.type },
+        properties: { id: p.id, incidentType: p.type, label: p.label ?? '' },
       })),
     }
   }, [incidentPoints])
@@ -469,6 +472,14 @@ export default function TerritoryMap({
     if (f?.layer?.id === 'shared-territory-fill' && f.properties) {
       const { nameA, nameB } = f.properties as { nameA: string; nameB: string }
       setHovered({ id: '' as UUID, name: `${nameA} + ${nameB}`, lng: e.lngLat.lng, lat: e.lngLat.lat })
+    } else if (f?.layer?.id === 'incident-points-layer' && f.properties) {
+      const { label, incidentType } = f.properties as { label?: string; incidentType?: string }
+      setHovered({
+        id: (f.properties.id ?? '') as UUID,
+        name: label ? `${incidentType === 'MURDER' ? 'Murder' : 'Shooting'}: ${label}` : 'Incident',
+        lng: e.lngLat.lng,
+        lat: e.lngLat.lat,
+      })
     } else if (f && f.properties && f.properties.firstSetId) {
       setHovered({
         id: f.properties.firstSetId as UUID,
@@ -503,10 +514,14 @@ export default function TerritoryMap({
       })
       return
     }
+    if (f?.layer?.id === 'incident-points-layer' && f.properties?.id) {
+      onSelectIncident?.(f.properties.id as UUID)
+      return
+    }
     if (f?.properties?.firstSetId) {
       onSelectSet(f.properties.firstSetId as UUID)
     }
-  }, [drawingFor, pinMode, onPinPlaced, onSelectSet])
+  }, [drawingFor, pinMode, onPinPlaced, onSelectSet, onSelectIncident])
 
   const resetView = useCallback(() => {
     if (mapRef.current && allBounds) {
@@ -523,7 +538,7 @@ export default function TerritoryMap({
         initialViewState={initialViewState}
         style={{ width: '100%', height: '100%' }}
         mapStyle={TILE_STYLE}
-        interactiveLayerIds={drawingFor || pinMode ? [] : ['set-polygons-fill', 'set-polygons-pattern', 'shared-territory-fill', 'incident-clusters', 'set-points-layer']}
+        interactiveLayerIds={drawingFor || pinMode ? [] : ['set-polygons-fill', 'set-polygons-pattern', 'shared-territory-fill', 'incident-clusters', 'incident-points-layer', 'set-points-layer']}
         onMouseMove={onMouseMove}
         onMouseLeave={onMouseLeave}
         onClick={onClick}

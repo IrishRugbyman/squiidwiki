@@ -55,7 +55,7 @@ function MapPage() {
   const incidentPoints: IncidentPoint[] = showIncidents
     ? (incidentsData?.items ?? []).flatMap((inc) =>
         inc.lat != null && inc.lng != null
-          ? [{ id: inc.id, type: inc.type, lat: inc.lat, lng: inc.lng }]
+          ? [{ id: inc.id, type: inc.type, lat: inc.lat, lng: inc.lng, label: inc.victim_names.join(', ') }]
           : [],
       )
     : []
