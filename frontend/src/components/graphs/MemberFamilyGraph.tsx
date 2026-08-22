@@ -13,8 +13,9 @@ import 'reactflow/dist/style.css'
 import { useNavigate } from '@tanstack/react-router'
 import { useQueries } from '@tanstack/react-query'
 import { api } from '@/lib/api'
+import { useMembersByIds } from '@/lib/queries'
 import { familyDictToEntries, ROLE_LABEL, type FamilyRole } from '@/routes/_app.members.index'
-import type { MemberListItem, MemberRead, UUID } from '@/lib/types'
+import type { MemberRead, UUID } from '@/lib/types'
 
 const ROLE_TINT: Record<FamilyRole, string> = {
   spouse: 'bg-rose-950/60 border-rose-700 text-rose-200',
@@ -54,17 +55,10 @@ const nodeTypes = { family: FamilyNode }
 interface MemberFamilyGraphProps {
   centerMember: MemberRead
   universeId: UUID
-  allMembers: MemberListItem[]
 }
 
-export function MemberFamilyGraph({ centerMember, universeId, allMembers }: MemberFamilyGraphProps) {
+export function MemberFamilyGraph({ centerMember, universeId }: MemberFamilyGraphProps) {
   const navigate = useNavigate()
-
-  const memberMap = useMemo(() => {
-    const m: Record<string, MemberListItem> = {}
-    for (const x of allMembers) m[x.id] = x
-    return m
-  }, [allMembers])
 
   // Hop 1 — direct relations from the center.
   const hop1 = useMemo(
@@ -73,7 +67,7 @@ export function MemberFamilyGraph({ centerMember, universeId, allMembers }: Memb
   )
   const hop1Ids = useMemo(() => Array.from(new Set(hop1.map((e) => e.memberId))), [hop1])
 
-  // Fetch hop-1 detail in parallel to read their family for hop-2.
+  // Fetch hop-1 detail in parallel: it labels the node and its family gives hop-2.
   const hop1Queries = useQueries({
     queries: hop1Ids.map((id) => ({
       queryKey: ['members', id],
@@ -81,6 +75,18 @@ export function MemberFamilyGraph({ centerMember, universeId, allMembers }: Memb
       enabled: !!universeId && !!id,
     })),
   })
+  const hop2Ids = useMemo(() => {
+    const ids = new Set<UUID>()
+    for (const q of hop1Queries) {
+      for (const e of familyDictToEntries((q.data?.family as Record<string, unknown> | null) ?? null)) {
+        if (e.memberId !== centerMember.id && !hop1Ids.includes(e.memberId)) ids.add(e.memberId)
+      }
+    }
+    return Array.from(ids)
+  }, [hop1Queries, hop1Ids, centerMember.id])
+  // Hop-2 members only need a label and a slug; resolved by id like hop-1, never
+  // through the capped universe-wide list.
+  const memberMap = useMembersByIds(universeId, [...hop1Ids, ...hop2Ids])
 
   const { nodes, edges } = useMemo(() => {
     const nodes: Node<FamilyNodeData>[] = []
