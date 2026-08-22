@@ -408,6 +408,44 @@ No set name in the universe carries a parenthetical any more. Any future set who
 title differs from another only by a parenthetical will collide the same way -
 `candidates()` is the place to look.
 
+## Biographies, and the rule that makes them worth having (2026-08-22)
+
+The seed never wrote one: 4,563 of 4,565 members were blank while 454 had a full
+sentence about themselves in the French source. Ten Haiku agents drafted one each
+from `tools/bio-instructions.md`, under a single rule - **say only what no other
+column holds** - and 266 were written.
+
+That rule is the whole point. A biography that repeats the set, the nation, the
+family and the status is noise: those are columns, they render on the page
+already, and prose duplicating them rots the moment one is corrected. What earns
+its place is what has nowhere else to live:
+
+> **Booka** - One of the four founding members of the 600. Close to Lil Durk.
+> **Stello** - An OG of Brick City and one of its last active members. His death
+> was one of the reasons for the 600's decline.
+
+The distinction to hold on to is **state versus circumstance**. "He is
+incarcerated" is a column and is banned; "took the charges for his members" is a
+fact no column holds. Same sentence, opposite verdicts.
+
+182 drafts came back empty, and that is the correct answer rather than a failure:
+strip the columns out of "X est un Black Disciple. Il est le frere de Y. Il est
+actuellement incarcere." and nothing remains.
+
+`verify_bios.py` checks prose the two ways prose can be checked - every
+capitalised token must appear in the source sentence, so an invented associate or
+song title fails before reaching the database, and no column may be restated. 433
+of 454 passed untouched. The 21 flagged were read by hand and were almost all
+false positives of the checks themselves: "Fridays" as a plural, "Millie's" as a
+possessive, and a bio correctly stating that B.A. is jailed for a murder Mack
+committed, which tripped the status test by naming another man's imprisonment.
+
+A rerun of batch 8, launched while the first was still in flight, is worth
+recording: it produced four more non-empty bios than the original, and all four
+were **worse** - "Also known as PeeWee", "Also known as 007". An alias is a
+column. The first agent had correctly returned empty. More output is not better
+output, and the rule is what tells them apart.
+
 ## The seeds are destructive; the replacements are not (2026-08-22)
 
 `reseed_chicago_members.py` deletes every member and rebuilds; `seed_chicago_incidents.py`
