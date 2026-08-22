@@ -269,6 +269,82 @@ Two bugs surfaced on the way:
 page-to-city owner map and alliance-page list the extractor needs now live in `tools/`
 (`wp-owner.json`, `chi-alliance-pages.json`) instead of a session scratchpad.
 
+## Duplicate members, and what actually caused them (2026-08-22)
+
+Two duplicates were merged by hand with `tools/merge_members.py`, which carries
+the whole row rather than just the name:
+
+- **KTS Von** absorbed **Von** (both KTS, both DEAD, both listing Dre and Vinnie
+  as brothers). Page 7491 states it outright: KTS Von's own sentence says he is
+  "le frere de Dre et Vinnie", and Dre's and Vinnie's sentences on the same page
+  each say "le frere de ... Von du meme set". The NLMB page had also credited the
+  same killing twice, to MaddMaxx (+ EBK Juvie assisting) under "KTS Von" and to
+  Choppa under "Von", so the seed built two murders; they are now one murder with
+  all three perpetrators. His alias "Big Kutthroat Da Smoker" was added: the old
+  parser never reached it.
+- **Lil Durk** (Lamron) absorbed **Lil Durk** (OTF). OTF is his own label, not a
+  rival set; he now carries both affiliations, Lamron primary.
+
+**Why they existed.** Three separate failures, none of them random:
+
+1. `extract_members_full.py` keys people by `(name, set)`, and one person on two
+   set pages is two records by construction. That is deliberate for genuinely
+   ambiguous nicknames, and wrong for a man whose name is written with his set's
+   tag on one page and without it on another.
+2. The agent dedupe pass (`dedupe-verdicts.json`) groups candidates by
+   *normalised nickname*, so "KTS Von" and "Von" were never in the same bucket
+   and never compared. It did judge `lildurk`, and got it wrong, reading the
+   empty OTF row's lack of events as evidence of a second person.
+3. `apply_dedupe.py` merges names, aliases, sets and gang onto the keeper and
+   then DELETEs the absorbed row - but `delete_member` drops that row's incident
+   participations, and nothing repoints the family links other members hold to
+   the absorbed id. That cost nothing on the original run, because the same
+   commit re-seeded every incident afterwards; **re-running it today would
+   silently destroy incident links and family links.** Use
+   `tools/merge_members.py` instead: it folds incidents, rewrites every holder's
+   family reference, and only then deletes.
+
+**14 more of the same shape are still in the database** - a tag-prefixed row and
+a bare row sitting on the same set (FBG Brick/Brick, GBE Capo/Capo, PBG
+Spazz/Spazz, TFG Bigz/Bigz - which even share a brother - FBG Butta/Butta, FBG
+Cash/Cash, FBG Young/Young, FYB DJ/Duke/J Mane/Mattana, OTF Ikey/Pat/Tay, ABM
+Tay). Most look conclusive on the source, a few (the several "Tay" and "Pat"
+rows) need reading first. They are listed by:
+
+```sql
+SELECT a.nickname, b.nickname FROM member a JOIN member b
+  ON b.nickname = regexp_replace(a.nickname,'^[A-Z0-9]{2,5} ','')
+ AND a.nickname ~ '^[A-Z0-9]{2,5} ' AND a.id<>b.id
+ AND EXISTS (SELECT 1 FROM member_set x JOIN member_set y ON x.set_id=y.set_id
+             WHERE x.member_id=a.id AND y.member_id=b.id);
+```
+
+Add each adjudicated pair to `PAIRS` in `merge_members.py` with the source line
+that settles it, and run it - dry-run first.
+
+### 154 incidents are credited to the wrong member
+
+Chasing the KTS Von duplicate turned up a bigger problem. On a set page the
+extractor attributes each CORPS / ASSISTANCE / FUSILLADES block to the member
+sentence above it - but when `parse_member` could not produce a usable name, it
+left `current` pointing at the *previous* member, so that member absorbed the
+next man's whole kill list. KTS Von's sentence ("KTS Von aussi connu sous le nom
+de « Big Kutthroat Da Smoker » etait...", no comma before "aussi") parsed to a
+60-character string, failed `good_name`, and his six bodies and sixteen
+shootings were credited to **KTS Dre**, who sits directly above him on page 7491.
+
+The parser fixes committed here (symmetric quote class, optional "de" after
+"sous le nom", trailing relative clause dropped) resolve all of these sentences.
+Re-running the extraction against the corrected parser changes **183 event
+attributions: 29 cosmetic** (same person, cleaner name string) and **154 real** -
+credited to the wrong member. Concentrated on pages 7488 (65), 7493 (25), 7491
+(22), 7484 (16), 7954 (13).
+
+The database still carries the wrong 154: fixing them means re-seeding incidents
+(`seed_chicago_incidents.py` wipes and rebuilds), which would also destroy any
+hand-made incident or edit since the last seed - the T-Slick murder among them.
+That is a deliberate decision, not a cleanup, so it has not been done.
+
 ## Before seeding any of this
 
 - **It is `UNVERIFIED`.** Where a fact here also appears in `../detroit/extraction/`, cite the

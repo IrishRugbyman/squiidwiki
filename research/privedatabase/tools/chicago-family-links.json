@@ -740,7 +740,7 @@
    "rel": "cousin",
    "object": "Big Swirl",
    "hint": "Risky Road",
-   "why": "set-narrowed"
+   "why": "unique"
   },
   {
    "a": "d38828b1-fddb-4e0b-bbc4-b9998c9ac062",
@@ -880,7 +880,7 @@
    "rel": "cousin",
    "object": "Big Swirl",
    "hint": "Risky Road",
-   "why": "set-narrowed"
+   "why": "unique"
   },
   {
    "a": "efdc05c4-54b3-436f-b428-8ea263256ad0",
@@ -894,6 +894,20 @@
    "rel": "cousin",
    "object": "King Von",
    "hint": "O'Block",
+   "why": "unique"
+  },
+  {
+   "a": "fd79b70b-c628-4c75-a8e6-ce1d2bf78daa",
+   "b": "d4459f34-93e9-412e-ab5a-4e23ad737d96",
+   "a_key": "cousin",
+   "b_key": "cousin",
+   "page": "7907",
+   "title": "FACEWORLD",
+   "subject": "OTF NuNu ou Nuski",
+   "sentence": "OTF NuNu ou Nuski était un Black Disciple. Il était originaire de la Doggpound et représentait les deux sets. Il était le cousin de Lil Durk et OTF D-Thang.",
+   "rel": "cousin",
+   "object": "Lil Durk",
+   "hint": null,
    "why": "unique"
   },
   {
@@ -1626,7 +1640,7 @@
   },
   {
    "a": "5ea9ff1c-e516-4c18-8374-4cf6b1b551fe",
-   "b": "14dbd168-d36d-4892-bb89-2b17a64726dc",
+   "b": "fbb1a335-dd48-428f-92a3-a92a028fcb5f",
    "a_key": "brother",
    "b_key": "brother",
    "page": "7491",
@@ -1651,20 +1665,6 @@
    "object": "Zeko",
    "hint": "051 Young Money",
    "why": "unique"
-  },
-  {
-   "a": "fbb1a335-dd48-428f-92a3-a92a028fcb5f",
-   "b": "5ea9ff1c-e516-4c18-8374-4cf6b1b551fe",
-   "a_key": "brother",
-   "b_key": "brother",
-   "page": "7491",
-   "title": "KILL TO SURVIVE (KTS)",
-   "subject": "KTS Von",
-   "sentence": "KTS Von aussi connu sous le nom de « Big Kutthroat Da Smoker » était un Gangster Disciple. Il est décédé. Il était le frère de Dre et Vinnie et le cousin de Zeko de la 051 Young Money et Rouga Rell. I",
-   "rel": "frère",
-   "object": "Dre",
-   "hint": null,
-   "why": "set-narrowed"
   },
   {
    "a": "fbb1a335-dd48-428f-92a3-a92a028fcb5f",
@@ -1720,21 +1720,7 @@
    "rel": "cousin",
    "object": "Big Swirl",
    "hint": "Risky Road",
-   "why": "set-narrowed"
-  },
-  {
-   "a": "f10c16d0-7f8e-49f8-a1c8-6689f115fb33",
-   "b": "14dbd168-d36d-4892-bb89-2b17a64726dc",
-   "a_key": "brother",
-   "b_key": "brother",
-   "page": "7491",
-   "title": "KILL TO SURVIVE (KTS)",
-   "subject": "Vinnie",
-   "sentence": "Vinnie est un Gangster Disciple. Il est actuellement incarcéré. Il est le frère de Dre et Von du même set. Il est aussi le cousin de Zeko de la 051 Young Money et de Rouga Rell.",
-   "rel": "frère",
-   "object": "Von",
-   "hint": "SAME",
-   "why": "set-narrowed"
+   "why": "unique"
   },
   {
    "a": "f10c16d0-7f8e-49f8-a1c8-6689f115fb33",
@@ -1804,20 +1790,6 @@
    "rel": "frère",
    "object": "Mystro",
    "hint": "SAME",
-   "why": "unique"
-  },
-  {
-   "a": "d4459f34-93e9-412e-ab5a-4e23ad737d96",
-   "b": "fd79b70b-c628-4c75-a8e6-ce1d2bf78daa",
-   "a_key": "cousin",
-   "b_key": "cousin",
-   "page": "7489",
-   "title": "LAMRON",
-   "subject": "Lil Durk",
-   "sentence": "Lil Durk ou «Durkiooooooooo» est un Black Disciple. Il est le fils de Big Durk de Central City. Il s'est déjà fait racketter par Bob-O de la THF 46. Il s'est déjà fait racketter par la MTV. Il est le ",
-   "rel": "cousin",
-   "object": "OTF Nuski",
-   "hint": "FaceWorld",
    "why": "unique"
   },
   {
@@ -2451,6 +2423,76 @@
    "why": "unique"
   },
   {
+   "a": "31eb495d-59ee-4e7a-a386-7e26b4fcf9fe",
+   "b": "39e28373-16c3-4e7a-a6af-2438b7a1b726",
+   "a_key": "brother",
+   "b_key": "brother",
+   "page": "7484",
+   "title": "STL/EBT",
+   "subject": "FBG Duck",
+   "sentence": "FBG Duck, connu aussi sous le nom de «Big Clout» et «#3» est un Gangster Disciple. Il est le grand frère de Day Day et le petit frère de FBG Brick du même set. Il est le cousin de Lil Jay par mariage,",
+   "rel": "frère",
+   "object": "Day Day",
+   "hint": null,
+   "why": "set-narrowed"
+  },
+  {
+   "a": "31eb495d-59ee-4e7a-a386-7e26b4fcf9fe",
+   "b": "680c7413-51f9-4b37-a45f-141fcde681e6",
+   "a_key": "brother",
+   "b_key": "brother",
+   "page": "7484",
+   "title": "STL/EBT",
+   "subject": "FBG Duck",
+   "sentence": "FBG Duck, connu aussi sous le nom de «Big Clout» et «#3» est un Gangster Disciple. Il est le grand frère de Day Day et le petit frère de FBG Brick du même set. Il est le cousin de Lil Jay par mariage,",
+   "rel": "frère",
+   "object": "FBG Brick",
+   "hint": "SAME",
+   "why": "unique"
+  },
+  {
+   "a": "31eb495d-59ee-4e7a-a386-7e26b4fcf9fe",
+   "b": "a7ed14e2-8104-4cb8-abb5-bcf51c791111",
+   "a_key": "cousin",
+   "b_key": "cousin",
+   "page": "7484",
+   "title": "STL/EBT",
+   "subject": "FBG Duck",
+   "sentence": "FBG Duck, connu aussi sous le nom de «Big Clout» et «#3» est un Gangster Disciple. Il est le grand frère de Day Day et le petit frère de FBG Brick du même set. Il est le cousin de Lil Jay par mariage,",
+   "rel": "cousin",
+   "object": "BossTrell",
+   "hint": "SAME",
+   "why": "unique"
+  },
+  {
+   "a": "31eb495d-59ee-4e7a-a386-7e26b4fcf9fe",
+   "b": "52b8a8e9-770d-4eb5-805f-6b983d26e3ca",
+   "a_key": "cousin",
+   "b_key": "cousin",
+   "page": "7484",
+   "title": "STL/EBT",
+   "subject": "FBG Duck",
+   "sentence": "FBG Duck, connu aussi sous le nom de «Big Clout» et «#3» est un Gangster Disciple. Il est le grand frère de Day Day et le petit frère de FBG Brick du même set. Il est le cousin de Lil Jay par mariage,",
+   "rel": "cousin",
+   "object": "Lil Scrapp",
+   "hint": null,
+   "why": "unique"
+  },
+  {
+   "a": "31eb495d-59ee-4e7a-a386-7e26b4fcf9fe",
+   "b": "ce535086-e777-4533-8615-384aa8c07fc0",
+   "a_key": "cousin",
+   "b_key": "cousin",
+   "page": "7484",
+   "title": "STL/EBT",
+   "subject": "FBG Duck",
+   "sentence": "FBG Duck, connu aussi sous le nom de «Big Clout» et «#3» est un Gangster Disciple. Il est le grand frère de Day Day et le petit frère de FBG Brick du même set. Il est le cousin de Lil Jay par mariage,",
+   "rel": "cousin",
+   "object": "Rooga",
+   "hint": "MOB",
+   "why": "unique"
+  },
+  {
    "a": "b16f6d13-6f5c-4e92-bb10-0687fe42ab50",
    "b": "27e5fb56-fd0f-43e8-a855-e0187cfaf788",
    "a_key": "cousin",
@@ -2508,20 +2550,6 @@
   },
   {
    "a": "a7ed14e2-8104-4cb8-abb5-bcf51c791111",
-   "b": "31eb495d-59ee-4e7a-a386-7e26b4fcf9fe",
-   "a_key": "cousin",
-   "b_key": "cousin",
-   "page": "7484",
-   "title": "STL/EBT",
-   "subject": "BossTrell",
-   "sentence": "BossTrell ou «BT» était un Gangster Disciple. Il est décédé. Le jour où il est tué, un billet de bus est retrouvé dans sa poche, lui qui devait quitter Chicago. Il était le cousin de FBG Duck et était",
-   "rel": "cousin",
-   "object": "FBG Duck",
-   "hint": null,
-   "why": "unique"
-  },
-  {
-   "a": "a7ed14e2-8104-4cb8-abb5-bcf51c791111",
    "b": "abcab1ca-6fd0-4909-9573-b41b82253dcc",
    "a_key": "cousin",
    "b_key": "cousin",
@@ -2532,20 +2560,6 @@
    "rel": "cousin",
    "object": "Prince Dre",
    "hint": "O'Block",
-   "why": "unique"
-  },
-  {
-   "a": "680c7413-51f9-4b37-a45f-141fcde681e6",
-   "b": "31eb495d-59ee-4e7a-a386-7e26b4fcf9fe",
-   "a_key": "brother",
-   "b_key": "brother",
-   "page": "7484",
-   "title": "STL/EBT",
-   "subject": "FBG Brick",
-   "sentence": "FBG Brick, aussi connu sous le nom de «#30» était un Black Disciple. Il est décédé. Il était le grand frère de FBG Duck et de Day Day du même set. Brick est originaire de la THF 46. Il était resté coo",
-   "rel": "frère",
-   "object": "FBG Duck",
-   "hint": null,
    "why": "unique"
   },
   {
@@ -3880,16 +3894,6 @@
    "why": "no such name"
   },
   {
-   "page": "7907",
-   "title": "FACEWORLD",
-   "subject": "OTF NuNu ou Nuski",
-   "sentence": "OTF NuNu ou Nuski était un Black Disciple. Il était originaire de la Doggpound et représentait les deux sets. Il était le cousin de Lil Durk et OTF D-Thang.",
-   "rel": "cousin",
-   "object": "Lil Durk",
-   "hint": null,
-   "why": "ambiguous (2 candidates)"
-  },
-  {
    "page": "7904",
    "title": "DEATHROW 085",
    "subject": "Jayla",
@@ -4148,6 +4152,26 @@
    "object": "Leland",
    "hint": null,
    "why": "no such name"
+  },
+  {
+   "page": "7484",
+   "title": "STL/EBT",
+   "subject": "FBG Duck",
+   "sentence": "FBG Duck, connu aussi sous le nom de «Big Clout» et «#3» est un Gangster Disciple. Il est le grand frère de Day Day et le petit frère de FBG Brick du même set. Il est le cousin de Lil Jay par mariage,",
+   "rel": "cousin",
+   "object": "Lil Jay par mariage",
+   "hint": null,
+   "why": "no such name"
+  },
+  {
+   "page": "7484",
+   "title": "STL/EBT",
+   "subject": "FBG Duck",
+   "sentence": "FBG Duck, connu aussi sous le nom de «Big Clout» et «#3» est un Gangster Disciple. Il est le grand frère de Day Day et le petit frère de FBG Brick du même set. Il est le cousin de Lil Jay par mariage,",
+   "rel": "cousin",
+   "object": "Lil Mike",
+   "hint": null,
+   "why": "ambiguous (6 candidates)"
   },
   {
    "page": "7484",

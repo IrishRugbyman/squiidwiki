@@ -142,8 +142,9 @@ def parse_member(line):
     """Parse a member sentence into a dict with name, legal name, aliases, nation, dead/locked."""
     m = {"raw": line, "legal": None}
     clause = CLAUSE_END.split(line, 1)[0]
+    # "de" is optional: the site writes both "sous le nom de “X”" and "sous le nom «X»".
     parts = re.split(
-        r",?\s*(?:aussi\s+)?connue?\s+sous\s+le\s+nom\s+(?:de|d')\s*", clause, maxsplit=1
+        r",?\s*(?:aussi\s+)?connue?\s+sous\s+le\s+nom\s+(?:de\s+|d')?\s*", clause, maxsplit=1
     )
     head, tail = parts[0].strip(), parts[1] if len(parts) > 1 else ""
     emb = EMBEDDED_NICK.match(head)
@@ -153,7 +154,13 @@ def parse_member(line):
         m["aliases"] = nicks[1:]
         m["legal"] = " ".join(x for x in (emb.group("first"), emb.group("last")) if x)
     else:
-        nm = re.split(r"\s+(?:est|était|etait)\s+(?:un|une)\b|\s+ou\s+" + QUOTE, head)[0]
+        # Fallback for naming clauses this split did not catch: cut at ", aussi connu".
+        nm = re.split(
+            r"\s+(?:est|était|etait)\s+(?:un|une)\b|,\s*(?:aussi\s+)?connue?\s|\s+ou\s+" + QUOTE,
+            head,
+        )[0]
+        # "TP, qui est le diminutif de «Two Pistolz»" - drop a trailing relative clause.
+        nm = re.split(r",\s*(?:qui|que|qu'|dont)\b", nm)[0]
         m["name"] = nm.strip(" ,.")[:60]
         m["aliases"] = [x for x in ALIAS.findall(head) if x.lower() != m["name"].lower()]
     seen = {m["name"].lower()} | {a.lower() for a in m["aliases"]}
