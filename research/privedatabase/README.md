@@ -304,23 +304,35 @@ the whole row rather than just the name:
    `tools/merge_members.py` instead: it folds incidents, rewrites every holder's
    family reference, and only then deletes.
 
-**14 more of the same shape are still in the database** - a tag-prefixed row and
-a bare row sitting on the same set (FBG Brick/Brick, GBE Capo/Capo, PBG
-Spazz/Spazz, TFG Bigz/Bigz - which even share a brother - FBG Butta/Butta, FBG
-Cash/Cash, FBG Young/Young, FYB DJ/Duke/J Mane/Mattana, OTF Ikey/Pat/Tay, ABM
-Tay). Most look conclusive on the source, a few (the several "Tay" and "Pat"
-rows) need reading first. They are listed by:
+**All 15 others of the same shape have now been merged** (2026-08-22), each read
+back to the source and recorded in `PAIRS` with the line that settles it:
 
-```sql
-SELECT a.nickname, b.nickname FROM member a JOIN member b
-  ON b.nickname = regexp_replace(a.nickname,'^[A-Z0-9]{2,5} ','')
- AND a.nickname ~ '^[A-Z0-9]{2,5} ' AND a.id<>b.id
- AND EXISTS (SELECT 1 FROM member_set x JOIN member_set y ON x.set_id=y.set_id
-             WHERE x.member_id=a.id AND y.member_id=b.id);
-```
+| kept | absorbed | what settles it |
+|---|---|---|
+| FBG Brick | Brick | p7484 member sentence, alias `#30`; bare row is event sightings all tagged `(STL/EBT)`, both DEAD |
+| FBG Butta | Butta | p7484: "Butta, aussi connu sous le nom de «#26» et de «Tunechi»" - the set page's only Butta |
+| FBG Cash | Cash | p7484 sentence; p4755 writes both "Cash (STL/EBT)" and "FBG Cash (STL/EBT)" |
+| FBG Young | Young | p7484 sentence, aliases Mello / `#1` |
+| FYB DJ | DJ **and 007** | p7486: "FYB DJ ou «007» ... grand frere de LC"; L.C carried both as separate brothers |
+| FYB Duke | Duke | p243 Jaro City roster line; kill lists write him "FYB Duke (Jaro City)" |
+| FYB J Mane | J Mane | p7486 sentence; the bare name appears only on the p243 roster |
+| FYB Mattana | Mattana | same shape as J Mane |
+| GBE Capo | Capo | p6278 sentence (alias Drama, deceased); p245/p7485 write "Capo (Front$treet)" |
+| OTF Ikey | Ikey | both off the SAME alphabetical roster (p1151): "Ikey" in the I's, "OTF Ikey" in the O's |
+| OTF Pat | Pat | the same shooting from both sides: p7487 "FBG Brick tire plus de 15 fois sur Pat" / p7484 "Pat (NLMB, il lui a tire dessus 15 fois mais Pat a survecu)" |
+| OTF Tay | Tay | p6536's kill list holds both two lines apart; Lowelife's own body list (p7944) has exactly one Tay |
+| PBG Spazz | Spazz | bare row is the p7488 PBG/TFG member sentence; only one Spazz in the source |
+| TFG Bigz | Bigz | the two rows already carried the **same brother** - only happens when one man was split |
+| ABM Tay | Tay | no Jaro City page names a bare Tay; that row's set is an artifact of "Tay (ABM)" on p7908 |
 
-Add each adjudicated pair to `PAIRS` in `merge_members.py` with the source line
-that settles it, and run it - dry-run first.
+Not merged, deliberately: the Lowelife Ikey, the Killaward 078 Capo, CapFck12
+(whose alias is "Capo"), 007 of THF 46, and the dead Pats on CCG, Smashville,
+TaeTown and South End - all different men on different sets.
+
+Result: 16 rows absorbed, 4,558 members, family edges down to 532 with **0
+dangling ids, 0 missing inverses and 0 orphaned incidents**. Every absorbed
+nickname survives as an alias, so a search for "Brick" or "007" still finds the
+man. Re-running the query above now returns nothing.
 
 ### 154 incidents are credited to the wrong member
 

@@ -63,6 +63,174 @@ PAIRS = [
             "second person ('likely the real rapper's roster listing')."
         ),
     },
+    # --- the tag-prefix family -------------------------------------------------
+    # A man written "FBG Brick" on one page and "Brick (STL/EBT)" on another became
+    # two rows, and the dedupe agent never compared them: it buckets candidates by
+    # normalised nickname, so the tagged and bare forms never met. Its stated test
+    # ("no shared events") also cannot fire here - each event names him one way or
+    # the other, never both. Every pair below was read back to the source.
+    {
+        "key": "fbg-brick",
+        "keep": "680c7413-51f9-4b37-a45f-141fcde681e6",  # FBG Brick, STL/EBT, DEAD
+        "absorb": "b8150455-2f4a-44b5-a976-c477b64e5ed2",  # Brick, STL/EBT, DEAD
+        "why": (
+            "p7484 (STL/EBT) carries his member sentence: 'FBG Brick, aussi connu sous le nom "
+            "de «#30» etait un Black Disciple ... le grand frere de FBG Duck et de Day Day du "
+            "meme set'. The bare row is event sightings only, every one tagged '(STL/EBT)', "
+            "also DEAD. STL/EBT has one Brick."
+        ),
+    },
+    {
+        "key": "fbg-butta",
+        "keep": "c2c7260f-2fd5-4dc2-b734-bb11087cb5a1",  # FBG Butta, STL/EBT
+        "absorb": "0da04c49-5ebc-4a58-9574-4287ff7ac979",  # Butta, STL/EBT (26 incidents)
+        "why": (
+            "p7484 (STL/EBT): 'Butta, aussi connu sous le nom de «#26» et de «Tunechi» est un "
+            "Gangster Disciple. Il etait tres proche de K.I. du meme set' - the set page's own "
+            "sentence for its only Butta. Other pages write him 'FBG Butta (STL/EBT)'. The "
+            "other Buttas in the DB are HadiWay and Gotti World, both dead, both untouched."
+        ),
+    },
+    {
+        "key": "fbg-cash",
+        "keep": "198d4051-3de6-445a-862e-e9ec507ac58e",  # FBG Cash, STL/EBT
+        "absorb": "0a7debe1-b6d7-41cd-a9f5-4c2c5ec97ab8",  # Cash, STL/EBT
+        "why": (
+            "p7484 (STL/EBT): 'FBG Cash est un Gangster Disciple. Il est le frere de FBG Young, "
+            "Jiale et Fay Fay du meme set'. p4755 lists 'Cash (STL/EBT)' and 'FBG Cash "
+            "(STL/EBT)' on the same page. One Cash on STL/EBT."
+        ),
+    },
+    {
+        "key": "fbg-young",
+        "keep": "e2abdfd9-eea5-4124-b35e-8e5b9ab546b9",  # FBG Young, STL/EBT
+        "absorb": "af45cd85-625f-4f4e-8085-31adfe60e36b",  # Young, STL/EBT
+        "why": (
+            "p7484 (STL/EBT): 'FBG Young, aussi connu sous le nom de «Mello» et «#1» ... l'un "
+            "des deux createurs de la FBG'. The bare row is event sightings tagged '(STL/EBT)'. "
+            "The other bare Youngs sit on Hitzsquad and O'Block and are left alone."
+        ),
+    },
+    {
+        "key": "fyb-dj",
+        "keep": "0d625cdc-85df-42fc-9f11-d451be5575b8",  # FYB DJ, Jaro City
+        "absorb": [
+            "c350c187-2967-4d54-8c74-4b3bfbeb5987",  # DJ, Jaro City (p243 roster)
+            "197ab322-c899-4698-aa0d-7acd2ee483b2",  # 007, Jaro City
+        ],
+        "why": (
+            "Three rows, one man. p7486 (JARO CITY): 'FYB DJ ou «007» est un Gangster Disciple. "
+            "Il est le grand frere de LC du Tyquan World', and p7485 has L.C as 'le petit frere "
+            "de «007» de Jaro City' - so L.C currently shows two brothers who are the same "
+            "person. The bare 'DJ' is the Jaro City roster line on p243. 007 of THF 46 is a "
+            "different man and is not touched."
+        ),
+    },
+    {
+        "key": "fyb-duke",
+        "keep": "3b375456-7e1d-4f25-a277-019f1d5ac354",  # FYB Duke, Jaro City
+        "absorb": "77326d98-49c2-4524-9cc5-de08c1b85bb1",  # Duke, Jaro City (p243 roster)
+        "why": (
+            "The Jaro City roster (p243) lists 'Duke'; kill lists on p4751 and p6277 write the "
+            "same man 'FYB Duke (Jaro City)'. The other Dukes (O'Block, No Luv City, MOE, SuWu "
+            "Mobb, TYMB, 757, CashCrew) are separate rows and stay separate."
+        ),
+    },
+    {
+        "key": "fyb-j-mane",
+        "keep": "1aeb8a32-f212-4ede-9147-2f7aa1b221b8",  # FYB J Mane, Jaro City
+        "absorb": "ffb993df-2d12-4cb9-920a-c4e67b744041",  # J Mane, Jaro City (p243 roster)
+        "why": (
+            "p7486 (JARO CITY): 'FYB J Mane est un Insane Black Disciple. Son pere est un Black "
+            "Disciple.' The bare row is that same set's roster line on p243, and 'J Mane' "
+            "appears nowhere else in the source."
+        ),
+    },
+    {
+        "key": "fyb-mattana",
+        "keep": "51fbdd9a-fd1f-4d84-8747-f5460970194d",  # FYB Mattana, Jaro City
+        "absorb": "1e5b8117-4422-4314-8fbe-197cedead1d6",  # Mattana, Jaro City (p243 roster)
+        "why": (
+            "p7486 (JARO CITY): 'FYB Mattana est un Gangster Disciple.' The bare row is the "
+            "p243 Jaro City roster line. 'Mattana' appears nowhere else."
+        ),
+    },
+    {
+        "key": "gbe-capo",
+        "keep": "f86800e9-5953-4c89-87bd-3ae987ceaea7",  # GBE Capo, Front$treet, DEAD
+        "absorb": "03676f9e-2026-411b-9117-51fa920ac6ff",  # Capo, Front$treet, DEAD
+        "why": (
+            "p6278 (DIPSET/FRONT$TREET) carries his sentence (alias 'Drama', deceased); p245 "
+            "and p7485 write the same dead man 'Capo (Front$treet)'. Front$treet has one Capo. "
+            "The Killaward 078 Capo and CapFck12 (whose alias is 'Capo') are different people "
+            "and are not touched."
+        ),
+    },
+    {
+        "key": "otf-ikey",
+        "keep": "0d859402-4960-4cee-ab7d-cf109711c951",  # OTF Ikey, O'Block
+        "absorb": "ed98a4ad-0b9a-4c0c-a877-d93f48b67932",  # Ikey, O'Block
+        "why": (
+            "Both come from the SAME roster, p1151 (O'BLOCK), which is alphabetical: 'Ikey' "
+            "sits in the I's and 'OTF Ikey' in the O's - one man entered twice under two "
+            "spellings. p6273 gives him his brother: 'Boss Money ... est le grand frere d'Ikey "
+            "du meme set'. The Lowelife Ikey is a different man and stays."
+        ),
+    },
+    {
+        "key": "otf-pat",
+        "keep": "393bd196-51ec-43fc-bb78-954421bbbd18",  # OTF Pat, NLMB
+        "absorb": "2d05dbde-1c6a-42e1-8939-a835f077052b",  # Pat, NLMB
+        "why": (
+            "The same shooting on both sides. p7487 (NLMB): 'OTF Pat, aussi connu sous le nom "
+            "de « Project » ... En 2017, FBG Brick tire plus de 15 fois sur Pat'. p7484 "
+            "(STL/EBT), under FBG Brick: 'Pat (NLMB, il lui a tire dessus 15 fois mais Pat a "
+            "survecu)'. The dead Pats on CCG, Smashville, TaeTown and South End are other men."
+        ),
+    },
+    {
+        "key": "otf-tay",
+        "keep": "aff26797-82a9-44af-9ac6-4927289ef83c",  # OTF Tay, Lowelife, DEAD
+        "absorb": "3fd3432f-c960-4303-88d8-8e478136c9fa",  # Tay, Lowelife, DEAD
+        "why": (
+            "Both rows come off p6536 (CMB), whose kill list carries 'OTF Tay (Lowelife)' and "
+            "'Tay (Lowelife)' two lines apart - the same signature as KTS Von/Von. Decisive: "
+            "Lowelife's own body list (p7944) contains exactly one Tay, 'OTF Tay (decede)'."
+        ),
+    },
+    {
+        "key": "pbg-spazz",
+        "keep": "b7820b49-fef1-4b2f-94b0-76956b720f6e",  # PBG Spazz, PBG/TFG
+        "absorb": "89b14ff4-61cc-4c0e-9c9f-dfa0b9c74723",  # Spazz, PBG/TFG (14 incidents, LOCKED)
+        "why": (
+            "The bare row is the member sentence on p7488, the PBG/TFG set page; the tagged row "
+            "is a p7954 kill-list sighting written 'PBG Spazz (PBG)', which resolves to the "
+            "same set. There is only one Spazz in the source."
+        ),
+    },
+    {
+        "key": "tfg-bigz",
+        "keep": "147942f8-85e3-41d3-ab7c-9fdc78be00a2",  # TFG Bigz, PBG/TFG
+        "absorb": "15be567c-6e81-4885-b4f5-797de20efb1d",  # Bigz, PBG/TFG (LOCKED)
+        "why": (
+            "The two rows already carry the SAME brother in the database, which only happens "
+            "when one man was split. The bare row is the p7488 PBG/TFG member sentence; the "
+            "tagged row is the p7955/p7954 sightings written 'TFG Bigz (TFG)'."
+        ),
+    },
+    {
+        "key": "abm-tay",
+        "keep": "20dd6b68-af73-4137-8865-093b7e22d6df",  # ABM Tay, Jaro City
+        "absorb": "b3139233-3c59-47ff-97a2-7d8031ef153a",  # Tay, Jaro City, DEAD
+        "why": (
+            "Neither Jaro City page names a bare 'Tay' - the p243 roster has none - so the bare "
+            "row's Jaro City affiliation is a set-resolution artifact of the p7908 kill-list "
+            "entry 'Tay (ABM)'. The only Tay the source ties to either ABM or Jaro City is the "
+            "man written 'ABM Tay (Jaro City)' on p1194 and p6273. Same man, and the source "
+            "contradicts itself on his set (ABM vs Jaro City); Jaro City is kept as the two "
+            "sightings that name a set agree on it."
+        ),
+    },
 ]
 
 
@@ -151,11 +319,20 @@ def payload(participants):
     return [{k: v for k, v in p.items() if k != "nickname"} for p in participants]
 
 
+def absorb_ids(pair):
+    """The absorbed ids as a list; `absorb` takes a single id or several."""
+    a = pair["absorb"]
+    return [a] if isinstance(a, str) else list(a)
+
+
 def plan_one(pair):
     """Everything that has to change for one pair, resolved against the live DB."""
-    keep, absorb = member(pair["keep"]), member(pair["absorb"])
-    if not keep or not absorb:
-        return None, f"missing row (keep={bool(keep)}, absorb={bool(absorb)})"
+    keep = member(pair["keep"])
+    absorbed = [(aid, member(aid)) for aid in absorb_ids(pair)]
+    missing = [aid for aid, row in absorbed if not row]
+    if not keep or missing:
+        return None, f"missing row (keep={bool(keep)}, absorbed missing={missing})"
+    absorbs = [row for _, row in absorbed]
 
     folds = []
     folded_away = set()
@@ -174,54 +351,58 @@ def plan_one(pair):
                 FROM incident_participant ip JOIN member m ON m.id=ip.member_id
                 WHERE ip.incident_id='{dst_id}'"""
         )[0]["p"]
-        merged = merge_participants((src or []) + (dst or []), pair["absorb"], pair["keep"])
+        merged = (src or []) + (dst or [])
+        for aid in absorb_ids(pair):
+            merged = merge_participants(merged, aid, pair["keep"])
         folds.append({"src": src_id, "dst": dst_id, "participants": merged})
         folded_away.add(src_id)
 
-    moves = []
-    for inc in incidents_of(pair["absorb"]):
-        if inc["id"] in folded_away:
-            continue
-        moves.append(
-            {
-                "incident": inc["id"],
-                "type": inc["type"],
-                "participants": merge_participants(
-                    inc["participants"], pair["absorb"], pair["keep"]
-                ),
-            }
-        )
+    moves, seen_inc = [], set()
+    for aid in absorb_ids(pair):
+        for inc in incidents_of(aid):
+            if inc["id"] in folded_away or inc["id"] in seen_inc:
+                continue
+            seen_inc.add(inc["id"])
+            rows = inc["participants"]
+            for other in absorb_ids(pair):
+                rows = merge_participants(rows, other, pair["keep"])
+            moves.append({"incident": inc["id"], "type": inc["type"], "participants": rows})
 
     # Family: union both sides, then rewrite everyone else's reference.
-    merged_family = repoint(keep["family"], pair["absorb"], pair["keep"])
-    for key, val in (absorb["family"] or {}).items():
-        ids = val if isinstance(val, list) else [val]
-        cur = merged_family.get(key)
-        cur = cur if isinstance(cur, list) else [cur] if cur else []
-        allids = [i for i in dict.fromkeys([*cur, *ids]) if i not in (pair["absorb"], pair["keep"])]
-        if allids:
-            merged_family[key] = allids[0] if key == "father" else sorted(set(allids))
-    rewrites = []
-    for h in holders_of(pair["absorb"]):
-        if h["id"] in (pair["keep"], pair["absorb"]):
-            continue
-        new = repoint(h["family"], pair["absorb"], pair["keep"])
-        if new != h["family"]:
-            rewrites.append({"id": h["id"], "nickname": h["nickname"], "family": new})
+    gone = set(absorb_ids(pair)) | {pair["keep"]}
+    merged_family = keep["family"] or {}
+    for aid in absorb_ids(pair):
+        merged_family = repoint(merged_family, aid, pair["keep"])
+    for row in absorbs:
+        for key, val in (row["family"] or {}).items():
+            ids = val if isinstance(val, list) else [val]
+            cur = merged_family.get(key)
+            cur = cur if isinstance(cur, list) else [cur] if cur else []
+            allids = [i for i in dict.fromkeys([*cur, *ids]) if i not in gone]
+            if allids:
+                merged_family[key] = allids[0] if key == "father" else sorted(set(allids))
+    rewrites = {}
+    for aid in absorb_ids(pair):
+        for h in holders_of(aid):
+            if h["id"] in gone:
+                continue
+            base = rewrites.get(h["id"], {}).get("family", h["family"])
+            new = repoint(base, aid, pair["keep"])
+            if new != h["family"]:
+                rewrites[h["id"]] = {"id": h["id"], "nickname": h["nickname"], "family": new}
+    rewrites = list(rewrites.values())
 
     # Scalars: keeper wins, absorbed fills blanks.
     aliases, seen = [], {norm(keep["nickname"] or "")}
-    for a in [
-        *(keep["aliases"] or []),
-        absorb["nickname"],
-        *(absorb["aliases"] or []),
-        *pair.get("add_aliases", []),
-    ]:
+    candidates = list(keep["aliases"] or [])
+    for row in absorbs:
+        candidates += [row["nickname"], *(row["aliases"] or [])]
+    for a in [*candidates, *pair.get("add_aliases", [])]:
         if a and norm(a) not in seen and len(a) <= 40:
             aliases.append(a)
             seen.add(norm(a))
     by_set = {}
-    for a in [*keep["affiliations"], *absorb["affiliations"]]:
+    for a in [*keep["affiliations"], *(x for row in absorbs for x in row["affiliations"])]:
         by_set.setdefault(a["set_id"], a)
     primary = pair.get("primary_set")
     primary_id = next(
@@ -232,7 +413,10 @@ def plan_one(pair):
         ),
     )
     body = {
-        "status": max([keep["status"], absorb["status"]], key=lambda s: STATUS_RANK.get(s, 0)),
+        "status": max(
+            [keep["status"], *(r["status"] for r in absorbs)],
+            key=lambda s: STATUS_RANK.get(s, 0),
+        ),
         "aliases": aliases,
         "family": merged_family or None,
         "affiliations": [
@@ -246,20 +430,20 @@ def plan_one(pair):
         ],
     }
     for field, src in (("gang_id", "gid"), ("alliance_id", "aid")):
-        val = keep[src] or absorb[src]
+        val = keep[src] or next((r[src] for r in absorbs if r[src]), None)
         if val:
             body[field] = val
     for field in ("legal_name", "dob", "date_of_death", "social_media"):
-        val = keep[field] or absorb[field]
+        val = keep[field] or next((r[field] for r in absorbs if r[field]), None)
         if val:
             body[field] = val
-    bio = keep["biography"] or absorb["biography"] or ""
+    bio = keep["biography"] or next((r["biography"] for r in absorbs if r["biography"]), "")
     if bio and bio != keep["biography"]:
         body["biography"] = bio
     return {
         "pair": pair,
         "keep": keep,
-        "absorb": absorb,
+        "absorbs": absorbs,
         "folds": folds,
         "moves": moves,
         "rewrites": rewrites,
@@ -267,14 +451,28 @@ def plan_one(pair):
     }, None
 
 
+def body_sets(plan):
+    """Distinct affiliations the keeper ends up with."""
+    seen, out = set(), []
+    for a in [
+        *plan["keep"]["affiliations"],
+        *(x for r in plan["absorbs"] for x in r["affiliations"]),
+    ]:
+        if a["set_id"] not in seen:
+            seen.add(a["set_id"])
+            out.append(a)
+    return out
+
+
 def describe(plan):
     """Print one pair's plan in full."""
-    p, keep, absorb = plan["pair"], plan["keep"], plan["absorb"]
+    p, keep = plan["pair"], plan["keep"]
     ksets = "/".join(a["name"] for a in keep["affiliations"]) or "-"
-    asets = "/".join(a["name"] for a in absorb["affiliations"]) or "-"
     print(f"\n=== {p['key']}")
     print(f"  keep   {keep['nickname']!r} [{ksets}] {keep['status']} {keep['id']}")
-    print(f"  absorb {absorb['nickname']!r} [{asets}] {absorb['status']} {absorb['id']}")
+    for row in plan["absorbs"]:
+        rsets = "/".join(a["name"] for a in row["affiliations"]) or "-"
+        print(f"  absorb {row['nickname']!r} [{rsets}] {row['status']} {row['id']}")
     print(f"  why    {p['why']}")
     for f in plan["folds"]:
         who = ", ".join(f"{x['nickname']}:{x['role']}" for x in f["participants"])
@@ -285,10 +483,7 @@ def describe(plan):
     for r in plan["rewrites"]:
         print(f"  family {r['nickname']}: repoint to keeper -> {json.dumps(r['family'])}")
     print(f"  keeper aliases   -> {plan['body']['aliases']}")
-    print(
-        f"  keeper sets      -> {[a['name'] for a in plan['keep']['affiliations']]}"
-        f" + {[a['name'] for a in plan['absorb']['affiliations']]}"
-    )
+    print(f"  keeper sets      -> {[a['name'] for a in body_sets(plan)]}")
     print(f"  keeper family    -> {json.dumps(plan['body']['family'])}")
     print(f"  keeper status    -> {plan['body']['status']}")
 
@@ -324,9 +519,10 @@ def apply(plan, api):
     r = api.call("PATCH", f"members/{p['keep']}?universe_id={CHICAGO}", plan["body"])
     if r and r.get("_error"):
         return f"keeper patch failed: {r}"
-    r = api.call("DELETE", f"members/{p['absorb']}?universe_id={CHICAGO}")
-    if r and r.get("_error"):
-        return f"delete failed: {r}"
+    for aid in absorb_ids(p):
+        r = api.call("DELETE", f"members/{aid}?universe_id={CHICAGO}")
+        if r and r.get("_error"):
+            return f"delete failed on {aid}: {r}"
     return None
 
 
