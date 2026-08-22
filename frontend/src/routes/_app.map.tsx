@@ -136,6 +136,34 @@ function TerritoryMapPage() {
   // outlines toggle is on, or when needed for auto-detect on save).
   const { data: subDistrictGeoJSON } = useMunicipalityGeoJSON(universeId, selectedMuniId ?? undefined)
 
+  // Where to sit when the universe has nothing drawn yet. Without this the map
+  // component falls back to a hardcoded Detroit centre, so Chicago and Corsica
+  // both opened on the wrong city.
+  const { data: universeGeo } = useMunicipalityGeoJSON(universeId)
+  const fallbackCenter = useMemo(() => {
+    const features = (universeGeo as { features?: { geometry?: unknown }[] } | undefined)?.features
+    if (!features?.length) return undefined
+    let minLng = Infinity, minLat = Infinity, maxLng = -Infinity, maxLat = -Infinity
+    const visit = (c: unknown): void => {
+      if (Array.isArray(c) && typeof c[0] === 'number' && typeof c[1] === 'number') {
+        const [lng, lat] = c as [number, number]
+        if (lng < minLng) minLng = lng
+        if (lat < minLat) minLat = lat
+        if (lng > maxLng) maxLng = lng
+        if (lat > maxLat) maxLat = lat
+      } else if (Array.isArray(c)) c.forEach(visit)
+    }
+    for (const f of features) {
+      const g = f.geometry as { coordinates?: unknown } | undefined
+      if (g?.coordinates) visit(g.coordinates)
+    }
+    if (!Number.isFinite(minLng)) return undefined
+    const span = Math.max(maxLng - minLng, maxLat - minLat)
+    // Rough fit: a degree of span is about zoom 8, a tenth about zoom 11.
+    const zoom = span > 0 ? Math.min(12, Math.max(7, Math.round(8 - Math.log2(span)))) : 10
+    return { longitude: (minLng + maxLng) / 2, latitude: (minLat + maxLat) / 2, zoom }
+  }, [universeGeo])
+
   const { data: incidentsData } = useAllIncidents(showIncidents ? universeId : null)
   const incidentPoints: IncidentPoint[] = useMemo(() => {
     if (!showIncidents) return []
@@ -519,6 +547,7 @@ function TerritoryMapPage() {
               onPolygonComplete={handlePolygonComplete}
               onSelectSet={selectSet}
               fitSignal={fitSignal}
+              fallbackCenter={fallbackCenter}
               pinMode={editTab === 'pin' && !!drawingFor}
               pendingPoint={editTab === 'pin' ? pendingPoint : null}
               pendingPointColor={selectedSet?.gang_color ?? null}
