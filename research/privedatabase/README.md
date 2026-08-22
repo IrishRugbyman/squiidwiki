@@ -502,7 +502,24 @@ name ("PMBMB affiliee"). `cleanup_chicago_junk_sets.py` covers all of them now.
 
 Members are re-attached only from a MEMBRES roster: under CORPS or ASSISTANCE the
 entry is a victim or a target, whose own set the page never states, so they are
-left set-less rather than given a set they may not belong to. Four were attached
+left set-less rather than given a set they may not belong to. Searching the rest of the
+source afterwards placed two of them on pages other than the one that stranded
+them: **SG Ali** on Only The End (the rapper list writes "SG Ali (OTE)", a set tag
+rather than an annotation) and **Crispin** on Death Trap (p7984 calls him
+"Affilie Death Trap" in all three of its sections).
+
+Seven the source genuinely never places, and they stay set-less: Tyshawn Lee,
+named only as the nine-year-old victim; Lil Chello, Mikal, Tito and Lil Keith,
+named only under Brickyard's ASSISTANCE as targets carrying an arrest note;
+**Femme**, which is not a name at all but the French for "woman", an unnamed
+female victim in the Wild 100's; and PC.
+
+PC is left open rather than guessed. Two rows carry the name - one on No Limit
+083, DEAD, from that page's MEMBRES roster ("PC (decede)"), and one set-less with
+a single incident, from Killaward's FUSILLADES where PC is a target and no set is
+stated. They may well be one man, since no other PC in the source has a set, but
+nothing positively links them and merging on a two-letter nickname is the shape of
+mistake that cost most of a day. Four were attached
 that way (CK and Snake to No Limit 087, Boss Kat to GME/EBE, Mook Da Murderer to
 FreeSmoke); the rest stay unattached, which is what the source supports.
 
