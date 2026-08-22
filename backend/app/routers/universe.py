@@ -29,6 +29,7 @@ class UniverseAnalytics(BaseModel):
     source_by_reliability: dict[str, int]
     top_members_by_incidents: list[dict]
 
+
 router = APIRouter(prefix="/universes", tags=["universes"])
 
 
@@ -42,7 +43,9 @@ async def list_universes(
     if current_user.global_role == GlobalRole.ADMIN:
         items, total = await crud.list_universes(session, offset=offset, limit=limit)
     else:
-        items, total = await crud.list_universes_for_user(session, current_user.id, offset=offset, limit=limit)
+        items, total = await crud.list_universes_for_user(
+            session, current_user.id, offset=offset, limit=limit
+        )
     return OffsetPage(items=items, total=total)
 
 
@@ -138,9 +141,7 @@ async def get_universe_analytics(
         _exec(
             "SELECT status, count(*) AS cnt FROM member WHERE universe_id = :uid GROUP BY status"
         ),
-        _exec(
-            "SELECT type, count(*) AS cnt FROM incident WHERE universe_id = :uid GROUP BY type"
-        ),
+        _exec("SELECT type, count(*) AS cnt FROM incident WHERE universe_id = :uid GROUP BY type"),
         _exec(
             """
             SELECT s.id, s.name, count(DISTINCT ip.incident_id) AS incident_count
@@ -185,14 +186,14 @@ async def get_universe_analytics(
         ),
         _exec(
             """
-            SELECT m.id,
+            SELECT m.id, m.slug,
                 CASE WHEN m.nickname_unknown OR m.nickname IS NULL THEN m.legal_name ELSE m.nickname END AS display_name,
                 count(DISTINCT ip.incident_id) AS incident_count
             FROM member m
             JOIN incident_participant ip ON ip.member_id = m.id
             JOIN incident i ON i.id = ip.incident_id AND i.universe_id = :uid
             WHERE m.universe_id = :uid
-            GROUP BY m.id, display_name
+            GROUP BY m.id, m.slug, display_name
             ORDER BY incident_count DESC
             LIMIT 5
             """
@@ -212,13 +213,17 @@ async def get_universe_analytics(
             for r in top_sets_rows
         ],
         top_sources_by_references=[
-            {"id": str(r.id), "title": r.title, "ref_count": r.ref_count}
-            for r in top_sources_rows
+            {"id": str(r.id), "title": r.title, "ref_count": r.ref_count} for r in top_sources_rows
         ],
         incidents_by_month=[{"month": r.month, "count": r.cnt} for r in month_rows],
         source_by_reliability={r.reliability: r.cnt for r in reliability_rows},
         top_members_by_incidents=[
-            {"id": str(r.id), "display_name": r.display_name or "Unknown", "incident_count": r.incident_count}
+            {
+                "id": str(r.id),
+                "slug": r.slug,
+                "display_name": r.display_name or "Unknown",
+                "incident_count": r.incident_count,
+            }
             for r in top_members_rows
         ],
     )

@@ -385,7 +385,7 @@ function Dashboard() {
             <LeaderColumn heading="Members" loading={analyticsLoading} empty={topMembers.length === 0}>
               {topMembers.map((m, i) => (
                 <LeaderRow
-                  key={m.id} to="/members/$id" params={{ id: m.id }}
+                  key={m.id} to="/members/$id" params={{ id: m.slug ?? m.id }}
                   rank={i + 1} icon={User} label={m.display_name} count={m.incident_count}
                 />
               ))}
