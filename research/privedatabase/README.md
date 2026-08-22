@@ -24,6 +24,7 @@ on the first seed.
 | `db-sync.md` | **Generated.** What has actually reached the database, and what has not |
 | `tools/db_sync.py` | Regenerates `db-sync.md`. Read-only against the DB |
 | `tools/extract-chicago.json` | The 156 parsed Chicago set records the sync reconciles against |
+| `tools/seed_nlmb_fallen.py` | Names and dates five NLMB deaths from the "Less Known Fallen Members" thread |
 | `tools/seed_alamo_roc.py` | Merges the split Alamo/Roc murders into one dated, press-sourced incident |
 | `tools/reddit_fetch.py` | Reads Reddit threads through the Arctic Shift archive, since Reddit itself 403s this box ([Reading Reddit](#reading-reddit)) |
 
@@ -695,6 +696,48 @@ shooting names anyone, and although case HV164849 carries an arrest, no source h
 says who was arrested. KTS Von keeps `SHOOTER` and KTS Dre `ASSISTED`, both with
 `acquitted=False` - the documented baseline for a role attributed by research and never
 tested in court - and both now carry participant notes saying precisely that.
+
+## Five names off a kill list (2026-08-22)
+
+u/AlexRD19's "Less Known Fallen Members 2 (NLMB Edition)" gave a legal name, a date and a
+press link for five men. All five check out, and three land on a Chicago police homicide
+record:
+
+| Here as | Is | Died | Confirmed by |
+|---|---|---|---|
+| Big Los | Carlos Alexander, 33 | 29 Oct 2012 | DNAinfo + case `HV539217`, `079XX S ESCANABA AVE` |
+| BabyCrack | Jason Hall, 25 | 31 Jan 2013 | AP/WSIU - found in his cell at Menard, called suspicious |
+| Lil Tracy | Tracy Gipson, 18 | shot 26 Jun, died 27th | DNAinfo + case `HW335531`, `075XX S MERRILL AVE` |
+| Lil Boosie | Malik Herron, 13 | 12 Apr 2014 | NBC - hit-and-run, 4900 Vermont St, Gary, Indiana |
+| Ceige | Cornell M. Patrick, 27 | 30 Mar 2017 | Sun-Times + case `JA206745`, `070XX S SOUTH SHORE DR` |
+
+Big Los and BabyCrack were already here, both as a name on BLACKMOBB's or KTS Von's body
+list with no date, no legal name and no source. The other three were not here at all.
+Dominique Victoria Scott, 23, killed in the front seat beside Ceige, is now a Civilian
+member rather than a line of prose.
+
+**Affiliates count as members here**, which settles the two the thread argued about: the
+poster corrected himself to say Ceige was LAFA, and hedged on whether Tracy repped NLMB at
+all. Both carry their own set as primary - Lafas, Guwopgang 075 - and NLMB alongside it.
+Tracy's mother told DNAinfo he was not in a gang, which is in his biography because it is
+hers to say and no column holds it.
+
+Three things worth knowing:
+
+- **Two Tracys, and a third.** The `Tracy` already here is a PaxTown member, listed in
+  PaxTown's own roster at `chicago.md:2109`; there is another at `chicago.md:86` in THF 46.
+  Tracy Gipson is a new row, not a correction to either. The thread says he was killed *in*
+  PaxTown territory, which is what makes the three easy to confuse.
+- **Lil Boosie has no incident row.** He was run down by a driver who was never found, and
+  the incident type enum offers only `SHOOTING` and `MURDER`. Rather than force one, his
+  date of death carries it alone.
+- **`biography` is NOT NULL.** Passing `None` for a member who should have no biography is
+  a 500, not a null. An empty bio is `""`.
+
+Two date corrections from the funeral-cards thread are recorded in that source's notes but
+**not applied**, having nothing behind them but one commenter: Whitefolkz died November
+2011 rather than 2012, and G Millz on Christmas Day 2016 rather than 2013. G-Millz is here
+with no date at all, so it is worth chasing.
 
 ## Reading Reddit
 
