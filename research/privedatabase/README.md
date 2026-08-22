@@ -24,6 +24,7 @@ on the first seed.
 | `db-sync.md` | **Generated.** What has actually reached the database, and what has not |
 | `tools/db_sync.py` | Regenerates `db-sync.md`. Read-only against the DB |
 | `tools/extract-chicago.json` | The 156 parsed Chicago set records the sync reconciles against |
+| `tools/seed_nlmb_fallen2.py` | Part 1 of the same series: five more names, dates and photographs |
 | `tools/seed_nlmb_fallen.py` | Names and dates five NLMB deaths from the "Less Known Fallen Members" thread |
 | `tools/seed_alamo_roc.py` | Merges the split Alamo/Roc murders into one dated, press-sourced incident |
 | `tools/reddit_fetch.py` | Reads Reddit threads through the Arctic Shift archive, since Reddit itself 403s this box ([Reading Reddit](#reading-reddit)) |
@@ -738,6 +739,48 @@ Two date corrections from the funeral-cards thread are recorded in that source's
 **not applied**, having nothing behind them but one commenter: Whitefolkz died November
 2011 rather than 2012, and G Millz on Christmas Day 2016 rather than 2013. G-Millz is here
 with no date at all, so it is worth chasing.
+
+## Five more, and five faces (2026-08-22)
+
+Part 1 of the same series, plus a title sweep of r/Chiraqology for the rest of the dead
+NLMB roster. What each rests on differs, and the source notes say which:
+
+| Here as | Is | Died | Held up by |
+|---|---|---|---|
+| Breezy Lord | Terrence Brooks, 32 | 26 Nov 2019 | Sun-Times + case `JC525875`, `083XX S CRANDON` |
+| Marquis | Marquis Macon-Lewis, 23 | 1 Oct 2022 | Sun-Times + case `JF418383`, `003XX W 110TH` |
+| Tedo G | Tristan Rogers, 34 | 5 Apr 2020 | Sun-Times confirms the hit-and-run, **not the name** |
+| Kobe | - | 10 Aug 2013 | an anniversary post, nothing else |
+| Millie | Camille Johnson, 32 | 12 Jun 2019 | the thread alone |
+
+All five now carry a photograph, which is the thing these threads have that no record does:
+Breezy, Tedo G and Millie from Lightshot captures inside the posts, Kobe and Marquis from
+Reddit's image host. Lightshot links resolve by scraping `og:image` off the `prnt.sc` page;
+Reddit gallery images need the extension guessed, `.jpg` and `.png` both occur.
+
+Three carry a caveat, recorded in the source rows rather than in the prose:
+
+- **Tedo G's name is not in the article.** The Sun-Times confirms a 34-year-old man struck
+  at 2:10am on 5 April 2020 in the 1700 block of East 67th Street and describes the car,
+  but never names him. Tristan Rogers is the thread's.
+- **Kobe has a date and nothing else.** Police recorded a homicide at 04:02 that morning in
+  the 2400 block of East 79th Street, `HW401231`, one block from where Alamo and Roc died -
+  but nothing names him, so his incident is dated and deliberately left unlocated.
+- **Millie's death is not a police matter.** A commenter says natural causes at 32. The Cook
+  County medical examiner's archive holds no woman of that age dying that day, which is what
+  a natural death needing no investigation looks like, so it neither supports nor
+  contradicts. She was already here in Dell Mob and is now NLMB as well, affiliates counting
+  as members.
+
+Marquis is a straight correction: the thread has Marquis Lewis, 21; the Sun-Times has
+Marquis Macon-Lewis, 23. The man shot in the same block hours earlier, whom the thread calls
+Arab G of Welch World, was **Laparish Brown, 30** - a separate shooting, not seeded, and
+worth its own incident.
+
+Two more names surfaced without enough behind them to use. **G-Red** is said in the comments
+to be Terrence Brooks too, died 2018, most likely Breezy's brother - but that collides
+exactly with Breezy's own name and rests on one commenter, so no legal name was set.
+**Willie and Magic** died days apart in 2019 and are already here dated to the year only.
 
 ## Reading Reddit
 

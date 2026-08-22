@@ -62,6 +62,25 @@ NAMED = [
     "d85a3159-21b3-4e0f-b121-e5b78269e220",  # Doowop
     # "Capo" is the Front$treet/Glo Gang one; the Killaward 078 Capo is someone else.
     "f86800e9-5953-4c89-87bd-3ae987ceaea7",  # GBE Capo
+    "ceb83ea3-b4d0-4061-8937-e52acab7e88b",  # L'A Capone
+    "31eb495d-59ee-4e7a-a386-7e26b4fcf9fe",  # FBG Duck
+    "d4459f34-93e9-412e-ab5a-4e23ad737d96",  # Lil Durk
+    # Lil Reese of Lamron, not any of the nine other members nicknamed Reese.
+    "bc941543-49aa-467e-b528-edce801784aa",  # Lil Reese
+    "e3929c20-3a13-491b-9ce4-77294765a8e3",  # G Herbo, a/k/a Lil Herb
+    "2fd22235-a481-4847-9305-cc9ed78c45fa",  # Lil Bibby
+    "d2f98427-3456-42a5-a21d-859888830b50",  # Tay600
+    "ec63bb88-0610-4d12-95c2-22c15b1ce29e",  # JB Bin Laden
+    "ce535086-e777-4533-8615-384aa8c07fc0",  # Rooga
+    "0d70ff0b-d66f-433c-8628-bde63abe19ee",  # King Yella
+    "9fa38dfe-bdcf-4d82-ae5f-499e0efa7a6a",  # Memo600
+    "9b47c79e-8f87-42c9-b88b-78e3c95bad20",  # Edai
+    "20503eab-8b91-4a9a-87a9-59c35f540252",  # Billionaire Black
+    # King Lil Jay of STL/EBT, not the four other members nicknamed Lil Jay.
+    "b16f6d13-6f5c-4e92-bb10-0687fe42ab50",  # King Lil Jay
+    # Lil Jojo of Brick$quad 069. J-Macc carries "Lil Jojo" as an alias, which
+    # his own bio contradicts, so he is left alone.
+    "a9eed9b0-a3ab-4577-ae1e-9deb1f5bf1c2",  # Lil Jojo
 ]
 
 
