@@ -54,6 +54,28 @@ BOTY_MEMBERS = ["Buck", "GlockBoy BoBo", "GlockBoy KO", "GPap", "Lil Steve", "Ro
 # Rogers Park men currently stranded on the small set.
 RP_MEMBERS = ["Chubbz", "Joe Crack"]
 
+# The bios were swapped along with the labels.
+RP_BIO = (
+    "A set of Gangster Disciples and Black Disciples in Rogers Park. LOC stands for "
+    "Loyalty Over Cash. Also known as 1212, MMG, Jeffery Boyz, Get Rich, Blake Block, "
+    "Montana Gang, Keno World, Munchie Gang and Lawless."
+)
+BOTY_BIO = (
+    "A set of Gangster Disciples in Back of the Yards. Not to be confused with the LOC "
+    "City in North Chicago, which is unrelated. Merged with DamenVille and W.B 057."
+)
+
+# Relationships the BotY page states (p7991, p450) but which sit on the big row.
+# PottBlock, SedVille, 5th Ward Life and Jaro City come from neither LOC City page
+# and are left where they are.
+BOTY_RELATIONS = [
+    ("DamenVille", "FRIEND"),
+    ("W.B", "FRIEND"),
+    ("JackBoys", "ENEMY"),
+    ("LordsVille", "ENEMY"),
+    ("MurdaField", "ENEMY"),
+]
+
 
 def variants(names):
     """Name-variant rows, first one primary."""
@@ -97,14 +119,31 @@ if "--go" not in sys.argv:
     sys.exit()
 
 api = Api()
-for sid, name, vs in (
-    (BIG, "LOC City", ROGERS_PARK_VARIANTS),
-    (SMALL, "LOC City BotY", BOTY_VARIANTS),
+for sid, name, vs, bio in (
+    (BIG, "LOC City", ROGERS_PARK_VARIANTS, RP_BIO),
+    (SMALL, "LOC City BotY", BOTY_VARIANTS, BOTY_BIO),
 ):
     r = api.call(
-        "PATCH", f"sets/{sid}?universe_id={CHICAGO}", {"name": name, "name_variants": variants(vs)}
+        "PATCH",
+        f"sets/{sid}?universe_id={CHICAGO}",
+        {"name": name, "name_variants": variants(vs), "bio": bio},
     )
     print(f"renomme {name!r}: {'ok' if not (r or {}).get('_error') else r}")
+
+# The BotY page states its own allies and enemies; they sit on the big row.
+for target_name, kind in BOTY_RELATIONS:
+    rows = q(f"SELECT id FROM sets WHERE universe_id='{CHICAGO}' AND name='{target_name}'")
+    if len(rows) != 1:
+        print(f"  ! relation {target_name!r}: {len(rows)} sets de ce nom, ignore")
+        continue
+    tid = rows[0]["id"]
+    api.call("DELETE", f"sets/{BIG}/relationships/{tid}?universe_id={CHICAGO}")
+    a = api.call(
+        "POST",
+        f"sets/{SMALL}/relationships?universe_id={CHICAGO}",
+        {"target_id": tid, "type": kind},
+    )
+    print(f"  relation {target_name} ({kind}): {'deplacee' if not (a or {}).get('_error') else a}")
 
 for mid, nick, src, dst, _label in moves:
     cur = api.call("GET", f"members/{mid}?universe_id={CHICAGO}")

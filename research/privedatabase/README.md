@@ -392,12 +392,17 @@ registered that key first. The result was inverted: the row **named** "LOC City
 Rogers Park page, while "LOC City (Rogers Park)" held two Rogers Park men and the
 Rogers Park name variants.
 
-`tools/fix_loc_city.py` relabels each row to match the content it actually holds,
+The bios, the name variants and the set relationships were all swapped with
+the labels. `tools/fix_loc_city.py` relabels each row to match the content it
+actually holds,
 drops the parenthetical from both names (**LOC City**, 100 members; **LOC City
 BotY**, 7) and moves the nine members that sat on the wrong one. Four names -
 ChiefLocMoney, Heado, Mon and Rico - appear on *both* source lists and were left
 on LOC City: splitting them needs evidence that they are two different men, and
-the source does not give it.
+the source does not give it. It also hands each row its own bio and the five
+relationships the BotY page states (DamenVille and W.B 057 as allies, JackBoys,
+LordsVille and MurdaField as direct enemies). PottBlock, SedVille, 5th Ward Life
+and Jaro City are named by neither LOC City page and were left where they sat.
 
 No set name in the universe carries a parenthetical any more. Any future set whose
 title differs from another only by a parenthetical will collide the same way -
