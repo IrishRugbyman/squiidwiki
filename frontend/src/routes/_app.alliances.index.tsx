@@ -34,7 +34,17 @@ interface AllianceFormProps {
 
 const ALLIANCE_GANG_NONE = '__none__'
 
-export function AllianceFormSheet({ universeId, open, onClose, initial, onSaved }: AllianceFormProps) {
+/**
+ * Seeded from props at mount and never resynced, so one mounted sheet reused
+ * for a second alliance kept the first's values in any field the second leaves
+ * empty - and saving wrote them. Keying on the target forces a fresh instance.
+ * See SetFormSheet in routes/_app.sets.index.tsx for the full note.
+ */
+export function AllianceFormSheet(props: AllianceFormProps) {
+  return <AllianceFormSheetInner key={props.initial?.id ?? 'new'} {...props} />
+}
+
+function AllianceFormSheetInner({ universeId, open, onClose, initial, onSaved }: AllianceFormProps) {
   const create = useCreateAlliance()
   const update = useUpdateAlliance(initial?.id ?? '', universeId)
   const { data: gangsData } = useGangs(universeId)

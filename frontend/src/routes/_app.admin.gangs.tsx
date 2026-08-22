@@ -26,17 +26,24 @@ export const Route = createFileRoute('/_app/admin/gangs')({
   component: AdminGangsPage,
 })
 
-function GangFormSheet({
-  open,
-  onClose,
-  initial,
-  universeId,
-}: {
+interface GangFormProps {
   open: boolean
   onClose: () => void
   initial: GangListItem | null
   universeId: UUID
-}) {
+}
+
+/**
+ * Seeded from props at mount and never resynced, so one mounted sheet reused
+ * for a second gang kept the first's values in any field the second leaves
+ * empty - and saving wrote them. Keying on the target forces a fresh instance.
+ * See SetFormSheet in routes/_app.sets.index.tsx for the full note.
+ */
+function GangFormSheet(props: GangFormProps) {
+  return <GangFormSheetInner key={props.initial?.id ?? 'new'} {...props} />
+}
+
+function GangFormSheetInner({ open, onClose, initial, universeId }: GangFormProps) {
   const create = useCreateGang(universeId)
   const update = useUpdateGang(universeId)
   const [name, setName] = useState(initial?.name ?? '')

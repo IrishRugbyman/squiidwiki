@@ -35,7 +35,17 @@ interface SourceFormProps {
   defaultUrl?: string
 }
 
-export function SourceFormSheet({ universeId, open, onClose, initial, defaultUrl }: SourceFormProps) {
+/**
+ * Seeded from props at mount and never resynced, so one mounted sheet reused
+ * for a second source kept the first's values in any field the second leaves
+ * empty - and saving wrote them. Keying on the target forces a fresh instance.
+ * See SetFormSheet in routes/_app.sets.index.tsx for the full note.
+ */
+export function SourceFormSheet(props: SourceFormProps) {
+  return <SourceFormSheetInner key={props.initial?.id ?? 'new'} {...props} />
+}
+
+function SourceFormSheetInner({ universeId, open, onClose, initial, defaultUrl }: SourceFormProps) {
   const create = useCreateSource()
   const update = useUpdateSource(initial?.id ?? '', universeId)
   const isEdit = !!initial

@@ -215,7 +215,23 @@ const ALLIANCE_NONE = '__none__'
 const MUNI_NONE = '__none__'
 const GANG_NONE = '__none__'
 
-export function SetFormSheet({ universeId, open, onClose, initial, onSaved, defaultAllianceId, defaultMunicipalityId, copyFrom }: SetFormProps) {
+/**
+ * Every state slot in the form below is seeded from props at mount and never
+ * resynced, so reusing one mounted sheet for a second set kept the first set's
+ * values in any field the second leaves empty - and saving wrote them. React
+ * keeps the instance alive when only `initial` changes, which is exactly what
+ * happens when the target set is already in the query cache.
+ *
+ * Keying on the target forces a fresh instance per set, so the seeding is
+ * always correct. Done here rather than at each call site: one of the seven
+ * had the key, six did not, and a new call site would have to remember.
+ */
+export function SetFormSheet(props: SetFormProps) {
+  const target = props.initial?.id ?? props.copyFrom?.id ?? 'new'
+  return <SetFormSheetInner key={target} {...props} />
+}
+
+function SetFormSheetInner({ universeId, open, onClose, initial, onSaved, defaultAllianceId, defaultMunicipalityId, copyFrom }: SetFormProps) {
   const create = useCreateSet()
   const update = useUpdateSet(initial?.id ?? '')
   const { data: alliancesData } = useAlliances(universeId)

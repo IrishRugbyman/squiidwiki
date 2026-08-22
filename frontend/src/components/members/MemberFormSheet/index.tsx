@@ -365,7 +365,17 @@ interface MemberFormProps {
   copyFrom?: MemberRead
 }
 
-export function MemberFormSheet({ universeId, open, onClose, initial, defaultSetId, defaultAllianceId, copyFrom }: MemberFormProps) {
+/**
+ * Seeded from props at mount and never resynced, so one mounted sheet reused
+ * for a second member kept the first's values in any field the second leaves
+ * empty - and saving wrote them. Keying on the target forces a fresh instance.
+ * See SetFormSheet in routes/_app.sets.index.tsx for the full note.
+ */
+export function MemberFormSheet(props: MemberFormProps) {
+  return <MemberFormSheetInner key={props.initial?.id ?? props.copyFrom?.id ?? 'new'} {...props} />
+}
+
+function MemberFormSheetInner({ universeId, open, onClose, initial, defaultSetId, defaultAllianceId, copyFrom }: MemberFormProps) {
   const create = useCreateMember()
   const update = useUpdateMember(initial?.id ?? '', universeId)
   const isEdit = !!initial
