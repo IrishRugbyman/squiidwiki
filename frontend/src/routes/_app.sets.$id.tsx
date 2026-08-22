@@ -1353,7 +1353,6 @@ function SetDetailPage() {
 
           {universe && duplicating && (
             <SetFormSheet
-              key={`dup-${set.id}`}
               universeId={universe.id}
               open={duplicating}
               onClose={() => setDuplicating(false)}

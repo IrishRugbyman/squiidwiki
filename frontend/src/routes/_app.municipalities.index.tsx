@@ -32,7 +32,17 @@ interface MunicipalityFormProps {
   allMunicipalities?: MunicipalityListItem[]
 }
 
-export function MunicipalityFormSheet({ universeId, open, onClose, initial, defaultParentId, allMunicipalities }: MunicipalityFormProps) {
+/**
+ * Seeded from props at mount and never resynced, so one mounted sheet reused
+ * for a second municipality kept the first's values in any field the second leaves
+ * empty - and saving wrote them. Keying on the target forces a fresh instance.
+ * See SetFormSheet in routes/_app.sets.index.tsx for the full note.
+ */
+export function MunicipalityFormSheet(props: MunicipalityFormProps) {
+  return <MunicipalityFormSheetInner key={props.initial?.id ?? 'new'} {...props} />
+}
+
+function MunicipalityFormSheetInner({ universeId, open, onClose, initial, defaultParentId, allMunicipalities }: MunicipalityFormProps) {
   const create = useCreateMunicipality()
   const update = useUpdateMunicipality(initial?.id ?? '', universeId)
   const isEdit = !!initial

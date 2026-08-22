@@ -354,7 +354,17 @@ interface IncidentFormProps {
   defaultMunicipalityId?: string
 }
 
-export function IncidentFormSheet({ universeId, open, onClose, initial, defaultParticipants, defaultMunicipalityId }: IncidentFormProps) {
+/**
+ * Seeded from props at mount and never resynced, so one mounted sheet reused
+ * for a second incident kept the first's values in any field the second leaves
+ * empty - and saving wrote them. Keying on the target forces a fresh instance.
+ * See SetFormSheet in routes/_app.sets.index.tsx for the full note.
+ */
+export function IncidentFormSheet(props: IncidentFormProps) {
+  return <IncidentFormSheetInner key={props.initial?.id ?? 'new'} {...props} />
+}
+
+function IncidentFormSheetInner({ universeId, open, onClose, initial, defaultParticipants, defaultMunicipalityId }: IncidentFormProps) {
   const create = useCreateIncident()
   const update = useUpdateIncident(initial?.id ?? '', universeId)
   const isEdit = !!initial
