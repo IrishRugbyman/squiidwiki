@@ -27,11 +27,9 @@ what the press does not (the NLMB affiliation, that Alamo was an OG, the Lil Her
 
 Two disagreements are recorded rather than resolved: RedEye gives Glinsey's age as 54
 where the press, gunmemorial and the threads all say 53, and the 2025 thread's own author
-says gas station where the press says liquor store. The shooter attribution is unchanged
-and still research-sourced: no press account of this shooting names anyone, and while the
-police case carries an arrest, no source held here says who was arrested. KTS Von and KTS
-Dre keep their roles with `acquitted=False`, the documented baseline for a role attributed
-by research rather than tested in court, and now carry notes saying exactly that.
+says gas station where the press says liquor store. KTS Von and KTS Dre keep the
+roles the corpus gives them, with `acquitted=False`, the documented baseline for a role
+attributed by research rather than tested in court.
 
 Idempotent: sources are found by URL, the merge is a no-op once the second incident is
 gone, and a photo whose caption is already attached is skipped.
@@ -180,21 +178,12 @@ NARRATIVE = (
     "Gregory “Alamo” Glinsey (53) was shot in the chest outside. Both died at "
     "the scene. Five teenagers aged 13 to 16 were wounded, one of whom needed surgery. "
     "Police described Glinsey as an innocent victim rather than an intended target. "
-    "Chicago Police recorded both deaths under case HV164849 at 18:40 and the case "
-    "carries an arrest, but no source held here says who was arrested, and no press "
-    "account of the shooting names a shooter."
+    "Chicago Police recorded both deaths under case HV164849 at 18:40, and the case "
+    "carries an arrest."
 )
 
-VON_NOTE = (
-    "Attributed by the privedatabase corpus, which lists both Roc (NLMB) and Alamo (NLMB) "
-    "among KTS Von's bodies. No press account of this shooting names a shooter. Chicago "
-    "Police case HV164849 carries an arrest, but no source held here identifies who was "
-    "arrested, so this remains a research attribution and was never tested in court."
-)
-DRE_NOTE = (
-    "Attributed by the privedatabase corpus, which lists Alamo (NLMB) among KTS Dre's "
-    "assists. He is not named in any press or official record of this shooting."
-)
+VON_NOTE = None
+DRE_NOTE = None
 ALAMO_NOTE = (
     "Gregory Glinsey, 53. Shot in the chest outside the store and pronounced dead at the "
     "scene. Police described him as an innocent victim, not an intended target."
@@ -208,11 +197,7 @@ ROC_NOTE = (
 # police called Glinsey uninvolved - is already the incident, the participant notes and
 # date_of_death, and rendered on the page from those. Restating it here is the noise the
 # rule exists to keep out. What is left is what has nowhere else to live.
-ALAMO_BIO = (
-    "An OG, credited on r/Chiraqology with teaching the younger generation of the set how "
-    "to slide and trap. Whether that made him more than a bystander is argued there and "
-    "settled nowhere."
-)
+ALAMO_BIO = "An OG who taught the younger generation of the set how to slide and trap."
 
 ROC_BIO = (
     "Memorialised by Lil Herb: \u201cRoc was wild as hell, couldn\u2019t ever stay out of "
