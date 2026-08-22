@@ -14,14 +14,17 @@ article they once had has since disappeared.
 Idempotent: re-running finds the existing source/member by url/nickname.
 """
 
+import os
 import subprocess
 import sys
 
 from wikiapi import CHICAGO, Api, q
 
-PHOTO = (
-    "/tmp/claude-1000/-home-lbzgiu-squiidwiki/"
-    "6fb6ab57-fa1f-4c5c-938b-7deccb30a3e2/scratchpad/farro.jpg"
+PHOTO = os.path.join(
+    os.path.dirname(os.path.abspath(__file__)),
+    "..",
+    "images",
+    "1eye-gfarro-chiraqology.jpg",
 )
 THREAD = "https://www.reddit.com/r/Chiraqology/comments/pzbx9c/1_eye_nlmb_x_g_farro_nlmb/"
 ACCESSED = "2026-08-22"
