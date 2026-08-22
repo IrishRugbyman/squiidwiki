@@ -1251,8 +1251,10 @@ function SetsPage() {
         </div>
       )}
 
-      {/* System sets row (reserved) */}
-      {reservedSets.length > 0 && !hasFilters && (
+      {/* System sets row (reserved). Rendered under filters too: rawItems is the
+          server-filtered page, so this only holds reserved sets the query matched, and
+          hiding them made a search for "civ" report 1 match with an empty table. */}
+      {reservedSets.length > 0 && (
         <div className="mb-4 flex items-center gap-2">
           <span className="text-[11px] font-medium uppercase tracking-wider text-zinc-400">System</span>
           {reservedSets.map((s) => (
@@ -1284,7 +1286,7 @@ function SetsPage() {
                   </div>
                 </div>
               ))
-            : items.length === 0
+            : items.length === 0 && reservedSets.length === 0
               ? (
                 <div className="col-span-full">
                   <EmptyState
@@ -1395,7 +1397,7 @@ function SetsPage() {
                       </tr>
                     )
                   })}
-              {!isLoading && items.length === 0 && (
+              {!isLoading && items.length === 0 && reservedSets.length === 0 && (
                 <tr>
                   <td colSpan={8}>
                     <EmptyState
