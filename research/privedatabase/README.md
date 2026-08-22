@@ -408,6 +408,52 @@ No set name in the universe carries a parenthetical any more. Any future set who
 title differs from another only by a parenthetical will collide the same way -
 `candidates()` is the place to look.
 
+## The seeds are destructive; the replacements are not (2026-08-22)
+
+`reseed_chicago_members.py` deletes every member and rebuilds; `seed_chicago_incidents.py`
+wipes every incident and rebuilds. That was correct on a virgin universe. It is
+now the reason a parser fix looked like it could not be applied: re-running either
+would throw away the merges, the family links, the hand-written biographies, the
+T-Slick murder and every manual edit.
+
+The answer is not "re-seed or live with it". It is to **reconcile instead of
+wipe** - resolve what the extraction says against what the database holds, write
+only the difference, never delete. Then a parser fix can be applied at any time.
+
+- `tools/sync_chicago_members.py` is the idempotent replacement for the member
+  reseed. It matches every extracted person against the DB **by nickname or
+  alias**, narrowed by set, and POSTs only the genuinely absent. Matching on
+  aliases is what stops it re-creating the duplicates merged by hand: "Brick"
+  survives as an alias of FBG Brick, so the bare record matches the merged row.
+  It creates only names the universe does not hold **anywhere**; a name already
+  borne by a row on another set is exactly the shape that produced the tag-prefix
+  duplicates, so it is printed for adjudication and never created. First run:
+  3 created (Lil Harvey, Folly Fatz, HellBoy Rell), 11 listed for review, 4,968
+  already present. Second run: 0.
+- The incident equivalent is still to be written. `fix_misattributed_incidents.py`
+  covers the repair half (patch what is wrong) but deliberately never creates, so
+  236 groups the corrected extraction knows about - 232 shootings and 4 murders,
+  including The God Father's kill of Lil Harvey - are still absent. Creating them
+  safely needs `seed_chicago_incidents.py` refactored under a `main()` guard so its
+  `resolve_person` can be imported: that resolver uses page context, alliance
+  scopes and person-page subject sets, and is materially stronger than the local
+  one. Creating 236 incidents on the weaker resolver would risk duplicating
+  incidents that already exist under a differently-resolved victim.
+
+### A resolution trap worth knowing
+
+`candidates()` returns an **unordered set**, and a parenthetical title yields both
+the full key and the bare one - "LOC CITY (BotY)" produces `loccityboty` *and*
+`loccity`. Iterating that set directly sends such a title to either row at random.
+`seed_chicago_incidents.py` already sorted by length descending; the scripts added
+here did not, and now do. The same trap bit the LOC City fix itself: keeping "LOC
+CITY (BotY)" as a name variant re-registered the bare `loccity` key on the wrong
+row and re-created the collision the fix had just undone.
+
+Eight resolution keys are still claimed by more than one set and deserve a look:
+`abm` (Jaro City / Lil4Mobb), `bbgterrordome`, `cranktown`, `ebt`, `newmoney080`,
+`stl`, `stlebt` (MurderVille / STL-EBT) and `tytoland`.
+
 ## Before seeding any of this
 
 - **It is `UNVERIFIED`.** Where a fact here also appears in `../detroit/extraction/`, cite the

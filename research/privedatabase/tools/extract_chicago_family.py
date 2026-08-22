@@ -188,12 +188,17 @@ def resolve_set(title):
     if not title:
         return None
     t = title.replace("×", "x").replace("’", "'").strip()
-    for k in candidates(t):
+    # Longest key first: candidates() is an unordered set, and a parenthetical title
+    # yields BOTH "loccityboty" and the bare "loccity". Taking whichever came out of
+    # the set first sends "LOC CITY (BotY)" to either row at random.
+    for k in sorted(candidates(t), key=len, reverse=True):
         if k in setidx:
             return setidx[k]
-    canon = next((alias_map[k] for k in candidates(t) if k in alias_map), None)
+    canon = next(
+        (alias_map[k] for k in sorted(candidates(t), key=len, reverse=True) if k in alias_map), None
+    )
     if canon:
-        for k in candidates(canon):
+        for k in sorted(candidates(canon), key=len, reverse=True):
             if k in setidx:
                 return setidx[k]
     n = norm(t)

@@ -44,7 +44,10 @@ ROGERS_PARK_VARIANTS = [
     "Munchie Gang",
     "Lawless",
 ]
-BOTY_VARIANTS = ["LOC City BotY", "LOC CITY (BotY)", "BotY", "Back of the Yards"]
+# Deliberately NOT "LOC CITY (BotY)": candidates() derives a title-minus-parenthetical
+# key from every variant, so that string would register the bare `loccity` key on this
+# row and re-create the exact collision this script exists to undo.
+BOTY_VARIANTS = ["LOC City BotY", "BotY", "Back of the Yards"]
 
 # Named only on a "LOC City BotY" list in the source, so they belong to the small
 # set once it is relabelled. ChiefLocMoney, Heado, Mon and Rico appear on BOTH
