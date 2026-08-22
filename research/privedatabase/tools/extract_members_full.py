@@ -31,7 +31,10 @@ from db_sync import norm  # noqa: E402
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 
 VERB = re.compile(r"\b(est|était|etait|sont|étaient|a été|fut|deviendra|devient)\b", re.I)
-DEADP = re.compile(r"d[ée]c[ée]d|tu[ée]e?\b|poignard|mort", re.I)
+# "mort" means the target died - EXCEPT in "la fusillade de sa mort", where "sa"
+# is the block's owner: p6273 lists Skinny and Wooski under HK's FUSILLADES with
+# that note, and HK is the one who died there (Wooski's own CORPS list has HK).
+DEADP = re.compile(r"d[ée]c[ée]d|tu[ée]e?\b|poignard|(?<!de sa )(?<!sa )mort", re.I)
 LOCKED = re.compile(r"incarcér|en prison", re.I)
 PAREN = re.compile(r"^(.*?)\s*\(([^)]*)\)\s*$")
 SETDESC = re.compile(

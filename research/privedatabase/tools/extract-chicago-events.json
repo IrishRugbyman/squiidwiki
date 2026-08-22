@@ -62776,7 +62776,7 @@
   "perp_set": "WIIIC CITY/O’BLOCK",
   "victim": "Skinny",
   "victim_set": "Jaro City",
-  "victim_dead": true,
+  "victim_dead": false,
   "victim_year": null
  },
  {
@@ -62786,7 +62786,7 @@
   "perp_set": "WIIIC CITY/O’BLOCK",
   "victim": "Wooski",
   "victim_set": "STL.EBT",
-  "victim_dead": true,
+  "victim_dead": false,
   "victim_year": null
  },
  {

@@ -447,6 +447,27 @@ only the difference, never delete. Then a parser fix can be applied at any time.
   With that, the two gaps documented as unreachable are closed: The God Father
   has his kills of Lil Harvey and Anthony, and Lil Harvey has a fiche.
 
+### "la fusillade de sa mort" was read as the target's death
+
+`DEADP` matches "mort", so the annotation `Wooski (STL.EBT, la fusillade de sa
+mort)` on page 6273 flagged **Wooski** as dead. It sits under **HK**'s FUSILLADES
+list, and "sa" is HK - whose own sentence says "Il est decede", and whom Wooski's
+CORPS list names as one of his three bodies. The site puts fatalities under CORPS,
+never under FUSILLADES, so the annotation can only be about the shooter.
+
+Only three lines in the whole source contain "de sa mort", two of them these. The
+pattern now refuses to fire on "sa mort", and Wooski and Skinny - the two men it
+had killed off - are alive again (Skinny is LOCKED: "il est actuellement
+incarcere pour une fusillade").
+
+`sync_chicago_members.py` grew a status audit for this class of error, because a
+member's status is written once at creation and never revisited. It corrects only
+the one safe direction - the row says DEAD, no incident kills them, and the source
+does not say they died - and matches on **aliases** as well as the name, or
+"Edwin « Eazy Tarentino » Cook (decede)" reads as nobody having died. Deaths the
+source states in a set's prose rather than an entry annotation cannot be seen this
+way and are listed in `KEEP_DEAD` (Jaro: "jusqu'a que «Jaro» ne soit tue").
+
 ### A resolution trap worth knowing
 
 `candidates()` returns an **unordered set**, and a parenthetical title yields both

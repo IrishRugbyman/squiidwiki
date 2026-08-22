@@ -2149,7 +2149,7 @@
   "name": "Wooski",
   "set": "STL/EBT",
   "nation": "Gangster Disciple",
-  "dead": true,
+  "dead": false,
   "locked": false,
   "aliases": [
    "WoopWoop",
@@ -30505,7 +30505,7 @@
   "name": "Skinny",
   "set": "JARO CITY",
   "nation": "Black Disciple",
-  "dead": true,
+  "dead": false,
   "locked": true,
   "aliases": [],
   "legal": null,

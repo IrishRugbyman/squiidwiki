@@ -139,6 +139,56 @@ for p in people:
     # the tag-prefix duplicates, so it is reported for adjudication, never created.
     (create if not cands else review).append(row)
 
+# --- status audit ---------------------------------------------------------
+# A member's status is written once at creation and never revisited, so a wrong
+# `dead` flag in the extraction stays wrong forever. Only one direction is safe to
+# correct automatically: the row says DEAD, no incident kills them, and the source
+# does not say they died. Anything else (a hand-set status, a real KILLED row) is
+# left alone and reported.
+killed = {
+    r["member_id"]
+    for r in q(
+        f"""SELECT DISTINCT ip.member_id FROM incident_participant ip
+            JOIN incident i ON i.id=ip.incident_id
+            WHERE i.universe_id='{CHICAGO}' AND ip.outcome='KILLED'"""
+    )
+}
+db_status = {
+    r["id"]: r["status"] for r in q(f"SELECT id, status FROM member WHERE universe_id='{CHICAGO}'")
+}
+says_dead, says_locked = set(), set()
+for p_ in people:
+    nm, extra = clean_name(p_["name"])
+    sid_ = resolve_set(p_["set"]) if p_["set"] else None
+    # Match on aliases too: the source writes 'Edwin « Eazy Tarentino » Cook
+    # (decede)', whose cleaned name is "Edwin Cook" while the row is named after
+    # the nickname. Missing that reads as "nothing says he died".
+    keys_ = {norm(x) for x in [nm, *extra, *p_["aliases"]] if x}
+    for c in {c for k in keys_ if k for c in name_idx.get(k, ())}:
+        if sid_ and by_id[c]["set_ids"] and sid_ not in by_id[c]["set_ids"]:
+            continue
+        if p_["dead"]:
+            says_dead.add(c)
+        elif p_["locked"]:
+            says_locked.add(c)
+# Deaths the source states in a set's prose rather than in an entry annotation,
+# which the flag-based audit cannot see.
+KEEP_DEAD = {
+    "Jaro": "p7486/p243: 'Ils etaient connus sous le nom de l'ABM/COB jusqu'a que «Jaro» ne soit tue'",
+}
+wrong_dead = [
+    mid
+    for mid, st in db_status.items()
+    if st == "DEAD"
+    and mid not in killed
+    and mid not in says_dead
+    and by_id.get(mid, {}).get("nickname") not in KEEP_DEAD
+]
+print(f"statuts DEAD sans incident mortel ni mention de deces dans la source : {len(wrong_dead)}")
+for mid in wrong_dead[:15]:
+    tgt = "LOCKED" if mid in says_locked else "UNKNOWN"
+    print(f"   {by_id[mid]['nickname']!r:22} DEAD -> {tgt}")
+
 print(f"personnes extraites : {len(people)}")
 print(f"deja en base        : {sum(skipped.values())}  {dict(skipped)}")
 print(f"a creer             : {len(create)}\n")
@@ -166,6 +216,16 @@ if "--go" not in sys.argv:
     sys.exit()
 
 api = Api()
+fixed = 0
+for mid in wrong_dead:
+    tgt = "LOCKED" if mid in says_locked else "UNKNOWN"
+    r = api.call("PATCH", f"members/{mid}?universe_id={CHICAGO}", {"status": tgt})
+    if r and r.get("_error"):
+        print(f"  echec statut {by_id[mid]['nickname']!r}: {r}")
+    else:
+        fixed += 1
+print(f"statuts corriges: {fixed}")
+
 made = err = 0
 for p, name, aliases, sid in create:
     body = {
