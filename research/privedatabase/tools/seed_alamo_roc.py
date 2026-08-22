@@ -203,32 +203,20 @@ ROC_NOTE = (
     "Jamal Harris, 19. Shot in the chest, ran into the store and was found inside, where he died."
 )
 
+# The biography rule: say only what no other column holds. Everything about how these
+# two died - the date, the place, the drive-by, who was found inside the store, that
+# police called Glinsey uninvolved - is already the incident, the participant notes and
+# date_of_death, and rendered on the page from those. Restating it here is the noise the
+# rule exists to keep out. What is left is what has nowhere else to live.
 ALAMO_BIO = (
-    "Gregory Glinsey, named in public as Gregory “Alamo” Glinsey. Killed on "
-    "Sunday 19 February 2012 outside a liquor store in the 2500 block of East 79th Street "
-    "in South Shore, when a gunman in a beige vehicle opened fire on the group standing "
-    "outside and shot seven people. He was 53, was hit in the chest and died at the scene. "
-    "Chicago police described him as an innocent victim rather than an intended target, "
-    "and r/Chiraqology says the same thing in its own words: an old head standing outside "
-    "the store. He is remembered there as a No Limit OG who taught the younger generation. "
-    "Jamal “Roc” Harris, 19, was killed in the same burst and five teenagers "
-    "aged 13 to 16 were wounded. The privedatabase corpus lists him among the bodies "
-    "attributed to KTS Von, with KTS Dre assisting; no press or official source names a "
-    "shooter, though Chicago Police case HV164849 carries an arrest. His age is given as "
-    "53 by the press, by gunmemorial.org and by the forum threads, and as 54 by the "
-    "RedEye homicide tracker."
+    "An OG, credited on r/Chiraqology with teaching the younger generation of the set how "
+    "to slide and trap. Whether that made him more than a bystander is argued there and "
+    "settled nowhere."
 )
 
 ROC_BIO = (
-    "Jamal Harris, named in public as Jamal “Roc” Harris. NLMB. Killed at 19 on "
-    "Sunday 19 February 2012, in the drive-by outside a liquor store in the 2500 block of "
-    "East 79th Street in South Shore that also killed Gregory “Alamo” Glinsey, "
-    "a 53-year-old bystander, and wounded five teenagers aged 13 to 16. Shot in the chest, "
-    "he ran into the store and was found inside. The privedatabase corpus lists him among "
-    "the bodies attributed to KTS Von; no press or official source names a shooter, though "
-    "Chicago Police case HV164849 carries an arrest. Lil Herb remembered him in a lyric "
-    "quoted on r/Chiraqology: “Roc was wild as hell, couldn’t ever stay out of "
-    "jail, died in the field, he was just born L’s.”"
+    "Memorialised by Lil Herb: \u201cRoc was wild as hell, couldn\u2019t ever stay out of "
+    "jail, died in the field, he was just born L\u2019s.\u201d"
 )
 
 PHOTOS = [
