@@ -458,6 +458,7 @@ function MemberFormSheetInner({ universeId, open, onClose, initial, defaultSetId
   const [nickname, setNickname] = useState(initial?.nickname ?? copyFrom?.nickname ?? '')
   const [legalName, setLegalName] = useState(initial?.legal_name ?? copyFrom?.legal_name ?? '')
   const [nicknameUnknown, setNicknameUnknown] = useState(initial?.nickname_unknown ?? copyFrom?.nickname_unknown ?? false)
+  const [isRapper, setIsRapper] = useState(initial?.is_rapper ?? copyFrom?.is_rapper ?? false)
   const [status, setStatus] = useState<MemberStatus>(initial?.status ?? copyFrom?.status ?? 'UNKNOWN')
   type AffRow = { set_id: string; rank: SetRank | ''; is_primary: boolean }
   const seedAffiliations = (): AffRow[] => {
@@ -531,6 +532,7 @@ function MemberFormSheetInner({ universeId, open, onClose, initial, defaultSetId
       nickname: nickname || null,
       legal_name: legalName || null,
       nickname_unknown: nicknameUnknown,
+      is_rapper: isRapper,
       status,
       affiliations: affiliations.filter((a) => a.set_id).map((a) => ({
         set_id: a.set_id,
@@ -748,6 +750,16 @@ function MemberFormSheetInner({ universeId, open, onClose, initial, defaultSetId
               <Label htmlFor="m-aliases">Aliases <span className="text-zinc-400">(comma-separated)</span></Label>
               <Input id="m-aliases" value={aliases} onChange={(e) => setAliases(e.target.value)} placeholder="e.g. Big L, Lucky" />
             </div>
+            <label htmlFor="m-rapper" className="flex w-fit cursor-pointer items-center gap-2 text-xs text-zinc-400 hover:text-zinc-300">
+              <input
+                id="m-rapper"
+                type="checkbox"
+                checked={isRapper}
+                onChange={(e) => setIsRapper(e.target.checked)}
+                className="h-3.5 w-3.5 rounded border-zinc-700 bg-zinc-900 accent-violet-600"
+              />
+              Rapper
+            </label>
           </FormSection>
 
           <FormSection title="Photos" hint={isEdit ? 'uploads immediately' : 'queued, first becomes primary'}>

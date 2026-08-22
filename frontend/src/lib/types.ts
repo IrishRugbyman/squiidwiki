@@ -326,6 +326,7 @@ export interface MemberListItem {
   primary_photo_thumb_url: string | null
   aliases: string[] | null
   date_of_death: FuzzyDateValue | null
+  is_rapper: boolean
 }
 
 export interface MemberAliasRead {
@@ -375,6 +376,7 @@ export interface MemberRead extends MemberListItem {
   nickname: string | null
   legal_name: string | null
   nickname_unknown: boolean
+  is_rapper: boolean
   aliases: string[] | null
   biography: string
   alliance_id: UUID | null

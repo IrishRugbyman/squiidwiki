@@ -96,6 +96,13 @@ class Member(SQLModel, table=True):
     nickname_unknown: bool = False  # True → use legal_name as display_name
     aliases: list | None = Field(default=None, sa_column=Column(JSONB(none_as_null=True)))
 
+    # Rapping is an attribute of the person, not a circumstance, so it is a column
+    # and never a biography sentence (see the bio rule in CLAUDE.md).
+    is_rapper: bool = Field(
+        default=False,
+        sa_column=Column("is_rapper", sa.Boolean, nullable=False, server_default="false"),
+    )
+
     biography: str = ""
 
     alliance_id: uuid.UUID | None = Field(default=None, foreign_key="alliance.id", index=True)

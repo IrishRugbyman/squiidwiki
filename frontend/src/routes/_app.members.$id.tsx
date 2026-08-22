@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
 import {
   AlertTriangle, Copy, Download, ExternalLink, GitFork,
-  Pencil, Plus, Skull, Trash2, X,
+  Mic, Pencil, Plus, Skull, Trash2, X,
 } from 'lucide-react'
 import { FacebookIcon, InstagramIcon, TwitterIcon } from '@/components/icons/SocialIcons'
 import { lazy, Suspense, useMemo, useState } from 'react'
@@ -586,6 +586,11 @@ function MemberDetailPage() {
                 })()}
                 <div className="mt-2 flex flex-wrap items-center gap-2">
                   <MemberStatusBadge status={member.status} />
+                  {member.is_rapper && (
+                    <span className="inline-flex items-center gap-1 rounded-full bg-fuchsia-950/50 px-2.5 py-0.5 text-xs text-fuchsia-300 ring-1 ring-fuchsia-800/60">
+                      <Mic className="h-3 w-3" />Rapper
+                    </span>
+                  )}
                   {currentAffiliations(member.affiliations).map((aff) => (
                     <Link
                       key={aff.id ?? aff.set_id}

@@ -177,6 +177,7 @@ async def get_member(
         nickname=obj.nickname,
         legal_name=obj.legal_name,
         nickname_unknown=obj.nickname_unknown,
+        is_rapper=obj.is_rapper,
         aliases=obj.aliases,
         biography=obj.biography,
         affiliations=affiliations,

@@ -45,6 +45,7 @@ class MemberCreate(BaseModel):
     nickname: Optional[str] = None
     legal_name: Optional[str] = None
     nickname_unknown: bool = False
+    is_rapper: bool = False
     aliases: Optional[list[str]] = None
     biography: str = ""
     affiliations: list[MemberSetAffiliationIn] = []
@@ -68,6 +69,7 @@ class MemberUpdate(BaseModel):
     nickname: Optional[str] = None
     legal_name: Optional[str] = None
     nickname_unknown: Optional[bool] = None
+    is_rapper: Optional[bool] = None
     aliases: Optional[list[str]] = None
     biography: Optional[str] = None
     affiliations: Optional[list[MemberSetAffiliationIn]] = None
@@ -105,6 +107,7 @@ class MemberRead(BaseModel):
     nickname: Optional[str]
     legal_name: Optional[str]
     nickname_unknown: bool
+    is_rapper: bool = False
     aliases: Optional[list[str]]
     biography: str
     affiliations: list[MemberSetAffiliationOut] = []
@@ -168,6 +171,7 @@ class MemberListItem(BaseModel):
     primary_photo_thumb_url: Optional[str] = None
     aliases: Optional[list[str]] = None
     date_of_death: FuzzyDateField = None
+    is_rapper: bool = False
 
 
 class MemberIncarcerationCreate(BaseModel):

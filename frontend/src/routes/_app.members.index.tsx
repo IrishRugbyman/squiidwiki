@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
-import { Download, Pencil, Plus, Search, Users, X } from 'lucide-react'
+import { Download, Mic, Pencil, Plus, Search, Users, X } from 'lucide-react'
 import { useMemo, useRef, useState } from 'react'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import { toast } from 'sonner'
@@ -303,7 +303,7 @@ function MembersPage() {
                       </td>
                       <td className="p-0">
                         <Link to="/members/$id" params={{ id: linkId }} className="block px-3 py-3 transition-colors group-hover:text-violet-400">
-                          <span className={`font-medium ${isDead ? 'text-zinc-400 line-through decoration-zinc-600' : 'text-white'}`}>{member.display_name}</span>
+                          <span className={`font-medium ${isDead ? 'text-zinc-400 line-through decoration-zinc-600' : 'text-white'}`}>{member.display_name}</span>{member.is_rapper && <Mic aria-label="Rapper" className="ml-1.5 inline h-3 w-3 align-baseline text-fuchsia-400" />}
                           {member.aliases && member.aliases.length > 0 && (
                             <span className="mt-0.5 block text-[11px] text-zinc-400 group-hover:text-zinc-200 transition-colors">
                               {member.aliases.slice(0, 3).join(' · ')}
@@ -415,6 +415,7 @@ function MembersPage() {
                       <span className={`font-medium ${isDead ? 'text-zinc-400 line-through decoration-zinc-600' : 'text-white'}`}>
                         {member.display_name}
                       </span>
+                      {member.is_rapper && <Mic aria-label="Rapper" className="ml-1.5 inline h-3 w-3 align-baseline text-fuchsia-400" />}
                       {member.aliases && member.aliases.length > 0 && (
                         <span className="mt-0.5 block text-[11px] text-zinc-400">
                           {member.aliases.slice(0, 3).join(' · ')}
