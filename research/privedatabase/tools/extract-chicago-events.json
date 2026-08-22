@@ -1630,6 +1630,116 @@
   "victim_year": null
  },
  {
+  "page": "4745",
+  "kind": "assists",
+  "perp": "BlastHisAss",
+  "perp_set": null,
+  "victim": "James",
+  "victim_set": "M-Town",
+  "victim_dead": false,
+  "victim_year": null
+ },
+ {
+  "page": "4745",
+  "kind": "assists",
+  "perp": "BlastHisAss",
+  "perp_set": null,
+  "victim": "Polo",
+  "victim_set": "051 Young Money",
+  "victim_dead": false,
+  "victim_year": null
+ },
+ {
+  "page": "4745",
+  "kind": "assists",
+  "perp": "BlastHisAss",
+  "perp_set": null,
+  "victim": "ChinaOMan",
+  "victim_set": "Sirconn City Gangsters",
+  "victim_dead": false,
+  "victim_year": null
+ },
+ {
+  "page": "4745",
+  "kind": "shootings",
+  "perp": "BlastHisAss",
+  "perp_set": null,
+  "victim": "Dro",
+  "victim_set": "MOB",
+  "victim_dead": false,
+  "victim_year": null
+ },
+ {
+  "page": "4745",
+  "kind": "shootings",
+  "perp": "BlastHisAss",
+  "perp_set": null,
+  "victim": "Bookie",
+  "victim_set": "MOB",
+  "victim_dead": false,
+  "victim_year": null
+ },
+ {
+  "page": "4745",
+  "kind": "shootings",
+  "perp": "BlastHisAss",
+  "perp_set": null,
+  "victim": "Tristo",
+  "victim_set": "051 Young Money",
+  "victim_dead": false,
+  "victim_year": null
+ },
+ {
+  "page": "4745",
+  "kind": "shootings",
+  "perp": "BlastHisAss",
+  "perp_set": null,
+  "victim": "Bankroll Q",
+  "victim_set": "051 Young Money",
+  "victim_dead": false,
+  "victim_year": null
+ },
+ {
+  "page": "4745",
+  "kind": "shootings",
+  "perp": "BlastHisAss",
+  "perp_set": null,
+  "victim": "FYB J Mane",
+  "victim_set": "Jaro City",
+  "victim_dead": false,
+  "victim_year": null
+ },
+ {
+  "page": "4745",
+  "kind": "shootings",
+  "perp": "BlastHisAss",
+  "perp_set": null,
+  "victim": "Bud",
+  "victim_set": "Jaro City",
+  "victim_dead": false,
+  "victim_year": null
+ },
+ {
+  "page": "4745",
+  "kind": "shootings",
+  "perp": "BlastHisAss",
+  "perp_set": null,
+  "victim": "TB",
+  "victim_set": "Tyquan World",
+  "victim_dead": false,
+  "victim_year": null
+ },
+ {
+  "page": "4745",
+  "kind": "shootings",
+  "perp": "BlastHisAss",
+  "perp_set": null,
+  "victim": "Big Dee",
+  "victim_set": "STL/EBT",
+  "victim_dead": false,
+  "victim_year": null
+ },
+ {
   "page": "4744",
   "kind": "bodies",
   "perp": "Bitedown",
@@ -2210,6 +2320,136 @@
   "victim_year": null
  },
  {
+  "page": "4233",
+  "kind": "bodies",
+  "perp": "King Greg",
+  "perp_set": null,
+  "victim": "Lil Derrick",
+  "victim_set": "FollyBoyz",
+  "victim_dead": true,
+  "victim_year": null
+ },
+ {
+  "page": "4233",
+  "kind": "bodies",
+  "perp": "King Greg",
+  "perp_set": null,
+  "victim": "Molly",
+  "victim_set": "FollyBoyz",
+  "victim_dead": true,
+  "victim_year": null
+ },
+ {
+  "page": "4233",
+  "kind": "assists",
+  "perp": "King Greg",
+  "perp_set": null,
+  "victim": "Scrap",
+  "victim_set": "FollyBoyz",
+  "victim_dead": false,
+  "victim_year": null
+ },
+ {
+  "page": "4233",
+  "kind": "shootings",
+  "perp": "King Greg",
+  "perp_set": null,
+  "victim": "Truth",
+  "victim_set": "FollyBoyz",
+  "victim_dead": false,
+  "victim_year": null
+ },
+ {
+  "page": "4233",
+  "kind": "shootings",
+  "perp": "King Greg",
+  "perp_set": null,
+  "victim": "Chief Diddy",
+  "victim_set": "FollyBoyz",
+  "victim_dead": false,
+  "victim_year": null
+ },
+ {
+  "page": "4233",
+  "kind": "shootings",
+  "perp": "King Greg",
+  "perp_set": null,
+  "victim": "Five Star",
+  "victim_set": "FollyBoyz",
+  "victim_dead": false,
+  "victim_year": null
+ },
+ {
+  "page": "4233",
+  "kind": "shootings",
+  "perp": "King Greg",
+  "perp_set": null,
+  "victim": "Scale",
+  "victim_set": "FollyBoyz",
+  "victim_dead": false,
+  "victim_year": null
+ },
+ {
+  "page": "4233",
+  "kind": "shootings",
+  "perp": "King Greg",
+  "perp_set": null,
+  "victim": "EDogg",
+  "victim_set": "FollyBoyz",
+  "victim_dead": false,
+  "victim_year": null
+ },
+ {
+  "page": "4233",
+  "kind": "shootings",
+  "perp": "King Greg",
+  "perp_set": null,
+  "victim": "Maintain",
+  "victim_set": "FollyBoyz",
+  "victim_dead": false,
+  "victim_year": null
+ },
+ {
+  "page": "4233",
+  "kind": "shootings",
+  "perp": "King Greg",
+  "perp_set": null,
+  "victim": "Deega",
+  "victim_set": "FollyBoyz",
+  "victim_dead": false,
+  "victim_year": null
+ },
+ {
+  "page": "4233",
+  "kind": "shootings",
+  "perp": "King Greg",
+  "perp_set": null,
+  "victim": "Goonie Looney",
+  "victim_set": "No Limit 087",
+  "victim_dead": false,
+  "victim_year": null
+ },
+ {
+  "page": "4233",
+  "kind": "shootings",
+  "perp": "King Greg",
+  "perp_set": null,
+  "victim": "Money Man",
+  "victim_set": "TYMB",
+  "victim_dead": false,
+  "victim_year": null
+ },
+ {
+  "page": "4233",
+  "kind": "shootings",
+  "perp": "King Greg",
+  "perp_set": null,
+  "victim": "D.Rose",
+  "victim_set": "600",
+  "victim_dead": false,
+  "victim_year": null
+ },
+ {
   "page": "4232",
   "kind": "bodies",
   "perp": "Kiar",
@@ -2267,6 +2507,36 @@
   "victim": "Choppa",
   "victim_set": "Lamron",
   "victim_dead": false,
+  "victim_year": null
+ },
+ {
+  "page": "4183",
+  "kind": "bodies",
+  "perp": "The God Father",
+  "perp_set": null,
+  "victim": "Lil Harvey",
+  "victim_set": "Lamron",
+  "victim_dead": true,
+  "victim_year": null
+ },
+ {
+  "page": "4183",
+  "kind": "bodies",
+  "perp": "The God Father",
+  "perp_set": null,
+  "victim": "Anthony",
+  "victim_set": "Lamron",
+  "victim_dead": true,
+  "victim_year": null
+ },
+ {
+  "page": "4183",
+  "kind": "bodies",
+  "perp": "The God Father",
+  "perp_set": null,
+  "victim": "Innocente",
+  "victim_set": null,
+  "victim_dead": true,
   "victim_year": null
  },
  {
@@ -2406,6 +2676,206 @@
   "perp_set": null,
   "victim": "Rosé",
   "victim_set": "051 Young Money",
+  "victim_dead": false,
+  "victim_year": null
+ },
+ {
+  "page": "4046",
+  "kind": "bodies",
+  "perp": "Zo",
+  "perp_set": null,
+  "victim": "Jimmy",
+  "victim_set": "FuckTown",
+  "victim_dead": true,
+  "victim_year": null
+ },
+ {
+  "page": "4046",
+  "kind": "bodies",
+  "perp": "Zo",
+  "perp_set": null,
+  "victim": "Bobby",
+  "victim_set": "FollyBoyz",
+  "victim_dead": true,
+  "victim_year": null
+ },
+ {
+  "page": "4046",
+  "kind": "bodies",
+  "perp": "Zo",
+  "perp_set": null,
+  "victim": "Johnny",
+  "victim_set": "FollyBoyz",
+  "victim_dead": true,
+  "victim_year": null
+ },
+ {
+  "page": "4046",
+  "kind": "assists",
+  "perp": "Zo",
+  "perp_set": null,
+  "victim": "Molly",
+  "victim_set": "FollyBoyz",
+  "victim_dead": false,
+  "victim_year": null
+ },
+ {
+  "page": "4046",
+  "kind": "shootings",
+  "perp": "Zo",
+  "perp_set": null,
+  "victim": "Twon",
+  "victim_set": "Lamron",
+  "victim_dead": false,
+  "victim_year": null
+ },
+ {
+  "page": "4046",
+  "kind": "shootings",
+  "perp": "Zo",
+  "perp_set": null,
+  "victim": "Choppa",
+  "victim_set": "Lamron",
+  "victim_dead": false,
+  "victim_year": null
+ },
+ {
+  "page": "4046",
+  "kind": "shootings",
+  "perp": "Zo",
+  "perp_set": null,
+  "victim": "Booda Moe",
+  "victim_set": "FollyBoyz",
+  "victim_dead": false,
+  "victim_year": null
+ },
+ {
+  "page": "4046",
+  "kind": "shootings",
+  "perp": "Zo",
+  "perp_set": null,
+  "victim": "Caddy Mac",
+  "victim_set": "FollyBoyz",
+  "victim_dead": false,
+  "victim_year": null
+ },
+ {
+  "page": "4046",
+  "kind": "shootings",
+  "perp": "Zo",
+  "perp_set": null,
+  "victim": "MoneyMan",
+  "victim_set": "FollyBoyz",
+  "victim_dead": false,
+  "victim_year": null
+ },
+ {
+  "page": "4046",
+  "kind": "shootings",
+  "perp": "Zo",
+  "perp_set": null,
+  "victim": "Five Star",
+  "victim_set": "FollyBoyz",
+  "victim_dead": false,
+  "victim_year": null
+ },
+ {
+  "page": "4046",
+  "kind": "shootings",
+  "perp": "Zo",
+  "perp_set": null,
+  "victim": "G Doodie",
+  "victim_set": "FollyBoyz",
+  "victim_dead": false,
+  "victim_year": null
+ },
+ {
+  "page": "4046",
+  "kind": "shootings",
+  "perp": "Zo",
+  "perp_set": null,
+  "victim": "50Shot Mall",
+  "victim_set": "FollyBoyz",
+  "victim_dead": false,
+  "victim_year": null
+ },
+ {
+  "page": "4046",
+  "kind": "shootings",
+  "perp": "Zo",
+  "perp_set": null,
+  "victim": "Folly Fatz",
+  "victim_set": "FollyBoyz",
+  "victim_dead": false,
+  "victim_year": null
+ },
+ {
+  "page": "4046",
+  "kind": "shootings",
+  "perp": "Zo",
+  "perp_set": null,
+  "victim": "NickNick",
+  "victim_set": "FollyBoyz",
+  "victim_dead": false,
+  "victim_year": null
+ },
+ {
+  "page": "4046",
+  "kind": "shootings",
+  "perp": "Zo",
+  "perp_set": null,
+  "victim": "Scale",
+  "victim_set": "FollyBoyz",
+  "victim_dead": false,
+  "victim_year": null
+ },
+ {
+  "page": "4046",
+  "kind": "shootings",
+  "perp": "Zo",
+  "perp_set": null,
+  "victim": "STK",
+  "victim_set": "THF 46",
+  "victim_dead": false,
+  "victim_year": null
+ },
+ {
+  "page": "4046",
+  "kind": "shootings",
+  "perp": "Zo",
+  "perp_set": null,
+  "victim": "Famous Mac",
+  "victim_set": "MOB",
+  "victim_dead": false,
+  "victim_year": null
+ },
+ {
+  "page": "4046",
+  "kind": "shootings",
+  "perp": "Zo",
+  "perp_set": null,
+  "victim": "Freeky",
+  "victim_set": "051 Young Money",
+  "victim_dead": false,
+  "victim_year": null
+ },
+ {
+  "page": "4046",
+  "kind": "shootings",
+  "perp": "Zo",
+  "perp_set": null,
+  "victim": "EA",
+  "victim_set": "FuckTown",
+  "victim_dead": false,
+  "victim_year": null
+ },
+ {
+  "page": "4046",
+  "kind": "shootings",
+  "perp": "Zo",
+  "perp_set": null,
+  "victim": "Muwop",
+  "victim_set": "O'Block",
   "victim_dead": false,
   "victim_year": null
  },
@@ -2647,6 +3117,26 @@
   "victim": "Law",
   "victim_set": "051 Young Money",
   "victim_dead": false,
+  "victim_year": null
+ },
+ {
+  "page": "3882",
+  "kind": "bodies",
+  "perp": "Scrap",
+  "perp_set": null,
+  "victim": "Dougo",
+  "victim_set": "50 Strong",
+  "victim_dead": true,
+  "victim_year": null
+ },
+ {
+  "page": "3882",
+  "kind": "bodies",
+  "perp": "Scrap",
+  "perp_set": null,
+  "victim": "Dell",
+  "victim_set": "50 Strong",
+  "victim_dead": true,
   "victim_year": null
  },
  {
@@ -3006,6 +3496,286 @@
   "perp_set": null,
   "victim": "T Man",
   "victim_set": "Dumpstreet",
+  "victim_dead": false,
+  "victim_year": null
+ },
+ {
+  "page": "3801",
+  "kind": "bodies",
+  "perp": "Five Star",
+  "perp_set": null,
+  "victim": "Dell",
+  "victim_set": "50 Strong",
+  "victim_dead": true,
+  "victim_year": null
+ },
+ {
+  "page": "3801",
+  "kind": "bodies",
+  "perp": "Five Star",
+  "perp_set": null,
+  "victim": "Big Meech",
+  "victim_set": "50 Strong",
+  "victim_dead": true,
+  "victim_year": null
+ },
+ {
+  "page": "3801",
+  "kind": "assists",
+  "perp": "Five Star",
+  "perp_set": null,
+  "victim": "Temmo",
+  "victim_set": "50 Strong",
+  "victim_dead": false,
+  "victim_year": null
+ },
+ {
+  "page": "3801",
+  "kind": "assists",
+  "perp": "Five Star",
+  "perp_set": null,
+  "victim": "Lil Marc",
+  "victim_set": "051 Young Money",
+  "victim_dead": false,
+  "victim_year": null
+ },
+ {
+  "page": "3801",
+  "kind": "shootings",
+  "perp": "Five Star",
+  "perp_set": null,
+  "victim": "Csko",
+  "victim_set": "50 Strong",
+  "victim_dead": false,
+  "victim_year": null
+ },
+ {
+  "page": "3801",
+  "kind": "shootings",
+  "perp": "Five Star",
+  "perp_set": null,
+  "victim": "Kiar",
+  "victim_set": "50 Strong",
+  "victim_dead": false,
+  "victim_year": null
+ },
+ {
+  "page": "3801",
+  "kind": "shootings",
+  "perp": "Five Star",
+  "perp_set": null,
+  "victim": "CEO",
+  "victim_set": "50 Strong",
+  "victim_dead": false,
+  "victim_year": null
+ },
+ {
+  "page": "3801",
+  "kind": "shootings",
+  "perp": "Five Star",
+  "perp_set": null,
+  "victim": "King Greg",
+  "victim_set": "50 Strong",
+  "victim_dead": false,
+  "victim_year": null
+ },
+ {
+  "page": "3801",
+  "kind": "shootings",
+  "perp": "Five Star",
+  "perp_set": null,
+  "victim": "Triggah900",
+  "victim_set": "50 Strong",
+  "victim_dead": false,
+  "victim_year": null
+ },
+ {
+  "page": "3801",
+  "kind": "shootings",
+  "perp": "Five Star",
+  "perp_set": null,
+  "victim": "Rambo",
+  "victim_set": "No Luv City",
+  "victim_dead": false,
+  "victim_year": null
+ },
+ {
+  "page": "3801",
+  "kind": "shootings",
+  "perp": "Five Star",
+  "perp_set": null,
+  "victim": "Duke",
+  "victim_set": "No Luv City",
+  "victim_dead": false,
+  "victim_year": null
+ },
+ {
+  "page": "3801",
+  "kind": "shootings",
+  "perp": "Five Star",
+  "perp_set": null,
+  "victim": "Les",
+  "victim_set": "No Luv City",
+  "victim_dead": false,
+  "victim_year": null
+ },
+ {
+  "page": "3801",
+  "kind": "shootings",
+  "perp": "Five Star",
+  "perp_set": null,
+  "victim": "Puke",
+  "victim_set": "Dumpstreet",
+  "victim_dead": false,
+  "victim_year": null
+ },
+ {
+  "page": "3801",
+  "kind": "shootings",
+  "perp": "Five Star",
+  "perp_set": null,
+  "victim": "Mally",
+  "victim_set": "051 Young Money",
+  "victim_dead": false,
+  "victim_year": null
+ },
+ {
+  "page": "3800",
+  "kind": "bodies",
+  "perp": "CoKilla",
+  "perp_set": null,
+  "victim": "Temmo",
+  "victim_set": "50 Strong",
+  "victim_dead": true,
+  "victim_year": null
+ },
+ {
+  "page": "3800",
+  "kind": "assists",
+  "perp": "CoKilla",
+  "perp_set": null,
+  "victim": "Lil Doc",
+  "victim_set": "No Luv City",
+  "victim_dead": false,
+  "victim_year": null
+ },
+ {
+  "page": "3800",
+  "kind": "assists",
+  "perp": "CoKilla",
+  "perp_set": null,
+  "victim": "Big Meech",
+  "victim_set": "50 Strong",
+  "victim_dead": false,
+  "victim_year": null
+ },
+ {
+  "page": "3800",
+  "kind": "assists",
+  "perp": "CoKilla",
+  "perp_set": null,
+  "victim": "Lil Marc",
+  "victim_set": "051 Young Money",
+  "victim_dead": false,
+  "victim_year": null
+ },
+ {
+  "page": "3800",
+  "kind": "shootings",
+  "perp": "CoKilla",
+  "perp_set": null,
+  "victim": "Blood",
+  "victim_set": "50 Strong",
+  "victim_dead": false,
+  "victim_year": null
+ },
+ {
+  "page": "3800",
+  "kind": "shootings",
+  "perp": "CoKilla",
+  "perp_set": null,
+  "victim": "Juice",
+  "victim_set": "50 Strong",
+  "victim_dead": false,
+  "victim_year": null
+ },
+ {
+  "page": "3800",
+  "kind": "shootings",
+  "perp": "CoKilla",
+  "perp_set": null,
+  "victim": "Csko",
+  "victim_set": "50 Strong",
+  "victim_dead": false,
+  "victim_year": null
+ },
+ {
+  "page": "3800",
+  "kind": "shootings",
+  "perp": "CoKilla",
+  "perp_set": null,
+  "victim": "Major",
+  "victim_set": "No Luv City",
+  "victim_dead": false,
+  "victim_year": null
+ },
+ {
+  "page": "3800",
+  "kind": "shootings",
+  "perp": "CoKilla",
+  "perp_set": null,
+  "victim": "Teeski",
+  "victim_set": "No Luv City",
+  "victim_dead": false,
+  "victim_year": null
+ },
+ {
+  "page": "3800",
+  "kind": "shootings",
+  "perp": "CoKilla",
+  "perp_set": null,
+  "victim": "KC",
+  "victim_set": "No Luv City",
+  "victim_dead": false,
+  "victim_year": null
+ },
+ {
+  "page": "3800",
+  "kind": "shootings",
+  "perp": "CoKilla",
+  "perp_set": null,
+  "victim": "Alo",
+  "victim_set": "Shields",
+  "victim_dead": false,
+  "victim_year": null
+ },
+ {
+  "page": "3800",
+  "kind": "shootings",
+  "perp": "CoKilla",
+  "perp_set": null,
+  "victim": "Hov",
+  "victim_set": "Dumpstreet",
+  "victim_dead": false,
+  "victim_year": null
+ },
+ {
+  "page": "3800",
+  "kind": "shootings",
+  "perp": "CoKilla",
+  "perp_set": null,
+  "victim": "Ario",
+  "victim_set": "051 Young Money",
+  "victim_dead": false,
+  "victim_year": null
+ },
+ {
+  "page": "3800",
+  "kind": "shootings",
+  "perp": "CoKilla",
+  "perp_set": null,
+  "victim": "James",
+  "victim_set": "051 Young Money",
   "victim_dead": false,
   "victim_year": null
  },
@@ -3432,7 +4202,7 @@
  {
   "page": "1897",
   "kind": "bodies",
-  "perp": "Devane “Cadarro” Walker",
+  "perp": "Cadarro",
   "perp_set": null,
   "victim": "Mon",
   "victim_set": "DamenVille",
@@ -3440,9 +4210,39 @@
   "victim_year": null
  },
  {
+  "page": "1773",
+  "kind": "bodies",
+  "perp": "Jilla",
+  "perp_set": null,
+  "victim": "Steveo",
+  "victim_set": "DamenVille",
+  "victim_dead": true,
+  "victim_year": null
+ },
+ {
+  "page": "1773",
+  "kind": "bodies",
+  "perp": "Jilla",
+  "perp_set": null,
+  "victim": "Tra'Don",
+  "victim_set": "LOC City BotY",
+  "victim_dead": true,
+  "victim_year": null
+ },
+ {
+  "page": "1773",
+  "kind": "bodies",
+  "perp": "Jilla",
+  "perp_set": null,
+  "victim": "GPap",
+  "victim_set": "LOC City BotY",
+  "victim_dead": true,
+  "victim_year": null
+ },
+ {
   "page": "1772",
   "kind": "bodies",
-  "perp": "Tytus “Tyto” Harris",
+  "perp": "Tyto",
   "perp_set": null,
   "victim": "Tuta",
   "victim_set": "DamenVille",
@@ -3542,7 +4342,7 @@
  {
   "page": "1194",
   "kind": "bodies",
-  "perp": "Marlon “Bang Man”",
+  "perp": "Bang Man",
   "perp_set": null,
   "victim": "Keonte",
   "victim_set": "JigDogs",
@@ -3552,7 +4352,7 @@
  {
   "page": "1194",
   "kind": "bodies",
-  "perp": "Marlon “Bang Man”",
+  "perp": "Bang Man",
   "perp_set": null,
   "victim": "Mook",
   "victim_set": "Jaro City",
@@ -3562,7 +4362,7 @@
  {
   "page": "1194",
   "kind": "shootings",
-  "perp": "Marlon “Bang Man”",
+  "perp": "Bang Man",
   "perp_set": null,
   "victim": "305",
   "victim_set": "Jaro City",
@@ -3572,7 +4372,7 @@
  {
   "page": "1194",
   "kind": "shootings",
-  "perp": "Marlon “Bang Man”",
+  "perp": "Bang Man",
   "perp_set": null,
   "victim": "Joe",
   "victim_set": "Jaro City",
@@ -3582,7 +4382,7 @@
  {
   "page": "1194",
   "kind": "shootings",
-  "perp": "Marlon “Bang Man”",
+  "perp": "Bang Man",
   "perp_set": null,
   "victim": "BK",
   "victim_set": "Jaro City",
@@ -3592,7 +4392,7 @@
  {
   "page": "1194",
   "kind": "shootings",
-  "perp": "Marlon “Bang Man”",
+  "perp": "Bang Man",
   "perp_set": null,
   "victim": "Baby D",
   "victim_set": "Jaro City",
@@ -3602,7 +4402,7 @@
  {
   "page": "1194",
   "kind": "shootings",
-  "perp": "Marlon “Bang Man”",
+  "perp": "Bang Man",
   "perp_set": null,
   "victim": "Motor",
   "victim_set": "Jaro City",
@@ -3612,7 +4412,7 @@
  {
   "page": "1194",
   "kind": "shootings",
-  "perp": "Marlon “Bang Man”",
+  "perp": "Bang Man",
   "perp_set": null,
   "victim": "ABM Tay",
   "victim_set": "Jaro City",
@@ -3622,7 +4422,7 @@
  {
   "page": "1194",
   "kind": "shootings",
-  "perp": "Marlon “Bang Man”",
+  "perp": "Bang Man",
   "perp_set": null,
   "victim": "So Icey",
   "victim_set": "STL/EBT",
@@ -3632,7 +4432,7 @@
  {
   "page": "1194",
   "kind": "shootings",
-  "perp": "Marlon “Bang Man”",
+  "perp": "Bang Man",
   "perp_set": null,
   "victim": "BossTrell",
   "victim_set": "STL/EBT",
@@ -3642,7 +4442,7 @@
  {
   "page": "1189",
   "kind": "bodies",
-  "perp": "Odee “Odee” Perry",
+  "perp": "Odee",
   "perp_set": null,
   "victim": "Jeremy",
   "victim_set": "Jaro City",
@@ -3652,7 +4452,7 @@
  {
   "page": "1189",
   "kind": "assists",
-  "perp": "Odee “Odee” Perry",
+  "perp": "Odee",
   "perp_set": null,
   "victim": "Mook",
   "victim_set": "Jaro City",
@@ -3662,7 +4462,7 @@
  {
   "page": "1189",
   "kind": "shootings",
-  "perp": "Odee “Odee” Perry",
+  "perp": "Odee",
   "perp_set": null,
   "victim": "M.Dot",
   "victim_set": "Jaro City",
@@ -3672,7 +4472,7 @@
  {
   "page": "1189",
   "kind": "shootings",
-  "perp": "Odee “Odee” Perry",
+  "perp": "Odee",
   "perp_set": null,
   "victim": "Lil Worka",
   "victim_set": "Jaro City",
@@ -3682,7 +4482,7 @@
  {
   "page": "1189",
   "kind": "shootings",
-  "perp": "Odee “Odee” Perry",
+  "perp": "Odee",
   "perp_set": null,
   "victim": "Baby D",
   "victim_set": "Jaro City",
@@ -3692,7 +4492,7 @@
  {
   "page": "1189",
   "kind": "shootings",
-  "perp": "Odee “Odee” Perry",
+  "perp": "Odee",
   "perp_set": null,
   "victim": "DipLow",
   "victim_set": "Jaro City",
@@ -3702,7 +4502,7 @@
  {
   "page": "1189",
   "kind": "shootings",
-  "perp": "Odee “Odee” Perry",
+  "perp": "Odee",
   "perp_set": null,
   "victim": "Tilgo",
   "victim_set": "Jaro City",
@@ -3712,7 +4512,7 @@
  {
   "page": "1189",
   "kind": "shootings",
-  "perp": "Odee “Odee” Perry",
+  "perp": "Odee",
   "perp_set": null,
   "victim": "Mr.Hot Sauce",
   "victim_set": "STL/EBT",
@@ -3722,7 +4522,7 @@
  {
   "page": "1189",
   "kind": "shootings",
-  "perp": "Odee “Odee” Perry",
+  "perp": "Odee",
   "perp_set": null,
   "victim": "Diesel",
   "victim_set": "STL/EBT",
@@ -3732,7 +4532,7 @@
  {
   "page": "1189",
   "kind": "shootings",
-  "perp": "Odee “Odee” Perry",
+  "perp": "Odee",
   "perp_set": null,
   "victim": "K.I.",
   "victim_set": "STL/EBT",
@@ -3742,7 +4542,7 @@
  {
   "page": "1189",
   "kind": "shootings",
-  "perp": "Odee “Odee” Perry",
+  "perp": "Odee",
   "perp_set": null,
   "victim": "FBG Butta",
   "victim_set": "STL/EBT",
@@ -3752,7 +4552,7 @@
  {
   "page": "1187",
   "kind": "bodies",
-  "perp": "Patrick “Snap D” Jones",
+  "perp": "Snap D",
   "perp_set": null,
   "victim": "Brian Thomas",
   "victim_set": "MurderVille",
@@ -3762,7 +4562,7 @@
  {
   "page": "1187",
   "kind": "shootings",
-  "perp": "Patrick “Snap D” Jones",
+  "perp": "Snap D",
   "perp_set": null,
   "victim": "Antonio McGee",
   "victim_set": "MurderVille",
@@ -8272,7 +9072,7 @@
  {
   "page": "7964",
   "kind": "bodies",
-  "perp": null,
+  "perp": "C-Money",
   "perp_set": "BUFF CITY",
   "victim": "Willie",
   "victim_set": "NLMB",
@@ -12692,7 +13492,7 @@
  {
   "page": "7954",
   "kind": "bodies",
-  "perp": "Bad Luck",
+  "perp": "DB",
   "perp_set": "LOC CITY",
   "victim": "Lil Greg",
   "victim_set": "ABM",
@@ -12702,7 +13502,7 @@
  {
   "page": "7954",
   "kind": "assists",
-  "perp": "Bad Luck",
+  "perp": "DB",
   "perp_set": "LOC CITY",
   "victim": "Tony",
   "victim_set": "ABM",
@@ -12712,7 +13512,7 @@
  {
   "page": "7954",
   "kind": "shootings",
-  "perp": "Bad Luck",
+  "perp": "DB",
   "perp_set": "LOC CITY",
   "victim": "Bino",
   "victim_set": "PBG",
@@ -12722,7 +13522,7 @@
  {
   "page": "7954",
   "kind": "shootings",
-  "perp": "Bad Luck",
+  "perp": "DB",
   "perp_set": "LOC CITY",
   "victim": "PBG Spazz",
   "victim_set": "PBG",
@@ -12732,7 +13532,7 @@
  {
   "page": "7954",
   "kind": "shootings",
-  "perp": "Bad Luck",
+  "perp": "DB",
   "perp_set": "LOC CITY",
   "victim": "TaySav",
   "victim_set": "PBG",
@@ -12742,7 +13542,7 @@
  {
   "page": "7954",
   "kind": "shootings",
-  "perp": "Bad Luck",
+  "perp": "DB",
   "perp_set": "LOC CITY",
   "victim": "Jaey Peso",
   "victim_set": "TaeTown",
@@ -12752,7 +13552,7 @@
  {
   "page": "7954",
   "kind": "shootings",
-  "perp": "Bad Luck",
+  "perp": "DB",
   "perp_set": "LOC CITY",
   "victim": "Veli",
   "victim_set": "TaeTown",
@@ -12762,7 +13562,7 @@
  {
   "page": "7954",
   "kind": "shootings",
-  "perp": "Bad Luck",
+  "perp": "DB",
   "perp_set": "LOC CITY",
   "victim": "D-Wade",
   "victim_set": "Hoola Gang",
@@ -12772,7 +13572,7 @@
  {
   "page": "7954",
   "kind": "shootings",
-  "perp": "Bad Luck",
+  "perp": "DB",
   "perp_set": "LOC CITY",
   "victim": "Cashie",
   "victim_set": "Hoola Gang",
@@ -12782,7 +13582,7 @@
  {
   "page": "7954",
   "kind": "shootings",
-  "perp": "Bad Luck",
+  "perp": "DB",
   "perp_set": "LOC CITY",
   "victim": "Twin",
   "victim_set": "Hoola Gang",
@@ -12792,7 +13592,7 @@
  {
   "page": "7954",
   "kind": "shootings",
-  "perp": "Bad Luck",
+  "perp": "DB",
   "perp_set": "LOC CITY",
   "victim": "Fatty",
   "victim_set": "Hoola Gang",
@@ -12802,7 +13602,7 @@
  {
   "page": "7954",
   "kind": "shootings",
-  "perp": "Bad Luck",
+  "perp": "DB",
   "perp_set": "LOC CITY",
   "victim": "Savage Sheen",
   "victim_set": "TFG",
@@ -12812,7 +13612,7 @@
  {
   "page": "7954",
   "kind": "shootings",
-  "perp": "Bad Luck",
+  "perp": "DB",
   "perp_set": "LOC CITY",
   "victim": "Bookie",
   "victim_set": "TFG",
@@ -15972,7 +16772,7 @@
  {
   "page": "7949",
   "kind": "bodies",
-  "perp": null,
+  "perp": "No Good Loso",
   "perp_set": "OUT7AW CITY",
   "victim": "Dionte",
   "victim_set": "QuillBlock",
@@ -15982,7 +16782,7 @@
  {
   "page": "7949",
   "kind": "assists",
-  "perp": null,
+  "perp": "No Good Loso",
   "perp_set": "OUT7AW CITY",
   "victim": "Gooch",
   "victim_set": "YatesMobb",
@@ -15992,7 +16792,7 @@
  {
   "page": "7949",
   "kind": "shootings",
-  "perp": null,
+  "perp": "No Good Loso",
   "perp_set": "OUT7AW CITY",
   "victim": "Lil Dave",
   "victim_set": "YatesMobb",
@@ -16002,7 +16802,7 @@
  {
   "page": "7949",
   "kind": "shootings",
-  "perp": null,
+  "perp": "No Good Loso",
   "perp_set": "OUT7AW CITY",
   "victim": "Killa",
   "victim_set": "YatesMobb",
@@ -16012,7 +16812,7 @@
  {
   "page": "7949",
   "kind": "shootings",
-  "perp": null,
+  "perp": "No Good Loso",
   "perp_set": "OUT7AW CITY",
   "victim": "Wooda Man",
   "victim_set": "YatesMobb",
@@ -16022,7 +16822,7 @@
  {
   "page": "7949",
   "kind": "shootings",
-  "perp": null,
+  "perp": "No Good Loso",
   "perp_set": "OUT7AW CITY",
   "victim": "Vesta",
   "victim_set": "No Limit 083",
@@ -16032,7 +16832,7 @@
  {
   "page": "7949",
   "kind": "shootings",
-  "perp": null,
+  "perp": "No Good Loso",
   "perp_set": "OUT7AW CITY",
   "victim": "So Icy",
   "victim_set": "No Limit 083",
@@ -33652,7 +34452,7 @@
  {
   "page": "7493",
   "kind": "bodies",
-  "perp": "Raheem",
+  "perp": "TP",
   "perp_set": "THF 46",
   "victim": "Peter",
   "victim_set": "SuWu TTB",
@@ -33662,7 +34462,7 @@
  {
   "page": "7493",
   "kind": "assists",
-  "perp": "Raheem",
+  "perp": "TP",
   "perp_set": "THF 46",
   "victim": "Tay",
   "victim_set": "SuWu TTB",
@@ -33672,7 +34472,7 @@
  {
   "page": "7493",
   "kind": "assists",
-  "perp": "Raheem",
+  "perp": "TP",
   "perp_set": "THF 46",
   "victim": "Big Freaky",
   "victim_set": "051 Young Money",
@@ -33682,7 +34482,7 @@
  {
   "page": "7493",
   "kind": "assists",
-  "perp": "Raheem",
+  "perp": "TP",
   "perp_set": "THF 46",
   "victim": "Shawt Mac",
   "victim_set": "051 Young Money",
@@ -33692,7 +34492,7 @@
  {
   "page": "7493",
   "kind": "shootings",
-  "perp": "Raheem",
+  "perp": "TP",
   "perp_set": "THF 46",
   "victim": "Boom",
   "victim_set": "051 Young Money",
@@ -33702,7 +34502,7 @@
  {
   "page": "7493",
   "kind": "shootings",
-  "perp": "Raheem",
+  "perp": "TP",
   "perp_set": "THF 46",
   "victim": "Chop",
   "victim_set": "051 Young Money",
@@ -33712,7 +34512,7 @@
  {
   "page": "7493",
   "kind": "shootings",
-  "perp": "Raheem",
+  "perp": "TP",
   "perp_set": "THF 46",
   "victim": "Marcus",
   "victim_set": "051 Young Money",
@@ -33722,7 +34522,7 @@
  {
   "page": "7493",
   "kind": "shootings",
-  "perp": "Raheem",
+  "perp": "TP",
   "perp_set": "THF 46",
   "victim": "Pooh Man",
   "victim_set": "051 Young Money",
@@ -33732,7 +34532,7 @@
  {
   "page": "7493",
   "kind": "shootings",
-  "perp": "Raheem",
+  "perp": "TP",
   "perp_set": "THF 46",
   "victim": "Woo",
   "victim_set": "051 Young Money",
@@ -33742,7 +34542,7 @@
  {
   "page": "7493",
   "kind": "shootings",
-  "perp": "Raheem",
+  "perp": "TP",
   "perp_set": "THF 46",
   "victim": "Leak",
   "victim_set": "051 Young Money",
@@ -33752,7 +34552,7 @@
  {
   "page": "7493",
   "kind": "shootings",
-  "perp": "Raheem",
+  "perp": "TP",
   "perp_set": "THF 46",
   "victim": "Stunna",
   "victim_set": "SuWu TTB",
@@ -33762,7 +34562,7 @@
  {
   "page": "7493",
   "kind": "shootings",
-  "perp": "Raheem",
+  "perp": "TP",
   "perp_set": "THF 46",
   "victim": "Poone",
   "victim_set": "SuWu TTB",
@@ -33772,7 +34572,7 @@
  {
   "page": "7493",
   "kind": "shootings",
-  "perp": "Raheem",
+  "perp": "TP",
   "perp_set": "THF 46",
   "victim": "EDay",
   "victim_set": "MetBoyz",
@@ -35482,7 +36282,7 @@
  {
   "page": "7493",
   "kind": "bodies",
-  "perp": "Slushy The Killer",
+  "perp": "Twilla",
   "perp_set": "THF 46",
   "victim": "T-Berg",
   "victim_set": "051 Young Money",
@@ -35492,7 +36292,7 @@
  {
   "page": "7493",
   "kind": "assists",
-  "perp": "Slushy The Killer",
+  "perp": "Twilla",
   "perp_set": "THF 46",
   "victim": "Lil Marc",
   "victim_set": "051 Young Money",
@@ -35502,7 +36302,7 @@
  {
   "page": "7493",
   "kind": "shootings",
-  "perp": "Slushy The Killer",
+  "perp": "Twilla",
   "perp_set": "THF 46",
   "victim": "Montana",
   "victim_set": "051 Young Money",
@@ -35512,7 +36312,7 @@
  {
   "page": "7493",
   "kind": "shootings",
-  "perp": "Slushy The Killer",
+  "perp": "Twilla",
   "perp_set": "THF 46",
   "victim": "Big A",
   "victim_set": "051 Young Money",
@@ -35522,7 +36322,7 @@
  {
   "page": "7493",
   "kind": "shootings",
-  "perp": "Slushy The Killer",
+  "perp": "Twilla",
   "perp_set": "THF 46",
   "victim": "Lil Marc",
   "victim_set": "051 Young Money",
@@ -35532,7 +36332,7 @@
  {
   "page": "7493",
   "kind": "shootings",
-  "perp": "Slushy The Killer",
+  "perp": "Twilla",
   "perp_set": "THF 46",
   "victim": "Rockhead",
   "victim_set": "051 Young Money",
@@ -35542,7 +36342,7 @@
  {
   "page": "7493",
   "kind": "shootings",
-  "perp": "Slushy The Killer",
+  "perp": "Twilla",
   "perp_set": "THF 46",
   "victim": "KD",
   "victim_set": "051 Young Money",
@@ -35552,7 +36352,7 @@
  {
   "page": "7493",
   "kind": "shootings",
-  "perp": "Slushy The Killer",
+  "perp": "Twilla",
   "perp_set": "THF 46",
   "victim": "Meiko",
   "victim_set": "MetBoyz",
@@ -35562,7 +36362,7 @@
  {
   "page": "7493",
   "kind": "shootings",
-  "perp": "Slushy The Killer",
+  "perp": "Twilla",
   "perp_set": "THF 46",
   "victim": "Lil Kenny",
   "victim_set": "MetBoyz",
@@ -35572,7 +36372,7 @@
  {
   "page": "7493",
   "kind": "shootings",
-  "perp": "Slushy The Killer",
+  "perp": "Twilla",
   "perp_set": "THF 46",
   "victim": "Kenny",
   "victim_set": "SuWu TTB",
@@ -35582,7 +36382,7 @@
  {
   "page": "7493",
   "kind": "shootings",
-  "perp": "Slushy The Killer",
+  "perp": "Twilla",
   "perp_set": "THF 46",
   "victim": "Twano",
   "victim_set": "757",
@@ -35592,7 +36392,7 @@
  {
   "page": "7493",
   "kind": "shootings",
-  "perp": "Slushy The Killer",
+  "perp": "Twilla",
   "perp_set": "THF 46",
   "victim": "Goon",
   "victim_set": "TouchMoney",
@@ -37052,7 +37852,7 @@
  {
   "page": "7491",
   "kind": "bodies",
-  "perp": "KTS Dre",
+  "perp": "KTS Von",
   "perp_set": "KILL TO SURVIVE (KTS)",
   "victim": "Gotti",
   "victim_set": "8×13",
@@ -37062,7 +37862,7 @@
  {
   "page": "7491",
   "kind": "bodies",
-  "perp": "KTS Dre",
+  "perp": "KTS Von",
   "perp_set": "KILL TO SURVIVE (KTS)",
   "victim": "Roc",
   "victim_set": "NLMB",
@@ -37072,7 +37872,7 @@
  {
   "page": "7491",
   "kind": "bodies",
-  "perp": "KTS Dre",
+  "perp": "KTS Von",
   "perp_set": "KILL TO SURVIVE (KTS)",
   "victim": "Alamo",
   "victim_set": "NLMB",
@@ -37082,7 +37882,7 @@
  {
   "page": "7491",
   "kind": "bodies",
-  "perp": "KTS Dre",
+  "perp": "KTS Von",
   "perp_set": "KILL TO SURVIVE (KTS)",
   "victim": "Big Los",
   "victim_set": "NLMB",
@@ -37092,7 +37892,7 @@
  {
   "page": "7491",
   "kind": "bodies",
-  "perp": "KTS Dre",
+  "perp": "KTS Von",
   "perp_set": "KILL TO SURVIVE (KTS)",
   "victim": "Fearro",
   "victim_set": "Sirconn City Gangsters",
@@ -37102,7 +37902,7 @@
  {
   "page": "7491",
   "kind": "bodies",
-  "perp": "KTS Dre",
+  "perp": "KTS Von",
   "perp_set": "KILL TO SURVIVE (KTS)",
   "victim": "Kobe",
   "victim_set": "NLMB",
@@ -37112,7 +37912,7 @@
  {
   "page": "7491",
   "kind": "assists",
-  "perp": "KTS Dre",
+  "perp": "KTS Von",
   "perp_set": "KILL TO SURVIVE (KTS)",
   "victim": "Lil Arron",
   "victim_set": "Sirconn City Gangsters",
@@ -37122,7 +37922,7 @@
  {
   "page": "7491",
   "kind": "shootings",
-  "perp": "KTS Dre",
+  "perp": "KTS Von",
   "perp_set": "KILL TO SURVIVE (KTS)",
   "victim": "Pistol P",
   "victim_set": "NLMB",
@@ -37132,7 +37932,7 @@
  {
   "page": "7491",
   "kind": "shootings",
-  "perp": "KTS Dre",
+  "perp": "KTS Von",
   "perp_set": "KILL TO SURVIVE (KTS)",
   "victim": "WetEmUp",
   "victim_set": "NLMB",
@@ -37142,7 +37942,7 @@
  {
   "page": "7491",
   "kind": "shootings",
-  "perp": "KTS Dre",
+  "perp": "KTS Von",
   "perp_set": "KILL TO SURVIVE (KTS)",
   "victim": "G-Herbo",
   "victim_set": "NLMB",
@@ -37152,7 +37952,7 @@
  {
   "page": "7491",
   "kind": "shootings",
-  "perp": "KTS Dre",
+  "perp": "KTS Von",
   "perp_set": "KILL TO SURVIVE (KTS)",
   "victim": "Larro",
   "victim_set": "NLMB",
@@ -37162,7 +37962,7 @@
  {
   "page": "7491",
   "kind": "shootings",
-  "perp": "KTS Dre",
+  "perp": "KTS Von",
   "perp_set": "KILL TO SURVIVE (KTS)",
   "victim": "Choppa",
   "victim_set": "NLMB",
@@ -37172,7 +37972,7 @@
  {
   "page": "7491",
   "kind": "shootings",
-  "perp": "KTS Dre",
+  "perp": "KTS Von",
   "perp_set": "KILL TO SURVIVE (KTS)",
   "victim": "Flocka",
   "victim_set": "NLMB",
@@ -37182,7 +37982,7 @@
  {
   "page": "7491",
   "kind": "shootings",
-  "perp": "KTS Dre",
+  "perp": "KTS Von",
   "perp_set": "KILL TO SURVIVE (KTS)",
   "victim": "TA",
   "victim_set": "FaceWorld",
@@ -37192,7 +37992,7 @@
  {
   "page": "7491",
   "kind": "shootings",
-  "perp": "KTS Dre",
+  "perp": "KTS Von",
   "perp_set": "KILL TO SURVIVE (KTS)",
   "victim": "Billa",
   "victim_set": "THF 46",
@@ -37202,7 +38002,7 @@
  {
   "page": "7491",
   "kind": "shootings",
-  "perp": "KTS Dre",
+  "perp": "KTS Von",
   "perp_set": "KILL TO SURVIVE (KTS)",
   "victim": "Devo Capone",
   "victim_set": "MTV",
@@ -37212,7 +38012,7 @@
  {
   "page": "7491",
   "kind": "shootings",
-  "perp": "KTS Dre",
+  "perp": "KTS Von",
   "perp_set": "KILL TO SURVIVE (KTS)",
   "victim": "Gutta",
   "victim_set": "Hitzsquad",
@@ -37222,7 +38022,7 @@
  {
   "page": "7491",
   "kind": "shootings",
-  "perp": "KTS Dre",
+  "perp": "KTS Von",
   "perp_set": "KILL TO SURVIVE (KTS)",
   "victim": "Dee",
   "victim_set": "8×13",
@@ -37232,7 +38032,7 @@
  {
   "page": "7491",
   "kind": "shootings",
-  "perp": "KTS Dre",
+  "perp": "KTS Von",
   "perp_set": "KILL TO SURVIVE (KTS)",
   "victim": "Santana",
   "victim_set": "8×13",
@@ -37242,7 +38042,7 @@
  {
   "page": "7491",
   "kind": "shootings",
-  "perp": "KTS Dre",
+  "perp": "KTS Von",
   "perp_set": "KILL TO SURVIVE (KTS)",
   "victim": "Trale",
   "victim_set": "Sirconn City Gangsters",
@@ -37252,7 +38052,7 @@
  {
   "page": "7491",
   "kind": "shootings",
-  "perp": "KTS Dre",
+  "perp": "KTS Von",
   "perp_set": "KILL TO SURVIVE (KTS)",
   "victim": "Day Day",
   "victim_set": "Sirconn City Gangsters",
@@ -37262,7 +38062,7 @@
  {
   "page": "7491",
   "kind": "shootings",
-  "perp": "KTS Dre",
+  "perp": "KTS Von",
   "perp_set": "KILL TO SURVIVE (KTS)",
   "victim": "Mally",
   "victim_set": "NLMB",
@@ -39952,7 +40752,7 @@
  {
   "page": "7489",
   "kind": "bodies",
-  "perp": "Jam",
+  "perp": "JL300",
   "perp_set": "LAMRON",
   "victim": "Travis",
   "victim_set": "Shields",
@@ -39962,7 +40762,7 @@
  {
   "page": "7489",
   "kind": "shootings",
-  "perp": "Jam",
+  "perp": "JL300",
   "perp_set": "LAMRON",
   "victim": "Glizzy",
   "victim_set": "No Luv City",
@@ -39972,7 +40772,7 @@
  {
   "page": "7489",
   "kind": "shootings",
-  "perp": "Jam",
+  "perp": "JL300",
   "perp_set": "LAMRON",
   "victim": "Denis",
   "victim_set": "No Luv City",
@@ -39982,7 +40782,7 @@
  {
   "page": "7489",
   "kind": "shootings",
-  "perp": "Jam",
+  "perp": "JL300",
   "perp_set": "LAMRON",
   "victim": "Zo",
   "victim_set": "No Luv City",
@@ -39992,7 +40792,7 @@
  {
   "page": "7489",
   "kind": "shootings",
-  "perp": "Jam",
+  "perp": "JL300",
   "perp_set": "LAMRON",
   "victim": "J-Roc",
   "victim_set": "Shields",
@@ -40002,7 +40802,7 @@
  {
   "page": "7489",
   "kind": "shootings",
-  "perp": "Jam",
+  "perp": "JL300",
   "perp_set": "LAMRON",
   "victim": "BDK Kevo",
   "victim_set": "Brick$quad069",
@@ -40012,7 +40812,7 @@
  {
   "page": "7489",
   "kind": "shootings",
-  "perp": "Jam",
+  "perp": "JL300",
   "perp_set": "LAMRON",
   "victim": "Boss Tony",
   "victim_set": "Brick$quad069",
@@ -40022,7 +40822,7 @@
  {
   "page": "7489",
   "kind": "shootings",
-  "perp": "Jam",
+  "perp": "JL300",
   "perp_set": "LAMRON",
   "victim": "Raymo",
   "victim_set": "Brick$quad069",
@@ -40032,7 +40832,7 @@
  {
   "page": "7489",
   "kind": "shootings",
-  "perp": "Jam",
+  "perp": "JL300",
   "perp_set": "LAMRON",
   "victim": "Kiddo Da Drilla",
   "victim_set": "051 Young Money",
@@ -41472,7 +42272,7 @@
  {
   "page": "7488",
   "kind": "assists",
-  "perp": "Gullie Gibson",
+  "perp": "Lil Dutty",
   "perp_set": "PBG/TFG",
   "victim": "Lil E",
   "victim_set": "LOC City",
@@ -41482,7 +42282,7 @@
  {
   "page": "7488",
   "kind": "assists",
-  "perp": "Gullie Gibson",
+  "perp": "Lil Dutty",
   "perp_set": "PBG/TFG",
   "victim": "PookMan",
   "victim_set": "Marshall Field MCs",
@@ -41492,7 +42292,7 @@
  {
   "page": "7488",
   "kind": "assists",
-  "perp": "Gullie Gibson",
+  "perp": "Lil Dutty",
   "perp_set": "PBG/TFG",
   "victim": "Keno",
   "victim_set": "LOC City",
@@ -41502,7 +42302,7 @@
  {
   "page": "7488",
   "kind": "shootings",
-  "perp": "Gullie Gibson",
+  "perp": "Lil Dutty",
   "perp_set": "PBG/TFG",
   "victim": "Money",
   "victim_set": "GoonBlock",
@@ -41512,7 +42312,7 @@
  {
   "page": "7488",
   "kind": "shootings",
-  "perp": "Gullie Gibson",
+  "perp": "Lil Dutty",
   "perp_set": "PBG/TFG",
   "victim": "King Ty",
   "victim_set": "LOC City",
@@ -41522,7 +42322,7 @@
  {
   "page": "7488",
   "kind": "shootings",
-  "perp": "Gullie Gibson",
+  "perp": "Lil Dutty",
   "perp_set": "PBG/TFG",
   "victim": "Monte",
   "victim_set": "LOC City",
@@ -41532,7 +42332,7 @@
  {
   "page": "7488",
   "kind": "shootings",
-  "perp": "Gullie Gibson",
+  "perp": "Lil Dutty",
   "perp_set": "PBG/TFG",
   "victim": "Ken Ben",
   "victim_set": "LOC City",
@@ -41542,7 +42342,7 @@
  {
   "page": "7488",
   "kind": "shootings",
-  "perp": "Gullie Gibson",
+  "perp": "Lil Dutty",
   "perp_set": "PBG/TFG",
   "victim": "Kuda",
   "victim_set": "600",
@@ -41552,7 +42352,7 @@
  {
   "page": "7488",
   "kind": "shootings",
-  "perp": "Gullie Gibson",
+  "perp": "Lil Dutty",
   "perp_set": "PBG/TFG",
   "victim": "Chuck",
   "victim_set": "Marshall Field MCs",
@@ -41562,7 +42362,7 @@
  {
   "page": "7488",
   "kind": "shootings",
-  "perp": "Gullie Gibson",
+  "perp": "Lil Dutty",
   "perp_set": "PBG/TFG",
   "victim": "Lil Loui",
   "victim_set": "SedVille",
@@ -41572,7 +42372,7 @@
  {
   "page": "7488",
   "kind": "shootings",
-  "perp": "Gullie Gibson",
+  "perp": "Lil Dutty",
   "perp_set": "PBG/TFG",
   "victim": "Chuck",
   "victim_set": "SedVille",
@@ -41582,7 +42382,7 @@
  {
   "page": "7488",
   "kind": "shootings",
-  "perp": "Gullie Gibson",
+  "perp": "Lil Dutty",
   "perp_set": "PBG/TFG",
   "victim": "Roe",
   "victim_set": "GVG",
@@ -41592,7 +42392,7 @@
  {
   "page": "7488",
   "kind": "shootings",
-  "perp": "Gullie Gibson",
+  "perp": "Lil Dutty",
   "perp_set": "PBG/TFG",
   "victim": "Jango",
   "victim_set": "Hoola Gang",
@@ -41602,7 +42402,7 @@
  {
   "page": "7488",
   "kind": "bodies",
-  "perp": "Gullie Gibson",
+  "perp": "Lil $hawn",
   "perp_set": "PBG/TFG",
   "victim": "Marcus",
   "victim_set": "LOC City",
@@ -41612,7 +42412,7 @@
  {
   "page": "7488",
   "kind": "bodies",
-  "perp": "Gullie Gibson",
+  "perp": "Lil $hawn",
   "perp_set": "PBG/TFG",
   "victim": "Von",
   "victim_set": "Killaward 078",
@@ -41622,7 +42422,7 @@
  {
   "page": "7488",
   "kind": "bodies",
-  "perp": "Gullie Gibson",
+  "perp": "Lil $hawn",
   "perp_set": "PBG/TFG",
   "victim": "V12",
   "victim_set": "LOC City",
@@ -41632,7 +42432,7 @@
  {
   "page": "7488",
   "kind": "shootings",
-  "perp": "Gullie Gibson",
+  "perp": "Lil $hawn",
   "perp_set": "PBG/TFG",
   "victim": "C-Money",
   "victim_set": "LOC City",
@@ -41642,7 +42442,7 @@
  {
   "page": "7488",
   "kind": "shootings",
-  "perp": "Gullie Gibson",
+  "perp": "Lil $hawn",
   "perp_set": "PBG/TFG",
   "victim": "Keno",
   "victim_set": "LOC City",
@@ -41652,7 +42452,7 @@
  {
   "page": "7488",
   "kind": "shootings",
-  "perp": "Gullie Gibson",
+  "perp": "Lil $hawn",
   "perp_set": "PBG/TFG",
   "victim": "IgNate",
   "victim_set": "LOC City",
@@ -41662,7 +42462,7 @@
  {
   "page": "7488",
   "kind": "shootings",
-  "perp": "Gullie Gibson",
+  "perp": "Lil $hawn",
   "perp_set": "PBG/TFG",
   "victim": "E-Man",
   "victim_set": "LOC City",
@@ -41672,7 +42472,7 @@
  {
   "page": "7488",
   "kind": "shootings",
-  "perp": "Gullie Gibson",
+  "perp": "Lil $hawn",
   "perp_set": "PBG/TFG",
   "victim": "King Ty",
   "victim_set": "LOC City",
@@ -41682,7 +42482,7 @@
  {
   "page": "7488",
   "kind": "shootings",
-  "perp": "Gullie Gibson",
+  "perp": "Lil $hawn",
   "perp_set": "PBG/TFG",
   "victim": "Munchie",
   "victim_set": "LOC City",
@@ -41692,7 +42492,7 @@
  {
   "page": "7488",
   "kind": "shootings",
-  "perp": "Gullie Gibson",
+  "perp": "Lil $hawn",
   "perp_set": "PBG/TFG",
   "victim": "KD",
   "victim_set": "LOC City",
@@ -41702,7 +42502,7 @@
  {
   "page": "7488",
   "kind": "shootings",
-  "perp": "Gullie Gibson",
+  "perp": "Lil $hawn",
   "perp_set": "PBG/TFG",
   "victim": "Mondo",
   "victim_set": "LOC City",
@@ -41712,7 +42512,7 @@
  {
   "page": "7488",
   "kind": "shootings",
-  "perp": "Gullie Gibson",
+  "perp": "Lil $hawn",
   "perp_set": "PBG/TFG",
   "victim": "Hot Rod",
   "victim_set": "LOC City",
@@ -41722,7 +42522,7 @@
  {
   "page": "7488",
   "kind": "shootings",
-  "perp": "Gullie Gibson",
+  "perp": "Lil $hawn",
   "perp_set": "PBG/TFG",
   "victim": "Half Mil",
   "victim_set": "GVG",
@@ -41732,7 +42532,7 @@
  {
   "page": "7488",
   "kind": "shootings",
-  "perp": "Gullie Gibson",
+  "perp": "Lil $hawn",
   "perp_set": "PBG/TFG",
   "victim": "Ahunna Stacks",
   "victim_set": "GVG",
@@ -41742,7 +42542,7 @@
  {
   "page": "7488",
   "kind": "shootings",
-  "perp": "Gullie Gibson",
+  "perp": "Lil $hawn",
   "perp_set": "PBG/TFG",
   "victim": "Ray",
   "victim_set": "TBG",
@@ -41752,7 +42552,7 @@
  {
   "page": "7488",
   "kind": "shootings",
-  "perp": "Gullie Gibson",
+  "perp": "Lil $hawn",
   "perp_set": "PBG/TFG",
   "victim": "PJ",
   "victim_set": "Lil4Mobb",
@@ -41762,7 +42562,7 @@
  {
   "page": "7488",
   "kind": "shootings",
-  "perp": "Gullie Gibson",
+  "perp": "Lil $hawn",
   "perp_set": "PBG/TFG",
   "victim": "Bae Bae",
   "victim_set": "Lil4Mobb",
@@ -41772,7 +42572,7 @@
  {
   "page": "7488",
   "kind": "bodies",
-  "perp": "Gullie Gibson",
+  "perp": "Lil $hawn",
   "perp_set": "PBG/TFG",
   "victim": "Alex",
   "victim_set": "LOC City",
@@ -41782,7 +42582,7 @@
  {
   "page": "7488",
   "kind": "bodies",
-  "perp": "Gullie Gibson",
+  "perp": "Lil $hawn",
   "perp_set": "PBG/TFG",
   "victim": "Jonathan",
   "victim_set": "LOC City",
@@ -41792,7 +42592,7 @@
  {
   "page": "7488",
   "kind": "bodies",
-  "perp": "Gullie Gibson",
+  "perp": "Lil $hawn",
   "perp_set": "PBG/TFG",
   "victim": "Bleek",
   "victim_set": "Slutty Boyz",
@@ -41802,7 +42602,7 @@
  {
   "page": "7488",
   "kind": "assists",
-  "perp": "Gullie Gibson",
+  "perp": "Lil $hawn",
   "perp_set": "PBG/TFG",
   "victim": "Blake",
   "victim_set": "LOC City",
@@ -41812,7 +42612,7 @@
  {
   "page": "7488",
   "kind": "assists",
-  "perp": "Gullie Gibson",
+  "perp": "Lil $hawn",
   "perp_set": "PBG/TFG",
   "victim": "Keno",
   "victim_set": "LOC City",
@@ -41822,7 +42622,7 @@
  {
   "page": "7488",
   "kind": "assists",
-  "perp": "Gullie Gibson",
+  "perp": "Lil $hawn",
   "perp_set": "PBG/TFG",
   "victim": "Munchie",
   "victim_set": "LOC City",
@@ -41832,7 +42632,7 @@
  {
   "page": "7488",
   "kind": "shootings",
-  "perp": "Gullie Gibson",
+  "perp": "Lil $hawn",
   "perp_set": "PBG/TFG",
   "victim": "Tommy",
   "victim_set": "SluttyBoyz",
@@ -41842,7 +42642,7 @@
  {
   "page": "7488",
   "kind": "shootings",
-  "perp": "Gullie Gibson",
+  "perp": "Lil $hawn",
   "perp_set": "PBG/TFG",
   "victim": "DueceDuece",
   "victim_set": "SluttyBoyz",
@@ -41852,7 +42652,7 @@
  {
   "page": "7488",
   "kind": "shootings",
-  "perp": "Gullie Gibson",
+  "perp": "Lil $hawn",
   "perp_set": "PBG/TFG",
   "victim": "BB",
   "victim_set": "SluttyBoyz",
@@ -41862,7 +42662,7 @@
  {
   "page": "7488",
   "kind": "shootings",
-  "perp": "Gullie Gibson",
+  "perp": "Lil $hawn",
   "perp_set": "PBG/TFG",
   "victim": "Bird Man",
   "victim_set": "LOC City",
@@ -41872,7 +42672,7 @@
  {
   "page": "7488",
   "kind": "shootings",
-  "perp": "Gullie Gibson",
+  "perp": "Lil $hawn",
   "perp_set": "PBG/TFG",
   "victim": "IgNate",
   "victim_set": "LOC City",
@@ -41882,7 +42682,7 @@
  {
   "page": "7488",
   "kind": "shootings",
-  "perp": "Gullie Gibson",
+  "perp": "Lil $hawn",
   "perp_set": "PBG/TFG",
   "victim": "Bad Luck",
   "victim_set": "LOC City",
@@ -41892,7 +42692,7 @@
  {
   "page": "7488",
   "kind": "shootings",
-  "perp": "Gullie Gibson",
+  "perp": "Lil $hawn",
   "perp_set": "PBG/TFG",
   "victim": "Joe Crack",
   "victim_set": "LOC City",
@@ -41902,7 +42702,7 @@
  {
   "page": "7488",
   "kind": "shootings",
-  "perp": "Gullie Gibson",
+  "perp": "Lil $hawn",
   "perp_set": "PBG/TFG",
   "victim": "Ice Man",
   "victim_set": "LOC City",
@@ -41912,7 +42712,7 @@
  {
   "page": "7488",
   "kind": "shootings",
-  "perp": "Gullie Gibson",
+  "perp": "Lil $hawn",
   "perp_set": "PBG/TFG",
   "victim": "King Ty",
   "victim_set": "LOC City",
@@ -41922,7 +42722,7 @@
  {
   "page": "7488",
   "kind": "shootings",
-  "perp": "Gullie Gibson",
+  "perp": "Lil $hawn",
   "perp_set": "PBG/TFG",
   "victim": "V12",
   "victim_set": "LOC City",
@@ -41932,7 +42732,7 @@
  {
   "page": "7488",
   "kind": "shootings",
-  "perp": "Gullie Gibson",
+  "perp": "Lil $hawn",
   "perp_set": "PBG/TFG",
   "victim": "Baby",
   "victim_set": "LOC City",
@@ -41942,7 +42742,7 @@
  {
   "page": "7488",
   "kind": "shootings",
-  "perp": "Gullie Gibson",
+  "perp": "Lil $hawn",
   "perp_set": "PBG/TFG",
   "victim": "B.Lord",
   "victim_set": "LOC City",
@@ -41952,7 +42752,7 @@
  {
   "page": "7488",
   "kind": "shootings",
-  "perp": "Gullie Gibson",
+  "perp": "Lil $hawn",
   "perp_set": "PBG/TFG",
   "victim": "Munchie",
   "victim_set": "LOC City",
@@ -41962,7 +42762,7 @@
  {
   "page": "7488",
   "kind": "shootings",
-  "perp": "Gullie Gibson",
+  "perp": "Lil $hawn",
   "perp_set": "PBG/TFG",
   "victim": "HB",
   "victim_set": "LOC City",
@@ -41972,7 +42772,7 @@
  {
   "page": "7488",
   "kind": "shootings",
-  "perp": "Gullie Gibson",
+  "perp": "Lil $hawn",
   "perp_set": "PBG/TFG",
   "victim": "Kane",
   "victim_set": "Uptown Lawds",
@@ -41982,7 +42782,7 @@
  {
   "page": "7488",
   "kind": "shootings",
-  "perp": "Gullie Gibson",
+  "perp": "Lil $hawn",
   "perp_set": "PBG/TFG",
   "victim": "JuneBug",
   "victim_set": "Buck Town",
@@ -41992,7 +42792,7 @@
  {
   "page": "7488",
   "kind": "shootings",
-  "perp": "Gullie Gibson",
+  "perp": "Lil $hawn",
   "perp_set": "PBG/TFG",
   "victim": "Lil Sam",
   "victim_set": "Lil4Mobb",
@@ -42002,7 +42802,7 @@
  {
   "page": "7488",
   "kind": "bodies",
-  "perp": "Gullie Gibson",
+  "perp": "Mosey",
   "perp_set": "PBG/TFG",
   "victim": "Keno",
   "victim_set": "LOC City",
@@ -42012,7 +42812,7 @@
  {
   "page": "7488",
   "kind": "assists",
-  "perp": "Gullie Gibson",
+  "perp": "Mosey",
   "perp_set": "PBG/TFG",
   "victim": "Munchie",
   "victim_set": "LOC City",
@@ -42022,7 +42822,7 @@
  {
   "page": "7488",
   "kind": "shootings",
-  "perp": "Gullie Gibson",
+  "perp": "Mosey",
   "perp_set": "PBG/TFG",
   "victim": "Lil Josh",
   "victim_set": "LOC City",
@@ -42032,7 +42832,7 @@
  {
   "page": "7488",
   "kind": "shootings",
-  "perp": "Gullie Gibson",
+  "perp": "Mosey",
   "perp_set": "PBG/TFG",
   "victim": "Neil",
   "victim_set": "LOC City",
@@ -42042,7 +42842,7 @@
  {
   "page": "7488",
   "kind": "shootings",
-  "perp": "Gullie Gibson",
+  "perp": "Mosey",
   "perp_set": "PBG/TFG",
   "victim": "Rap",
   "victim_set": "LOC City",
@@ -42052,7 +42852,7 @@
  {
   "page": "7488",
   "kind": "shootings",
-  "perp": "Gullie Gibson",
+  "perp": "Mosey",
   "perp_set": "PBG/TFG",
   "victim": "MurdaMan",
   "victim_set": "LOC City",
@@ -42062,7 +42862,7 @@
  {
   "page": "7488",
   "kind": "shootings",
-  "perp": "Gullie Gibson",
+  "perp": "Mosey",
   "perp_set": "PBG/TFG",
   "victim": "V12",
   "victim_set": "LOC City",
@@ -42072,7 +42872,7 @@
  {
   "page": "7488",
   "kind": "shootings",
-  "perp": "Gullie Gibson",
+  "perp": "Mosey",
   "perp_set": "PBG/TFG",
   "victim": "Lil Duke",
   "victim_set": "GVG",
@@ -42082,7 +42882,7 @@
  {
   "page": "7488",
   "kind": "bodies",
-  "perp": "Gullie Gibson",
+  "perp": "Kemo",
   "perp_set": "PBG/TFG",
   "victim": "EJ",
   "victim_set": "Lil4Mobb",
@@ -42092,7 +42892,7 @@
  {
   "page": "7488",
   "kind": "bodies",
-  "perp": "Gullie Gibson",
+  "perp": "Kemo",
   "perp_set": "PBG/TFG",
   "victim": "Keon",
   "victim_set": "LOC City",
@@ -42102,7 +42902,7 @@
  {
   "page": "7488",
   "kind": "assists",
-  "perp": "Gullie Gibson",
+  "perp": "Kemo",
   "perp_set": "PBG/TFG",
   "victim": "Terry",
   "victim_set": "Lil4Mobb",
@@ -42112,7 +42912,7 @@
  {
   "page": "7488",
   "kind": "shootings",
-  "perp": "Gullie Gibson",
+  "perp": "Kemo",
   "perp_set": "PBG/TFG",
   "victim": "Derrick",
   "victim_set": "LOC City",
@@ -42122,7 +42922,7 @@
  {
   "page": "7488",
   "kind": "shootings",
-  "perp": "Gullie Gibson",
+  "perp": "Kemo",
   "perp_set": "PBG/TFG",
   "victim": "Tony",
   "victim_set": "LOC City",
@@ -42132,7 +42932,7 @@
  {
   "page": "7488",
   "kind": "shootings",
-  "perp": "Gullie Gibson",
+  "perp": "Kemo",
   "perp_set": "PBG/TFG",
   "victim": "Corkey",
   "victim_set": "LOC City",
@@ -42142,7 +42942,7 @@
  {
   "page": "7488",
   "kind": "shootings",
-  "perp": "Gullie Gibson",
+  "perp": "Kemo",
   "perp_set": "PBG/TFG",
   "victim": "Baby",
   "victim_set": "LOC City",
@@ -42152,7 +42952,7 @@
  {
   "page": "7488",
   "kind": "shootings",
-  "perp": "Gullie Gibson",
+  "perp": "Kemo",
   "perp_set": "PBG/TFG",
   "victim": "Huncho",
   "victim_set": "LOC City",
@@ -42162,7 +42962,7 @@
  {
   "page": "7488",
   "kind": "shootings",
-  "perp": "Gullie Gibson",
+  "perp": "Kemo",
   "perp_set": "PBG/TFG",
   "victim": "Prince Shorty",
   "victim_set": "Lil4Mobb",
@@ -42172,7 +42972,7 @@
  {
   "page": "7488",
   "kind": "shootings",
-  "perp": "Gullie Gibson",
+  "perp": "Kemo",
   "perp_set": "PBG/TFG",
   "victim": "Lil Sam",
   "victim_set": "Lil4Mobb",
@@ -42182,7 +42982,7 @@
  {
   "page": "7488",
   "kind": "shootings",
-  "perp": "Gullie Gibson",
+  "perp": "Kemo",
   "perp_set": "PBG/TFG",
   "victim": "Tyrese",
   "victim_set": "Lil4Mobb",
@@ -42192,7 +42992,7 @@
  {
   "page": "7488",
   "kind": "shootings",
-  "perp": "Gullie Gibson",
+  "perp": "Kemo",
   "perp_set": "PBG/TFG",
   "victim": "Cole",
   "victim_set": "Lil4Mobb",
@@ -42202,7 +43002,7 @@
  {
   "page": "7488",
   "kind": "shootings",
-  "perp": "Gullie Gibson",
+  "perp": "Kemo",
   "perp_set": "PBG/TFG",
   "victim": "Big Mike",
   "victim_set": "GVG",
@@ -49322,7 +50122,7 @@
  {
   "page": "7484",
   "kind": "assists",
-  "perp": "Manny Fresh",
+  "perp": "FBG Duck",
   "perp_set": "STL/EBT",
   "victim": "Odee",
   "victim_set": "WIIIC City",
@@ -49332,7 +50132,7 @@
  {
   "page": "7484",
   "kind": "shootings",
-  "perp": "Manny Fresh",
+  "perp": "FBG Duck",
   "perp_set": "STL/EBT",
   "victim": "MoneyMan",
   "victim_set": "TYMB",
@@ -49342,7 +50142,7 @@
  {
   "page": "7484",
   "kind": "shootings",
-  "perp": "Manny Fresh",
+  "perp": "FBG Duck",
   "perp_set": "STL/EBT",
   "victim": "Little",
   "victim_set": "TYMB",
@@ -49352,7 +50152,7 @@
  {
   "page": "7484",
   "kind": "shootings",
-  "perp": "Manny Fresh",
+  "perp": "FBG Duck",
   "perp_set": "STL/EBT",
   "victim": "Phat B",
   "victim_set": "TYMB",
@@ -49362,7 +50162,7 @@
  {
   "page": "7484",
   "kind": "shootings",
-  "perp": "Manny Fresh",
+  "perp": "FBG Duck",
   "perp_set": "STL/EBT",
   "victim": "Demo",
   "victim_set": "TYMB",
@@ -49372,7 +50172,7 @@
  {
   "page": "7484",
   "kind": "shootings",
-  "perp": "Manny Fresh",
+  "perp": "FBG Duck",
   "perp_set": "STL/EBT",
   "victim": "Air Kelso",
   "victim_set": "TYMB",
@@ -49382,7 +50182,7 @@
  {
   "page": "7484",
   "kind": "shootings",
-  "perp": "Manny Fresh",
+  "perp": "FBG Duck",
   "perp_set": "STL/EBT",
   "victim": "Jr",
   "victim_set": "TYMB",
@@ -49392,7 +50192,7 @@
  {
   "page": "7484",
   "kind": "shootings",
-  "perp": "Manny Fresh",
+  "perp": "FBG Duck",
   "perp_set": "STL/EBT",
   "victim": "Wooda",
   "victim_set": "Chris World",
@@ -49402,7 +50202,7 @@
  {
   "page": "7484",
   "kind": "shootings",
-  "perp": "Manny Fresh",
+  "perp": "FBG Duck",
   "perp_set": "STL/EBT",
   "victim": "Edai",
   "victim_set": "600",
@@ -49412,7 +50212,7 @@
  {
   "page": "7484",
   "kind": "shootings",
-  "perp": "Manny Fresh",
+  "perp": "FBG Duck",
   "perp_set": "STL/EBT",
   "victim": "Tay600",
   "victim_set": "600",
@@ -49422,7 +50222,7 @@
  {
   "page": "7484",
   "kind": "shootings",
-  "perp": "Manny Fresh",
+  "perp": "FBG Duck",
   "perp_set": "STL/EBT",
   "victim": "Booka",
   "victim_set": "600",
@@ -49432,7 +50232,7 @@
  {
   "page": "7484",
   "kind": "shootings",
-  "perp": "Manny Fresh",
+  "perp": "FBG Duck",
   "perp_set": "STL/EBT",
   "victim": "Lil Reese",
   "victim_set": "Lamron",
@@ -49442,7 +50242,7 @@
  {
   "page": "7484",
   "kind": "shootings",
-  "perp": "Manny Fresh",
+  "perp": "FBG Duck",
   "perp_set": "STL/EBT",
   "victim": "BossTop",
   "victim_set": "O'Block",
@@ -49452,7 +50252,7 @@
  {
   "page": "7484",
   "kind": "shootings",
-  "perp": "Manny Fresh",
+  "perp": "FBG Duck",
   "perp_set": "STL/EBT",
   "victim": "T-Roy",
   "victim_set": "O'Block",
@@ -49462,7 +50262,7 @@
  {
   "page": "7484",
   "kind": "shootings",
-  "perp": "Manny Fresh",
+  "perp": "FBG Duck",
   "perp_set": "STL/EBT",
   "victim": "Young",
   "victim_set": "O'Block",
@@ -49472,7 +50272,7 @@
  {
   "page": "7484",
   "kind": "shootings",
-  "perp": "Manny Fresh",
+  "perp": "FBG Duck",
   "perp_set": "STL/EBT",
   "victim": "Bre",
   "victim_set": "O'Block",

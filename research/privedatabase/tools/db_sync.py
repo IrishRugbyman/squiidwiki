@@ -34,6 +34,7 @@ def candidates(title: str):
     stored as "OBN", and "DIPSET/FRONT$TREET" covers two sets. Without these
     the reconciliation reports false orphans in both directions.
     """
+    title = title or ""
     out = {norm(title)}
     inner = re.findall(r"\(([^)]+)\)", title)  # (OBN)
     out |= {norm(i) for i in inner}
@@ -72,7 +73,11 @@ def db_sets(db, uid):
     )
     out = {}
     for r in rows:
-        keys = {norm(r["name"])} | {norm(v.get("name", "")) for v in (r["nv"] or [])}
+        keys = {norm(r["name"])} | {
+            norm(v.get(slot) or "")
+            for v in (r["nv"] or [])
+            for slot in ("name", "initials", "number")
+        }
         out[r["id"]] = {
             "id": r["id"],
             "name": r["name"],

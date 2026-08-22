@@ -430,15 +430,22 @@ only the difference, never delete. Then a parser fix can be applied at any time.
   duplicates, so it is printed for adjudication and never created. First run:
   3 created (Lil Harvey, Folly Fatz, HellBoy Rell), 11 listed for review, 4,968
   already present. Second run: 0.
-- The incident equivalent is still to be written. `fix_misattributed_incidents.py`
-  covers the repair half (patch what is wrong) but deliberately never creates, so
-  236 groups the corrected extraction knows about - 232 shootings and 4 murders,
-  including The God Father's kill of Lil Harvey - are still absent. Creating them
-  safely needs `seed_chicago_incidents.py` refactored under a `main()` guard so its
-  `resolve_person` can be imported: that resolver uses page context, alliance
-  scopes and person-page subject sets, and is materially stronger than the local
-  one. Creating 236 incidents on the weaker resolver would risk duplicating
-  incidents that already exist under a differently-resolved victim.
+- `tools/sync_chicago_incidents.py` is the incident equivalent. It imports
+  `seed_chicago_incidents.py` (its top half is pure computation) to drive the
+  **same grouping and the same `resolve_person`**, then writes only the
+  difference: PATCH a group whose incident exists and differs, POST a group with
+  no incident, and leave anything the extraction does not know about alone. First
+  run: 46 corrected, 20 created, 6 hand-made incidents untouched (the T-Slick
+  murder among them), 6 victims flagged as ambiguous. Second run: 0 and 0.
+
+  Using the seed's resolver is what made this safe. The local resolver in
+  `fix_misattributed_incidents.py` had estimated 236 missing groups; the seed's,
+  which scopes names by page, alliance and person-page subject set, found **20**.
+  Creating 236 incidents would have duplicated 200-odd that already existed under
+  a differently-resolved victim.
+
+  With that, the two gaps documented as unreachable are closed: The God Father
+  has his kills of Lil Harvey and Anthony, and Lil Harvey has a fiche.
 
 ### A resolution trap worth knowing
 

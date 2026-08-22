@@ -128,8 +128,11 @@ for r in q(
     for k in candidates(r["name"]):
         setidx.setdefault(k, r["id"])
     for v in r["nv"] or []:
-        for k in candidates(v.get("name", "")):
-            setidx.setdefault(k, r["id"])
+        # A variant carries three slots: the acronym lives in `initials` and the
+        # set number in `number`, so indexing only `name` loses "SKD" and "078".
+        for slot in ("name", "initials", "number"):
+            for k in candidates(v.get(slot) or ""):
+                setidx.setdefault(k, r["id"])
 
 allidx = {}  # name key -> alliance id
 for r in q(f"SELECT id,name FROM alliance WHERE universe_id='{U}'"):
