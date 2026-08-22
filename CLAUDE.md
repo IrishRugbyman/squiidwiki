@@ -25,6 +25,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Hard rules
 
 - **NEVER MODIFY DATA IN PROD DB** without explicit instruction. The exception currently baked in is municipalities (see Architecture → DB toggle).
+- **A biography says only what no other column holds.** Never write into `biography` (or any free-text field) something the page already renders from a column: the set, the gang, the alliance, the family, the aliases, the bare status, the legal name, the dates, or the incident a member died in. The test is **state versus circumstance** - "he is incarcerated" is a column and is banned, "took the charges for his members" is a fact no column holds. Same sentence, opposite verdicts. An empty bio is the correct answer when nothing survives the strip, and more output is not better output. This applies to prose written by hand as much as to agent-drafted batches; `research/privedatabase/tools/verify_bios.py` mechanises the check, and the reasoning is in `research/privedatabase/README.md` under "Biographies, and the rule that makes them worth having".
 
 ## Development Environment (Linux server)
 
