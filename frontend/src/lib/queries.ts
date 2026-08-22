@@ -765,6 +765,21 @@ export const useMappableIncidents = (universeId: UUID | null) =>
     staleTime: 30_000,
   })
 
+/**
+ * Incidents that carry a date, for the calendar and the timeline. Both discard
+ * undated incidents anyway, and useAllIncidents caps at 200 of several thousand
+ * ordered by creation - so a dated incident created early enough simply fell off
+ * the end and never appeared on either page.
+ */
+export const useDatedIncidents = (universeId: UUID | null) =>
+  useQuery({
+    queryKey: ['incidents', 'dated', universeId],
+    queryFn: () =>
+      api.get<CursorPage<IncidentListItem>>(`/incidents/?universe_id=${universeId}&with_date=true`),
+    enabled: !!universeId,
+    staleTime: 30_000,
+  })
+
 export const useAllIncidents = (universeId: UUID | null) =>
   useQuery({
     queryKey: ['incidents', 'all', universeId],
