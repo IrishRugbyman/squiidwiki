@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
 import {
-  AlertTriangle, CheckCircle2, Copy, Download, ExternalLink, GitFork,
+  AlertTriangle, Copy, Download, ExternalLink, GitFork,
   Pencil, Plus, Skull, Trash2, X,
 } from 'lucide-react'
 import { FacebookIcon, InstagramIcon, TwitterIcon } from '@/components/icons/SocialIcons'
@@ -779,14 +779,27 @@ function MemberDetailPage() {
                           <th className="px-4 py-2.5 text-left text-xs font-medium text-zinc-400">Type</th>
                           <th className="px-4 py-2.5 text-left text-xs font-medium text-zinc-400">Their role</th>
                           <th className="px-4 py-2.5 text-left text-xs font-medium text-zinc-400">Victims</th>
-                          <th className="px-4 py-2.5 text-left text-xs font-medium text-zinc-400">Verified</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-zinc-800">
                         {incidents!.items.map((inc) => (
                           <tr key={inc.id} className="hover:bg-zinc-900/50 transition-colors">
                             <td className="p-0">
-                              <Link to="/incidents/$id" params={{ id: inc.id }} className="block px-4 py-3 text-zinc-300 hover:text-violet-400">
+                              {/* Verified is a dot in the date cell rather than a column of its
+                                  own: it is true for a small minority, so a whole column spent
+                                  rendering an em dash costs more width than the flag is worth.
+                                  The slot is always reserved so dates stay aligned. */}
+                              <Link to="/incidents/$id" params={{ id: inc.id }} className="flex items-center gap-2 px-4 py-3 text-zinc-300 hover:text-violet-400">
+                                {inc.verified ? (
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-500" aria-label="Verified incident" />
+                                    </TooltipTrigger>
+                                    <TooltipContent side="right">Verified incident</TooltipContent>
+                                  </Tooltip>
+                                ) : (
+                                  <span className="h-1.5 w-1.5 shrink-0" aria-hidden />
+                                )}
                                 {inc.date ? <FuzzyDate value={inc.date} /> : '—'}
                               </Link>
                             </td>
@@ -810,14 +823,7 @@ function MemberDetailPage() {
                             <td className="px-4 py-3 text-xs text-zinc-400">
                               {inc.victim_names.length > 0 ? inc.victim_names.join(', ') : '—'}
                             </td>
-                            <td className="px-4 py-3">
-                              {inc.verified ? (
-                                <Tooltip>
-                                  <TooltipTrigger asChild><CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" /></TooltipTrigger>
-                                  <TooltipContent side="left">Verified incident</TooltipContent>
-                                </Tooltip>
-                              ) : <span className="text-zinc-400 text-xs">—</span>}
-                            </td>
+
                           </tr>
                         ))}
                       </tbody>
