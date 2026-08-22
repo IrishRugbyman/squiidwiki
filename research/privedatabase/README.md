@@ -7,7 +7,10 @@ WordPress.com public REST API in 12 calls. The site is public (`is_private: fals
 Kept as a sibling of `../detroit/` rather than inside it, because **the site is not only
 Detroit**. Roughly 40% of it is Chicago.
 
-**Nothing here has been written to the database.**
+**Much of the Chicago half has since been written to the database**, in the seeding and
+repair passes recorded in the dated sections below. `db-sync.md` is the generated answer to
+what has and has not reached it; this line used to say nothing had, which stopped being true
+on the first seed.
 
 ## Files
 
@@ -605,6 +608,36 @@ row and re-created the collision the fix had just undone.
 Eight resolution keys are still claimed by more than one set and deserve a look:
 `abm` (Jaro City / Lil4Mobb), `bbgterrordome`, `cranktown`, `ebt`, `newmoney080`,
 `stl`, `stlebt` (MurderVille / STL-EBT) and `tytoland`.
+
+## An outside source: the r/Chiraqology thread on 1 Eye (2026-08-22)
+
+The first Chicago fact seeded from something other than this site. A 2021
+r/Chiraqology post, `1 Eye (NLMB) 🕊️ x G Farro (NLMB)`, carries a throwback photo
+and a comment thread that supplies three things the corpus does not have:
+
+- **1 Eye's legal name.** Michael Smith. Here he exists only as a body attributed to
+  BLACKMOBB and credited to ShawtyHitt, with no name and no date.
+- **When he died.** The poster says he went missing on 7 September 2015 and his body was
+  found on the 11th; a second contributor gives 10 September. Seeded as `YM` precision -
+  September 2015 - because picking a day the thread itself does not agree on would state
+  more than the source does. A third comment claiming BLACKMOBB killed him in 2012 was
+  contradicted by two others and is not carried. The killer is unidentified, so no
+  incident row was created.
+- **G Farro.** An NLMB member who appears nowhere in the 1,105 pages, and nowhere in the
+  database before this. He is now a member with the photo, the NLMB affiliation and the
+  thread as his only source.
+
+Reddit is unreachable from this box - `www.reddit.com`, `old.reddit.com` and the redlib
+mirrors all return 403 to this IP, and WebFetch refuses the domain outright - so the
+thread text was pasted in by hand and only the image, on `preview.redd.it`, could be
+pulled directly. A search for press coverage of a Michael Smith found dead in Chicago in
+September 2015 returned nothing, and the thread's own author says the article they once
+had has since disappeared. The source row is therefore `UNVERIFIED`, the same rating this
+site carries, and the biography says plainly that everything rests on one anonymous
+forum thread.
+
+`tools/seed_1eye_gfarro.py` applies it, and is idempotent: it finds the source by URL and
+the member by nickname, and skips a photo whose caption is already attached.
 
 ## Before seeding any of this
 
