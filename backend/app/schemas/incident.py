@@ -115,3 +115,8 @@ class IncidentListItem(BaseModel):
     universe_id: uuid.UUID
     victim_names: list[str] = []
     shooter_names: list[str] = []
+    # The role held by the member this list was filtered on, when it was. A member's
+    # own page otherwise shows an incident with no hint of what he did in it, so a
+    # murder he assisted reads exactly like one he committed.
+    viewer_role: Optional[ParticipantRole] = None
+    viewer_outcome: Optional[ParticipantOutcome] = None

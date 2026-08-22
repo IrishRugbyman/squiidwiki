@@ -30,7 +30,12 @@ import {
 import type { IncidentListItem, MemberIncarcerationRead, MemberRead } from '@/lib/types'
 import type { FuzzyDateValue } from '@/components/FuzzyDate'
 import { downloadText } from '@/lib/download'
-import { INCIDENT_TYPE_CHIP, INCIDENT_TYPE_LABEL } from '@/lib/incidentColors'
+import {
+  INCIDENT_TYPE_CHIP, INCIDENT_TYPE_LABEL,
+  ROLE_CHIP as PARTICIPANT_ROLE_CHIP,
+  ROLE_LABEL as PARTICIPANT_ROLE_LABEL,
+  OUTCOME_LABEL,
+} from '@/lib/incidentColors'
 import { useUniverseStore } from '@/stores/universe'
 import { useAuthStore } from '@/stores/auth'
 import { MemberFormSheet, familyDictToEntries, ROLE_LABEL } from './_app.members.index'
@@ -772,6 +777,7 @@ function MemberDetailPage() {
                         <tr className="border-b border-zinc-800 bg-zinc-900/50">
                           <th className="px-4 py-2.5 text-left text-xs font-medium text-zinc-400">Date</th>
                           <th className="px-4 py-2.5 text-left text-xs font-medium text-zinc-400">Type</th>
+                          <th className="px-4 py-2.5 text-left text-xs font-medium text-zinc-400">Their role</th>
                           <th className="px-4 py-2.5 text-left text-xs font-medium text-zinc-400">Victims</th>
                           <th className="px-4 py-2.5 text-left text-xs font-medium text-zinc-400">Verified</th>
                         </tr>
@@ -788,6 +794,18 @@ function MemberDetailPage() {
                               <Badge variant="outline" className={`text-xs ${INCIDENT_TYPE_CHIP[inc.type]}`}>
                                 {INCIDENT_TYPE_LABEL[inc.type]}
                               </Badge>
+                            </td>
+                            <td className="px-4 py-3">
+                              {inc.viewer_role ? (
+                                <span className="inline-flex items-center gap-1.5">
+                                  <Badge variant="outline" className={`text-xs border ${PARTICIPANT_ROLE_CHIP[inc.viewer_role]}`}>
+                                    {PARTICIPANT_ROLE_LABEL[inc.viewer_role]}
+                                  </Badge>
+                                  {inc.viewer_outcome && inc.viewer_outcome !== 'UNKNOWN' && (
+                                    <span className="text-[11px] text-zinc-400">{OUTCOME_LABEL[inc.viewer_outcome]}</span>
+                                  )}
+                                </span>
+                              ) : <span className="text-zinc-400 text-xs">—</span>}
                             </td>
                             <td className="px-4 py-3 text-xs text-zinc-400">
                               {inc.victim_names.length > 0 ? inc.victim_names.join(', ') : '—'}

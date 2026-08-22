@@ -27,7 +27,9 @@ from app.schemas.incident import (
 router = APIRouter(prefix="/incidents", tags=["incidents"])
 
 
-async def _enrich_participant_names(session: AsyncSession, items: list) -> list:
+async def _enrich_participant_names(
+    session: AsyncSession, items: list, viewer_id: uuid.UUID | None = None
+) -> list:
     if not items:
         return items
     incident_ids = [inc.id for inc in items]
@@ -53,6 +55,20 @@ async def _enrich_participant_names(session: AsyncSession, items: list) -> list:
             victim_map.setdefault(key, []).append(name)
         else:
             shooter_map.setdefault(key, []).append(name)
+
+    # What the member being viewed did in each of these incidents. Fetched
+    # separately because the query above keeps only VICTIM and SHOOTER, and an
+    # assist is exactly the case the page was misreporting.
+    viewer_map: dict[str, tuple] = {}
+    if viewer_id is not None:
+        viewer_rows = (
+            await session.execute(
+                select(ip.c.incident_id, ip.c.role, ip.c.outcome)
+                .where(ip.c.incident_id.in_(incident_ids))
+                .where(ip.c.member_id == viewer_id)
+            )
+        ).fetchall()
+        viewer_map = {str(r[0]): (r[1], r[2]) for r in viewer_rows}
     # Single batched join for municipality names so the frontend doesn't have
     # to fetch the entire municipalities table just to label rows.
     muni_ids = {inc.municipality_id for inc in items if inc.municipality_id}
@@ -71,6 +87,8 @@ async def _enrich_participant_names(session: AsyncSession, items: list) -> list:
         key = str(inc.id)
         d.victim_names = victim_map.get(key, [])
         d.shooter_names = shooter_map.get(key, [])
+        if key in viewer_map:
+            d.viewer_role, d.viewer_outcome = viewer_map[key]
         if inc.municipality_id:
             d.municipality_name = muni_names.get(inc.municipality_id)
         enriched.append(d)
@@ -100,7 +118,9 @@ async def list_incidents(
     if member_id is not None:
         items = await crud.list_incidents_by_member(session, member_id, universe_id, limit=limit)
         return CursorPage(
-            items=await _enrich_participant_names(session, items), next_cursor=None, total=None
+            items=await _enrich_participant_names(session, items, viewer_id=member_id),
+            next_cursor=None,
+            total=None,
         )
     if municipality_id is not None:
         items = await crud.list_incidents_by_municipality(

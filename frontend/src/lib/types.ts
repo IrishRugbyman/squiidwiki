@@ -447,6 +447,9 @@ export interface IncidentListItem {
   universe_id: UUID
   victim_names: string[]
   shooter_names: string[]
+  /** Role held by the member the list was filtered on; null on unfiltered lists. */
+  viewer_role: ParticipantRole | null
+  viewer_outcome: ParticipantOutcome | null
 }
 
 export interface IncidentRead extends IncidentListItem {
