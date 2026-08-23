@@ -13,7 +13,7 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Textarea } from '@/components/ui/textarea'
-import { useAlliances, useAllSets, useCreateSet, useDeleteSet, useGangs, useMunicipalities, useSet, useSets, useUpdateSet, type SetsListParams } from '@/lib/queries'
+import { useAlliances, useAllSets, useCreateSet, useDeleteSet, useGangs, useMunicipalities, useReservedSets, useSet, useSets, useUpdateSet, type SetsListParams } from '@/lib/queries'
 import { BulkActionBar } from '@/components/BulkActionBar'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { useUniverseStore } from '@/stores/universe'
@@ -947,6 +947,7 @@ function SetsPage() {
     alliance_id: allianceFilter !== ALL_SENTINEL ? allianceFilter : undefined,
     gang_id: gangFilter !== ALL_SENTINEL ? gangFilter : undefined,
     municipality_id: muniFilter !== ALL_SENTINEL ? muniFilter : undefined,
+    reserved: false,
     sort,
     order,
   }
@@ -959,19 +960,20 @@ function SetsPage() {
 
   // Unfiltered totals for the KPI strip — separate query, cached, light.
   // Fetched without any filters so the KPIs reflect the whole universe.
-  const { data: kpiData } = useSets(universe?.id ?? null, { limit: 200 })
+  const { data: kpiData } = useSets(universe?.id ?? null, { limit: 200, reserved: false })
+  // The system row is its own query so it survives every search and filter.
+  const { data: reservedData } = useReservedSets(universe?.id ?? null)
 
   if (!universe) return <NoUniverse />
 
-  const rawItems = data?.items ?? []
-  const reservedSets = rawItems.filter((s) => s.is_reserved)
-  const items = rawItems.filter((s) => !s.is_reserved)
+  const items = data?.items ?? []
+  const reservedSets = reservedData?.items ?? []
   const total = data?.total ?? 0
-  const selectableIds = items.filter((s) => !s.is_reserved).map((s) => s.id)
+  const selectableIds = items.map((s) => s.id)
   const allSelected = selectableIds.length > 0 && selectableIds.every((id) => selected.has(id))
 
   // KPI stats over the universe (excluding reserved sets).
-  const allKpiSets = (kpiData?.items ?? []).filter((s) => !s.is_reserved)
+  const allKpiSets = kpiData?.items ?? []
   const kpiActive = allKpiSets.filter((s) => s.status === 'ACTIVE').length
   const kpiExtinct = allKpiSets.filter((s) => s.status === 'EXTINCT').length
   const kpiInAlliance = allKpiSets.filter((s) => !!s.alliance_id).length
@@ -1045,7 +1047,7 @@ function SetsPage() {
 
   const totalPages = Math.max(1, Math.ceil(total / pageSize))
   const editingSetForDuplication = duplicatingId
-    ? rawItems.find((s) => s.id === duplicatingId) ?? null
+    ? items.find((s) => s.id === duplicatingId) ?? null
     : null
 
   return (
@@ -1251,9 +1253,10 @@ function SetsPage() {
         </div>
       )}
 
-      {/* System sets row (reserved). Rendered under filters too: rawItems is the
-          server-filtered page, so this only holds reserved sets the query matched, and
-          hiding them made a search for "civ" report 1 match with an empty table. */}
+      {/* System sets (Civilian, Police, Unknown). Their own query, so the row stands
+          whatever is typed in the search box, and they are cut from the list itself
+          server-side - otherwise a search for "civ" reported a match the table could
+          not show. */}
       {reservedSets.length > 0 && (
         <div className="mb-4 flex items-center gap-2">
           <span className="text-[11px] font-medium uppercase tracking-wider text-zinc-400">System</span>
@@ -1262,9 +1265,14 @@ function SetsPage() {
               key={s.id}
               to="/sets/$id"
               params={{ id: s.slug ?? s.id }}
-              className="inline-flex items-center gap-1.5 rounded-full border border-zinc-700 bg-zinc-900/50 px-3 py-1 text-xs text-zinc-400 hover:border-zinc-500 hover:text-zinc-200 transition-colors"
+              title={`${s.name} - ${s.member_count ?? 0} members`}
+              className="group inline-flex items-center gap-2 rounded-full border border-zinc-700 bg-zinc-900/50 py-1 pl-1 pr-3 text-xs text-zinc-400 transition-colors hover:border-zinc-500 hover:text-zinc-200"
             >
+              <SetAvatar name={s.name} isReserved size="sm" />
               {s.name}
+              <span className="tabular-nums text-zinc-500 group-hover:text-zinc-400">
+                {s.member_count ?? 0}
+              </span>
             </Link>
           ))}
         </div>
@@ -1286,7 +1294,7 @@ function SetsPage() {
                   </div>
                 </div>
               ))
-            : items.length === 0 && reservedSets.length === 0
+            : items.length === 0
               ? (
                 <div className="col-span-full">
                   <EmptyState
@@ -1350,22 +1358,14 @@ function SetsPage() {
                             type="checkbox"
                             aria-label={`Select ${set.name}`}
                             checked={isSelected}
-                            disabled={set.is_reserved}
                             onChange={() => toggleSelectSet(set.id)}
-                            className="rounded border-zinc-700 bg-zinc-900 accent-violet-600 disabled:cursor-not-allowed disabled:opacity-30"
+                            className="rounded border-zinc-700 bg-zinc-900 accent-violet-600"
                           />
                         </td>
                         <td className="p-0">
                           <Link to="/sets/$id" params={{ id: linkId }} className={`flex items-center gap-3 px-4 ${padY}`}>
                             <div className="min-w-0">
-                              <div className="flex items-center gap-2">
-                                <p className="truncate font-medium text-white group-hover:text-violet-400 transition-colors">{set.name}</p>
-                                {set.is_reserved && (
-                                  <span className="rounded border border-zinc-700 bg-zinc-800/60 px-1.5 py-px text-[9px] font-medium uppercase tracking-wider text-zinc-400">
-                                    System
-                                  </span>
-                                )}
-                              </div>
+                              <p className="truncate font-medium text-white group-hover:text-violet-400 transition-colors">{set.name}</p>
                             </div>
                           </Link>
                         </td>
@@ -1397,7 +1397,7 @@ function SetsPage() {
                       </tr>
                     )
                   })}
-              {!isLoading && items.length === 0 && reservedSets.length === 0 && (
+              {!isLoading && items.length === 0 && (
                 <tr>
                   <td colSpan={8}>
                     <EmptyState

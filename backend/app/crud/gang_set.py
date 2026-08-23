@@ -220,8 +220,12 @@ def _apply_set_filters(
     alliance_id: FilterId = None,
     gang_id: FilterId = None,
     municipality_id: FilterId = None,
+    reserved: bool | None = None,
 ):
     stmt = stmt.where(GangSet.universe_id == universe_id)
+    # None: everything. False: the real sets only. True: the system sets only.
+    if reserved is not None:
+        stmt = stmt.where(GangSet.is_reserved.is_(reserved))
     if q and len(q.strip()) >= 2:
         pattern = f"%{q.strip()}%"
         stmt = stmt.where(
@@ -255,6 +259,7 @@ async def list_gang_sets(
     alliance_id: FilterId = None,
     gang_id: FilterId = None,
     municipality_id: FilterId = None,
+    reserved: bool | None = None,
     sort: SortKey = "name",
     order: SortOrder = "asc",
 ) -> tuple[list[GangSet], int]:
@@ -272,6 +277,7 @@ async def list_gang_sets(
         alliance_id=alliance_id,
         gang_id=gang_id,
         municipality_id=municipality_id,
+        reserved=reserved,
     )
     total = (await session.execute(count_stmt)).scalar_one()
 
@@ -308,6 +314,7 @@ async def list_gang_sets(
         alliance_id=alliance_id,
         gang_id=gang_id,
         municipality_id=municipality_id,
+        reserved=reserved,
     )
 
     sort_cols: dict[str, sa.sql.ColumnElement] = {
