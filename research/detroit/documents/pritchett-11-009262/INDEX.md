@@ -23,8 +23,21 @@ Search state records and OTIS for **Pritchell**; the man's name is **Pritchett**
 | `2014-02-20-mich-coa-311052.pdf` | Direct appeal, affirmed. The statement of facts the wiki narrative is built from: five shot, Matlock killed, nine .45 casings, the TTO membership, the self-defense testimony, and each sentence. |
 | `2019-07-09-ed-mich-2-15-cv-13233-habeas.pdf` | Habeas denied, plus certificate of appealability and leave to appeal IFP. Confirms the spelling, that the jury trial was waived, the concurrent/consecutive structure of the sentences, and the post-conviction history. |
 
+The Wayne County Prosecutor's charging-day press release (Kym L. Worthy, August 2011) is
+held only as pasted text, not as a document - the URL was never recovered. It is the
+source for the time (approximately 12:00 a.m.), the victim found lying in the driveway,
+the arraignment in 36th District Court, and both ages. Note it spells the surname
+"Prichett" once and "Pritchett" twice.
+
 Michigan Supreme Court denied leave to appeal: *People v Pritchell*, 497 Mich 868 (2014).
 Not held here - order only, no opinion.
+
+## Matlock's age
+
+The prosecutor's charging release and the 16 December 2011 case update both give 18. The
+`extraction/homicides/2011.md` list, parsed from a personal blog rated UNVERIFIED, gives
+17. The blog value is left as parsed and the conflict is flagged in that file's notes
+column; no date of birth has been recorded for him.
 
 ## Not yet held
 
