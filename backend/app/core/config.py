@@ -8,8 +8,8 @@ class Settings(BaseSettings):
     database_url_test: str
     redis_url: str = "redis://localhost:6379"
     secret_key: str = "change-me-in-production"
-    access_token_expire_minutes: int = 15
-    refresh_token_expire_days: int = 30
+    access_token_expire_minutes: int = 60
+    refresh_token_expire_days: int = 90
     cors_origins: list[str] = ["http://localhost:5173"]
     environment: str = "development"
 
