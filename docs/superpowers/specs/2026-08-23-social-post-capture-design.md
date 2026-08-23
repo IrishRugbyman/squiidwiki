@@ -123,6 +123,18 @@ free text produces garbage. Mitigations: word-boundary matching, a minimum
 token length, and ranked output for human confirmation. "Free Pritch" is the
 good case; "don" is not. Accepting a proposal is a separate, explicit step.
 
+**Set-prefix normalisation happens in the matcher, never in the data.** Social
+handles routinely carry the set name attached to the nickname: `Tto Ad`,
+`Tto Mez`, `Tto Lante`, `JbTto Tall Tee`. Storing those as member aliases is
+redundant, because the form is derivable from the set name plus the nickname
+already on the row. The sweep must therefore strip any known set name for the
+universe (and its variants) as a leading or trailing token from both sides
+before comparing, so a post signed `Tto Ad` matches the member `Ad` with
+nothing extra stored.
+
+Aliases are reserved for what is *not* derivable: genuine spelling variants
+such as `Tall Tae` for `Tall Tee`.
+
 ## Privacy
 
 These are posts by named private individuals, and storing content is a
