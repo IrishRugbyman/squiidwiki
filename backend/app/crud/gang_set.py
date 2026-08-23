@@ -169,7 +169,7 @@ async def _sync_alliance_auto_allies(
             )
 
 
-_RESERVED_NAMES = {"civilian", "police"}
+_RESERVED_NAMES = {"civilian", "police", "unknown"}
 
 
 async def create_gang_set(session: AsyncSession, data: SetCreate, actor_id: uuid.UUID) -> GangSet:
@@ -394,14 +394,16 @@ async def delete_gang_set(session: AsyncSession, id: uuid.UUID, universe_id: uui
     if obj.is_reserved:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail="Reserved sets (Civilian, Police) cannot be deleted.",
+            detail="Reserved sets (Civilian, Police, Unknown) cannot be deleted.",
         )
     await session.delete(obj)
     await session.commit()
     return True
 
 
-_RESERVED_SETS = [("Civilian", "civilian"), ("Police", "police")]
+# Unknown is the holding pen: a member whose set is not yet known sits here
+# rather than nowhere, so the gap is a queue to work through and not an absence.
+_RESERVED_SETS = [("Civilian", "civilian"), ("Police", "police"), ("Unknown", "unknown")]
 
 
 async def seed_reserved_sets(session: AsyncSession, universe_id: uuid.UUID) -> None:
