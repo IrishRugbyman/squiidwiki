@@ -37,11 +37,19 @@ from app.schemas.common import OffsetPage
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 REFRESH_COOKIE = "refresh_token"
-COOKIE_OPTS = dict(httponly=True, samesite="lax", secure=settings.environment != "development")
+COOKIE_OPTS = dict(
+    httponly=True,
+    samesite="lax",
+    secure=settings.environment != "development",
+    path="/",
+)
+# Without max_age the browser treats it as a session cookie and drops it on close,
+# so the 30-day server-side expiry never gets used and every restart means a re-login.
+REFRESH_COOKIE_MAX_AGE = settings.refresh_token_expire_days * 24 * 60 * 60
 
 
 def _set_refresh_cookie(response: Response, token: str) -> None:
-    response.set_cookie(REFRESH_COOKIE, token, **COOKIE_OPTS)
+    response.set_cookie(REFRESH_COOKIE, token, max_age=REFRESH_COOKIE_MAX_AGE, **COOKIE_OPTS)
 
 
 def _clear_refresh_cookie(response: Response) -> None:

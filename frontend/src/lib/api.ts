@@ -56,15 +56,28 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   return res.json() as Promise<T>
 }
 
-async function tryRefresh(): Promise<boolean> {
-  const res = await fetch(`${BASE}/auth/refresh`, { method: 'POST', credentials: 'include' })
-  if (!res.ok) {
-    localStorage.removeItem('access_token')
-    return false
+// The app fires many queries in parallel, so an expired access token 401s all of them
+// at once. Refresh rotates and revokes the old token server-side, so letting each caller
+// POST /auth/refresh means the first one wins and every other one presents a
+// just-revoked token, 401s, and wipes the session. Share one in-flight call instead.
+let refreshInFlight: Promise<boolean> | null = null
+
+function tryRefresh(): Promise<boolean> {
+  if (!refreshInFlight) {
+    refreshInFlight = (async () => {
+      const res = await fetch(`${BASE}/auth/refresh`, { method: 'POST', credentials: 'include' })
+      if (!res.ok) {
+        localStorage.removeItem('access_token')
+        return false
+      }
+      const data = await res.json() as { access_token: string }
+      localStorage.setItem('access_token', data.access_token)
+      return true
+    })().finally(() => {
+      refreshInFlight = null
+    })
   }
-  const data = await res.json() as { access_token: string }
-  localStorage.setItem('access_token', data.access_token)
-  return true
+  return refreshInFlight
 }
 
 export const api = {
