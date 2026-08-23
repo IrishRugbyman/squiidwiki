@@ -105,6 +105,15 @@ for API calls, `psql` for reads).
 URL. Invoked when a post is pasted into a session. Idempotent via
 `content_sha256`.
 
+Capture writes **directly to the database**, not through an API route. Every
+other write in this project goes through the API so the audit listeners record
+it, but those listeners are registered per model and exist to track edits to
+wiki content. No UI needs a `social_post` endpoint, and adding one to serve a
+single CLI is unearned. The tradeoff, stated explicitly: captured posts produce
+**no `audit_log` rows**. `captured_at` and `created_by_id` on the row itself
+carry who and when, which is sufficient for research tooling. Add a route later
+if a UI ever wants one.
+
 **Sweep:** takes every member nickname and alias in a universe, runs them
 against the corpus, and ranks candidate post-to-member links for review.
 
