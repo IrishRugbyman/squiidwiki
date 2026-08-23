@@ -61,3 +61,6 @@ leagle.com	PEOPLE v. SEARCY | Nos. 308101, 308527, 311177. | 20140328358 | Leagl
 leagle.com	U.S. v. ROBINSON | Case No. 15-20652-16. | By... | 20190118924| Leagle.com	https://www.leagle.com/decision/infdco20190118924	Importés depuis Firefox/unfiled	2020-04-06
 ncjrs.gov	147227NCJRS.pdf	https://www.ncjrs.gov/pdffiles1/Digitization/147227NCJRS.pdf	Importés depuis Firefox/unfiled	2020-04-02
 streamable.com	Billy Arnold charges - Streamable	https://streamable.com/44p9k	Barre de favoris/📹 Médias & Streaming	2020-04-06
+courts.michigan.gov	People v Anthony Daniel Pritchell | No 311052 | Mich Ct App | 2014-02-20 | Unpublished per curiam | documents/pritchett-11-009262/	https://law.justia.com/cases/michigan/court-of-appeals-unpublished/2014/311052.html	Added 2026-08-23	2026-08-23
+govinfo.gov	Pritchett v Warren | No 2:15-cv-13233 | ED Mich | 2019-07-09 | Habeas denied | documents/pritchett-11-009262/	https://www.govinfo.gov/app/details/USCOURTS-mied-2_15-cv-13233	Added 2026-08-23	2026-08-23
+waynecountymi.gov	Wayne County Prosecutor weekly case updates | 2011-12-16 | Charging sheet for 11-009262-01-FC | documents/pritchett-11-009262/	https://www.waynecountymi.gov/files/assets/mainsite/v/1/_newspress-releases/article-documents/prosecutor/2011/2011_december_16_weekly_case_updates.pdf	Added 2026-08-23	2026-08-23

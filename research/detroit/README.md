@@ -8,6 +8,7 @@ sources/       Bookmark exports - citations to feed the Source entity
 raw/           Unprocessed copy-paste dumps - need triage before they're usable
 raw/fetched/   Full text retrieved from the sources/ URLs on 2026-08-21 (see below)
 extraction/    Curated notes, ready (or close to ready) to seed Set/Alliance/Member records
+documents/     Complete primary court records, one directory per case (see documents/README.md)
 ```
 
 ## sources/
