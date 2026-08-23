@@ -90,6 +90,8 @@ export type SetsListParams = {
   alliance_id?: string | 'none'
   gang_id?: string | 'none'
   municipality_id?: string | 'none'
+  /** Omit for every set, false for the real sets only, true for the system sets only. */
+  reserved?: boolean
   sort?: 'name' | 'status' | 'member_count' | 'updated_at' | 'created_at'
   order?: 'asc' | 'desc'
 }
@@ -104,6 +106,7 @@ function buildSetsQuery(universeId: string, params?: SetsListParams): string {
     if (params.alliance_id) qs.set('alliance_id', params.alliance_id)
     if (params.gang_id) qs.set('gang_id', params.gang_id)
     if (params.municipality_id) qs.set('municipality_id', params.municipality_id)
+    if (params.reserved != null) qs.set('reserved', String(params.reserved))
     if (params.sort) qs.set('sort', params.sort)
     if (params.order) qs.set('order', params.order)
   }
@@ -128,6 +131,16 @@ export const useAllSets = (universeId: UUID | null) =>
     queryFn: () => api.get<OffsetPage<SetListItem>>(`/sets/?universe_id=${universeId}&limit=200`),
     enabled: !!universeId,
     staleTime: 30_000,
+  })
+
+/** The system sets (Civilian, Police, Unknown). Never filtered - the row is always shown. */
+export const useReservedSets = (universeId: UUID | null) =>
+  useQuery({
+    queryKey: ['sets', 'reserved', universeId],
+    queryFn: () =>
+      api.get<OffsetPage<SetListItem>>(`/sets/?universe_id=${universeId}&reserved=true&limit=10`),
+    enabled: !!universeId,
+    staleTime: 5 * 60_000,
   })
 
 export const useSetSearch = (universeId: UUID | null, q: string) =>

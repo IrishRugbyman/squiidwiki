@@ -90,6 +90,9 @@ async def list_sets(
     alliance_id: str | None = Query(None, description="UUID, 'none' for unassigned, or omit"),
     gang_id: str | None = Query(None, description="UUID, 'none' for unassigned, or omit"),
     municipality_id: str | None = Query(None, description="UUID, 'none' for unassigned, or omit"),
+    reserved: bool | None = Query(
+        None, description="Omit for every set, false for real sets only, true for system sets only"
+    ),
     sort: Literal["name", "status", "member_count", "updated_at", "created_at"] = Query("name"),
     order: Literal["asc", "desc"] = Query("asc"),
 ):
@@ -99,6 +102,7 @@ async def list_sets(
         alliance_id=_filter_id(alliance_id),
         gang_id=_filter_id(gang_id),
         municipality_id=_filter_id(municipality_id),
+        reserved=reserved,
         sort=sort,
         order=order,
     )
