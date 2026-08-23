@@ -858,3 +858,36 @@ account used here has Editor rights only; the site owner is `FCK HEAD$HOT`
 
 Note for anyone re-running this: an unauthenticated `status=draft` query returns 0 whether or
 not drafts exist, because the public API cannot see them at all. That zero is not evidence.
+
+## Nick's death is not in the press, and the search is closed (2026-08-23)
+
+Dominick "Nick" Brown of TTO, 1996-03-21 to 2010-10-08, dead at 14 in a go-kart
+accident. The span is exact and the search still comes back empty. Recording it
+so nobody spends the afternoon on it twice.
+
+What was tried, all dry:
+
+- Detroit go-kart fatalities. Every one that is indexed is the wrong decade:
+  a 21-year-old on French Road in 2017, 4-year-old Autumn Young in 2018, and
+  two boys in St. Clair County in 2019. Nothing in 2010, on either spelling of
+  go-kart or go-cart.
+- The name against Michigan obituaries, on its own and with the exact dates.
+  The only indexed Dominick Browns are an Ohio man born 1953 and an Oklahoma
+  man born 1968.
+- Detroit outlets directly - detroitnews, clickondetroit, wxyz, fox2detroit.
+  Their online archives effectively do not reach 2010 for a story this size.
+
+Two routes are blocked rather than empty, and are worth retrying from a
+different IP rather than writing off:
+
+- **Find a Grave** Cloudflare-403s this box, in the browser as well as over
+  curl. Same block as MDOC OTIS: the Helsinki range, not the query.
+- **Legacy.com** serves a Cloudflare challenge to everything, including the
+  browse-by-date listing that would show Michigan obituaries filed the week of
+  2010-10-08.
+
+The likeliest reading is that there is nothing to find. A 14-year-old killed in
+a go-kart in 2010 Detroit is a paragraph in a paper that never put it online,
+if it ran at all. The Facebook material carries this death by itself, and the
+dates it gives are exact, so nothing in the database depends on the article
+turning up.
