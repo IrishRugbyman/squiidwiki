@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
-import { Copy, Download, LayoutGrid, MapPin, MoreVertical, Pencil, Plus, Rows3, Search, Shield, Trash2, User, Users, X } from 'lucide-react'
+import { Copy, Download, HelpCircle, LayoutGrid, MapPin, MoreVertical, Pencil, Plus, Rows3, Search, Shield, Trash2, User, Users, X } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import { NoUniverse } from '@/components/NoUniverse'
@@ -165,7 +165,7 @@ export function SetAvatar({ name, thumbUrl, size = 'md', isReserved = false, gan
     'h-8 w-8 text-sm rounded-md'
   const iconSz = size === 'sm' ? 'h-3.5 w-3.5' : size === 'xl' ? 'h-8 w-8' : 'h-4 w-4'
   if (isReserved) {
-    const Icon = name === 'Police' ? Shield : User
+    const Icon = name === 'Police' ? Shield : name === 'Unknown' ? HelpCircle : User
     return (
       <div
         className={`${sz} shrink-0 border border-zinc-700 bg-zinc-800/60 flex items-center justify-center`}
