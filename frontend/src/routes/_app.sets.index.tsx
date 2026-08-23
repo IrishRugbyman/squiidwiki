@@ -157,6 +157,11 @@ export function gangColorStyle(hex: string): React.CSSProperties {
   }
 }
 
+/** Which glyph stands in for a system set. */
+function reservedIcon(name: string) {
+  return name === 'Police' ? Shield : name === 'Unknown' ? HelpCircle : User
+}
+
 export function SetAvatar({ name, thumbUrl, size = 'md', isReserved = false, gangColor = null }: { name: string; thumbUrl?: string | null; size?: 'sm' | 'md' | 'xl'; isReserved?: boolean; gangColor?: string | null }) {
   const [imgError, setImgError] = useState(false)
   const sz =
@@ -165,7 +170,7 @@ export function SetAvatar({ name, thumbUrl, size = 'md', isReserved = false, gan
     'h-8 w-8 text-sm rounded-md'
   const iconSz = size === 'sm' ? 'h-3.5 w-3.5' : size === 'xl' ? 'h-8 w-8' : 'h-4 w-4'
   if (isReserved) {
-    const Icon = name === 'Police' ? Shield : name === 'Unknown' ? HelpCircle : User
+    const Icon = reservedIcon(name)
     return (
       <div
         className={`${sz} shrink-0 border border-zinc-700 bg-zinc-800/60 flex items-center justify-center`}
@@ -1260,21 +1265,26 @@ function SetsPage() {
       {reservedSets.length > 0 && (
         <div className="mb-4 flex items-center gap-2">
           <span className="text-[11px] font-medium uppercase tracking-wider text-zinc-400">System</span>
-          {reservedSets.map((s) => (
-            <Link
-              key={s.id}
-              to="/sets/$id"
-              params={{ id: s.slug ?? s.id }}
-              title={`${s.name} - ${s.member_count ?? 0} members`}
-              className="group inline-flex items-center gap-2 rounded-full border border-zinc-700 bg-zinc-900/50 py-1 pl-1 pr-3 text-xs text-zinc-400 transition-colors hover:border-zinc-500 hover:text-zinc-200"
-            >
-              <SetAvatar name={s.name} isReserved size="sm" />
-              {s.name}
-              <span className="tabular-nums text-zinc-500 group-hover:text-zinc-400">
-                {s.member_count ?? 0}
-              </span>
-            </Link>
-          ))}
+          {reservedSets.map((s) => {
+            // The icon sits bare inside the pill: a bordered tile within a bordered
+            // capsule puts a square inside a round and reads as two nested boxes.
+            const Icon = reservedIcon(s.name)
+            return (
+              <Link
+                key={s.id}
+                to="/sets/$id"
+                params={{ id: s.slug ?? s.id }}
+                title={`${s.name} - ${s.member_count ?? 0} members`}
+                className="group inline-flex items-center gap-1.5 rounded-full border border-zinc-700 bg-zinc-900/50 px-3 py-1 text-xs text-zinc-400 transition-colors hover:border-zinc-500 hover:text-zinc-200"
+              >
+                <Icon className="h-3.5 w-3.5 text-zinc-500 transition-colors group-hover:text-zinc-300" />
+                {s.name}
+                <span className="tabular-nums text-zinc-500 transition-colors group-hover:text-zinc-400">
+                  {s.member_count ?? 0}
+                </span>
+              </Link>
+            )
+          })}
         </div>
       )}
 
