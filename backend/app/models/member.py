@@ -86,6 +86,7 @@ class MemberIncarceration(SQLModel, table=True):
 
 class Member(SQLModel, table=True):
     __tablename__ = "member"
+    __table_args__ = (sa.Index("uq_member_universe_slug", "universe_id", "slug", unique=True),)
 
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
     universe_id: uuid.UUID = Field(foreign_key="universe.id", index=True)
