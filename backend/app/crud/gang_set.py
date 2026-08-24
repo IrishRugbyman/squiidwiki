@@ -9,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import func, select
 
 from app.core.enums import SetRelationshipType, SetStatus
+from app.core.fuzzy_date import FuzzyDate
 from app.core.slug import slugify
 from app.models.alliance import Alliance
 from app.models.gang import Gang
@@ -525,7 +526,15 @@ async def add_set_relationship(
     set_b_id: uuid.UUID,
     rel_type: SetRelationshipType,
     universe_id: uuid.UUID,
+    from_date: FuzzyDate | None = None,
 ) -> None:
+    """Open a relationship spell between two sets.
+
+    `from_date` is when the link began, which for a beef is usually the
+    incident that started it and is often known only to the year. Left null it
+    reads as "for as long as anyone recorded", which is a different claim from
+    a dated start, so it is worth setting when the date is known.
+    """
     a, b = (set_a_id, set_b_id) if set_a_id < set_b_id else (set_b_id, set_a_id)
     existing = await session.execute(
         select(SetRelationship).where(
@@ -542,7 +551,16 @@ async def add_set_relationship(
                 detail="Relationship already exists with a different type",
             )
         return
-    session.add(SetRelationship(set_a_id=a, set_b_id=b, relationship_type=rel_type))
+    session.add(
+        SetRelationship(
+            set_a_id=a,
+            set_b_id=b,
+            relationship_type=rel_type,
+            # The column is plain JSONB, not the FuzzyDate TypeDecorator, so
+            # the object has to be dumped here as it is for member_set.
+            from_date=from_date.model_dump() if from_date is not None else None,
+        )
+    )
     await session.commit()
 
 

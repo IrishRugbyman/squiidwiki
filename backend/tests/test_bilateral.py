@@ -4,9 +4,11 @@ import uuid
 
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlmodel import select
 
 from app.auth.crud import create_user
-from app.core.enums import GlobalRole, SetRelationshipType
+from app.core.enums import DatePrecision, GlobalRole, SetRelationshipType
+from app.core.fuzzy_date import FuzzyDate
 from app.crud.gang_set import (
     add_set_relationship,
     create_gang_set,
@@ -15,6 +17,7 @@ from app.crud.gang_set import (
     update_gang_set,
 )
 from app.crud.universe import create_universe
+from app.models.gang_set import SetRelationship
 from app.schemas.gang_set import SetCreate, SetUpdate
 from app.schemas.universe import UniverseCreate
 
@@ -160,3 +163,52 @@ async def test_sync_drops_edges_left_out_of_the_list(db_session: AsyncSession):
     friends, enemies = await list_set_relationships(db_session, set_a.id, universe.id)
     assert friends == []
     assert enemies == []
+
+
+async def test_relationship_records_a_start_date(db_session: AsyncSession):
+    """A beef usually starts on a knowable date, often only to the year.
+
+    Null from_date is a *different* claim - "for as long as anyone recorded" -
+    so the date has to be settable, not merely storable.
+    """
+    universe, set_a, set_b = await _setup(db_session)
+    began = FuzzyDate(year=2013, precision=DatePrecision.Y, approx=True)
+
+    await add_set_relationship(
+        db_session, set_a.id, set_b.id, SetRelationshipType.ENEMY, universe.id, from_date=began
+    )
+
+    rel = (
+        (
+            await db_session.execute(
+                select(SetRelationship).where(SetRelationship.until_date.is_(None))
+            )
+        )
+        .scalars()
+        .all()
+    )
+    rel = [r for r in rel if {r.set_a_id, r.set_b_id} == {set_a.id, set_b.id}]
+    assert len(rel) == 1
+    assert rel[0].from_date is not None
+    assert rel[0].from_date["year"] == 2013
+    assert rel[0].from_date["approx"] is True
+
+
+async def test_relationship_start_date_defaults_to_null(db_session: AsyncSession):
+    """Omitting it must stay null rather than defaulting to today, which would
+    invent a start date for a link whose beginning nobody knows."""
+    universe, set_a, set_b = await _setup(db_session)
+    await add_set_relationship(
+        db_session, set_a.id, set_b.id, SetRelationshipType.FRIEND, universe.id
+    )
+    rel = (
+        (
+            await db_session.execute(
+                select(SetRelationship).where(SetRelationship.until_date.is_(None))
+            )
+        )
+        .scalars()
+        .all()
+    )
+    rel = [r for r in rel if {r.set_a_id, r.set_b_id} == {set_a.id, set_b.id}]
+    assert rel[0].from_date is None

@@ -215,6 +215,10 @@ class SetListItem(BaseModel):
 class SetRelationshipCreate(BaseModel):
     target_id: uuid.UUID
     type: SetRelationshipType
+    # When the link began. Often known only to the year, which FuzzyDate covers.
+    # Null is not the same claim as a dated start: it reads as "for as long as
+    # anyone recorded", so set it whenever the date is known.
+    from_date: FuzzyDateField = None
 
 
 class SetRelationshipEnd(BaseModel):
