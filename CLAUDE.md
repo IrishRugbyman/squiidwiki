@@ -195,6 +195,15 @@ Worth knowing before starting another round of research, all verified 2026-08-23
   dates, permalinks and engagement, about 2,200 posts deep. Personal accounts
   return "Invalid user id". This is the fastest way to sweep a Detroit page for
   material on a given name or incident.
+- **A personal account is still readable if you have a post link.** The post page
+  renders logged-out and carries the `cdninstagram.com` URLs for its carousel
+  items, and those download unauthenticated, so the pictures can be read even
+  when the API refuses the account: permalink, page source, image URL, download,
+  read the frame. Funeral programmes and casket wraps carry dates of birth and
+  death that no other source in Detroit will give you, and graffiti in the frame
+  names sets. Profile URLs serve a login wall, comment bodies are not exposed at
+  all, and there is no tagged-photos endpoint. **So ask for post links, not
+  handles.** Full detail in `~/squiidape-ig/CLAUDE.md`.
 - **Facebook is a lookup index only.** People search and post search were removed
   from the Graph API permanently. Search-engine queries scoped to `facebook.com`
   find pages and post URLs, but the bodies need a logged-in browser.
