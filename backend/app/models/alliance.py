@@ -1,6 +1,7 @@
 import uuid
 from datetime import UTC, datetime
 
+import sqlalchemy as sa
 from sqlalchemy import Column, DateTime
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlmodel import Field, SQLModel
@@ -25,6 +26,7 @@ class AllianceSet(SQLModel, table=True):
 
 class Alliance(SQLModel, table=True):
     __tablename__ = "alliance"
+    __table_args__ = (sa.Index("uq_alliance_universe_slug", "universe_id", "slug", unique=True),)
 
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
     universe_id: uuid.UUID = Field(foreign_key="universe.id", index=True)
