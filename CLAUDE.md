@@ -155,6 +155,54 @@ There are two databases (`squiidwiki_db` = prod, `squiidwiki_test` = test). The 
 - Incident participant outcome: `KILLED`, `INJURED`, `UNHARMED`, `UNKNOWN`
 - Global role: `ADMIN`, `USER`
 
+## External consumer: `~/squiidape-ig`
+
+The Instagram integration for [@squiidape_detroit](https://instagram.com/squiidape_detroit)
+lives in `~/squiidape-ig` (own repo, own `CLAUDE.md`). It is **not** self-contained:
+
+- it reads `squiidwiki_prod` directly (`member`, `member_set`, `sets`, `media`,
+  `incident`, `incident_participant`, `municipality`);
+- it imports `app.core.storage` from this repo and runs on **this repo's venv**
+  (`backend/.venv`), via a `sys.path` insert.
+
+So changes here can silently break it. In particular: renaming those tables or
+columns, changing the `FuzzyDate` JSONB shape, or moving `signed_get_url` /
+`upload_object` / `delete_object` out of `app/core/storage.py`. It runs daily
+from a systemd timer, so a break shows up as a missed post, not an error you see.
+
+**The wiki is private, and its URLs must never be published.** Nothing that
+leaves this machine for a public audience may carry a `wiki.lbzgiu.xyz` link or
+a member slug. The Instagram captions deliberately carry no link at all.
+
+Note also that the Instagram side uses moderation-safe spellings (`k*lled`,
+`sh*t`). That is platform avoidance and belongs only to that output. It must
+never leak back into wiki prose.
+
+## Research sources for Detroit
+
+Worth knowing before starting another round of research, all verified 2026-08-23.
+
+- **`thedetroitscanner`** (Instagram, professional account) is a DPD/DFD dispatch
+  feed: precinct, intersection, time, units responding. **1,674 posts, complete,
+  2019-12-16 to 2026-03-03** (dormant since). Retrievable in full via the
+  Instagram Business Discovery API from `~/squiidape-ig` (see its `CLAUDE.md`).
+  This is the best available source for the precise locations the incident rows
+  want, and it is *primary*, not aggregated.
+- **`detroitstreetgangs.com`** independently corroborates set structure. It got
+  TLE/BCB wrong (it treats them as one group; they are distinct) but got the
+  JonWay rebrand right. Useful as a second opinion, not as an authority.
+- **Instagram Business Discovery** reads any *professional* account's captions,
+  dates, permalinks and engagement, about 2,200 posts deep. Personal accounts
+  return "Invalid user id". This is the fastest way to sweep a Detroit page for
+  material on a given name or incident.
+- **Facebook is a lookup index only.** People search and post search were removed
+  from the Graph API permanently. Search-engine queries scoped to `facebook.com`
+  find pages and post URLs, but the bodies need a logged-in browser.
+- **The press names almost nobody.** The Manor Avenue double murder was covered
+  by four outlets and not one printed a victim or suspect name, and no charge was
+  ever filed. Expect Detroit sourcing to be street-first; absence of press
+  confirmation is the norm here, not a red flag.
+
 
 -------
 
