@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<!--
+  Markup copied structurally from a real OTIS profile page (August 2026 rebuild).
+  Every *value* is invented - no real offender's record belongs in this repo.
+  The structure is what matters: it is what the parser's selectors target.
+
+  __PHOTO_DATA_URI__ is substituted by the test so the photo bytes are known.
+  Note the deliberate `image/gif` on a JPEG payload: OTIS really does this, and
+  the parser must sniff rather than believe it.
+-->
+<html lang="en">
+<head><title>Offender Profile - OTIS</title></head>
+<body>
+<div>
+<form action="https://mdocweb.state.mi.us/OTIS2/Profile" method="post">
+    <input type="submit" value="Back" name="action:Back">
+    <table style="width:100%;">
+        <tbody>
+            <tr><td class="profile-header"><h4 id="Bio">Biographical Information</h4></td></tr>
+            <tr>
+                <td>
+                    <ul id="menuItems">
+                        <li>
+                            <div class="text-center">
+                                <img src="__PHOTO_DATA_URI__" alt="JORDAN AVERY REED Image" style="max-width:60%;">
+                                <br><br>
+                                <b>JORDAN AVERY REED </b>
+                            </div>
+                        </li>
+                        <li>
+                            <table>
+                                <tbody>
+                                    <tr>
+                                        <td class="field-name"><label for="Results_ProfileData_MDOCNum">MDOC Number:</label> </td>
+                                        <td><b>111222</b></td>
+                                    </tr>
+                                    <tr>
+                                        <td class="field-name"><label for="Results_ProfileData_SIDNum">SID Number:</label> </td>
+                                        <td><b>9998887A</b></td>
+                                    </tr>
+                                    <tr>
+                                        <td id="Name" class="field-name">Name:</td>
+                                        <td><b>JORDAN  AVERY REED  </b></td>
+                                    </tr>
+                                    <tr>
+                                        <td class="field-name"><label for="Results_ProfileData_Race">Racial Identification:</label> </td>
+                                        <td><b>Black</b></td>
+                                    </tr>
+                                    <tr>
+                                        <td class="field-name"><label for="Results_ProfileData_Gender">Sex:</label> </td>
+                                        <td><b>Male</b></td>
+                                    </tr>
+                                    <tr>
+                                        <td class="field-name"><label for="Results_ProfileData_HairColor">Hair:</label> </td>
+                                        <td><b>Black</b></td>
+                                    </tr>
+                                    <tr>
+                                        <td class="field-name"><label for="Results_ProfileData_EyeColor">Eyes:</label> </td>
+                                        <td><b>Brown</b></td>
+                                    </tr>
+                                    <tr>
+                                        <td class="field-name"><label for="Results_ProfileData_Height">Height:</label> </td>
+                                        <td><b>6' 1"</b></td>
+                                    </tr>
+                                    <tr>
+                                        <td class="field-name"><label for="Results_ProfileData_Weight">Weight:</label> </td>
+                                        <td><b>180 lbs</b></td>
+                                    </tr>
+                                    <tr>
+                                        <td class="field-name"><label for="Results_ProfileData_DateOfBirth">Date of Birth:</label> </td>
+                                        <td><b>3/9/1991 (35)</b></td>
+                                    </tr>
+                                    <tr>
+                                        <td class="field-name"><label for="Results_ProfileData_ImageDate">Image Date:</label> </td>
+                                        <td><b>12/2/2024</b></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </li>
+                    </ul>
+                </td>
+            </tr>
+            <tr><td>&nbsp;</td></tr>
+            <tr><td class="profile-header"><h4 id="Status">MDOC Status</h4></td></tr>
+            <tr>
+                <td>
+                    <ul id="menuItems">
+                        <li>
+                            <table>
+                                <tbody>
+                                    <tr><td>Current Status:</td><td>Prisoner</td></tr>
+                                    <tr><td>Assigned Location:</td><td>Example Correctional Facility</td></tr>
+                                    <tr><td>Security Level:</td><td>IV</td></tr>
+                                </tbody>
+                            </table>
+                        </li>
+                        <li>
+                            <table>
+                                <tbody>
+                                    <tr><td>Earliest Release Date:</td><td><span>4/15/2031</span></td></tr>
+                                    <tr><td>Discharge Date:</td><td><span>4/15/2046</span></td></tr>
+                                </tbody>
+                            </table>
+                        </li>
+                    </ul>
+                </td>
+            </tr>
+            <tr><td>&nbsp;</td></tr>
+            <tr><td class="profile-header"><h4 id="Aliases">Aliases</h4></td></tr>
+            <tr><td>    JAY</td></tr>
+            <tr><td>JORDAN A REED</td></tr>
+            <tr><td>JORDAN NMN REED</td></tr>
+            <tr><td>&nbsp;</td></tr>
+            <tr><td class="profile-header"><h4 id="Marks">Marks, Scars &amp; Tattoos</h4></td></tr>
+            <tr><td>Body Piercing- Left Ear</td></tr>
+            <tr><td>Tattoo- Lower Left Arm   - Example Crew</td></tr>
+            <tr><td>Scar- Center Right Calf</td></tr>
+            <tr><td>&nbsp;</td></tr>
+            <tr><td class="profile-header"><h4 id="Sentences">Prison Sentences</h4></td></tr>
+            <tr><td><h5 style="padding-top: 5px;">Active</h5></td></tr>
+            <tr><td>Sentence 1</td></tr>
+            <tr>
+                <td>
+                    <ul id="menuItems">
+                        <li>
+                            <table role="presentation">
+                                <tbody>
+                                    <tr><td>Offense:</td><td>Weapons - Carrying Concealed</td></tr>
+                                    <tr><td>MCL#:</td><td><a href="https://www.legislature.mi.gov/doc.aspx?750.227">750.227</a> / <a href="https://www.legislature.mi.gov/doc.aspx?769.12">769.12</a></td></tr>
+                                    <tr><td>Court File#:</td><td>20001111-01-FH</td></tr>
+                                    <tr><td>County:</td><td>Wayne</td></tr>
+                                    <tr><td>Conviction Type:</td><td>Jury</td></tr>
+                                    <tr><td colspan="2">&nbsp;</td></tr>
+                                </tbody>
+                            </table>
+                        </li>
+                        <li>
+                            <table role="presentation">
+                                <tbody>
+                                    <tr><td>Minimum Sentence:</td><td>5 years 0 months 0 days</td></tr>
+                                    <tr><td>Maximum Sentence:</td><td>20 years 0 months</td></tr>
+                                    <tr><td>Date of Offense:</td><td>6/1/2020</td></tr>
+                                    <tr><td>Date of Sentence:</td><td>1/12/2021</td></tr>
+                                </tbody>
+                            </table>
+                        </li>
+                    </ul>
+                </td>
+            </tr>
+            <tr><td><h5>Inactive</h5></td></tr>
+            <tr><td>Sentence 1</td></tr>
+            <tr>
+                <td>
+                    <ul id="menuItems">
+                        <li>
+                            <table role="presentation">
+                                <tbody>
+                                    <tr><td>Offense:</td><td>Home Invasion - 2nd Degree</td></tr>
+                                    <tr><td>MCL#:</td><td><a href="https://www.legislature.mi.gov/doc.aspx?750.110A3">750.110A3</a></td></tr>
+                                    <tr><td>Court File#:</td><td>15009999-FH</td></tr>
+                                    <tr><td>County:</td><td>Oakland</td></tr>
+                                    <tr><td>Conviction Type:</td><td>Plea</td></tr>
+                                </tbody>
+                            </table>
+                        </li>
+                        <li>
+                            <table role="presentation">
+                                <tbody>
+                                    <tr><td>Minimum Sentence:</td><td>2 years 0 months 0 days</td></tr>
+                                    <tr><td>Maximum Sentence:</td><td>15 years 0 months</td></tr>
+                                    <tr><td>Date of Offense:</td><td>2/3/2015</td></tr>
+                                    <tr><td>Date of Sentence:</td><td>9/9/2015</td></tr>
+                                    <tr><td>Date of Discharge:</td><td>8/1/2019</td></tr>
+                                    <tr><td>Discharge Reason:</td><td>Offender Discharge</td></tr>
+                                </tbody>
+                            </table>
+                        </li>
+                    </ul>
+                </td>
+            </tr>
+            <tr><td>&nbsp;</td></tr>
+            <tr><td class="profile-header"><h4 id="Probation">Probation Sentences</h4></td></tr>
+            <tr><td><h5>Active</h5></td></tr>
+            <tr><td>none</td></tr>
+            <tr><td><h5>Inactive</h5></td></tr>
+            <tr><td>Sentence 1</td></tr>
+            <tr>
+                <td>
+                    <ul id="menuItems">
+                        <li>
+                            <table role="presentation">
+                                <tbody>
+                                    <tr><td>Offense:</td><td>Larceny in a Building</td></tr>
+                                    <tr><td>MCL#:</td><td>750.360</td></tr>
+                                    <tr><td>Court File#:</td><td>100777-FH</td></tr>
+                                    <tr><td>County:</td><td>Macomb</td></tr>
+                                    <tr><td>Conviction Type:</td><td>Plea</td></tr>
+                                </tbody>
+                            </table>
+                        </li>
+                        <li>
+                            <table role="presentation">
+                                <tbody>
+                                    <tr><td>Minimum Sentence:</td><td></td></tr>
+                                    <tr><td>Maximum Sentence:</td><td>2 years 0 months</td></tr>
+                                    <tr><td>Date of Offense:</td><td>5/5/2012</td></tr>
+                                    <tr><td>Date of Sentence:</td><td>7/7/2012</td></tr>
+                                    <tr><td>Date of Discharge:</td><td>1/4/2014</td></tr>
+                                    <tr><td>Discharge Reason:</td><td>Offender Discharge</td></tr>
+                                </tbody>
+                            </table>
+                        </li>
+                    </ul>
+                </td>
+            </tr>
+            <tr><td>&nbsp;</td></tr>
+            <tr><td class="profile-header"><h4 id="Supervision">Supervision Conditions</h4></td></tr>
+            <tr><td>None</td></tr>
+        </tbody>
+    </table>
+</form>
+</div>
+</body>
+</html>
