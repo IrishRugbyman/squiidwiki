@@ -32,7 +32,6 @@ from __future__ import annotations
 
 import base64
 import binascii
-import os
 import re
 from dataclasses import dataclass, field
 from urllib.parse import unquote_to_bytes, urlparse
@@ -40,6 +39,7 @@ from urllib.parse import unquote_to_bytes, urlparse
 import httpx
 from bs4 import BeautifulSoup, Tag
 
+from app.core.config import settings
 from app.core.enums import DatePrecision
 from app.core.fuzzy_date import FuzzyDate
 
@@ -451,7 +451,14 @@ def parse_mdoc_html(html: str, page_url: str | None = None) -> MdocProfile:
 
 
 def _configured_proxy() -> str | None:
-    return os.getenv("MDOC_PROXY") or None
+    """`MDOC_PROXY` from settings, or None when it isn't configured.
+
+    `settings` is built once at import, so changing `MDOC_PROXY` needs a
+    backend restart. Opening and closing the tunnel it points at does not:
+    the address stays the same, and only whether anything is listening on it
+    changes, which surfaces as a `MdocFetchError` per request.
+    """
+    return settings.mdoc_proxy or None
 
 
 def _title_of(html: str) -> str:

@@ -21,5 +21,12 @@ class Settings(BaseSettings):
     r2_bucket_test: str = ""
     r2_signed_url_ttl_seconds: int = 86400
 
+    # SOCKS5 proxy for MDOC OTIS. Cloudflare 403s this server's IP on every
+    # mdocweb.state.mi.us path, so the lookup route needs an egress elsewhere
+    # (infra/otis-tunnel.sh opens one over reverse SSH). Empty is a supported
+    # state, not a misconfiguration: /mdoc/lookup then fails with a 502 that
+    # says so, and /mdoc/parse still works on HTML the caller supplies.
+    mdoc_proxy: str = ""
+
 
 settings = Settings()
