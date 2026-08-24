@@ -17,6 +17,22 @@ class SetMunicipality(SQLModel, table=True):
     municipality_id: uuid.UUID = Field(foreign_key="municipality.id", primary_key=True)
 
 
+class SetSource(SQLModel, table=True):
+    """Citations for a set itself, as opposed to for its members.
+
+    A set's history - when it formed, who founded it, what it split from - comes
+    from documents and threads rather than from any one person, so it needs its
+    own citations. Without this the only place to put that provenance was the
+    `bio` text, which the house rule forbids: reliability belongs in the source
+    row's rating, never in hedging prose on the page.
+    """
+
+    __tablename__ = "set_source"
+
+    set_id: uuid.UUID = Field(foreign_key="sets.id", primary_key=True)
+    source_id: uuid.UUID = Field(foreign_key="source.id", primary_key=True)
+
+
 class SetRelationship(SQLModel, table=True):
     """
     Bilateral friend/enemy link between two sets, over one period of time.

@@ -3,7 +3,7 @@ from app.models.alliance import Alliance, AllianceMunicipality, AllianceSet
 from app.models.auth import AuditLog, User, UserUniverseAccess
 from app.models.business import Business, BusinessMember, BusinessSet, BusinessSource
 from app.models.gang import Gang
-from app.models.gang_set import GangSet, SetMunicipality, SetRelationship
+from app.models.gang_set import GangSet, SetMunicipality, SetRelationship, SetSource
 from app.models.incident import (
     Incident,
     IncidentParticipant,
@@ -35,6 +35,7 @@ __all__ = [
     "GangSet",
     "SetMunicipality",
     "SetRelationship",
+    "SetSource",
     "Member",
     "MemberAlias",
     "MemberIncarceration",
