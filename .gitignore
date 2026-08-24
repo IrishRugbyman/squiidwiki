@@ -80,3 +80,7 @@ research/**/*.mobi
 # Symlink to ~/squiidape-ig (the Instagram integration). Convenience only;
 # that project is its own repo and must not be committed into this one.
 /ig
+
+# Saved OTIS pages - contain named individuals, never commit
+*Offender Profile*.html
+OTIS*.html
