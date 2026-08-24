@@ -96,6 +96,12 @@ class Member(SQLModel, table=True):
     legal_name: str | None = Field(default=None, index=True)
     nickname_unknown: bool = False  # True → use legal_name as display_name
     aliases: list | None = Field(default=None, sa_column=Column(JSONB(none_as_null=True)))
+    # MDOC offender number: the handle OTIS looks people up by, and the only
+    # stable one it has, since the rebuilt site gives profiles no URL. Stored so
+    # a spell inside can be re-checked later - release dates move with parole
+    # and resentencing - instead of every lookup starting from a name search.
+    # Not unique: OTIS is the authority on collisions, not this table.
+    mdoc_number: str | None = Field(default=None, index=True)
 
     # Rapping is an attribute of the person, not a circumstance, so it is a column
     # and never a biography sentence (see the bio rule in CLAUDE.md).

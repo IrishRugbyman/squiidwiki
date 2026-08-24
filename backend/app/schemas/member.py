@@ -44,6 +44,9 @@ class MemberCreate(BaseModel):
     universe_id: uuid.UUID
     nickname: Optional[str] = None
     legal_name: Optional[str] = None
+    # The MDOC offender number, when known: OTIS's only stable handle
+    # since the rebuilt site gives profiles no URL.
+    mdoc_number: Optional[str] = None
     nickname_unknown: bool = False
     is_rapper: bool = False
     aliases: Optional[list[str]] = None
@@ -68,6 +71,7 @@ class MemberCreate(BaseModel):
 class MemberUpdate(BaseModel):
     nickname: Optional[str] = None
     legal_name: Optional[str] = None
+    mdoc_number: Optional[str] = None
     nickname_unknown: Optional[bool] = None
     is_rapper: Optional[bool] = None
     aliases: Optional[list[str]] = None
@@ -106,6 +110,9 @@ class MemberRead(BaseModel):
     universe_id: uuid.UUID
     nickname: Optional[str]
     legal_name: Optional[str]
+    # Defaulted, unlike its neighbours: MemberRead is assembled from dicts in
+    # several places, and a required field breaks every one that predates it.
+    mdoc_number: Optional[str] = None
     nickname_unknown: bool
     is_rapper: bool = False
     aliases: Optional[list[str]]
