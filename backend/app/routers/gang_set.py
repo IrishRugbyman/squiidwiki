@@ -371,7 +371,9 @@ async def add_relationship(
     obj = await crud.get_gang_set(session, id, universe_id)
     if obj is None:
         raise HTTPException(404)
-    await crud.add_set_relationship(session, id, data.target_id, data.type, universe_id)
+    await crud.add_set_relationship(
+        session, id, data.target_id, data.type, universe_id, from_date=data.from_date
+    )
     territory_ids = await crud.list_set_territory_ids(session, id)
     friend_ids, enemy_ids = await crud.list_set_relationships(session, id, universe_id)
     base = SetRead.model_validate(obj)
