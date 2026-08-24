@@ -21,7 +21,7 @@ import { api } from '@/lib/api'
 import { currentAffiliations } from '@/lib/utils'
 import { UrlPasteBanner, useUrlPasteBanner } from '@/components/UrlPasteBanner'
 import { SourceFormSheet } from '@/routes/_app.sources.index'
-import type { MemberListItem, MemberRead, MemberStatus, SetRank } from '@/lib/types'
+import type { MdocProfile, MemberListItem, MemberRead, MemberStatus, SetRank } from '@/lib/types'
 import type { FuzzyDateValue } from '@/components/FuzzyDate'
 import { AffiliationCombobox, type ComboboxItem } from './pickers/AffiliationCombobox'
 import { PhotoSection, flushPhotoQueue } from './sections/PhotoSection'
@@ -490,13 +490,19 @@ function MemberFormSheetInner({ universeId, open, onClose, initial, defaultSetId
   const [error, setError] = useState<string | null>(null)
   const mdocLookup = useMdocLookup()
   const mdocImportPhoto = useMdocImportPhoto()
-  const [mdocUrl, setMdocUrl] = useState('')
+  const [mdocQuery, setMdocQuery] = useState('')
   const [mdocPending, setMdocPending] = useState<{
     earliest_release_date: FuzzyDateValue | null
     max_discharge_date: FuzzyDateValue | null
     facility: string | null
     photo_url: string | null
   } | null>(null)
+  // What OTIS returned, kept for review. Aliases and marks are deliberately
+  // NOT written into the member automatically: OTIS mixes street names in with
+  // legal-name spellings ("WILLIE NMN WALLACE") and even wholly different
+  // identities, and deciding which of those is a real alias is the
+  // researcher's call, not something to guess at.
+  const [mdocFound, setMdocFound] = useState<MdocProfile | null>(null)
   const urlPaste = useUrlPasteBanner()
   const [creatingSourceFromUrl, setCreatingSourceFromUrl] = useState<string | null>(null)
 
@@ -620,10 +626,17 @@ function MemberFormSheetInner({ universeId, open, onClose, initial, defaultSetId
     }
   }
 
+  /** Add one OTIS alias to the comma-separated aliases field, if not already there. */
+  function addAlias(alias: string) {
+    const existing = aliases.split(',').map((s) => s.trim()).filter(Boolean)
+    if (existing.some((a) => a.toLowerCase() === alias.toLowerCase())) return
+    setAliases([...existing, alias].join(', '))
+  }
+
   async function handleMdocImport() {
-    if (!mdocUrl.trim()) return
+    if (!mdocQuery.trim()) return
     try {
-      const profile = await mdocLookup.mutateAsync(mdocUrl.trim())
+      const profile = await mdocLookup.mutateAsync(mdocQuery.trim())
       if (profile.legal_name) setLegalName(profile.legal_name)
       if (profile.dob) setDob(profile.dob)
       setMdocPending({
@@ -632,7 +645,10 @@ function MemberFormSheetInner({ universeId, open, onClose, initial, defaultSetId
         facility: profile.facility,
         photo_url: profile.photo_url,
       })
-      if (status === 'UNKNOWN') setStatus('LOCKED')
+      setMdocFound(profile)
+      // Only a live prisoner implies LOCKED. Someone discharged is out, and
+      // guessing LOCKED for them would put a false status on the page.
+      if (status === 'UNKNOWN' && profile.status === 'Prisoner') setStatus('LOCKED')
       toast.success('Imported from MDOC. Review and save')
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'MDOC import failed'
@@ -657,8 +673,9 @@ function MemberFormSheetInner({ universeId, open, onClose, initial, defaultSetId
     setDateOfDeath(null)
     setFamilyEntries([])
     setError(null)
-    setMdocUrl('')
+    setMdocQuery('')
     setMdocPending(null)
+    setMdocFound(null)
     setIncFromDate(null)
     setIncMaxDate(null)
     setIncLife(false)
@@ -699,16 +716,17 @@ function MemberFormSheetInner({ universeId, open, onClose, initial, defaultSetId
           {!isEdit && (
             <FormSection title="Import from MDOC">
               <p className="text-xs text-zinc-400">
-                Paste an MDOC OTIS profile URL to prefill legal name, date of birth, and create an incarceration record with the facility and release dates.
+                Enter an MDOC offender number to prefill legal name, date of birth, and create an incarceration record with the facility and release dates.
               </p>
               <div className="flex gap-2">
                 <Input
-                  value={mdocUrl}
-                  onChange={(e) => setMdocUrl(e.target.value)}
-                  placeholder="https://mdocweb.state.mi.us/OTIS2/..."
+                  value={mdocQuery}
+                  onChange={(e) => setMdocQuery(e.target.value)}
+                  placeholder="MDOC number, e.g. 352482"
+                  inputMode="numeric"
                   className="flex-1"
                 />
-                <Button type="button" onClick={handleMdocImport} disabled={!mdocUrl.trim() || mdocLookup.isPending}>
+                <Button type="button" onClick={handleMdocImport} disabled={!mdocQuery.trim() || mdocLookup.isPending}>
                   {mdocLookup.isPending ? 'Importing…' : 'Import'}
                 </Button>
               </div>
@@ -720,6 +738,67 @@ function MemberFormSheetInner({ universeId, open, onClose, initial, defaultSetId
                   {mdocPending.max_discharge_date && ' · max discharge set'}
                   {mdocPending.photo_url && ' · photo'}
                 </p>
+              )}
+              {mdocFound && (
+                <div className="space-y-2 rounded border border-zinc-800 bg-zinc-900/40 p-2.5">
+                  <p className="text-xs text-zinc-400">
+                    OTIS #{mdocFound.mdoc_number}
+                    {mdocFound.status && <> · {mdocFound.status}</>}
+                    {mdocFound.sid_number && <> · SID {mdocFound.sid_number}</>}
+                  </p>
+
+                  {mdocFound.aliases.length > 0 && (
+                    <div className="space-y-1">
+                      <p className="text-xs text-zinc-400">
+                        Aliases on record <span className="text-zinc-500">(click to add; OTIS lists legal-name spellings alongside street names)</span>
+                      </p>
+                      <div className="flex flex-wrap gap-1">
+                        {mdocFound.aliases.map((a) => (
+                          <button
+                            key={a}
+                            type="button"
+                            onClick={() => addAlias(a)}
+                            className="rounded border border-zinc-700 px-1.5 py-0.5 text-xs text-zinc-300 hover:border-emerald-600 hover:text-emerald-400"
+                          >
+                            + {a}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {mdocFound.marks.length > 0 && (
+                    <details className="text-xs">
+                      <summary className="cursor-pointer text-zinc-400">
+                        Marks, scars &amp; tattoos ({mdocFound.marks.length})
+                      </summary>
+                      <ul className="mt-1 space-y-0.5 pl-3 text-zinc-300">
+                        {mdocFound.marks.map((m) => <li key={m}>{m}</li>)}
+                      </ul>
+                    </details>
+                  )}
+
+                  {mdocFound.sentences.length > 0 && (
+                    <details className="text-xs">
+                      <summary className="cursor-pointer text-zinc-400">
+                        Sentences ({mdocFound.sentences.length})
+                      </summary>
+                      <ul className="mt-1 space-y-1 pl-3 text-zinc-300">
+                        {mdocFound.sentences.map((s, i) => (
+                          <li key={`${s.court_file}-${s.offense}-${i}`}>
+                            <span className={s.active ? 'text-emerald-400' : 'text-zinc-500'}>
+                              {s.active ? 'active' : 'inactive'}
+                            </span>{' '}
+                            {s.offense ?? 'unknown offense'}
+                            {s.county && <span className="text-zinc-500"> · {s.county}</span>}
+                            {s.court_file && <span className="text-zinc-500"> · {s.court_file}</span>}
+                            {s.conviction_type && <span className="text-zinc-500"> · {s.conviction_type}</span>}
+                          </li>
+                        ))}
+                      </ul>
+                    </details>
+                  )}
+                </div>
               )}
             </FormSection>
           )}

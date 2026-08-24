@@ -339,13 +339,50 @@ export interface MemberAliasRead {
   created_at: string
 }
 
+export interface MdocSentence {
+  kind: 'prison' | 'probation'
+  active: boolean
+  offense: string | null
+  mcl: string[]
+  court_file: string | null
+  county: string | null
+  conviction_type: string | null
+  minimum_sentence: string | null
+  maximum_sentence: string | null
+  date_of_offense: FuzzyDateValue | null
+  date_of_sentence: FuzzyDateValue | null
+  date_of_discharge: FuzzyDateValue | null
+  discharge_reason: string | null
+}
+
 export interface MdocProfile {
   legal_name: string
   dob: FuzzyDateValue
   earliest_release_date: FuzzyDateValue | null
+  /** Only set while the offender is still serving. OTIS reuses one
+   *  "Discharge Date" label for the projected maximum and for the day
+   *  someone actually got out; the backend only surfaces the former here. */
   max_discharge_date: FuzzyDateValue | null
   facility: string | null
+  /** A `data:` URI, not a link: OTIS inlines the mugshot. Post it back to
+   *  /mdoc/import-photo unchanged. */
   photo_url: string | null
+  mdoc_number: string | null
+  sid_number: string | null
+  race: string | null
+  sex: string | null
+  hair: string | null
+  eyes: string | null
+  height: string | null
+  weight: string | null
+  image_date: FuzzyDateValue | null
+  status: string | null
+  security_level: string | null
+  discharge_date: FuzzyDateValue | null
+  aliases: string[]
+  /** Marks, scars and tattoos, verbatim. Tattoo text sometimes names a set. */
+  marks: string[]
+  sentences: MdocSentence[]
 }
 
 export interface MemberIncarcerationRead {
