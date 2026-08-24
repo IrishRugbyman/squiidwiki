@@ -276,3 +276,58 @@ async def test_search_returns_the_members_set(client: AsyncClient, db_session: A
     ).json()
     row = (listed["items"] if isinstance(listed, dict) else listed)[0]
     assert row["primary_set_name"] == hit["primary_set_name"]
+
+
+async def test_mdoc_number_round_trips_through_create_and_read(
+    client: AsyncClient, db_session: AsyncSession
+):
+    """The MDOC number must survive the read path, not just the write.
+
+    It is assembled into MemberRead by hand in the router rather than dumped
+    from the ORM object, so a field can persist correctly and still come back
+    null. That happened once; this pins it.
+    """
+    token = await _admin_token(client, db_session)
+    universe_id = await _make_universe(client, token)
+    auth = {"Authorization": f"Bearer {token}"}
+
+    created = (
+        await client.post(
+            "/api/v1/members/",
+            json={"universe_id": universe_id, "nickname": "Numbered", "mdoc_number": "123456"},
+            headers=auth,
+        )
+    ).json()
+    assert created["mdoc_number"] == "123456"
+
+    fetched = await client.get(
+        f"/api/v1/members/{created['id']}?universe_id={universe_id}", headers=auth
+    )
+    assert fetched.status_code == 200
+    assert fetched.json()["mdoc_number"] == "123456"
+
+
+async def test_member_without_an_mdoc_number_still_reads(
+    client: AsyncClient, db_session: AsyncSession
+):
+    """Most members have no MDOC number, so absent must read back as null.
+
+    Note what this does *not* prove: the field's `= None` default on MemberRead
+    is belt-and-braces, and removing it keeps these tests green, because the
+    router now always passes the key. The router line is the load-bearing part.
+    """
+    token = await _admin_token(client, db_session)
+    universe_id = await _make_universe(client, token)
+    auth = {"Authorization": f"Bearer {token}"}
+    created = (
+        await client.post(
+            "/api/v1/members/",
+            json={"universe_id": universe_id, "nickname": "Unnumbered"},
+            headers=auth,
+        )
+    ).json()
+    fetched = await client.get(
+        f"/api/v1/members/{created['id']}?universe_id={universe_id}", headers=auth
+    )
+    assert fetched.status_code == 200
+    assert fetched.json()["mdoc_number"] is None
