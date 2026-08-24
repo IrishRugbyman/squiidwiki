@@ -134,6 +134,24 @@ class MdocSentence:
 
 
 @dataclass(frozen=True)
+class MdocSearchResult:
+    """One row of the OTIS results list.
+
+    Deliberately not an MdocProfile: the results table carries only what OTIS
+    chooses to show in a list, and a name search is a *lead*, not an
+    identification. Load the profile by `mdoc_number` to get the rest.
+    """
+
+    mdoc_number: str
+    last_name: str | None = None
+    first_name: str | None = None
+    dob: FuzzyDate | None = None
+    sex: str | None = None
+    race: str | None = None
+    status: str | None = None
+
+
+@dataclass(frozen=True)
 class MdocProfile:
     legal_name: str
     dob: FuzzyDate
@@ -384,6 +402,46 @@ def _extract_photo(soup: BeautifulSoup) -> MdocPhoto | None:
     return None
 
 
+def parse_mdoc_results(html: str) -> tuple[list[MdocSearchResult], int | None, bool]:
+    """Parse an OTIS results page.
+
+    Returns ``(rows, total_matches, has_next_page)``.
+
+    ``total_matches`` comes from the page's own "N matches found" line and is
+    **not trustworthy** - OTIS has reported 0 for a number whose profile then
+    loaded perfectly well. It is returned for information; never branch on it.
+    Trust the rows.
+    """
+    soup = BeautifulSoup(html, "html.parser")
+    rows: list[MdocSearchResult] = []
+    for btn in soup.find_all("input", attrs={"name": "action:LoadProfile"}):
+        number = _clean(btn.get("value"))
+        if not number:
+            continue
+        tr = btn.find_parent("tr")
+        cells = [_clean(td.get_text(" ", strip=True)) for td in tr.find_all("td")] if tr else []
+        # Column order is the results header: number, last, first, dob, sex,
+        # race, MCL, location, status, ... Short rows are padded rather than
+        # indexed defensively at every use.
+        padded = (cells + [None] * 9)[:9]
+        rows.append(
+            MdocSearchResult(
+                mdoc_number=number,
+                last_name=padded[1],
+                first_name=padded[2],
+                dob=_try_parse_date(padded[3]),
+                sex=padded[4],
+                race=padded[5],
+                status=padded[8],
+            )
+        )
+
+    m = re.search(r"([\d,]+)\s+matches found", html)
+    total = int(m.group(1).replace(",", "")) if m else None
+    has_next = bool(soup.find("input", attrs={"name": "action:Pagination", "value": "Next"}))
+    return rows, total, has_next
+
+
 def _normalize_name(s: str) -> str:
     """OTIS renders names in caps, occasionally with a doubled space where a
     middle name is missing. Title-case, and handle 'LAST, FIRST' just in case.
@@ -541,6 +599,73 @@ async def fetch_mdoc_profile(mdoc_number: str, proxy: str | None = None) -> Mdoc
             f"{number}; refusing to use a profile that may be someone else's."
         )
     return parsed
+
+
+async def search_mdoc(
+    last_name: str = "",
+    first_name: str = "",
+    *,
+    max_pages: int = 10,
+    proxy: str | None = None,
+) -> list[MdocSearchResult]:
+    """Search OTIS by name and return every result row, following pagination.
+
+    OTIS pages 20 rows at a time. `max_pages` caps that at 200 rows by default,
+    because a bare surname can return hundreds and each page is a round trip
+    through the proxy. When the cap is hit the list is simply short - it is
+    logged in no way OTIS can tell us about, so **check `len()` against what you
+    expected** rather than assuming completeness.
+
+    A name search is a lead, not an identification. Several people share a name,
+    and OTIS holds only those who passed through the Department of Corrections:
+    county jail, federal custody and juvenile records never appear here, so an
+    empty result does not mean someone has no record.
+    """
+    last_name, first_name = last_name.strip(), first_name.strip()
+    if not last_name and not first_name:
+        raise ValueError("Give at least a last name or a first name")
+
+    async with httpx.AsyncClient(
+        proxy=proxy or _configured_proxy(),
+        timeout=HTTP_TIMEOUT,
+        follow_redirects=True,
+        headers={"User-Agent": USER_AGENT},
+    ) as client:
+        try:
+            await client.get(f"{BASE_URL}/Search")
+            resp = await client.post(
+                f"{BASE_URL}/Search",
+                data={
+                    **BLANK_SEARCH,
+                    "LastName": last_name,
+                    "FirstName": first_name,
+                    "action:Search": "Search",
+                },
+            )
+            resp.raise_for_status()
+
+            out: list[MdocSearchResult] = []
+            seen: set[str] = set()
+            for _ in range(max_pages):
+                rows, _total, has_next = parse_mdoc_results(resp.text)
+                # Guard against a pagination that loops back on itself rather
+                # than advancing, which would otherwise spin to max_pages.
+                fresh = [r for r in rows if r.mdoc_number not in seen]
+                if not fresh:
+                    break
+                seen.update(r.mdoc_number for r in fresh)
+                out.extend(fresh)
+                if not has_next:
+                    break
+                resp = await client.post(f"{BASE_URL}/Results", data={"action:Pagination": "Next"})
+                resp.raise_for_status()
+        except httpx.HTTPError as e:
+            raise MdocFetchError(
+                f"Couldn't reach OTIS ({e}). It 403s this server's own IP, so "
+                "MDOC_PROXY must point at a SOCKS5 proxy that egresses "
+                "elsewhere (infra/otis-tunnel.sh opens one)."
+            ) from e
+    return out
 
 
 async def fetch_mdoc_image(photo_url: str) -> tuple[bytes, str]:

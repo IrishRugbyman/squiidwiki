@@ -17,6 +17,7 @@ from app.services.mdoc import (
     MdocParseError,
     decode_data_uri,
     parse_mdoc_html,
+    parse_mdoc_results,
 )
 
 FIXTURE = Path(__file__).parent / "fixtures" / "otis_profile.html"
@@ -236,11 +237,16 @@ class _StubClient:
     async def get(self, url, **kwargs):
         if self._raise_on_get:
             raise self._raise_on_get
-        return httpx.Response(200, text=SEARCH_FORM)
+        return httpx.Response(200, text=SEARCH_FORM, request=httpx.Request("GET", url))
 
     async def post(self, url, data=None, **kwargs):
         self.requested.append((url, data))
-        return self._posts.pop(0)
+        resp = self._posts.pop(0)
+        # httpx refuses raise_for_status() on a response with no request bound,
+        # so give the stub one rather than dropping the check from the code.
+        if resp._request is None:
+            resp._request = httpx.Request("POST", url)
+        return resp
 
 
 def _install(monkeypatch, posts, raise_on_get=None):
@@ -330,3 +336,107 @@ class TestFetchProfile:
         with pytest.raises(ValueError, match="must be digits"):
             await mdoc_service.fetch_mdoc_profile("not-a-number", proxy="socks5://x:1")
         assert "client" not in holder
+
+
+# ---------------------------------------------------------------------------
+# Name search and pagination. Markup shape copied from a real OTIS results
+# page; the people in it are invented.
+# ---------------------------------------------------------------------------
+
+
+def _results_page(rows, *, total=None, next_page=False) -> str:
+    trs = "".join(
+        f'<tr><td><input type="submit" name="action:LoadProfile" value="{n}" class="btn" /></td>'
+        f"<td>{last}</td><td>{first}</td><td>{dob}</td><td>{sex}</td><td>{race}</td>"
+        f"<td>750.227</td><td>Somewhere</td><td>{status}</td></tr>"
+        for n, last, first, dob, sex, race, status in rows
+    )
+    matches = f"<tr><td>{total} matches found</td></tr>" if total is not None else ""
+    nxt = '<input type="submit" name="action:Pagination" value="Next" />' if next_page else ""
+    return (
+        "<html><head><title>Results Page - OTIS</title></head><body>"
+        f'<form action="/OTIS2/Results" method="post"><table><tbody>{matches}{trs}'
+        f"</tbody></table>{nxt}</form></body></html>"
+    )
+
+
+ROWS_P1 = [
+    ("111111", "PERKINS", "AARON", "9/26/2000", "M", "Black", "Parole"),
+    ("222222", "PERKINS", "BETTY", "1/2/1990", "F", "White", "Prisoner"),
+]
+ROWS_P2 = [("333333", "PERKINS", "CARL", "5/5/1985", "M", "Black", "Discharged")]
+
+
+class TestResultsParsing:
+    def test_rows_and_columns(self):
+        rows, total, has_next = parse_mdoc_results(_results_page(ROWS_P1, total=2))
+        assert [r.mdoc_number for r in rows] == ["111111", "222222"]
+        first = rows[0]
+        assert (first.last_name, first.first_name) == ("PERKINS", "AARON")
+        assert (first.dob.year, first.dob.month, first.dob.day) == (2000, 9, 26)
+        assert (first.sex, first.race, first.status) == ("M", "Black", "Parole")
+        assert total == 2
+        assert has_next is False
+
+    def test_next_page_is_detected(self):
+        _, _, has_next = parse_mdoc_results(_results_page(ROWS_P1, next_page=True))
+        assert has_next is True
+
+    def test_a_page_with_no_results_yields_nothing(self):
+        rows, _, _ = parse_mdoc_results(_results_page([], total=0))
+        assert rows == []
+
+    def test_thousands_separator_in_the_match_count(self):
+        _, total, _ = parse_mdoc_results(_results_page(ROWS_P1, total="1,234"))
+        assert total == 1234
+
+
+class TestSearch:
+    @pytest.mark.asyncio
+    async def test_follows_pagination_and_concatenates(self, monkeypatch):
+        _install(
+            monkeypatch,
+            [
+                httpx.Response(200, text=_results_page(ROWS_P1, total=3, next_page=True)),
+                httpx.Response(200, text=_results_page(ROWS_P2, total=3)),
+            ],
+        )
+        rows = await mdoc_service.search_mdoc(last_name="Perkins", proxy="socks5://x:1")
+        assert [r.mdoc_number for r in rows] == ["111111", "222222", "333333"]
+
+    @pytest.mark.asyncio
+    async def test_a_pagination_that_repeats_itself_terminates(self, monkeypatch):
+        """If Next serves the same page back, the loop must stop rather than
+        spin to max_pages and duplicate every row."""
+        same = _results_page(ROWS_P1, total=2, next_page=True)
+        _install(monkeypatch, [httpx.Response(200, text=same) for _ in range(12)])
+        rows = await mdoc_service.search_mdoc(last_name="Perkins", proxy="socks5://x:1")
+        assert [r.mdoc_number for r in rows] == ["111111", "222222"]
+
+    @pytest.mark.asyncio
+    async def test_max_pages_caps_the_walk(self, monkeypatch):
+        pages = [
+            httpx.Response(
+                200,
+                text=_results_page(
+                    [(f"{i}00000", "X", "Y", "1/1/1990", "M", "Black", "Parole")], next_page=True
+                ),
+            )
+            for i in range(1, 9)
+        ]
+        _install(monkeypatch, pages)
+        rows = await mdoc_service.search_mdoc(last_name="X", max_pages=3, proxy="socks5://x:1")
+        assert len(rows) == 3
+
+    @pytest.mark.asyncio
+    async def test_empty_search_is_refused_before_any_request(self, monkeypatch):
+        holder = _install(monkeypatch, [])
+        with pytest.raises(ValueError, match="last name or a first name"):
+            await mdoc_service.search_mdoc(proxy="socks5://x:1")
+        assert "client" not in holder
+
+    @pytest.mark.asyncio
+    async def test_transport_failure_points_at_the_proxy(self, monkeypatch):
+        _install(monkeypatch, [], raise_on_get=httpx.ConnectError("nope"))
+        with pytest.raises(mdoc_service.MdocFetchError, match="MDOC_PROXY"):
+            await mdoc_service.search_mdoc(last_name="Perkins", proxy="socks5://x:1")
