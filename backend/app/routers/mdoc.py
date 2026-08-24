@@ -11,6 +11,7 @@ from app.schemas.mdoc import (
     MdocParseRequest,
     MdocPhotoImportRequest,
     MdocProfileResponse,
+    MdocSentenceRead,
 )
 from app.schemas.media import MediaReadWithUrls
 from app.services.mdoc import (
@@ -31,8 +32,16 @@ router = APIRouter(prefix="/mdoc", tags=["mdoc"])
 
 @router.post("/lookup", response_model=MdocProfileResponse)
 async def lookup_mdoc(body: MdocLookupRequest, _: CurrentUser):
+    """Look an offender up on OTIS by MDOC number.
+
+    Needs `MDOC_PROXY` set to a SOCKS5 proxy that egresses somewhere Cloudflare
+    doesn't block, because it 403s this server's own IP. Without one this
+    returns 502 and `/mdoc/parse` is the way in.
+    """
+    # The request validator guarantees this is set; it narrows the type here.
+    assert body.mdoc_number is not None
     try:
-        profile = await fetch_mdoc_profile(body.url)
+        profile = await fetch_mdoc_profile(body.mdoc_number)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except MdocFetchError as e:
@@ -75,7 +84,24 @@ def _to_response(profile: MdocProfile) -> MdocProfileResponse:
         earliest_release_date=profile.earliest_release_date,
         max_discharge_date=profile.max_discharge_date,
         facility=profile.facility,
-        photo_url=profile.photo_url,
+        # The mugshot is inline in the page now, so this is a data: URI. The
+        # field keeps its name because /import-photo takes it back verbatim.
+        photo_url=profile.photo.as_data_uri() if profile.photo else None,
+        mdoc_number=profile.mdoc_number,
+        sid_number=profile.sid_number,
+        race=profile.race,
+        sex=profile.sex,
+        hair=profile.hair,
+        eyes=profile.eyes,
+        height=profile.height,
+        weight=profile.weight,
+        image_date=profile.image_date,
+        status=profile.status,
+        security_level=profile.security_level,
+        discharge_date=profile.discharge_date,
+        aliases=profile.aliases,
+        marks=profile.marks,
+        sentences=[MdocSentenceRead(**vars(s)) for s in profile.sentences],
     )
 
 
