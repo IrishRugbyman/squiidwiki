@@ -211,6 +211,16 @@ Worth knowing before starting another round of research, all verified 2026-08-23
   by four outlets and not one printed a victim or suspect name, and no charge was
   ever filed. Expect Detroit sourcing to be street-first; absence of press
   confirmation is the norm here, not a red flag.
+- **Federal charging documents are the exception, and the only place legal
+  names come free.** The September 2015 Band Crew RICO indictment (E.D. Mich.)
+  names eight defendants with their a.k.a.s, seven of which matched nicknames
+  already on the CMH and YNC rosters, and it fixes Band Crew's boundary box and
+  graffiti tags. justice.gov serves its own copies behind a bot-verification
+  wall, so read the Equipo Nizkor mirrors at `derechos.org/nizkor/corru/doc/`.
+  `research/privedatabase/tools/seed_bandcrew_indictment.py` is the shape of the
+  write-up: everything the document gives lands in a column (`legal_name`, the
+  affiliation, `member_set.rank` for the charged "CEO"/"Co-CEO" aliases), never
+  in a biography. Worth checking whether other Detroit sets have one.
 
 
 -------
