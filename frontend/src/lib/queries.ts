@@ -654,9 +654,14 @@ export const useUpdateMemberIncarceration = (memberId: UUID, universeId: UUID) =
   })
 }
 
+// OTIS profiles no longer have URLs - the rebuilt site keeps the selected
+// offender in session state - so an MDOC number is the only stable handle.
+// The backend still accepts an old otis2profile.aspx link and digs the number
+// out of it, so pasting one keeps working.
 export const useMdocLookup = () =>
   useMutation({
-    mutationFn: (url: string) => api.post<MdocProfile>('/mdoc/lookup', { url }),
+    mutationFn: (mdocNumber: string) =>
+      api.post<MdocProfile>('/mdoc/lookup', { mdoc_number: mdocNumber }),
   })
 
 export const useMdocImportPhoto = () =>
