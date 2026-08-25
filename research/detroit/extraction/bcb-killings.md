@@ -94,11 +94,48 @@ a photograph.**
 10/26 is the date Beezy died. That went into the alliance description, which was empty and
 is the only field that can hold it.
 
-**Keylen Philyaw** was killed at the same address on the same day and is seeded as a
-member, `DEAD`, parked in Unknown - whether he was BCB is not established.
+### Keylen Philyaw was FOE Life, not BCB
 
-Neither man is in OTIS, so neither had a state record, and no press account of the killing
-was found. Nobody is attributed to it, and no set participant was written.
+Killed at the same address on the same day, and the assumption was that he was BCB too. He
+was not. His Facebook is **`facebook.com/MR.FOELIFE`**, and his profile picture is a
+photograph of two street signs: **Blackstone and Seven Mile**.
+
+**That is the same street BCB is named for, at the other end of it.** Blackstone Street
+runs from latitude 42.386 up to 42.4418 - across Seven Mile and stopping just short of
+Eight Mile. BCB is "Burgess, Chapel, Blackstone **Across Lahser**", the northern stretch:
+Beezy died at Eight Mile and Chapel, 257 m from Blackstone's north end. Philyaw repped
+Blackstone and Seven Mile, at **42.429752, -83.251047**, which is **1,532 m south of where
+he and Beezy died**.
+
+So BCB and FOE Life are not distant rivals. They are the two ends of one street, a mile and
+a half apart, and Blackstone belongs to whichever end you are standing on. Blackstone at
+Seven Mile also sits inside the Band Crew box the federal indictment draws - Eight Mile
+north, West McNichols south, Greenfield east, Southfield Freeway west, centred on Seven
+Mile - which is where FOE Life should be, since it is one of Band Crew's four component
+sets.
+
+**His date of birth is 14 May 1979.** His sister Jazmin Sierra posted on 14 May 2024
+wishing him a happy **45th**, which gives 1979; that makes him **31** on 26 October 2010,
+exactly the age the homicide list records. Two independent sources agreeing, so it is
+seeded. She is not added as a member - she is a living private individual and outside what
+this database is for.
+
+**A BCB man and a FOE Life man died at the same address on the same day**, at BCB's end of
+Blackstone, Philyaw 31 and Autrey 22. What that was is not established and is not recorded
+as anything: nobody was named to either death, neither man is in OTIS, and no press account
+was found. It is left as two victims at one scene.
+
+### The war, in order
+
+| date | who | set | what |
+|---|---|---|---|
+| 2007-06-13 | Walvon Holland, 16 | BCB | robbed and shot in Kelm's basement. **Not gang** - Herbert, convicted, life |
+| 2008-04-07 | To-To (Otis Waller Jr), 18 | BCB | killed on Pierson, inside BCB's streets. Unattributed |
+| 2008-10-16 | Christopher Walker, 16 | FOE Life | killed outside Henry Ford High School. **Retaliation for To-To, on what would have been To-To's 19th birthday** |
+| 2010-10-26 | Beezy (Rodney Autrey), 22, and Keylen Philyaw, 31 | BCB and FOE Life | both killed at 21435 W 8 Mile, 68 m from Chapel. Unattributed |
+
+Walvon's killing sits in that list without belonging to it: the court found a robbery, not
+a war.
 
 **Seeded** by `../tools/seed_beezy_2010.py`.
 
