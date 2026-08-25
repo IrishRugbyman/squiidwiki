@@ -16,7 +16,7 @@ jobs:
           key: ${{ secrets.SSH_KEY }}
           script: |
             set -e
-            cd ~/squiidwiki
+            cd ~/squiidape/squiidwiki
             git pull origin master
 
             echo "=== Backend ==="

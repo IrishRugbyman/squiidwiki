@@ -18,7 +18,7 @@ import json
 import subprocess
 import sys
 
-sys.path.insert(0, "/home/lbzgiu/squiidwiki/research/privedatabase/tools")
+sys.path.insert(0, "/home/lbzgiu/squiidape/squiidwiki/research/privedatabase/tools")
 from wikiapi import Api  # noqa: E402
 
 DETROIT = "4f57cae1-ebfe-408c-b435-052e2bd0ca45"

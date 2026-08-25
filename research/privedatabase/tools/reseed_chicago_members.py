@@ -8,7 +8,7 @@ import sys
 import urllib.error
 import urllib.request
 
-sys.path.insert(0, "/home/lbzgiu/squiidwiki/research/privedatabase/tools")
+sys.path.insert(0, "/home/lbzgiu/squiidape/squiidwiki/research/privedatabase/tools")
 from db_sync import candidates, norm
 
 API = "http://localhost:8001/api/v1"
@@ -17,7 +17,7 @@ MUNI = "0d73ae53-037c-450f-8aca-6fee9d08492e"
 S = pathlib.Path(
     "/tmp/claude-1000/-home-lbzgiu-squiidwiki/e162f253-b7e6-408b-a995-a5bb3bb9c68d/scratchpad"
 )
-R = pathlib.Path("/home/lbzgiu/squiidwiki/research/privedatabase")
+R = pathlib.Path("/home/lbzgiu/squiidape/squiidwiki/research/privedatabase")
 H = {
     "Content-Type": "application/json",
     "Authorization": f"Bearer {(S / 'tok').read_text().strip()}",

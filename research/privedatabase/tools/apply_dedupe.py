@@ -17,7 +17,7 @@ import sys
 import urllib.error
 import urllib.request
 
-sys.path.insert(0, "/home/lbzgiu/squiidwiki/research/privedatabase/tools")
+sys.path.insert(0, "/home/lbzgiu/squiidape/squiidwiki/research/privedatabase/tools")
 from db_sync import norm  # noqa: E402
 
 API = "http://localhost:8001/api/v1"

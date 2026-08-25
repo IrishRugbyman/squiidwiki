@@ -34,12 +34,12 @@ import time
 import urllib.error
 import urllib.request
 
-sys.path.insert(0, "/home/lbzgiu/squiidwiki/research/privedatabase/tools")
+sys.path.insert(0, "/home/lbzgiu/squiidape/squiidwiki/research/privedatabase/tools")
 from db_sync import candidates, norm  # noqa: E402
 
 API = "http://localhost:8001/api/v1"
 U = "59d23911-6fee-4156-8839-ac3c248a3b46"  # Metro Chicago
-R = pathlib.Path("/home/lbzgiu/squiidwiki/research/privedatabase")
+R = pathlib.Path("/home/lbzgiu/squiidape/squiidwiki/research/privedatabase")
 SITE = "https://privedatabase.wordpress.com/"
 
 DATE_UNKNOWN = {"precision": "UNKNOWN"}

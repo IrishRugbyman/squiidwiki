@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """Dump every post of a professional Instagram account via Business Discovery.
 
-Reads the Page token out of ``~/squiidape-ig/.env`` and walks the whole media
+Reads the Page token out of ``~/squiidape/ig/.env`` and walks the whole media
 edge, writing ``<handle>.json`` (id, caption, timestamp, permalink, media_type,
 like_count, comments_count) to the chosen output directory.
 
