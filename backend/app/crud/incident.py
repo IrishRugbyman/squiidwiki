@@ -105,15 +105,30 @@ async def _unsync_killed_participants(
 
 
 async def _sync_killed_participants(
-    session: AsyncSession, incident: Incident, participants: list[ParticipantCreate]
+    session: AsyncSession,
+    incident: Incident,
+    participants: list[ParticipantCreate],
+    previous_date: dict | None = None,
 ) -> None:
     """
     Propagate KILLED-participant outcomes onto the member record:
       - status -> DEAD if not already
       - death_incident_id -> this incident (first death wins; never override an
         existing link to a different incident)
-      - date_of_death -> incident.date when this is the linking incident and the
-        incident has at least year-precision
+      - date_of_death -> incident.date, but only when this incident is what put
+        the date there in the first place (see below)
+
+    ``previous_date`` is the incident's date *before* this edit, which only
+    ``update_incident`` can know; on create it is None.
+
+    **A date_of_death that disagrees with the incident was entered by hand and
+    outranks this sync.** The shooting and the death it causes are separate
+    events: Djuan Page was shot 14 Jul 2014 and died in August, and this
+    function used to overwrite the August date on every single save of that
+    incident, so the hand correction never survived the next edit. A date is
+    therefore only written when it is null, or still equal to whatever the
+    incident said a moment ago - which keeps genuine incident-date corrections
+    propagating to members who never got a manual date.
 
     Never reverts; un-kill is a manual member edit. Audit listeners on `member`
     pick these mutations up automatically.
@@ -136,7 +151,10 @@ async def _sync_killed_participants(
             m.status = MemberStatus.DEAD
         if m.death_incident_id is None:
             m.death_incident_id = incident.id
-        if m.death_incident_id == incident.id and incident_has_date:
+        date_is_ours = m.date_of_death is None or (
+            previous_date is not None and m.date_of_death == previous_date
+        )
+        if m.death_incident_id == incident.id and incident_has_date and date_is_ours:
             m.date_of_death = incident_date
         m.updated_at = now
         session.add(m)
@@ -244,6 +262,9 @@ async def update_incident(
     obj = await get_incident(session, id, universe_id)
     if obj is None:
         return None
+    # Read before the setattr loop below replaces it: _sync_killed_participants
+    # needs to tell a member date it wrote itself from one a human wrote.
+    previous_date = obj.date
     dump = data.model_dump(
         exclude_unset=True, exclude={"date", "participants", "set_participants", "source_ids"}
     )
@@ -265,7 +286,7 @@ async def update_incident(
     if data.participants is not None:
         await _unsync_killed_participants(session, obj, data.participants)
         await _sync_participants(session, obj.id, data.participants)
-        await _sync_killed_participants(session, obj, data.participants)
+        await _sync_killed_participants(session, obj, data.participants, previous_date)
     if data.set_participants is not None:
         await _sync_set_participants(session, obj.id, data.set_participants)
     if data.source_ids is not None:
