@@ -101,6 +101,28 @@ old Helsinki block no longer applies). **J-Nutty is William Morton**, confirmed.
   them there renders a meaningless a/k/a line. Same for the court caption's "a/k/a Devon
   Cheo Bell". Both live in the source notes instead.
 
+## MDOC 666392, Devon Bell
+
+Pulled 2026-08-25. **OTIS lists "D" among his aliases**, which independently confirms the
+street nickname, so it is his `nickname` and the rest stay out of `aliases`.
+
+- **Date of birth 1 August 1990**, so he was **18** on the day, against Morton's 15.
+- Court file **08018563-01-FC** - he is defendant **-01** on the same case Morton is
+  **-03** on.
+- **Second-degree murder (MCL 750.317), 25 to 40 years**, plus felony firearm 2 years.
+  Sentenced **24 November 2009**, five weeks after Morton. **Press reporting of 27-40 was
+  wrong**; the record says 25 to 40.
+- Earliest release **15 October 2035**, maximum discharge **15 October 2050**. Oaks
+  Correctional Facility, security level II. SID 2876132P.
+- Marks: one scar, a bite mark on the upper left shoulder.
+- Other recorded names - Devon Cheo Bell, Devon Choodarius Bell, Devon Darius Bell - are
+  legal-name spellings and stay in these notes rather than in `aliases`.
+
+**Correcting something recorded earlier in this session.** An OTIS *name* search for
+"Devon Bell" returned zero rows, and that was written up as "OTIS has neither
+co-defendant". He is plainly in OTIS. The name search is unreliable and an empty result
+from it proves nothing - go by offender number where one is available.
+
 ## To-To is already on file
 
 The friend the shooting avenged is the existing member **To-To, Otis Waller Jr**, BCB,
@@ -119,8 +141,10 @@ Written to prod by `../tools/seed_hfhs_2008.py` (idempotent, dry-run by default)
 - **Members** - Chris (Christopher Walker, FOE Life, DEAD); D (Devon Bell, LOCKED);
   Derryck Brantley (FREE, acquitted); Kejuana McCants, Maleek Slater and Leon Merriweather
   (Unknown set, UNKNOWN status). To-To reused, not recreated.
-- **J-Nutty** - filled in `legal_name` William Morton, `mdoc_number` 744816, `dob`
-  1993-01-08, and his OTIS mugshot as media.
+- **Both offenders' MDOC records** - `legal_name`, `mdoc_number`, `dob` and the OTIS
+  mugshot on each, plus a `member_incarceration` spell carrying the facility, the case
+  file and the release dates: Morton's flagged `life_sentence` with no release dates,
+  Bell's with earliest release 2035 and maximum discharge 2050.
 - **Incident** - MURDER, 2008-10-16, "Evergreen Rd & Pembroke St, outside Henry Ford High
   School, Detroit", **42.436772, -83.239136** (the intersection node from Overpass), seven
   participants, `verified`. Brantley carries `acquitted=True`. The death sync set Walker to
@@ -138,11 +162,6 @@ columns.
   to Christopher Walker **in school** and says To-To says what's up" - but that is the
   earlier confrontation that led to the fistfight. The trial transcript, not the opinion,
   would settle it. Nothing about this went into the narrative as fact.
-- **Devon Bell's sentence.** Press reporting says 27-40 years; the opinion affirms the
-  conviction without stating the sentence, and an OTIS name search for him returned
-  nothing. An empty OTIS result is not proof of no record - county, federal and juvenile
-  records never appear there - so his LOCKED status rests on the affirmed conviction rather
-  than on a located prison record.
 - **Sets for the three wounded and for Bell and Brantley.** All five are parked in Unknown.
 - **BCB's gang tag.** Ten members still carry `Unknown Vice Lords`. Between the court's
   street-name expansion and Morton's red BCB tattoo, that wants clearing.

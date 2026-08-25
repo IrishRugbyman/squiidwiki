@@ -51,11 +51,77 @@ UNKNOWN_SET = "f4bfd8ab-c0ce-458f-93eb-8d741109b077"
 DETROIT_MUNI = "55d40a23-fdbe-4e83-b5b0-5670a04df4c9"
 MORTON = "19f97690-f2eb-427a-9024-38e05ef72236"  # existing member "J-Nutty"
 
-PHOTO = pathlib.Path(
-    "/tmp/claude-1000/-home-lbzgiu-squiidwiki/"
-    "4e0c90be-ff2d-453e-aa9b-764467c440bb/scratchpad/mdoc-744816.jpg"
+SCRATCH = pathlib.Path(
+    "/tmp/claude-1000/-home-lbzgiu-squiidwiki/4e0c90be-ff2d-453e-aa9b-764467c440bb/scratchpad"
 )
-PHOTO_CAPTION = "MDOC OTIS offender photo, 2 August 2024"
+
+# MDOC 744816 and 666392, pulled from OTIS 2026-08-25 through the configured
+# proxy. `aliases` is deliberately left empty on both: OTIS's other entries are
+# spelling variants of a legal name the page already renders, and Bell's one
+# real street name, "D", is his nickname rather than an a/k/a.
+OFFENDERS = {
+    "744816": {
+        "member_id": MORTON,
+        "legal_name": "William Morton",
+        "dob": {"year": 1993, "month": 1, "day": 8, "precision": "YMD", "approx": False},
+        "photo": SCRATCH / "mdoc-744816.jpg",
+        "photo_caption": "MDOC OTIS offender photo, 2 August 2024",
+        "spell": {
+            "from_date": {
+                "year": 2009,
+                "month": 10,
+                "day": 15,
+                "precision": "YMD",
+                "approx": False,
+            },
+            "life_sentence": True,
+            "facility": "Saginaw Correctional Facility",
+            "case_id": "08018563-03-FC",
+            "notes": (
+                "First-degree premeditated murder (MCL 750.316A), LIFE. Three counts of "
+                "assault with intent to commit murder (MCL 750.83), 15 to 25 years each. "
+                "Felony firearm (MCL 750.227BA), 2 years. Aged 15 at the offence."
+            ),
+        },
+    },
+    "666392": {
+        "member_id": None,  # resolved from legal_name at run time
+        "legal_name": "Devon Bell",
+        "dob": {"year": 1990, "month": 8, "day": 1, "precision": "YMD", "approx": False},
+        "photo": SCRATCH / "mdoc-666392.jpg",
+        "photo_caption": "MDOC OTIS offender photo, 19 April 2024",
+        "spell": {
+            "from_date": {
+                "year": 2009,
+                "month": 11,
+                "day": 24,
+                "precision": "YMD",
+                "approx": False,
+            },
+            "earliest_release_date": {
+                "year": 2035,
+                "month": 10,
+                "day": 15,
+                "precision": "YMD",
+                "approx": False,
+            },
+            "max_discharge_date": {
+                "year": 2050,
+                "month": 10,
+                "day": 15,
+                "precision": "YMD",
+                "approx": False,
+            },
+            "life_sentence": False,
+            "facility": "Oaks Correctional Facility",
+            "case_id": "08018563-01-FC",
+            "notes": (
+                "Second-degree murder (MCL 750.317), 25 to 40 years. Felony firearm "
+                "(MCL 750.227BA), 2 years. Aged 18 at the offence."
+            ),
+        },
+    },
+}
 
 DATE = {"year": 2008, "month": 10, "day": 16, "precision": "YMD", "approx": False}
 
@@ -140,11 +206,11 @@ def one(sql):
     return r[0] if r else None
 
 
-def upload(token, member_id):
-    """POST the OTIS mugshot as multipart/form-data to /media/."""
+def upload(token, member_id, photo, caption):
+    """POST an OTIS mugshot as multipart/form-data to /media/."""
     boundary = "----squiidwiki" + uuid.uuid4().hex
-    ctype = mimetypes.guess_type(PHOTO.name)[0] or "image/jpeg"
-    fields = {"universe_id": U, "member_id": member_id, "caption": PHOTO_CAPTION}
+    ctype = mimetypes.guess_type(photo.name)[0] or "image/jpeg"
+    fields = {"universe_id": U, "member_id": member_id, "caption": caption}
     body = b""
     for k, v in fields.items():
         body += (
@@ -152,9 +218,9 @@ def upload(token, member_id):
         ).encode()
     body += (
         f'--{boundary}\r\nContent-Disposition: form-data; name="file"; '
-        f'filename="{PHOTO.name}"\r\nContent-Type: {ctype}\r\n\r\n'
+        f'filename="{photo.name}"\r\nContent-Type: {ctype}\r\n\r\n'
     ).encode()
-    body += PHOTO.read_bytes() + f"\r\n--{boundary}--\r\n".encode()
+    body += photo.read_bytes() + f"\r\n--{boundary}--\r\n".encode()
     req = urllib.request.Request(
         f"{API}/media/",
         method="POST",
@@ -279,18 +345,41 @@ def main():
             },
         )["id"]
 
-    print("== Morton (existing member J-Nutty)")
-    patch(
-        f"members/{MORTON}?universe_id={U}",
-        {
-            "legal_name": "William Morton",
-            "mdoc_number": "744816",
-            "dob": {"year": 1993, "month": 1, "day": 8, "precision": "YMD", "approx": False},
-            "status": "LOCKED",
-            "aliases": [],
-            "source_ids": [opinion_id, otis_id],
-        },
-    )
+    print("== MDOC records")
+    for num, o in OFFENDERS.items():
+        mid = o["member_id"] or ids[o["legal_name"]]
+        patch(
+            f"members/{mid}?universe_id={U}",
+            {
+                "legal_name": o["legal_name"],
+                "mdoc_number": num,
+                "dob": o["dob"],
+                "status": "LOCKED",
+                "aliases": [],
+                "source_ids": [opinion_id, otis_id],
+            },
+        )
+        print(f"  {num} {o['legal_name']}")
+
+        spell = one(
+            f"SELECT id FROM member_incarceration WHERE member_id='{mid}' "
+            f"AND case_id='{o['spell']['case_id']}'"
+        )
+        if spell:
+            print("    spell exists")
+        else:
+            post(f"members/{mid}/incarcerations?universe_id={U}", o["spell"])
+            print("    spell created")
+
+        photo, caption = o["photo"], o["photo_caption"]
+        if not photo.exists():
+            print(f"    photo SKIP: {photo.name} missing")
+        elif not GO:
+            print(f"    photo upload {photo.name} ({photo.stat().st_size} bytes)")
+        elif q(f"SELECT id FROM media WHERE member_id='{mid}' AND caption='{caption}'"):
+            print("    photo already attached")
+        else:
+            upload(api.token, mid, photo, caption)
 
     print("== incident")
     row = one(
@@ -319,16 +408,6 @@ def main():
                 "participants": participants(ids),
             },
         )
-
-    print("== Morton OTIS photo")
-    if not PHOTO.exists():
-        print(f"  SKIP: {PHOTO} missing")
-    elif not GO:
-        print(f"  upload {PHOTO.name} ({PHOTO.stat().st_size} bytes) -> member {MORTON}")
-    elif q(f"SELECT id FROM media WHERE member_id='{MORTON}' AND caption='{PHOTO_CAPTION}'"):
-        print("  OTIS photo already attached")
-    else:
-        upload(api.token, MORTON)
 
     print("\nDRY RUN - re-run with --go" if not GO else "\ndone")
 
