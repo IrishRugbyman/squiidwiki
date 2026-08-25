@@ -11,7 +11,7 @@ makes the geography below mean anything.
 | | date | age | place | distance from BCB's streets |
 |---|---|---|---|---|
 | Walvon Holland | 2007-06-13 | 16 | 18997 Lenore Ave, Five Points | ~2 km west, across Lahser |
-| To-To (Otis Waller Jr) | 2008-04-07 | 18 | 18551 Pierson St, Sunbeam Heights | inside the cluster |
+| To-To (Otis Waller Jr) | 2008-04-07 | 18 | 18551 Pierson St, Sunbeam Heights | 557 m - on the seam (see below) |
 | Beezy (Rodney Autrey) | 2010-10-26 | 22 | 21435 W 8 Mile Rd | **68 m from Chapel** |
 
 ---
@@ -174,6 +174,46 @@ a war.
 **Seeded** by `../tools/seed_beezy_2010.py`.
 
 ---
+
+## The ground, measured
+
+His sister's anniversary post - nine years on, so October 2019 - is tagged at **7 Mile and
+Evergreen** and says it plainly:
+
+> 7mile foe life (only for u tho, bcuz we all kno it's Joy Rd all day)
+
+Two things in one line. **FOE Life is a 7 Mile set**, confirmed by his family and
+independent of the street signs in his own profile picture. And **the family is Joy Road** -
+he repped 7 Mile anyway, which is his own choice rather than where he came from.
+
+That fixes the map. Everything in this file happens inside about two kilometres:
+
+| west to east | longitude | |
+|---|---|---|
+| 21435 W 8 Mile | -83.2544 | **BCB.** Beezy and Philyaw killed here |
+| Blackstone & 7 Mile | -83.2510 | **FOE Life**, west end - his profile picture |
+| 18551 Pierson | -83.2472 | To-To killed here |
+| 7 Mile & Evergreen | -83.2392 | **FOE Life**, east end - the memorial tag |
+| Evergreen & Pembroke | -83.2391 | Christopher Walker killed here, at his school |
+
+    Blackstone & 7 Mile  ->  7 Mile & Evergreen        976 m   the FOE Life run
+    7 Mile & Evergreen   ->  Evergreen & Pembroke      751 m   north to the school
+    Blackstone & 7 Mile  ->  21435 W 8 Mile          1,532 m   FOE Life to BCB
+    Evergreen & Pembroke ->  21435 W 8 Mile          1,446 m   how far BCB travelled
+
+So **FOE Life holds a run of Seven Mile, Blackstone across to Evergreen**, and Christopher
+Walker was killed 751 m north of its eastern end, at the school on his own set's ground.
+BCB sits at the Eight Mile end, and had to cross about a mile and a half to reach him.
+
+**To-To died on the seam, not inside BCB.** An earlier draft of this file said Pierson ran
+through BCB's streets. Measured, 18551 Pierson is 557 m from Blackstone Street, 636 m from
+Chapel and 693 m from Burgess - but also 542 m south of Seven Mile and 602 m from FOE
+Life's own Blackstone corner. It is between the two sets rather than in either, which is
+the more interesting fact and fits a killing BCB answered by going after FOE Life.
+
+**A thread, not a finding.** privedatabase lists BCB's ally as **Joy Road Hitsquad**, and
+Philyaw's family is Joy Road. Joy Road is a large part of Detroit and this may be nothing.
+Worth knowing before anyone reads a connection into it.
 
 ## Still open
 
