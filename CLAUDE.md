@@ -83,8 +83,8 @@ SquiidWiki is a gang research database wiki that tracks social networks, inciden
 PY=.venv/bin/python
 $PY -m uvicorn app.main:app --port 8001     # → http://localhost:8001/docs
 $PY -m alembic upgrade head                 # apply migrations to PROD DB (squiidwiki_prod)
-$PY -m app.seed                             # seed sample data (Metro Detroit)
-$PY -m app.seed --test                      # wipe + seed TEST DB
+$PY seed.py --test                          # wipe + seed TEST DB
+$PY seed.py                                 # DANGER: writes mock data to PROD
 $PY -m pytest --cov                         # run tests
 $PY -m pip install -r requirements-dev.txt  # install deps
 
@@ -97,6 +97,11 @@ npx tsc --noEmit     # fast type check (misses unused-import errors)
 # Infrastructure (only Redis here is actually needed if Postgres runs natively)
 docker compose up -d
 ```
+
+`seed.py` parses no arguments beyond looking for `--test` in `sys.argv`, so
+`--help` or any typo is silently ignored and it runs against **prod**. Only
+`--test` truncates; a prod run inserts, and its single trailing commit means a
+mid-run failure rolls everything back (which is what saves you).
 
 **Local admin login (after seed):** `admin@squiidwiki.dev` / `admin1234`. The seed.py-created user has a placeholder password hash and cannot log in — use the admin credentials instead.
 

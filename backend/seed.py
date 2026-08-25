@@ -2,8 +2,13 @@
 Seed script: wipes and repopulates a target database with Metro Detroit mock data.
 
 Usage (from backend/):
-  python seed.py              # seeds prod (squiidwiki_db)
+  python seed.py              # seeds PROD (squiidwiki_prod) - see the warning below
   python seed.py --test       # wipes + seeds test (squiidwiki_test)
+
+There is no argparse here: sys.argv is checked for "--test" and nothing else, so
+any other flag (including --help) is ignored and the script runs against PROD.
+Only --test wipes; a prod run inserts without truncating, and the single commit
+at the end means a mid-run failure rolls the whole thing back.
 """
 
 import asyncio
