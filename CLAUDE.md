@@ -169,9 +169,16 @@ The research tree is **not in this repository**. It lives in `~/squiidape/resear
 its own **private** repo, because this one is public and that material names living
 people. It was split out on 2026-08-25 with its full history.
 
-Nothing here depends on it. It depends on this: its seed scripts drive the backend
-over HTTP on :8001, so **the wiki must be running** before any of them are run, and
-an API contract change can break them. Start at `~/squiidape/research/README.md`.
+Nothing here depends on it, but it depends on this, in two different ways:
+
+- most of its tools drive the backend over **HTTP on :8001**, so the wiki has to be
+  running before any of them are, and an API contract change breaks them;
+- `research/corsica/tools/` (ten seeders that used to be `backend/app/scripts/seed_corsica*.py`,
+  moved out on 2026-08-25 because they name 57 people) **import `app.core`, `app.crud`
+  and `app.schemas` directly**, bootstrapping `sys.path` the way `ig` does. A moved
+  schema, a renamed CRUD function or a changed enum breaks them silently.
+
+Start at `~/squiidape/research/README.md`.
 
 **Do not push `refactor` to origin as it stands.** Removing the tree emptied the
 working copy, not the history: 101 of this branch's 174 unpushed commits still

@@ -68,6 +68,10 @@ ssh-tunnel.sh
 # Playwright
 .playwright-mcp/
 
+# Symlink to ~/.pre-commit-config.yaml, created by ~/setup-hooks.sh. Machine
+# specific (git would store the absolute link target), so it stays out.
+/.pre-commit-config.yaml
+
 # Symlink to ~/squiidape/ig (the Instagram integration). Convenience only;
 # that project is its own repo and must not be committed into this one.
 /ig

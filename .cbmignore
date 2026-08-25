@@ -1,0 +1,5 @@
+# Build output
+frontend/dist/
+
+# Migrations - SQL DDL, not application logic
+backend/alembic/versions/
