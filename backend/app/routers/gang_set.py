@@ -83,7 +83,11 @@ async def list_sets(
     _: CurrentUser,
     session: Annotated[AsyncSession, Depends(get_session)],
     offset: int = Query(0, ge=0),
-    limit: int = Query(50, ge=1, le=200),
+    # Ceiling raised from 200 on 2026-08-25: Metro Chicago holds 291 sets, so every
+    # caller asking for "all sets in the universe" - the graphs, the pickers, the map
+    # layers - was being silently short-changed. The csv branch below has always
+    # fetched 1000 in one go, so the query and the territory batch-load carry it.
+    limit: int = Query(50, ge=1, le=1000),
     format: str = Query("json"),
     q: str | None = Query(None),
     status: SetStatus | None = Query(None),
