@@ -172,3 +172,10 @@ people. It was split out on 2026-08-25 with its full history.
 Nothing here depends on it. It depends on this: its seed scripts drive the backend
 over HTTP on :8001, so **the wiki must be running** before any of them are run, and
 an API contract change can break them. Start at `~/squiidape/research/README.md`.
+
+**Do not push `refactor` to origin as it stands.** Removing the tree emptied the
+working copy, not the history: 101 of this branch's 174 unpushed commits still
+carry the research files, and pushing the branch would publish every one of them.
+`master` is clean - exactly one research file ever reached it. So land this branch
+with `git merge --squash` (one commit, final tree, no research), or rewrite the
+range first. This note can go once the branch is merged or rewritten.
