@@ -183,11 +183,22 @@ never leak back into wiki prose.
 Worth knowing before starting another round of research, all verified 2026-08-23.
 
 - **`thedetroitscanner`** (Instagram, professional account) is a DPD/DFD dispatch
-  feed: precinct, intersection, time, units responding. **1,674 posts, complete,
-  2019-12-16 to 2026-03-03** (dormant since). Retrievable in full via the
-  Instagram Business Discovery API from `~/squiidape-ig` (see its `CLAUDE.md`).
-  This is the best available source for the precise locations the incident rows
-  want, and it is *primary*, not aggregated.
+  feed: precinct, intersection, time, units responding. It is *primary*, not
+  aggregated, and it is the best available source for the precise locations the
+  incident rows want. All 1,674 posts pull via Business Discovery from
+  `~/squiidape-ig` (see its `CLAUDE.md`), spanning 2019-12-16 to 2026-03-03
+  (dormant since) - **but the archive is not continuous, so do not read a miss as
+  "nothing happened"**. Only 20 of the 76 months in that span have any post at
+  all; 56 months are empty outright. It is dense only over 2024-04 to 2024-10
+  (~1,170 posts) with thin islands elsewhere (2021-02: 92, 2022-06: 83, 2025-07:
+  40). Verified 2026-08-25 by paginating the full media edge.
+  Two mechanical notes: pass `media.limit(500)` and follow
+  `paging.cursors.after` until a page comes back empty - there is **no**
+  `paging.next` link on the `business_discovery` media edge, so stopping on its
+  absence caps you at the first 500 (most recent) posts. And the page's Facebook
+  mirror, `facebook.com/TheDetroitScanner`, carries history the Instagram account
+  no longer does; its post bodies are search-engine indexed even though the Graph
+  API cannot read them.
 - **`detroitstreetgangs.com`** independently corroborates set structure. It got
   TLE/BCB wrong (it treats them as one group; they are distinct) but got the
   JonWay rebrand right. Useful as a second opinion, not as an authority.
