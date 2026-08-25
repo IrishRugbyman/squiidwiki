@@ -121,9 +121,27 @@ seeded. She is not added as a member - she is a living private individual and ou
 this database is for.
 
 **A BCB man and a FOE Life man died at the same address on the same day**, at BCB's end of
-Blackstone, Philyaw 31 and Autrey 22. What that was is not established and is not recorded
-as anything: nobody was named to either death, neither man is in OTIS, and no press account
-was found. It is left as two victims at one scene.
+Blackstone, Philyaw 31 and Autrey 22. Nothing about that is recorded as fact: nobody was
+named to either death, neither man is in OTIS, and no press account was found. The incident
+carries two victims at one scene and no attribution.
+
+**But the family silence points somewhere.** Philyaw's sister memorialises him and, as far
+as her posts go, never mentions Autrey. Two men who died side by side in the same attack
+would normally be mourned together by either family. Two men who killed each other would
+not be. That reading also explains the one thing the record cannot otherwise explain -
+**why nobody was ever charged**. If the two of them shot each other there is no one left to
+prosecute, which is precisely the empty file we found.
+
+This is negative evidence from a partial view of one account, so it is written here and
+nowhere else. **What would settle it**, in rough order of cost:
+
+1. **The mirror test.** 1026Family is BCB's alliance, named for the date Beezy died. If
+   BCB's side memorialises 10/26 every year and never names Philyaw either, then both sides
+   mourn only their own out of one scene, which is what killing each other looks like. If
+   BCB posts them together, the opposite - they died on the same side and the sister's
+   silence means something else.
+2. **The DPD incident record** for 21435 W 8 Mile on 26 October 2010: one report or two.
+3. **A funeral programme** for either man, which in Detroit carries what press does not.
 
 ### The war, in order
 
@@ -143,8 +161,9 @@ a war.
 
 ## Still open
 
-- **Who killed Beezy and Philyaw**, and what a BCB man and a FOE Life man were doing at
-  one address. Philyaw's set is settled - FOE Life, from his own Facebook.
+- **Who killed Beezy and Philyaw.** The working hypothesis is that they killed each other;
+  see the mirror test above, which is cheap and would decide it. Philyaw's set is settled -
+  FOE Life, from his own Facebook.
 - **Whether Rodgereck Herbert had any set.** The opinion names none, and he is parked in
   Unknown. His street names, Bama and Bookie, are the handle to chase.
 - **The second man in Kelm's basement.** Never identified.
