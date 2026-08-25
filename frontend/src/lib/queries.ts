@@ -125,10 +125,18 @@ export const useSets = (universeId: UUID | null, params?: SetsListParams) =>
     placeholderData: keepPreviousData,
   })
 
+/**
+ * Every set in the universe, for callers that need to resolve arbitrary set ids
+ * (graph lookups, pickers, map layers) rather than show a page.
+ *
+ * The limit is a real cap, not decoration: it was 200 while Metro Chicago already
+ * held 291 sets, so every caller was silently short. Raise it again before any
+ * universe approaches 1000, or paginate.
+ */
 export const useAllSets = (universeId: UUID | null) =>
   useQuery({
     queryKey: ['sets', 'all', universeId],
-    queryFn: () => api.get<OffsetPage<SetListItem>>(`/sets/?universe_id=${universeId}&limit=200`),
+    queryFn: () => api.get<OffsetPage<SetListItem>>(`/sets/?universe_id=${universeId}&limit=1000`),
     enabled: !!universeId,
     staleTime: 30_000,
   })

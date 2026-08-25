@@ -24,7 +24,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
-  useAlliance, useSets, useDeleteAlliance, useAllianceMembers,
+  useAlliance, useAllSets, useDeleteAlliance, useAllianceMembers,
   useAllianceIncidents, useUpdateSet, useMunicipalities,
 } from '@/lib/queries'
 import { INCIDENT_TYPE_CHIP, INCIDENT_TYPE_LABEL } from '@/lib/incidentColors'
@@ -50,7 +50,11 @@ function AllianceDetailPage() {
   const navigate = useNavigate()
 
   const { data: alliance, isLoading, isError, refetch } = useAlliance(id, universe?.id ?? null)
-  const { data: allSets } = useSets(universe?.id ?? null)
+  // useSets is a page (50 by default), and both consumers below need the whole
+  // universe: the table resolves the alliance's set_ids, the graph resolves the
+  // ally/enemy id of any set at all. A page silently dropped TLE from a two-set
+  // alliance while the tile, which counts set_ids, still said 2.
+  const { data: allSets } = useAllSets(universe?.id ?? null)
   // The route param is the slug. /alliances/{id_or_slug} resolves either, but the
   // sub-resource endpoints are typed uuid.UUID and 422 on a slug, so these have to
   // wait for the loaded alliance and use its id. Empty string keeps them disabled.
