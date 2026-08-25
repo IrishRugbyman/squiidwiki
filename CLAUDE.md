@@ -157,26 +157,11 @@ There are two databases (`squiidwiki_db` = prod, `squiidwiki_test` = test). The 
 
 ## External consumer: `~/squiidape/ig`
 
-The Instagram integration for [@squiidape_detroit](https://instagram.com/squiidape_detroit)
-lives in `~/squiidape/ig` (own repo, own `CLAUDE.md`). It is **not** self-contained:
-
-- it reads `squiidwiki_prod` directly (`member`, `member_set`, `sets`, `media`,
-  `incident`, `incident_participant`, `municipality`);
-- it imports `app.core.storage` from this repo and runs on **this repo's venv**
-  (`backend/.venv`), via a `sys.path` insert.
-
-So changes here can silently break it. In particular: renaming those tables or
-columns, changing the `FuzzyDate` JSONB shape, or moving `signed_get_url` /
-`upload_object` / `delete_object` out of `app/core/storage.py`. It runs daily
-from a systemd timer, so a break shows up as a missed post, not an error you see.
-
-**The wiki is private, and its URLs must never be published.** Nothing that
-leaves this machine for a public audience may carry a `wiki.lbzgiu.xyz` link or
-a member slug. The Instagram captions deliberately carry no link at all.
-
-Note also that the Instagram side uses moderation-safe spellings (`k*lled`,
-`sh*t`). That is platform avoidance and belongs only to that output. It must
-never leak back into wiki prose.
+`~/squiidape/ig` reads this repo's database and imports from its venv, so changes
+here can silently break it - and the wiki instance's privacy constrains what may
+leave this machine. Both are documented once, a level up, in
+`~/squiidape/CLAUDE.md`. **Read it before touching `app/core/storage.py`, the
+`member` / `media` / `incident` tables or the `FuzzyDate` shape.**
 
 ## Research sources for Detroit
 
