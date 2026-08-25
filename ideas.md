@@ -4,12 +4,6 @@ Open items only. Implemented ideas are in git history.
 
 ---
 
-## Known bugs
-
-- [ ] **Alliance member counts are always 0** — the alliance page counts `member.alliance_id` (`backend/app/routers/alliance.py:120-136`), a field only 4 of 155 Detroit members carry, so every alliance reads "Members 0" including 4Gang and the 5s. A member's alliance is not inherited from their primary set's alliance. Either backfill `alliance_id` from the primary set universe-wide and keep it in sync on affiliation changes, or drop the field and derive the count through `member_set → sets.alliance_id`. Deriving is less state to keep honest.
-
----
-
 ## Data model foundations
 
 *Schema changes that unlock multiple downstream features.*
