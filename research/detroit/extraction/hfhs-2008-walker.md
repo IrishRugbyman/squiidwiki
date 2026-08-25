@@ -77,40 +77,72 @@ Three things follow, and each one corrects the database:
 Morton was tried with Bell and Brantley but had a **separate jury**; Bell and Brantley
 shared one.
 
-## Not yet established - do not seed these as fact
+## MDOC 744816, William Morton
 
-- **That William Morton is J-Nutty.** The opinion contains no nicknames for the defendants,
-  and "Nutty" appears nowhere in it. Everything else lines up - BCB member, roughly 15,
-  life, victim is a FOE Life Chris - but the identification is currently an inference from
-  the street account, and it is exactly the kind of link that wants a second source before
-  it goes in a member row.
-- **Age and sentence.** The opinion is a conviction affirmance and states neither. Press
-  reporting has Morton at 15 and sentenced to life without parole, and Bell at 27-40 years,
-  but that has not been read off a primary document yet. The sentencing record or an OTIS
-  lookup settles both.
+Pulled from OTIS 2026-08-25 (reachable from this box through the configured proxy, so the
+old Helsinki block no longer applies). **J-Nutty is William Morton**, confirmed.
+
+- **Date of birth 8 January 1993**, so he was **15** on 16 October 2008.
+- Five active sentences, court file **08018563-03-FC**, all dated **15 October 2009**:
+  first-degree premeditated murder (MCL 750.316A) **LIFE to LIFE**; three counts of
+  assault with intent to commit murder (MCL 750.83) 15 to 25 years each, one per wounded
+  victim; felony firearm (MCL 750.227BA) 2 years. No earliest release date and no
+  discharge date, as a life sentence gives neither.
+- Saginaw Correctional Facility, security level II. SID 3534045J. 5'8", 150 lbs.
+- **The marks list is the find.** A chest tattoo of "7 mile with two people both holding
+  guns dressed in red with the initials BCB". A tattooed set affiliation, in Blood red,
+  which is better evidence of BCB's nation than anything else on file and is one more
+  reason the `Unknown Vice Lords` tag is wrong. Also "Brothers of the Hood role call" on
+  the upper left arm, which is the shape of a memorial list and worth reading if a photo
+  of it ever turns up.
+- Recorded name variants: William Boden Morton, William James Boden Morton, William James
+  Morton. **These are not aliases** and were deliberately kept out of the member's `aliases`
+  column - they are spelling variants of a legal name the page already prints, and putting
+  them there renders a meaningless a/k/a line. Same for the court caption's "a/k/a Devon
+  Cheo Bell". Both live in the source notes instead.
+
+## To-To is already on file
+
+The friend the shooting avenged is the existing member **To-To, Otis Waller Jr**, BCB,
+killed **7 April 2008** at 18551 Pierson - six months before, and Pierson runs through the
+Burgess/Chapel/Blackstone area the set is named for. Three attributes agree (set, death
+year, the name in the text messages), so this is an identification rather than a name
+match. No new member row was created.
+
+## Seeded, 2026-08-25
+
+Written to prod by `../tools/seed_hfhs_2008.py` (idempotent, dry-run by default):
+
+- **Sources** - the appellate opinion and the OTIS profile, both HIGH.
+- **FOE Life** - new Set, variants "Family Over Everything" and "FOE-Life", Detroit,
+  **enemy of BCB** (the bilateral row exists).
+- **Members** - Chris (Christopher Walker, FOE Life, DEAD); D (Devon Bell, LOCKED);
+  Derryck Brantley (FREE, acquitted); Kejuana McCants, Maleek Slater and Leon Merriweather
+  (Unknown set, UNKNOWN status). To-To reused, not recreated.
+- **J-Nutty** - filled in `legal_name` William Morton, `mdoc_number` 744816, `dob`
+  1993-01-08, and his OTIS mugshot as media.
+- **Incident** - MURDER, 2008-10-16, "Evergreen Rd & Pembroke St, outside Henry Ford High
+  School, Detroit", **42.436772, -83.239136** (the intersection node from Overpass), seven
+  participants, `verified`. Brantley carries `acquitted=True`. The death sync set Walker to
+  DEAD and linked his `death_incident_id`.
+
+No biographies were written. Set, status, dates, legal name and the death incident are all
+columns.
+
+## Still open
+
 - **Whether anyone finished Walker on the ground.** The street account is that the shooter
   shot him and then walked up and killed him on the ground. The appellate recital does not
-  describe that - it describes shooting into a crowd from outside a black Mazda. Note the
-  one thing that could have produced the confusion: the prosecutor's closing has Morton
-  "walked up to Christopher Walker **in school** and says To-To says what's up", but that
-  is the earlier confrontation that led to the fistfight, not the shooting. Unresolved,
-  and the trial transcript rather than the opinion would settle it.
-- **The street account dates it to the early 2010s.** It is 2008. The appeal was decided in
-  2012, which is a plausible source of the drift.
-
-## Seeding plan
-
-Nothing here is in the database yet. Order matters:
-
-1. **FOE Life** as a new Set (alias "Family Over Everything"), rival to BCB.
-2. **Christopher Walker** as a Member of FOE Life - `legal_name` "Christopher Walker",
-   nickname unknown, so `nickname_unknown=True`.
-3. **To-To** as a Member on the BCB side, `status=DEAD`, no date yet.
-4. The **incident**: `MURDER`, 2008-10-16 `YMD`, at Evergreen & Pembroke.
-   Participants: Morton `SHOOTER`/`UNHARMED`; Walker `VICTIM`/`KILLED`; McCants, Slater
-   and Merriweather `VICTIM`/`INJURED`; Bell `ASSISTED`/`UNHARMED`.
-5. **Derryck Brantley** with `acquitted=True` on his participant row. This is the textbook
-   case for that flag: a court affirmatively cleared him. His `notes` should say acquitted
-   of all charges at the joint trial.
-6. Set the **bilateral BCB / FOE Life enemy** relationship.
-7. Attach this opinion as a `Source`, HIGH, with the courts.michigan.gov URL.
+  describe that - it has him firing into a crowd from outside a black Mazda. The one thing
+  that could explain the confusion is the prosecutor's closing, which has Morton "walked up
+  to Christopher Walker **in school** and says To-To says what's up" - but that is the
+  earlier confrontation that led to the fistfight. The trial transcript, not the opinion,
+  would settle it. Nothing about this went into the narrative as fact.
+- **Devon Bell's sentence.** Press reporting says 27-40 years; the opinion affirms the
+  conviction without stating the sentence, and an OTIS name search for him returned
+  nothing. An empty OTIS result is not proof of no record - county, federal and juvenile
+  records never appear there - so his LOCKED status rests on the affirmed conviction rather
+  than on a located prison record.
+- **Sets for the three wounded and for Bell and Brantley.** All five are parked in Unknown.
+- **BCB's gang tag.** Ten members still carry `Unknown Vice Lords`. Between the court's
+  street-name expansion and Morton's red BCB tattoo, that wants clearing.
