@@ -374,7 +374,18 @@ async def list_members(
             ms_sq = ms_sq.where(MemberSet.is_primary.is_(True))
         stmt = stmt.where(Member.id.in_(ms_sq))
     if alliance_id is not None:
-        stmt = stmt.where(Member.alliance_id == alliance_id)
+        # An alliance's membership is the union of two things: members tagged
+        # straight to it - the same "belongs to the org, set not worked out"
+        # case that Member.gang_id covers - and the current members of every
+        # set that belongs to it. Filtering on Member.alliance_id alone
+        # reported an alliance of well-populated sets as having no members at
+        # all, since tagging members directly is the rare case and populating
+        # its sets is the normal one.
+        alliance_sets = select(GangSet.id).where(GangSet.alliance_id == alliance_id)
+        via_sets = select(MemberSet.member_id).where(
+            MemberSet.set_id.in_(alliance_sets), MemberSet.until_date.is_(None)
+        )
+        stmt = stmt.where((Member.alliance_id == alliance_id) | Member.id.in_(via_sets))
 
     if cursor:
         cursor_at, cursor_id = parse_cursor(cursor)
