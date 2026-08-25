@@ -234,7 +234,7 @@ nano .env
 ## 6. Backend setup
 
 ```bash
-cd /home/lbzgiu/squiidwiki/backend
+cd /home/lbzgiu/squiidape/squiidwiki/backend
 
 # Install uv
 curl -LsSf https://astral.sh/uv/install.sh | sh
@@ -253,7 +253,7 @@ uv pip install -r requirements.txt
 ## 7. Frontend build
 
 ```bash
-cd /home/lbzgiu/squiidwiki/frontend
+cd /home/lbzgiu/squiidape/squiidwiki/frontend
 npm ci
 npm run build
 # Output goes to frontend/dist/
@@ -279,9 +279,9 @@ After=network.target postgresql.service redis.service
 [Service]
 Type=exec
 User=lbzgiu
-WorkingDirectory=/home/lbzgiu/squiidwiki/backend
-Environment=PATH=/home/lbzgiu/squiidwiki/backend/.venv/bin
-ExecStart=/home/lbzgiu/squiidwiki/backend/.venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8001 --workers 2
+WorkingDirectory=/home/lbzgiu/squiidape/squiidwiki/backend
+Environment=PATH=/home/lbzgiu/squiidape/squiidwiki/backend/.venv/bin
+ExecStart=/home/lbzgiu/squiidape/squiidwiki/backend/.venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8001 --workers 2
 Restart=on-failure
 RestartSec=5
 
@@ -352,7 +352,7 @@ server {
     }
 
     # Frontend — serve built static files
-    root /home/lbzgiu/squiidwiki/frontend/dist;
+    root /home/lbzgiu/squiidape/squiidwiki/frontend/dist;
     index index.html;
 
     location / {
@@ -399,7 +399,7 @@ After that, all further accounts must be created through **Admin → Users → A
 ## 13. Deploying updates
 
 ```bash
-cd /home/lbzgiu/squiidwiki
+cd /home/lbzgiu/squiidape/squiidwiki
 
 # Pull latest
 git pull
@@ -464,7 +464,7 @@ This dumps the database every night at 3 AM and keeps 14 days of history.
 - [ ] Connected as `lbzgiu`, firewall configured
 - [ ] System packages installed (Python, Node, Postgres, Redis, nginx)
 - [ ] PostgreSQL user `lbzgiu` and databases `squiidwiki_db` / `squiidwiki_test` created
-- [ ] Repo cloned to `/home/lbzgiu/squiidwiki/`, `.env` written with real secrets
+- [ ] Repo cloned to `/home/lbzgiu/squiidape/squiidwiki/`, `.env` written with real secrets
 - [ ] Backend virtualenv created, migrations run
 - [ ] Frontend built (`npm run build`)
 - [ ] systemd service `squiidwiki` enabled and running

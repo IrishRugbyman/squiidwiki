@@ -30,9 +30,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Development Environment (Linux server)
 
-- Backend venv: `/home/lbzgiu/squiidwiki/backend/.venv/` — invoke as `.venv/bin/python` or `.venv/bin/uvicorn`.
+- Backend venv: `/home/lbzgiu/squiidape/squiidwiki/backend/.venv/` — invoke as `.venv/bin/python` or `.venv/bin/uvicorn`.
 - Postgres 16 runs natively on `localhost:5432` as user `lbzgiu`. Databases: `squiidwiki_prod` (always present) and `squiidwiki_test` (may not exist — check before migrating).
-- `.env` lives at the **repo root** (`/home/lbzgiu/squiidwiki/.env`), not in `backend/`. `DATABASE_URL_PROD` and `DATABASE_URL_TEST` are defined there.
+- `.env` lives at the **repo root** (`/home/lbzgiu/squiidape/squiidwiki/.env`), not in `backend/`. `DATABASE_URL_PROD` and `DATABASE_URL_TEST` are defined there.
 - Restart uvicorn with `pgrep -af "uvicorn app.main"` → `kill <pid>` → relaunch in background. `--reload` is fine here, but production-style runs use `--workers 2` (note: in-process DB-mode toggle is inconsistent across workers — single-worker is cleaner for local dev).
 - Alembic: `env.py` reads `settings.database_url_prod` from `.env` and **ignores** the stale `sqlalchemy.url` in `alembic.ini`. To migrate the test DB, run `DATABASE_URL_PROD=<test-url> .venv/bin/python -m alembic upgrade head` (do not try `Config.set_main_option` — `%`-encoded passwords trip configparser interpolation).
 - New Alembic revision IDs: pick a fresh random hex (`python -c "import secrets; print(secrets.token_hex(6))"`). The existing repo IDs are heavily patterned and easy to collide with.
@@ -74,7 +74,7 @@ SquiidWiki is a gang research database wiki that tracks social networks, inciden
 
 ## Development Commands
 
-**Python env:** `/home/lbzgiu/squiidwiki/backend/.venv/bin/python` — always invoke via this path (no venv activation needed).
+**Python env:** `/home/lbzgiu/squiidape/squiidwiki/backend/.venv/bin/python` — always invoke via this path (no venv activation needed).
 
 **Easiest local dev:** `./dev.sh` from repo root — kills anything on :8001 / :5173, then runs backend (uvicorn on **:8001**) and frontend (Vite on :5173) together.
 
@@ -155,10 +155,10 @@ There are two databases (`squiidwiki_db` = prod, `squiidwiki_test` = test). The 
 - Incident participant outcome: `KILLED`, `INJURED`, `UNHARMED`, `UNKNOWN`
 - Global role: `ADMIN`, `USER`
 
-## External consumer: `~/squiidape-ig`
+## External consumer: `~/squiidape/ig`
 
 The Instagram integration for [@squiidape_detroit](https://instagram.com/squiidape_detroit)
-lives in `~/squiidape-ig` (own repo, own `CLAUDE.md`). It is **not** self-contained:
+lives in `~/squiidape/ig` (own repo, own `CLAUDE.md`). It is **not** self-contained:
 
 - it reads `squiidwiki_prod` directly (`member`, `member_set`, `sets`, `media`,
   `incident`, `incident_participant`, `municipality`);
@@ -186,7 +186,7 @@ Worth knowing before starting another round of research, all verified 2026-08-23
   feed: precinct, intersection, time, units responding. It is *primary*, not
   aggregated, and it is the best available source for the precise locations the
   incident rows want. All 1,674 posts pull via Business Discovery from
-  `~/squiidape-ig` (see its `CLAUDE.md`), spanning 2019-12-16 to 2026-03-03
+  `~/squiidape/ig` (see its `CLAUDE.md`), spanning 2019-12-16 to 2026-03-03
   (dormant since) - **but the archive is not continuous, so do not read a miss as
   "nothing happened"**. Only 20 of the 76 months in that span have any post at
   all; 56 months are empty outright. It is dense only over 2024-04 to 2024-10
@@ -214,7 +214,7 @@ Worth knowing before starting another round of research, all verified 2026-08-23
   death that no other source in Detroit will give you, and graffiti in the frame
   names sets. Profile URLs serve a login wall, comment bodies are not exposed at
   all, and there is no tagged-photos endpoint. **So ask for post links, not
-  handles.** Full detail in `~/squiidape-ig/CLAUDE.md`.
+  handles.** Full detail in `~/squiidape/ig/CLAUDE.md`.
 - **Facebook is a lookup index only.** People search and post search were removed
   from the Graph API permanently. Search-engine queries scoped to `facebook.com`
   find pages and post URLs, but the bodies need a logged-in browser.
