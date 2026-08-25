@@ -12,6 +12,63 @@ documents/     Complete primary records, one directory per case: court files, an
                herbert-07-011024 a prisoner's own manuscript (see documents/README.md)
 ```
 
+## Where the material comes from
+
+What each source is good for, how far it reaches, and where it lies. All verified
+2026-08-23 unless noted.
+
+**`thedetroitscanner`** (Instagram, professional account) is a DPD/DFD dispatch
+feed: precinct, intersection, time, units responding. It is *primary*, not
+aggregated, and it is the best source available for the precise locations the
+incident rows want. All 1,674 posts pull via Business Discovery from
+`~/squiidape/ig`.
+
+**But the archive is not continuous, so never read a miss as "nothing
+happened".** It spans 2019-12-16 to 2026-03-03 (dormant since), and only 20 of
+those 76 months have any post at all - 56 are empty outright. It is dense only
+over 2024-04 to 2024-10 (~1,170 posts), with thin islands elsewhere (2021-02: 92,
+2022-06: 83, 2025-07: 40). Verified 2026-08-25 by paginating the full media edge.
+The page's Facebook mirror, `facebook.com/TheDetroitScanner`, carries history the
+Instagram account no longer does, and its post bodies are search-engine indexed
+even though the Graph API cannot read them.
+
+**`detroitstreetgangs.com`** independently corroborates set structure. It got
+TLE/BCB wrong (it treats them as one group; they are distinct) but got the JonWay
+rebrand right. A second opinion, not an authority.
+
+**Federal charging documents are the only place legal names come free**, and the
+exception to everything below. The September 2015 Band Crew RICO indictment
+(E.D. Mich.) names eight defendants with their a.k.a.s, seven of which matched
+nicknames already on the CMH and YNC rosters, and it fixes Band Crew's boundary
+box and graffiti tags. justice.gov serves its own copies behind a
+bot-verification wall, so read the Equipo Nizkor mirrors at
+`derechos.org/nizkor/corru/doc/`. `../privedatabase/tools/seed_bandcrew_indictment.py`
+is the shape of the write-up: everything the document gives lands in a column
+(`legal_name`, the affiliation, `member_set.rank` for the charged "CEO"/"Co-CEO"
+aliases), never in a biography. Worth checking whether other Detroit sets have
+one.
+
+**The press names almost nobody.** The Manor Avenue double murder was covered by
+four outlets and not one printed a victim or suspect name, and no charge was ever
+filed. Detroit sourcing is street-first: absence of press confirmation is the
+norm here, not a red flag.
+
+### Reading Instagram and Facebook
+
+The API mechanics - which accounts Business Discovery can reach, how deep it
+paginates, what Facebook removed permanently, and the trick that reads a personal
+account from a known post link - are documented once in `~/squiidape/ig/CLAUDE.md`
+under "What the API cannot do". Two consequences shape how to ask for material
+here:
+
+- **Ask for post links, not handles.** Personal accounts refuse the API outright,
+  but a post page renders logged-out and its images download unauthenticated. So
+  a link is worth far more than a handle, and profile URLs are worth nothing.
+- **The pictures are the source.** Funeral programmes and casket wraps carry dates
+  of birth and death that nothing else in Detroit will give you, and graffiti in
+  frame names sets. The August 2026 sweep read all three from accounts the API
+  refused.
+
 ## sources/
 
 All four extracted from a Chrome bookmarks export (`favoris_02_08_2026.html`) on 2026-08-02.
