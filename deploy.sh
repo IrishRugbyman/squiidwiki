@@ -11,7 +11,7 @@
 # For local work see CLAUDE.md, "Development Commands": uvicorn on :8001 and
 # `npm run dev` on :5173.
 #
-# First-time provisioning (server, Postgres, systemd, nginx, TLS) is DEPLOYMENT.md.
+# First-time provisioning (server, Postgres, systemd, nginx, TLS) is docs/DEPLOYMENT.md.
 
 set -e
 
