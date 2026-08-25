@@ -74,6 +74,33 @@ Unresolved:
 
 ---
 
+## 2019 - "Gang Only (feat. King Von)", Darri
+
+```
+Darri (TTO) · King Von (O'Block, Chicago)
+```
+
+Released **28 February 2019** as a single (Apple Music, label "909804 Records DK";
+also on Spotify and Shazam). The only credit in this file that is a located,
+distributed record with a stamped date rather than a remembered video.
+
+**Why it matters.** It is what `is_rapper` on Darri rests on, and it dates a
+Detroit-Chicago link: King Von was recording with a TTO man in February 2019,
+twenty months before he was killed. r/CrimeInTheD supplies the context - "TTO was
+like Tee Grizzley's top goons when he started taking off. Darri and J Rock were in
+the Raq with Tee for all the Bloodas shit" - so the Von feature is not a stray
+courtesy credit but the visible end of a run that also touched Tee Grizzley.
+
+Unresolved:
+
+- **The Tee Grizzley tracks.** Named on Reddit, not located. Any of them would
+  carry the same kind of date for Darri and **J Rock**, who is on the TTO roster in
+  `../../privedatabase/detroit.md` and is not yet a member row.
+- **King Von in the wiki.** Metro Chicago carries *three* King Von rows - O'Block,
+  OTF and WIIIC City - all `UNKNOWN` and none with a date of death, for a man killed
+  on 6 November 2020. Fix that before citing any of them as the other end of this
+  credit.
+
 ## How to work these
 
 1. **Find the record.** Neither track has been located yet. Old Detroit videos
