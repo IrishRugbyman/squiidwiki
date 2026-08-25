@@ -96,7 +96,7 @@ for r in q(
         for slot in ("name", "initials", "number"):
             for k in candidates(v.get(slot) or ""):
                 setidx.setdefault(k, r["id"])
-alias_map = json.loads((ROOT / "tools/alias-map.json").read_text())["alias"]
+alias_map = json.loads((ROOT / "data/alias-map.json").read_text())["alias"]
 gangs = {g["name"]: g["id"] for g in q(f"SELECT id, name FROM gang WHERE universe_id='{CHICAGO}'")}
 
 

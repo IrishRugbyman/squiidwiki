@@ -61,7 +61,7 @@ for s in sets:
         continue
     for k in candidates(s["name"]):
         setidx.setdefault(k, s["id"])
-owner = json.loads((ROOT / "tools/wp-owner.json").read_text())
+owner = json.loads((ROOT / "data/wp-owner.json").read_text())
 pages = [
     p
     for p in json.loads((ROOT / "raw/pages.json").read_text())

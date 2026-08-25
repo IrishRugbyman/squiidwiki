@@ -29,7 +29,7 @@ from extract_members_full import ADMIN_TITLES, SETDESC, good_name  # noqa: E402
 from wikiapi import CHICAGO, Api, q  # noqa: E402
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-OUT = pathlib.Path(__file__).resolve().parent / "chicago-family-links.json"
+OUT = pathlib.Path(__file__).resolve().parent.parent / "data/chicago-family-links.json"
 
 # relation word -> (key written on the SUBJECT, key written on the OBJECT)
 # "X est le père de Y": X.son += Y, Y.father = X.
@@ -183,7 +183,7 @@ for r in q(
         for slot in ("name", "initials", "number"):
             for k in candidates(v.get(slot) or ""):
                 setidx.setdefault(k, r["id"])
-alias_map = json.loads((ROOT / "tools/alias-map.json").read_text())["alias"]
+alias_map = json.loads((ROOT / "data/alias-map.json").read_text())["alias"]
 
 
 def resolve_set(title):
@@ -281,15 +281,15 @@ def resolve_member(name, set_hint=None, context_sets=()):
 
 # ---------------------------------------------------------------------------
 # Walk the source
-owner = json.loads((ROOT / "tools/wp-owner.json").read_text())
-alliance_pages = set(json.loads((ROOT / "tools/chi-alliance-pages.json").read_text()))
+owner = json.loads((ROOT / "data/wp-owner.json").read_text())
+alliance_pages = set(json.loads((ROOT / "data/chi-alliance-pages.json").read_text()))
 pages = [
     p
     for p in json.loads((ROOT / "raw/pages.json").read_text())
     if owner.get(p["slug"]) == "chicago"
 ]
 
-people = json.loads((ROOT / "tools/extract-chicago-people.json").read_text())
+people = json.loads((ROOT / "data/extract-chicago-people.json").read_text())
 page_subject_set = {}  # person page id -> set title recorded for its subject
 for rec in people:
     if "person-page" in rec["origins"] and rec["set"]:

@@ -12,6 +12,25 @@ repair passes recorded in the dated sections below. `db-sync.md` is the generate
 what has and has not reached it; this line used to say nothing had, which stopped being true
 on the first seed.
 
+## Layout
+
+Reorganised 2026-08-25: `tools/` held scripts and their data jumbled together, so the two
+were split.
+
+```
+*.md         The digests below - the harvest, read and grouped by city
+raw/         pages.json (the harvest itself) and social-posts.jsonl
+images/      Photographs pulled from the pages
+tools/       Scripts only, nothing else
+data/        The six tables the scripts read: alias-map, wp-owner, chi-alliance-pages,
+             chicago-family-links, extract-chicago-people, extract-chicago-events
+batches/     Historical agent-batch work, one directory per job, with its instructions
+             bio/ (11 files)  spells/ (9)  facts/ (4)  chicago/ (2)
+```
+
+Nothing in `batches/` is read by any script; it is kept as the record of what each batch
+was asked and what it returned.
+
 ## Files
 
 | File | Contents |
@@ -23,7 +42,7 @@ on the first seed.
 | `unclassified.md` | 155 pages the classifier could not place, listed in full rather than guessed |
 | `db-sync.md` | **Generated.** What has actually reached the database, and what has not |
 | `tools/db_sync.py` | Regenerates `db-sync.md`. Read-only against the DB |
-| `tools/extract-chicago.json` | The 156 parsed Chicago set records the sync reconciles against |
+| `batches/chicago/extract-chicago.json` | The 156 parsed Chicago set records the sync reconciles against |
 | `tools/seed_nlmb_fallen2.py` | Part 1 of the same series: five more names, dates and photographs |
 | `tools/seed_nlmb_fallen.py` | Names and dates five NLMB deaths from the "Less Known Fallen Members" thread |
 | `tools/seed_alamo_roc.py` | Merges the split Alamo/Roc murders into one dated, press-sourced incident |
@@ -248,7 +267,7 @@ DB rows (nickname, legal name or alias, narrowed by the set hint, then by the su
 then by exact-nickname over alias-only matches) and writes through the API, whose member update
 mirrors the inverse link on the relative. Result: 267 links on 260 members, 534 directed edges,
 every one with its inverse. The full list with its source sentence is committed as
-`tools/chicago-family-links.json`; 64 clauses stayed unresolved (relatives who are not members,
+`data/chicago-family-links.json`; 64 clauses stayed unresolved (relatives who are not members,
 "MOB Lil Mike" with no MOB Lil Mike row, two Marcos) and are listed by the dry run. Sister,
 mother, daughter and in-law have no key in the wiki's family model and were counted, not written
 (8 mentions). Twenty-odd cases were adjudicated by hand in the script's `OVERRIDES` tables with
@@ -419,7 +438,7 @@ title differs from another only by a parenthetical will collide the same way -
 
 The seed never wrote one: 4,563 of 4,565 members were blank while 454 had a full
 sentence about themselves in the French source. Ten Haiku agents drafted one each
-from `tools/bio-instructions.md`, under a single rule - **say only what no other
+from `batches/bio/bio-instructions.md`, under a single rule - **say only what no other
 column holds** - and 266 were written.
 
 That rule is the whole point. A biography that repeats the set, the nation, the

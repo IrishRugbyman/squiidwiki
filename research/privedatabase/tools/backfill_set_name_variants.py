@@ -101,7 +101,7 @@ def variant(name=None, initials=None, number=None, is_primary=False, lead=None):
 
 
 # --- full-name / acronym pairs the source states outright -------------------
-owner = json.loads((ROOT / "tools/wp-owner.json").read_text())
+owner = json.loads((ROOT / "data/wp-owner.json").read_text())
 pairs = {}  # comparison key -> (full name, acronym)
 for p in json.loads((ROOT / "raw/pages.json").read_text()):
     if owner.get(p["slug"]) != "chicago":

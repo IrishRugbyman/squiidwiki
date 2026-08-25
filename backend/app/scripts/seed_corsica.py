@@ -1,7 +1,7 @@
 """Seed phase 1 of the Corsica universe: the Ziglioli case and the Memmi war.
 
 Scope, sourcing and the reasoning behind every modelling choice live in
-`research/corsica/seed-scope.md`. This script is the executable form of that
+`research/corsica/extraction/seed-scope.md`. This script is the executable form of that
 document and nothing here is invented: if a fact is not in `people.md` with a
 citation, it is not seeded.
 

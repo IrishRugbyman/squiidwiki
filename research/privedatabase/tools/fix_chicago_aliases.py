@@ -40,7 +40,7 @@ quoted = q(
     f"""SELECT m.id, m.nickname, m.legal_name FROM member m
         WHERE m.universe_id='{CHICAGO}' AND m.nickname ~ '[«»“”„"]'"""
 )
-owner = json.loads((ROOT / "tools/wp-owner.json").read_text())
+owner = json.loads((ROOT / "data/wp-owner.json").read_text())
 pages = [
     p
     for p in json.loads((ROOT / "raw/pages.json").read_text())

@@ -114,9 +114,9 @@ def clean_title(t):
     return (t or "").replace("×", "x").replace("’", "'").strip()
 
 
-events = json.loads((R / "tools/extract-chicago-events.json").read_text())
-people = json.loads((R / "tools/extract-chicago-people.json").read_text())
-am = json.loads((R / "tools/alias-map.json").read_text())["alias"]
+events = json.loads((R / "data/extract-chicago-events.json").read_text())
+people = json.loads((R / "data/extract-chicago-people.json").read_text())
+am = json.loads((R / "data/alias-map.json").read_text())["alias"]
 
 setidx = {}  # name key -> set id
 set_name = {}  # set id -> display name

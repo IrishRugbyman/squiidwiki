@@ -2918,7 +2918,7 @@ means Gangster **Disciples** and Black Disciples.
 200 empty pages are omitted. The site uses blank placeholder pages as stand-ins
 for sets nobody has written up; referencing one resolves to nothing, so they are not
 carried here. What they were doing implicitly - recording that a name exists - is now
-explicit in `tools/alias-map.json` under `no_content`.
+explicit in `data/alias-map.json` under `no_content`.
 
 | Page | Title | Kind | Text |
 |---|---|---|---|

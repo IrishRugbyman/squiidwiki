@@ -76,8 +76,8 @@ def clean_title(t):
     return (t or "").replace("\u00d7", "x").replace("\u2019", "'").strip()
 
 
-people = json.loads((R / "tools/extract-chicago-people.json").read_text())
-am = json.loads((R / "tools/alias-map.json").read_text())["alias"]
+people = json.loads((R / "data/extract-chicago-people.json").read_text())
+am = json.loads((R / "data/alias-map.json").read_text())["alias"]
 gangs = {g["name"]: g["id"] for g in q(f"SELECT id,name FROM gang WHERE universe_id='{U}'")}
 
 

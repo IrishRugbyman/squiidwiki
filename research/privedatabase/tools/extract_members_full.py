@@ -149,8 +149,8 @@ def good_name(n):
 def extract():
     """Walk every Chicago page and collect people and events."""
     pages = json.loads((ROOT / "raw/pages.json").read_text())
-    owner = json.loads((ROOT / "tools/wp-owner.json").read_text())
-    alliance_pages = set(json.loads((ROOT / "tools/chi-alliance-pages.json").read_text()))
+    owner = json.loads((ROOT / "data/wp-owner.json").read_text())
+    alliance_pages = set(json.loads((ROOT / "data/chi-alliance-pages.json").read_text()))
 
     people = []  # raw sightings; deduped later
     events = []
@@ -403,12 +403,12 @@ def main():
     """Run the extraction and report."""
     people, events = extract()
     deduped = dedupe(people)
-    (pathlib.Path(__file__).parent / "extract-chicago-people.json").write_text(
-        json.dumps(deduped, ensure_ascii=False, indent=1)
-    )
-    (pathlib.Path(__file__).parent / "extract-chicago-events.json").write_text(
-        json.dumps(events, ensure_ascii=False, indent=1)
-    )
+    (
+        pathlib.Path(__file__).resolve().parent.parent / "data/extract-chicago-people.json"
+    ).write_text(json.dumps(deduped, ensure_ascii=False, indent=1))
+    (
+        pathlib.Path(__file__).resolve().parent.parent / "data/extract-chicago-events.json"
+    ).write_text(json.dumps(events, ensure_ascii=False, indent=1))
     print(f"sightings          : {len(people)}")
     print(f"deduped people     : {len(deduped)}")
     print(f"  with a set       : {sum(1 for r in deduped if r['set'])}")

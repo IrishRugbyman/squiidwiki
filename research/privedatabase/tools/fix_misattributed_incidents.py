@@ -105,7 +105,7 @@ for r in q(
         for slot in ("name", "initials", "number"):
             for k in candidates(v.get(slot) or ""):
                 setidx.setdefault(k, r["id"])
-alias_map = json.loads((ROOT / "tools/alias-map.json").read_text())["alias"]
+alias_map = json.loads((ROOT / "data/alias-map.json").read_text())["alias"]
 
 
 def resolve_set(title):
@@ -199,7 +199,7 @@ def ensure_missing_members(api):
 
 
 # ---------------------------------------------------------------------------
-old_events = json.loads((ROOT / "tools/extract-chicago-events.json").read_text())
+old_events = json.loads((ROOT / "data/extract-chicago-events.json").read_text())
 _, new_events = E.extract()
 
 # The lost members must exist before any resolution runs, or their events resolve
