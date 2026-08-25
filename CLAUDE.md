@@ -12,7 +12,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - Never mark work complete based on type-checks or compilation alone; `tsc --noEmit` passing is necessary but not sufficient
 - Do not move to the next task until the user confirms the fix works in the browser
 - **Frontend changes need `npm run build`** — the user serves the production build, not the Vite dev server. After any frontend edit, tell the user to run `npm run build` (from `frontend/`) before reloading.
-- After implementing something from `ideas.md`, check it off (`- [ ]` → `- [x]`).
+- After implementing something from `ideas.md`, **delete the entry**. That file's own header says "Open items only. Implemented ideas are in git history", and none of its 90 entries is ticked - so a `- [x]` there would be the first, and would misread as "still listed, therefore still open".
 
 ## Cloudflare R2 (media storage)
 
