@@ -73,6 +73,9 @@ plus the blog's statistics pages.
   "Seven Mile Bloods" is modelled as the umbrella alliance with an `SMB` core set inside it).
 - `incidents.md` - dated incident timeline with FuzzyDate precision marked per row.
 - `homicides/` - 4,019 Detroit homicide victims, 2003-2013, one markdown file per year.
+- `bcb-killings.md` - the deaths on the BCB side: Walvon Holland (2007, from the Herbert
+  habeas record) and Beezy/Rodney Autrey (2010, identified by the address), with the
+  geography that ties them to Burgess, Chapel and Blackstone.
 - `hfhs-2008-walker.md` - the Henry Ford High School shooting of 16 Oct 2008, from the
   Morton/Bell appeal: BCB (Burgess, Chapel, Blackstone Across Lahser) against FOE Life
   (Family Over Everything), with a full seeding plan. Nothing seeded yet.

@@ -9,6 +9,31 @@ and a paraphrase written from memory a week later loses it.
 
 ---
 
+## An unattached killing: brick, door, shotgun - 2026-08-25
+
+An account that was written into **Walvon Holland's** biography and does not belong there:
+
+> Killed by BCB's older generation (guys that were holding the territory) shot by a shotgun
+> after he went to his door, after someone threw a brick through his window.
+
+**It is not Walvon.** The trial testimony in *Herbert v Rivard* has him shot three times in
+the head and once in the chest inside Kurtis Kelm's basement bedroom, during a robbery for
+the marijuana the two of them sold, by Rodgereck Herbert. No gang, shotgun or brick appears
+in the opinion. See `bcb-killings.md`. The biography has been cleared.
+
+**It is not Beezy either**, which was the first guess. Beezy is Rodney Autrey, killed
+26 October 2010 at 21435 W 8 Mile Rd alongside Keylen Philyaw - a double at a filling
+station, not a man shot at his own door.
+
+So the account is real and belongs to someone, and that someone is still unidentified. What
+it carries, and what would identify him: a **brick through a window** used to draw him out,
+a **shotgun**, the shooting **at his own front door**, and killers described as **BCB's
+older generation, the men holding the territory** - which makes it internal to BCB, or at
+least done by BCB on their own ground. Check it against any BCB death not yet accounted
+for.
+
+---
+
 ## J-Nutty (BCB) killed FOE Life Chris - RESOLVED to a case, 2026-08-25
 
 **Moved to `hfhs-2008-walker.md`.** The killing is the Henry Ford High School shooting of
