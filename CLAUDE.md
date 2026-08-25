@@ -76,7 +76,10 @@ SquiidWiki is a gang research database wiki that tracks social networks, inciden
 
 **Python env:** `/home/lbzgiu/squiidape/squiidwiki/backend/.venv/bin/python` — always invoke via this path (no venv activation needed).
 
-**Easiest local dev:** `./dev.sh` from repo root — kills anything on :8001 / :5173, then runs backend (uvicorn on **:8001**) and frontend (Vite on :5173) together.
+**`./deploy.sh` from the repo root is PRODUCTION**, not dev: it runs `npm run build`
+and `sudo systemctl restart squiidwiki`, the live service behind wiki.lbzgiu.xyz.
+It was called `dev.sh` until 2026-08-25 and this line described it as a dev server,
+which it stopped being in May 2026. For local work use the commands below.
 
 ```bash
 # Manual backend (from backend/) — note port 8001, the Vite proxy targets it
