@@ -114,6 +114,22 @@ north, West McNichols south, Greenfield east, Southfield Freeway west, centred o
 Mile - which is where FOE Life should be, since it is one of Band Crew's four component
 sets.
 
+**His son carries the same name, and that is a trap.** A living Keylen Philyaw is on
+Facebook at `key.phil.9`, found through his grandmother's page. Any future search - OTIS,
+court records, press, social - that turns up a "Keylen Philyaw" may be returning the son,
+who is alive, rather than the father, who died in 2010. **Match on the date of birth,
+14 May 1979, not on the name.** A record showing a different date of birth is the son and
+is not a contradiction. The OTIS name search run on 2026-08-25 returned nothing, so no
+conflation has happened yet.
+
+None of the living family - the son, the sister Jazmin Sierra, the grandmother - is added
+as a member. They are private individuals and outside what this database is for; they
+appear here only as the provenance of a date.
+
+Facebook profile pages are unreadable from this server (HTTP 400, no CDN URLs), so anything
+from those accounts has to come through a logged-in browser. Ask for **post links**, the
+way `~/squiidape/ig/CLAUDE.md` says for Instagram.
+
 **His date of birth is 14 May 1979.** His sister Jazmin Sierra posted on 14 May 2024
 wishing him a happy **45th**, which gives 1979; that makes him **31** on 26 October 2010,
 exactly the age the homicide list records. Two independent sources agreeing, so it is
