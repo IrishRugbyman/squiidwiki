@@ -118,18 +118,49 @@ street nickname, so it is his `nickname` and the rest stay out of `aliases`.
 - Other recorded names - Devon Cheo Bell, Devon Choodarius Bell, Devon Darius Bell - are
   legal-name spellings and stay in these notes rather than in `aliases`.
 
-**Correcting something recorded earlier in this session.** An OTIS *name* search for
-"Devon Bell" returned zero rows, and that was written up as "OTIS has neither
-co-defendant". He is plainly in OTIS. The name search is unreliable and an empty result
-from it proves nothing - go by offender number where one is available.
+**Correcting something recorded earlier in this session, twice over.** An OTIS *name*
+search for "Devon Bell" returned zero rows and was written up as "OTIS has neither
+co-defendant". That was wrong: he is in OTIS. It was then written up a second time as the
+name search being unreliable in general, and that reason was wrong too. Re-run, the same
+search returns two Devon Bells, 666392 and 898058, both Prison. The zero was a transient
+failure of one round trip through the proxy.
 
-## To-To is already on file
+Two real limits, established by testing rather than assumed: the first name must be
+**complete**, since "Dev"/"Bell" returns nothing while "Devon"/"Bell" returns two; and a
+surname alone works fine ("Waller" returns 27). So **re-run a name search before reading a
+zero as absence**, and prefer the offender number whenever one is available - not least
+because two men here share a name.
 
-The friend the shooting avenged is the existing member **To-To, Otis Waller Jr**, BCB,
-killed **7 April 2008** at 18551 Pierson - six months before, and Pierson runs through the
-Burgess/Chapel/Blackstone area the set is named for. Three attributes agree (set, death
-year, the name in the text messages), so this is an identification rather than a name
-match. No new member row was created.
+## To-To: Otis Waller Jr
+
+He was already a member - BCB, DEAD, born **16 October 1989**, killed **7 April 2008** -
+created 2026-08-25 from the user's own research, with two Facebook-sourced photos. What he
+had no trace of was a death: no incident row, no `death_incident_id`, no source. That is
+now seeded (`../tools/seed_toto_death.py`).
+
+**The retaliation was on his birthday.** He was born 16 October 1989. Christopher Walker
+was killed 16 October 2008, the day To-To would have turned 19. That is not one source
+repeating itself: the date of birth is the user's research, the date of death and address
+come from the homicide list, and the motive comes from the appellate opinion. Three
+independent inputs, which is what makes it worth stating rather than a coincidence of
+transcription. It also explains why that day, and gives "To-To says what's up" its edge.
+
+**He was killed on his own set's ground.** 18551 Pierson St, Sunbeam Heights, Detroit
+48219, geocoded to **42.4251298, -83.2472397**. Burgess (42.4270, -83.2559), Chapel
+(42.4360, -83.2549) and Blackstone (42.4355, -83.2513) are all 48219 and all within about
+a kilometre - so the streets BCB is named for surround the place he died. Henry Ford High
+School is about 1.5 km northeast of that cluster, which puts the retaliation off BCB's
+core ground rather than on it.
+
+**Nobody is attributed to killing him.** No press coverage exists - searched 2026-08-25 by
+name, address and year, nothing. No obituary or memorial page surfaced. He has **no MDOC
+record**: OTIS holds 27 Wallers and not one Otis, which fits someone killed at 18 who never
+reached state prison. The incident row therefore carries a victim and nothing else. That
+BCB blamed FOE Life is evidenced by what they did six months later, but BCB's belief is not
+a finding, so no `incident_set_participant` was written either.
+
+Source for the date and address is the 2008 chamspage homicide list, entry 74, seeded at
+**MEDIUM** to match the 2012 list already on file.
 
 ## Seeded, 2026-08-25
 
