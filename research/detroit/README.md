@@ -73,6 +73,9 @@ plus the blog's statistics pages.
   "Seven Mile Bloods" is modelled as the umbrella alliance with an `SMB` core set inside it).
 - `incidents.md` - dated incident timeline with FuzzyDate precision marked per row.
 - `homicides/` - 4,019 Detroit homicide victims, 2003-2013, one markdown file per year.
+- `hfhs-2008-walker.md` - the Henry Ford High School shooting of 16 Oct 2008, from the
+  Morton/Bell appeal: BCB (Burgess, Chapel, Blackstone Across Lahser) against FOE Life
+  (Family Over Everything), with a full seeding plan. Nothing seeded yet.
 - `leads.md` - open leads: fragments that name something real but don't resolve to a
   row yet, newest first. Entries leave the file when they become an entity or get
   ruled out.

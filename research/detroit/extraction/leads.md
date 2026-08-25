@@ -9,90 +9,22 @@ and a paraphrase written from memory a week later loses it.
 
 ---
 
-## J-Nutty (BCB) killed FOE Life Chris - 2026-08-25
+## J-Nutty (BCB) killed FOE Life Chris - RESOLVED to a case, 2026-08-25
 
-**J-Nutty got LIFE, at about 15 years old**, for killing **Chris** of **FOE Life**. He
-shot Chris, then walked up to him and finished him on the ground. Early 2010s.
+**Moved to `hfhs-2008-walker.md`.** The killing is the Henry Ford High School shooting of
+**16 October 2008**: Christopher Walker, 16, of FOE Life, shot dead outside the school,
+three others wounded. *People v Morton* / *People v Bell* (Mich Ct App, 24 May 2012)
+recites the trial evidence and confirms the structure of the street account - a BCB member
+killed a FOE Life Chris - along with two things that correct the database: **BCB is
+"Burgess, Chapel, Blackstone Across Lahser"**, a street-named northwest Detroit set rather
+than a Chicago nation, and **FOE Life is its own set**, not PBF.
 
-Corrects an earlier reading in this file: "took like at 15" is his **age**, not a
-fifteen-year sentence.
-
-### FOE Life is its own set, and is not PBF
-
-An earlier version of this entry said FOE Life was the set the wiki holds as PBF. **That
-was wrong.** The Band Crew RICO indictment (E.D. Mich., federal, HIGH) names them as two
-separate component sets in one sentence:
-
-> Band Crew was an association of existing smaller gangs that principally included members
-> of Constantly Making Hundreds (CMH, formerly Cash Money Hoes), Young N Crispy (YNC),
-> Pushit (or Pusha) Boy Family (PBF), and Family Over Everything Love is Forever (FOE Life).
-
-So **FOE Life = "Family Over Everything Love is Forever"**, and it does **not** exist in
-the database - a `%foe%` search over Detroit sets returns nothing. privedatabase merges
-the two onto a single `/pbf-foe-life/` page, which is where the error came from. The
-indictment outranks it. Read the merged page as two sets from here on.
-
-Band Crew context from the same document, useful for dating: it **formed in November 2011**
-at a Burger King meeting and ran until the arrests of autumn 2015. Its territory is
-northwest Detroit, centred on Seven Mile - **8 Mile north, W McNichols south, Greenfield
-east, Southfield Freeway west**.
-
-### What this needs before it can be seeded
-
-- **FOE Life** as a new Set.
-- **Chris** as a new Member under it.
-- The killing as a new `MURDER` incident: J-Nutty `SHOOTER`, Chris `VICTIM`/`KILLED`.
-  That sets Chris's `status` and `death_incident_id` through the incident-driven death
-  sync, so **the date is the piece to pin first**.
-- J-Nutty's sentence. He is already a member (BCB, `LOCKED`, no legal name recorded).
-
-### Search record, so nobody repeats it
-
-**The article was not found.** Searched 2026-08-25: Detroit press by victim name and by
-the MO, Michigan Court of Appeals opinions, the juvenile-lifer coverage, and
-detroitstreetgangs.com. Nothing surfaced. This is the normal outcome for Detroit street
-homicides of that period rather than a sign the account is wrong.
-
-**Do not mistake the 2022 gas-station case for this one.** Mekhi Green, 15, shot Rob
-Harris, 15, at a gas station on the 11000 block of E 7 Mile on 7 January 2022, then stood
-over him and fired five more times at close range. The MO matches almost word for word and
-the shooter's age matches, but the decade does not, the victim is not a Chris, and it is
-east side rather than the Band Crew box. Different case.
-
-**Candidate victims** from `homicides/` (chamspage, UNVERIFIED, incomplete, and it stops
-at 2013). None sits cleanly inside the Band Crew box, so treat the list as a prompt rather
-than a shortlist:
-
-| Date | Name | Age | Block |
-|---|---|---|---|
-| 2009-09-27 | Christopher Williams | 21 | 14838 Snowden |
-| 2009-12-22 | Chris Craig | 19 | 9333 Jefferson Ave |
-| 2010-06-26 | Christopher Harris | 25 | Edmore & Mohican |
-| 2011-04-07 | Christopher Rice | 38 | 19245 8 Mile Rd |
-| 2012-04-17 | Christopher Wilcher | 22 | 19317 Lumpkin |
-| 2012-06-22 | Christopher Woodard | 24 | Fordham and Chalmers |
-| 2012-09-02 | Christopher Jones | 25 | 15100 Petoskey |
-
-**Better routes than press search**, in order:
-
-1. **A juvenile lifer is a documented person.** Michigan's roughly 400 juvenile lifers all
-   came up for resentencing after *Miller* (2012) and *Montgomery* (2016), and Wayne County
-   holds the largest share. That produces a named court record - the resentencing docket -
-   for someone sentenced to life at 15 in the early 2010s. It needs his legal name, or a
-   list to scan.
-2. **OTIS**, once his legal name is known. Blocked from this server's Helsinki IP, so it
-   wants a browser elsewhere.
-3. **Ask for the date, or the neighbourhood.** Either one collapses the candidate list
-   immediately.
-
-### Corroboration already in the repo, both captured 2021-03-30
-
-- `sources/social-links.txt` line 36 - `free.jnutty`, tagged BCB, filed under the `PRISON`
-  bookmark folder: `https://www.facebook.com/free.jnutty`. Consistent with a life sentence
-  being served in 2021.
-- `sources/mdoc-records.txt` line 67 - MDOC **378938**, tagged `FOE`. Unresolved whether
-  that tag is the set or a nickname, and it is not obviously Chris or J-Nutty. Given FOE
-  Life is now a confirmed distinct set, this row is worth a lookup.
+Three things stay open and are tracked in that file rather than here: that William Morton
+is J-Nutty (an inference, no nickname appears in the opinion), his age and sentence (not
+stated in a conviction affirmance), and whether anyone finished Walker on the ground (the
+appellate recital describes shooting into a crowd from outside a black Mazda). The street
+account puts it in the early 2010s; it is 2008, and the 2012 appeal is the likely source
+of the drift.
 
 ---
 
