@@ -1,6 +1,6 @@
 # BCB deaths: Walvon Holland 2007, To-To 2008, Beezy 2010
 
-Three killings on the BCB side, seeded 2026-08-25. To-To's is written up in
+Four deaths across the BCB / FOE Life line, seeded 2026-08-25. To-To's is written up in
 `hfhs-2008-walker.md`, because it is the stated cause of the Henry Ford High School
 shooting; the other two are here.
 
@@ -143,7 +143,8 @@ a war.
 
 ## Still open
 
-- **Who killed Beezy and Philyaw**, and whether Philyaw was BCB.
+- **Who killed Beezy and Philyaw**, and what a BCB man and a FOE Life man were doing at
+  one address. Philyaw's set is settled - FOE Life, from his own Facebook.
 - **Whether Rodgereck Herbert had any set.** The opinion names none, and he is parked in
   Unknown. His street names, Bama and Bookie, are the handle to chase.
 - **The second man in Kelm's basement.** Never identified.
