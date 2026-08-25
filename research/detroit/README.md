@@ -73,6 +73,9 @@ plus the blog's statistics pages.
   "Seven Mile Bloods" is modelled as the umbrella alliance with an `SMB` core set inside it).
 - `incidents.md` - dated incident timeline with FuzzyDate precision marked per row.
 - `homicides/` - 4,019 Detroit homicide victims, 2003-2013, one markdown file per year.
+- `leads.md` - open leads: fragments that name something real but don't resolve to a
+  row yet, newest first. Entries leave the file when they become an entity or get
+  ruled out.
 - `752-and-56.md` - Instagram sweep of the 752/PJC accounts and of "56", with the C Deuce
   death of August 2026. Records which handles Business Discovery can and cannot reach.
 
