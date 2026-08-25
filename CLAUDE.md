@@ -163,62 +163,10 @@ leave this machine. Both are documented once, a level up, in
 `~/squiidape/CLAUDE.md`. **Read it before touching `app/core/storage.py`, the
 `member` / `media` / `incident` tables or the `FuzzyDate` shape.**
 
-## Research sources for Detroit
+## Research
 
-Worth knowing before starting another round of research, all verified 2026-08-23.
-
-- **`thedetroitscanner`** (Instagram, professional account) is a DPD/DFD dispatch
-  feed: precinct, intersection, time, units responding. It is *primary*, not
-  aggregated, and it is the best available source for the precise locations the
-  incident rows want. All 1,674 posts pull via Business Discovery from
-  `~/squiidape/ig` (see its `CLAUDE.md`), spanning 2019-12-16 to 2026-03-03
-  (dormant since) - **but the archive is not continuous, so do not read a miss as
-  "nothing happened"**. Only 20 of the 76 months in that span have any post at
-  all; 56 months are empty outright. It is dense only over 2024-04 to 2024-10
-  (~1,170 posts) with thin islands elsewhere (2021-02: 92, 2022-06: 83, 2025-07:
-  40). Verified 2026-08-25 by paginating the full media edge.
-  Two mechanical notes: pass `media.limit(500)` and follow
-  `paging.cursors.after` until a page comes back empty - there is **no**
-  `paging.next` link on the `business_discovery` media edge, so stopping on its
-  absence caps you at the first 500 (most recent) posts. And the page's Facebook
-  mirror, `facebook.com/TheDetroitScanner`, carries history the Instagram account
-  no longer does; its post bodies are search-engine indexed even though the Graph
-  API cannot read them.
-- **`detroitstreetgangs.com`** independently corroborates set structure. It got
-  TLE/BCB wrong (it treats them as one group; they are distinct) but got the
-  JonWay rebrand right. Useful as a second opinion, not as an authority.
-- **Instagram Business Discovery** reads any *professional* account's captions,
-  dates, permalinks and engagement, about 2,200 posts deep. Personal accounts
-  return "Invalid user id". This is the fastest way to sweep a Detroit page for
-  material on a given name or incident.
-- **A personal account is still readable if you have a post link.** The post page
-  renders logged-out and carries the `cdninstagram.com` URLs for its carousel
-  items, and those download unauthenticated, so the pictures can be read even
-  when the API refuses the account: permalink, page source, image URL, download,
-  read the frame. Funeral programmes and casket wraps carry dates of birth and
-  death that no other source in Detroit will give you, and graffiti in the frame
-  names sets. Profile URLs serve a login wall, comment bodies are not exposed at
-  all, and there is no tagged-photos endpoint. **So ask for post links, not
-  handles.** Full detail in `~/squiidape/ig/CLAUDE.md`.
-- **Facebook is a lookup index only.** People search and post search were removed
-  from the Graph API permanently. Search-engine queries scoped to `facebook.com`
-  find pages and post URLs, but the bodies need a logged-in browser.
-- **The press names almost nobody.** The Manor Avenue double murder was covered
-  by four outlets and not one printed a victim or suspect name, and no charge was
-  ever filed. Expect Detroit sourcing to be street-first; absence of press
-  confirmation is the norm here, not a red flag.
-- **Federal charging documents are the exception, and the only place legal
-  names come free.** The September 2015 Band Crew RICO indictment (E.D. Mich.)
-  names eight defendants with their a.k.a.s, seven of which matched nicknames
-  already on the CMH and YNC rosters, and it fixes Band Crew's boundary box and
-  graffiti tags. justice.gov serves its own copies behind a bot-verification
-  wall, so read the Equipo Nizkor mirrors at `derechos.org/nizkor/corru/doc/`.
-  `research/privedatabase/tools/seed_bandcrew_indictment.py` is the shape of the
-  write-up: everything the document gives lands in a column (`legal_name`, the
-  affiliation, `member_set.rank` for the charged "CEO"/"Co-CEO" aliases), never
-  in a biography. Worth checking whether other Detroit sets have one.
-
-
--------
-
-always git commit after finishing a request / feature (not just a small thing, after changes worth commiting)
+`research/README.md` is the entry point: what the tree holds and how material
+moves through it. Which sources exist for a universe, how far each one reaches
+and how to read it is per-universe - Detroit's is
+`research/detroit/README.md` ("Where the material comes from"). Read that before
+starting a round of research, not this file.
