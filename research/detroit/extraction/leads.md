@@ -11,35 +11,88 @@ and a paraphrase written from memory a week later loses it.
 
 ## J-Nutty (BCB) killed FOE Life Chris - 2026-08-25
 
-**Roughly 15 years**, for killing **Chris** of **FOE Life**.
+**J-Nutty got LIFE, at about 15 years old**, for killing **Chris** of **FOE Life**. He
+shot Chris, then walked up to him and finished him on the ground. Early 2010s.
 
-Neither the man nor the killing is in the database yet, and both are seedable once the
-date is pinned:
+Corrects an earlier reading in this file: "took like at 15" is his **age**, not a
+fifteen-year sentence.
 
-- **J-Nutty** is already a member: BCB, `LOCKED`, no legal name, no sentence recorded.
-- **FOE Life** is the set the wiki holds as **PBF** (`pbf`, ACTIVE). privedatabase carries
-  it as the single set "PBF/FOE Life" at `/pbf-foe-life/`, and three other Detroit set
-  pages list "PBF/FOE Life" as one ally, so the two names are one set, not two. **Chris is
-  not on the PBF roster** - its seven members are Blair Nelson, Murda Mook, Black Steve,
-  Tank, Skurf, Rio and Trigga Trey. So he is a new member row.
-- **The killing** is a new `MURDER` incident: J-Nutty `SHOOTER`, Chris `VICTIM`/`KILLED`.
-  Seeding it sets Chris's `status=DEAD` and `death_incident_id` through the normal
-  incident-driven death sync, so the date is the one thing worth getting right first.
+### FOE Life is its own set, and is not PBF
 
-**Corroboration already in the repo**, both captured 2021-03-30:
+An earlier version of this entry said FOE Life was the set the wiki holds as PBF. **That
+was wrong.** The Band Crew RICO indictment (E.D. Mich., federal, HIGH) names them as two
+separate component sets in one sentence:
 
-- `sources/social-links.txt` line 36 - `free.jnutty`, tagged BCB, filed under the
-  `PRISON` bookmark folder: `https://www.facebook.com/free.jnutty`. A "Free ___" page
-  under that folder puts him inside by **March 2021 at the latest**, which is the outside
-  bound on the sentence start until something narrows it.
-- `sources/mdoc-records.txt` line 67 - MDOC **378938**, tagged `FOE`. Unresolved: the tag
-  could be the set or a nickname, and it is not obviously Chris or J-Nutty. Worth a lookup,
-  though OTIS 403s this server's Helsinki IP.
+> Band Crew was an association of existing smaller gangs that principally included members
+> of Constantly Making Hundreds (CMH, formerly Cash Money Hoes), Young N Crispy (YNC),
+> Pushit (or Pusha) Boy Family (PBF), and Family Over Everything Love is Forever (FOE Life).
 
-**What to pin down.** The date of the killing, Chris's real nickname if "Chris" is short
-for something the street used, and whether the ~15 is a sentence range (a 15-to-N MDOC
-spell) rather than a flat number - MDOC sentences are min-max, so "took like 15" most
-likely names the minimum.
+So **FOE Life = "Family Over Everything Love is Forever"**, and it does **not** exist in
+the database - a `%foe%` search over Detroit sets returns nothing. privedatabase merges
+the two onto a single `/pbf-foe-life/` page, which is where the error came from. The
+indictment outranks it. Read the merged page as two sets from here on.
+
+Band Crew context from the same document, useful for dating: it **formed in November 2011**
+at a Burger King meeting and ran until the arrests of autumn 2015. Its territory is
+northwest Detroit, centred on Seven Mile - **8 Mile north, W McNichols south, Greenfield
+east, Southfield Freeway west**.
+
+### What this needs before it can be seeded
+
+- **FOE Life** as a new Set.
+- **Chris** as a new Member under it.
+- The killing as a new `MURDER` incident: J-Nutty `SHOOTER`, Chris `VICTIM`/`KILLED`.
+  That sets Chris's `status` and `death_incident_id` through the incident-driven death
+  sync, so **the date is the piece to pin first**.
+- J-Nutty's sentence. He is already a member (BCB, `LOCKED`, no legal name recorded).
+
+### Search record, so nobody repeats it
+
+**The article was not found.** Searched 2026-08-25: Detroit press by victim name and by
+the MO, Michigan Court of Appeals opinions, the juvenile-lifer coverage, and
+detroitstreetgangs.com. Nothing surfaced. This is the normal outcome for Detroit street
+homicides of that period rather than a sign the account is wrong.
+
+**Do not mistake the 2022 gas-station case for this one.** Mekhi Green, 15, shot Rob
+Harris, 15, at a gas station on the 11000 block of E 7 Mile on 7 January 2022, then stood
+over him and fired five more times at close range. The MO matches almost word for word and
+the shooter's age matches, but the decade does not, the victim is not a Chris, and it is
+east side rather than the Band Crew box. Different case.
+
+**Candidate victims** from `homicides/` (chamspage, UNVERIFIED, incomplete, and it stops
+at 2013). None sits cleanly inside the Band Crew box, so treat the list as a prompt rather
+than a shortlist:
+
+| Date | Name | Age | Block |
+|---|---|---|---|
+| 2009-09-27 | Christopher Williams | 21 | 14838 Snowden |
+| 2009-12-22 | Chris Craig | 19 | 9333 Jefferson Ave |
+| 2010-06-26 | Christopher Harris | 25 | Edmore & Mohican |
+| 2011-04-07 | Christopher Rice | 38 | 19245 8 Mile Rd |
+| 2012-04-17 | Christopher Wilcher | 22 | 19317 Lumpkin |
+| 2012-06-22 | Christopher Woodard | 24 | Fordham and Chalmers |
+| 2012-09-02 | Christopher Jones | 25 | 15100 Petoskey |
+
+**Better routes than press search**, in order:
+
+1. **A juvenile lifer is a documented person.** Michigan's roughly 400 juvenile lifers all
+   came up for resentencing after *Miller* (2012) and *Montgomery* (2016), and Wayne County
+   holds the largest share. That produces a named court record - the resentencing docket -
+   for someone sentenced to life at 15 in the early 2010s. It needs his legal name, or a
+   list to scan.
+2. **OTIS**, once his legal name is known. Blocked from this server's Helsinki IP, so it
+   wants a browser elsewhere.
+3. **Ask for the date, or the neighbourhood.** Either one collapses the candidate list
+   immediately.
+
+### Corroboration already in the repo, both captured 2021-03-30
+
+- `sources/social-links.txt` line 36 - `free.jnutty`, tagged BCB, filed under the `PRISON`
+  bookmark folder: `https://www.facebook.com/free.jnutty`. Consistent with a life sentence
+  being served in 2021.
+- `sources/mdoc-records.txt` line 67 - MDOC **378938**, tagged `FOE`. Unresolved whether
+  that tag is the set or a nickname, and it is not obviously Chris or J-Nutty. Given FOE
+  Life is now a confirmed distinct set, this row is worth a lookup.
 
 ---
 
