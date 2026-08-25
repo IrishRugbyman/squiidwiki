@@ -68,22 +68,6 @@ ssh-tunnel.sh
 # Playwright
 .playwright-mcp/
 
-# Research data (personal data; this repo is public)
-research/*.txt
-research/**/*.txt
-
-# Copyrighted source material kept locally, never committed
-research/**/*.epub
-research/**/*.pdf
-research/**/*.mobi
-
-# Scanned primary documents (named individuals, this repo is public).
-# Only the INDEX.md of each documents/ case directory is tracked.
-research/**/*.jpg
-research/**/*.jpeg
-research/**/*.png
-research/**/*.webp
-
 # Symlink to ~/squiidape/ig (the Instagram integration). Convenience only;
 # that project is its own repo and must not be committed into this one.
 /ig

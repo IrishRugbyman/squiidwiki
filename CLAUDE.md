@@ -25,8 +25,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Hard rules
 
 - **NEVER MODIFY DATA IN PROD DB** without explicit instruction. The exception currently baked in is municipalities (see Architecture → DB toggle).
-- **Never name the French source in wiki prose, and never hedge a claim in it.** No entity text that renders on a page - biography, set bio, narrative, participant or incarceration note - may name `privedatabase` / privedatabase.wordpress.com, and none may argue with itself ("X adds that ..., which nothing corroborates", "this rests on one forum thread", "no press account names a shooter"). This database *is* the research: state the fact and stop. Reliability lives in the `source` row's rating, not in prose caveats. The site keeps one source row for traceability, titled "French-language gang research wiki" with its URL intact; that row is the only place the URL appears. `research/privedatabase/tools/strip_source_attributions.py` did the cleanup and shows the shape of the rewrite.
-- **A biography says only what no other column holds.** Never write into `biography` (or any free-text field) something the page already renders from a column: the set, the gang, the alliance, the family, the aliases, the bare status, the legal name, the dates, or the incident a member died in. The test is **state versus circumstance** - "he is incarcerated" is a column and is banned, "took the charges for his members" is a fact no column holds. Same sentence, opposite verdicts. An empty bio is the correct answer when nothing survives the strip, and more output is not better output. This applies to prose written by hand as much as to agent-drafted batches; `research/privedatabase/tools/verify_bios.py` mechanises the check, and the reasoning is in `research/privedatabase/README.md` under "Biographies, and the rule that makes them worth having".
+- **Never name the French source in wiki prose, and never hedge a claim in it.** No entity text that renders on a page - biography, set bio, narrative, participant or incarceration note - may name `privedatabase` / privedatabase.wordpress.com, and none may argue with itself ("X adds that ..., which nothing corroborates", "this rests on one forum thread", "no press account names a shooter"). This database *is* the research: state the fact and stop. Reliability lives in the `source` row's rating, not in prose caveats. The site keeps one source row for traceability, titled "French-language gang research wiki" with its URL intact; that row is the only place the URL appears. `~/squiidape/research/privedatabase/tools/strip_source_attributions.py` did the cleanup and shows the shape of the rewrite.
+- **A biography says only what no other column holds.** Never write into `biography` (or any free-text field) something the page already renders from a column: the set, the gang, the alliance, the family, the aliases, the bare status, the legal name, the dates, or the incident a member died in. The test is **state versus circumstance** - "he is incarcerated" is a column and is banned, "took the charges for his members" is a fact no column holds. Same sentence, opposite verdicts. An empty bio is the correct answer when nothing survives the strip, and more output is not better output. This applies to prose written by hand as much as to agent-drafted batches; `~/squiidape/research/privedatabase/tools/verify_bios.py` mechanises the check, and the reasoning is in `~/squiidape/research/privedatabase/README.md` under "Biographies, and the rule that makes them worth having".
 
 ## Development Environment (Linux server)
 
@@ -165,8 +165,10 @@ leave this machine. Both are documented once, a level up, in
 
 ## Research
 
-`research/README.md` is the entry point: what the tree holds and how material
-moves through it. Which sources exist for a universe, how far each one reaches
-and how to read it is per-universe - Detroit's is
-`research/detroit/README.md` ("Where the material comes from"). Read that before
-starting a round of research, not this file.
+The research tree is **not in this repository**. It lives in `~/squiidape/research`,
+its own **private** repo, because this one is public and that material names living
+people. It was split out on 2026-08-25 with its full history.
+
+Nothing here depends on it. It depends on this: its seed scripts drive the backend
+over HTTP on :8001, so **the wiki must be running** before any of them are run, and
+an API contract change can break them. Start at `~/squiidape/research/README.md`.

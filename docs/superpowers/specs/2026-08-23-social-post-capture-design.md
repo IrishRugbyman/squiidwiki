@@ -97,7 +97,7 @@ later if they turn out to be wanted (YAGNI).
 
 ## Tooling
 
-No UI. Both tools live in `research/privedatabase/tools/`, alongside the
+No UI. Both tools live in `~/squiidape/research/privedatabase/tools/`, alongside the
 existing seed and repair scripts, and follow their conventions (`wikiapi.py`
 for API calls, `psql` for reads).
 
