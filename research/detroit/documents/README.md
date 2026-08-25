@@ -11,10 +11,15 @@ Each case directory is named `<surname>-<lower court case number>` and each file
 `.pdf` as retrieved and a `.txt` extraction alongside it, since the PDFs are scanned
 layouts that grep badly.
 
-The PDFs and their `.txt` extractions are **not committed** - `.gitignore` excludes
-`research/**/*.pdf` and `research/**/*.txt` because this repo is public. Only `INDEX.md`
-is tracked, so it has to carry enough detail to stand alone: what each document
-establishes and where to re-fetch it.
+Not everything here is a court filing. Material that belongs to a case but has no docket -
+a prisoner's own manuscript, correspondence, a photographed exhibit - goes in the same case
+directory under a descriptive name plus its own page or item number, and `INDEX.md` says
+why the dated naming does not apply. `herbert-07-011024` is the example.
+
+The PDFs, their `.txt` extractions and any scans are **not committed** - `.gitignore`
+excludes `research/**/*.pdf`, `research/**/*.txt` and `research/**/*.{jpg,jpeg,png,webp}`
+because this repo is public. Only `INDEX.md` is tracked, so it has to carry enough detail
+to stand alone: what each document establishes and where to re-fetch it.
 
 Add a matching row to `sources/legal-sources.txt` when a document becomes a
 `Source` row in the wiki.

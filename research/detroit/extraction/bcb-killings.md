@@ -64,6 +64,39 @@ almost certainly **Kelm's** house, not his.
 **Seeded** by `../tools/seed_walvon_2007.py`: the incident, Herbert with his MDOC record,
 spell and OTIS photo, Kelm as a `BYSTANDER`, and Walvon's biography cleared.
 
+### Herbert's own account
+
+Three photographed pages of a typed prison manuscript, held at
+`../documents/herbert-07-011024/` with a full INDEX. He names himself in the preface -
+"My name is Rodgereck Markeith Herbert. I'm inmate# 615989" - which ties the manuscript
+to the OTIS record and adds the middle name **Markeith**, which OTIS does not carry.
+
+**He says he did not do it.** The preface calls the conviction unconstitutional and the
+trial "an affront to justice", claims a **seven day** bench trial, and addresses the dead
+man directly: "if it takes the rest of my life, your true murderer will be brought to
+justice! You know, the killer knows, God knows and I know your killer wasn't me."
+
+**The relationship is the substantive claim.** Testimony has him robbing Holland at
+gunpoint over drugs and money. He calls Holland "my most dearest and beloved friend" and
+writes "I owe Wolvon my life". Nothing in the record establishes whether they knew each
+other; the opinion never says. This is the only account either way, and it is the
+defendant's.
+
+Chapters I and II are pure biography and stop in about 2002, well before the killing:
+Georgiana, Alabama; a move to Detroit around November 2001 at 13; his great-aunt Pauline
+Littles and her husband Donald; Langston Hughes Academy Middle School; an older brother
+Marlon, eight years up, already living a life of crime. **"Bookie" is a family name from
+Alabama**, not a street name, which settles where that alias came from - and by extension
+what **Bama** is doing next to it. That biography now carries his wiki `biography`.
+
+### "Wolvon" or "Walvon"
+
+The wiki uses **Walvon**, from the Court of Appeals. Two sources that are not the court
+say **Wolvon**: the 2007 homicide list (under the garbled surname "Howell") and this
+manuscript, three times, written by a man who claims he was his closest friend. Left as
+Walvon for now because the court record is rated HIGH, but the count is 2:1 against it
+and it is listed under Still open.
+
 ---
 
 ## Beezy is Rodney Autrey, 26 October 2010
@@ -221,7 +254,14 @@ Worth knowing before anyone reads a connection into it.
   see the mirror test above, which is cheap and would decide it. Philyaw's set is settled -
   FOE Life, from his own Facebook.
 - **Whether Rodgereck Herbert had any set.** The opinion names none, and he is parked in
-  Unknown. His street names, Bama and Bookie, are the handle to chase.
+  Unknown. His street names, Bama and Bookie, are the handle to chase - though his own
+  manuscript makes Bookie an Alabama family name, so neither may be a set handle at all.
+- **Whether Walvon's first name is spelled Wolvon.** 2:1 against the wiki's current
+  spelling; see above. The birth certificate or a death record would settle it.
+- **The rest of the Herbert manuscript.** Only pages 1-3 held, ending mid-sentence in
+  2002. The chapters that reach 13 June 2007 are the ones worth having.
+- **Who posted the manuscript.** Saved off Facebook on 6 April 2021, no URL and no poster
+  recorded.
 - **The second man in Kelm's basement.** Never identified.
 - **Walvon's own address.** 18997 Lenore is where he died, which is Kelm's house.
 - **Kurtis Kelm's set**, if any. Parked in Unknown.
