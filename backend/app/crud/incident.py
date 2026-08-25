@@ -376,7 +376,22 @@ async def list_incidents_by_alliance(
         select(Incident)
         .join(IncidentParticipant, IncidentParticipant.incident_id == Incident.id)
         .join(Member, Member.id == IncidentParticipant.member_id)
-        .where(Member.alliance_id == alliance_id, Incident.universe_id == universe_id)
+        # Same union as list_members' alliance filter: an alliance's people are
+        # those tagged straight to it plus the current members of its sets.
+        # Joining on Member.alliance_id alone reported no incidents for an
+        # alliance whose sets were full of participants.
+        .where(
+            (Member.alliance_id == alliance_id)
+            | Member.id.in_(
+                select(MemberSet.member_id).where(
+                    MemberSet.set_id.in_(
+                        select(GangSet.id).where(GangSet.alliance_id == alliance_id)
+                    ),
+                    MemberSet.until_date.is_(None),
+                )
+            ),
+            Incident.universe_id == universe_id,
+        )
         .distinct()
         .order_by(Incident.sortable_date.desc(), Incident.created_at.desc())
         .limit(limit)

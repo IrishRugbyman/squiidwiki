@@ -1,4 +1,5 @@
 """API integration tests for the /api/v1/alliances/ vertical slice."""
+
 import uuid
 
 import pytest
@@ -168,3 +169,135 @@ async def test_search_alliances(client: AsyncClient, db_session: AsyncSession):
     )
     assert resp.status_code == 200
     assert isinstance(resp.json(), list)
+
+
+async def test_alliance_members_includes_members_of_its_sets(
+    client: AsyncClient, db_session: AsyncSession
+):
+    """An alliance's roster is its sets' members, not only directly-tagged ones.
+
+    Regression: the query filtered on Member.alliance_id alone, so an alliance
+    whose sets were full reported zero members, and every count derived from
+    that list on the alliance page read 0.
+    """
+    token = await _admin_token(client, db_session)
+    universe_id = await _make_universe(client, token)
+    auth = {"Authorization": f"Bearer {token}"}
+
+    alliance_id = (
+        await client.post(
+            "/api/v1/alliances/",
+            json={"universe_id": universe_id, "name": f"Coalition {_uid()}"},
+            headers=auth,
+        )
+    ).json()["id"]
+
+    set_id = (
+        await client.post(
+            "/api/v1/sets/",
+            json={"universe_id": universe_id, "name": f"Set {_uid()}", "alliance_id": alliance_id},
+            headers=auth,
+        )
+    ).json()["id"]
+
+    # In one of the alliance's sets, but not tagged to the alliance directly.
+    via_set = (
+        await client.post(
+            "/api/v1/members/",
+            json={
+                "universe_id": universe_id,
+                "nickname": "ViaSet",
+                "affiliations": [{"set_id": set_id, "is_primary": True}],
+            },
+            headers=auth,
+        )
+    ).json()["id"]
+
+    # Tagged straight to the alliance with no set at all.
+    direct = (
+        await client.post(
+            "/api/v1/members/",
+            json={"universe_id": universe_id, "nickname": "Direct", "alliance_id": alliance_id},
+            headers=auth,
+        )
+    ).json()["id"]
+
+    # In neither, and must not appear.
+    outsider = (
+        await client.post(
+            "/api/v1/members/",
+            json={"universe_id": universe_id, "nickname": "Outsider"},
+            headers=auth,
+        )
+    ).json()["id"]
+
+    resp = await client.get(
+        f"/api/v1/alliances/{alliance_id}/members",
+        params={"universe_id": universe_id, "limit": 100},
+        headers=auth,
+    )
+    assert resp.status_code == 200
+    ids = {m["id"] for m in resp.json()["items"]}
+    assert via_set in ids
+    assert direct in ids
+    assert outsider not in ids
+
+
+async def test_alliance_incidents_includes_incidents_of_its_sets_members(
+    client: AsyncClient, db_session: AsyncSession
+):
+    """Same union for incidents: a set member's incident belongs to the alliance.
+
+    Regression: the join filtered on Member.alliance_id, so an alliance whose
+    sets' members were incident participants showed no incidents at all.
+    """
+    token = await _admin_token(client, db_session)
+    universe_id = await _make_universe(client, token)
+    auth = {"Authorization": f"Bearer {token}"}
+
+    alliance_id = (
+        await client.post(
+            "/api/v1/alliances/",
+            json={"universe_id": universe_id, "name": f"Coalition {_uid()}"},
+            headers=auth,
+        )
+    ).json()["id"]
+    set_id = (
+        await client.post(
+            "/api/v1/sets/",
+            json={"universe_id": universe_id, "name": f"Set {_uid()}", "alliance_id": alliance_id},
+            headers=auth,
+        )
+    ).json()["id"]
+    member_id = (
+        await client.post(
+            "/api/v1/members/",
+            json={
+                "universe_id": universe_id,
+                "nickname": "ViaSet",
+                "affiliations": [{"set_id": set_id, "is_primary": True}],
+            },
+            headers=auth,
+        )
+    ).json()["id"]
+
+    incident_id = (
+        await client.post(
+            "/api/v1/incidents/",
+            json={
+                "universe_id": universe_id,
+                "type": "SHOOTING",
+                "date": {"year": 2020, "month": 5, "day": 1, "precision": "YMD", "approx": False},
+                "participants": [{"member_id": member_id, "role": "VICTIM", "outcome": "INJURED"}],
+            },
+            headers=auth,
+        )
+    ).json()["id"]
+
+    resp = await client.get(
+        f"/api/v1/alliances/{alliance_id}/incidents",
+        params={"universe_id": universe_id, "limit": 100},
+        headers=auth,
+    )
+    assert resp.status_code == 200
+    assert incident_id in {i["id"] for i in resp.json()["items"]}
