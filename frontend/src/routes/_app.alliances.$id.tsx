@@ -51,8 +51,11 @@ function AllianceDetailPage() {
 
   const { data: alliance, isLoading, isError, refetch } = useAlliance(id, universe?.id ?? null)
   const { data: allSets } = useSets(universe?.id ?? null)
-  const { data: members } = useAllianceMembers(id, universe?.id ?? null)
-  const { data: incidents } = useAllianceIncidents(id, universe?.id ?? null)
+  // The route param is the slug. /alliances/{id_or_slug} resolves either, but the
+  // sub-resource endpoints are typed uuid.UUID and 422 on a slug, so these have to
+  // wait for the loaded alliance and use its id. Empty string keeps them disabled.
+  const { data: members } = useAllianceMembers(alliance?.id ?? '', universe?.id ?? null)
+  const { data: incidents } = useAllianceIncidents(alliance?.id ?? '', universe?.id ?? null)
   const { data: munis } = useMunicipalities(universe?.id ?? null)
   const deleteAlliance = useDeleteAlliance(universe?.id ?? '')
 
