@@ -616,6 +616,9 @@ async def create_member_incarceration(
     obj = MemberIncarceration(
         member_id=member_id,
         from_date=_fuzzy_to_dict(data.from_date),
+        # Independent of life_sentence: a life term still ends, by death or by
+        # commutation, and both are recorded here.
+        to_date=_fuzzy_to_dict(data.to_date),
         earliest_release_date=None
         if data.life_sentence
         else _fuzzy_to_dict(data.earliest_release_date),
@@ -646,18 +649,21 @@ async def update_member_incarceration(
     obj = result.scalar_one_or_none()
     if obj is None:
         return None
+    # model_fields_set, not a None check, for the same reason as the dates below:
+    # a None check makes these three unclearable, so a facility entered by mistake
+    # can never be blanked - the edit form sends null and nothing happens.
     for field in ("facility", "case_id", "notes"):
-        v = getattr(data, field)
-        if v is not None:
-            setattr(obj, field, v)
+        if field in data.model_fields_set:
+            setattr(obj, field, getattr(data, field))
     if data.life_sentence is not None:
         obj.life_sentence = data.life_sentence
     # Only touch a date the caller actually sent: these fields default to None, so
     # assigning unconditionally makes a PATCH of nothing but `notes` wipe the whole
     # spell's dates. `model_fields_set` keeps "not mentioned" apart from "cleared",
     # the same way update_member does for dob and date_of_death.
-    if "from_date" in data.model_fields_set:
-        obj.from_date = _fuzzy_to_dict(data.from_date)
+    for field in ("from_date", "to_date"):
+        if field in data.model_fields_set:
+            setattr(obj, field, _fuzzy_to_dict(getattr(data, field)))
     if obj.life_sentence:
         # A life term has no release dates by definition, whatever was sent.
         obj.earliest_release_date = None
@@ -688,6 +694,9 @@ async def list_universe_release_events(
         .join(Member, Member.id == MemberIncarceration.member_id)
         .where(Member.universe_id == universe_id)
         .where(MemberIncarceration.life_sentence.is_(False))
+        # A spell that has already ended has no release to announce: its dates
+        # are projections that were overtaken, so keep them off the calendar.
+        .where(MemberIncarceration.to_date.is_(None))
         .where(sa.or_(earliest_year == year_text, max_year == year_text))
     )
     result = await session.execute(stmt)

@@ -94,6 +94,53 @@ A member can appear only once per incident (unique constraint on `incident_id, m
 
 ---
 
+## Incarceration Spells
+
+`member_incarceration` carries four dates, and three of them are easy to
+conflate. The distinction that matters is **fact versus forecast**:
+
+| Column | Type | Notes |
+|---|---|---|
+| `from_date` | FuzzyDate \| null | Date of sentence |
+| `to_date` | FuzzyDate \| null | When the spell **actually** ended. A fact |
+| `earliest_release_date` | FuzzyDate \| null | Soonest release the sentence allows. A forecast. Blank for federal terms, which have no parole |
+| `max_discharge_date` | FuzzyDate \| null | Latest release the sentence allows. A forecast |
+| `life_sentence` | bool | Nulls both forecasts at the CRUD layer |
+
+`to_date` is what makes a spell historical. Once it is set, the two forecasts are
+projections that were overtaken by events: they stay on the row as the record of
+what was expected, but `list_universe_release_events` excludes the spell, so
+nothing announces a 2046 max discharge for someone released in 2015. Setting
+`life_sentence` does **not** suppress `to_date` - commutation and death both end
+a life term, and both are worth recording.
+
+All four use `JSONB(none_as_null=True)`. Without it an absent date is stored as
+the JSON scalar `null`, which `IS NULL` cannot see, and the release-events filter
+silently matches nothing.
+
+**MDOC imports.** OTIS splits these facts across two places, and the split is the
+reason a discharged offender used to import as an empty page. Each sentence row
+carries its own `from_date` and, once served, its own `to_date`. The forecasts
+and the facility live in the profile's Status block instead, belong to the
+offender rather than to any one sentence, and are blank once he is out.
+`derive_spells` in `app/services/mdoc.py` reconciles the two: one spell per
+prison sentence, with the Status block attached to the single most recent spell
+still running, so concurrent sentences yield one projected release rather than
+three.
+
+**Probation is not imported, and this table holds no supervision.** OTIS covers
+probationers as well as prisoners, and a profile can carry probation sentences
+and no prison time at all - in which case the correct import result is zero
+spells and a member page reading "No incarceration records". A probation term
+rendered in this table would read on the page as time served, which is a false
+claim about a named living person; keeping the offense detail is not worth that.
+The import UI says how many probation sentences it saw, so an empty result is
+not mistaken for a failed import. This is a decided product rule, not a gap.
+Revisiting it means adding a `kind` column here (or a sibling table), not
+loosening the filter in `derive_spells`.
+
+---
+
 ## Materialized Views
 
 ### `member_stats`

@@ -13,9 +13,14 @@ from pathlib import Path
 import pytest
 from PIL import Image
 
+from app.core.enums import DatePrecision
+from app.core.fuzzy_date import FuzzyDate
 from app.services.mdoc import (
     MdocParseError,
+    MdocProfile,
+    MdocSentence,
     decode_data_uri,
+    derive_spells,
     parse_mdoc_html,
     parse_mdoc_results,
 )
@@ -202,6 +207,256 @@ class TestFailureModes:
             parse_mdoc_html("")
 
 
+def _ymd(year: int, month: int, day: int) -> FuzzyDate:
+    return FuzzyDate(year=year, month=month, day=day, precision=DatePrecision.YMD)
+
+
+def _sentence(**kw) -> MdocSentence:
+    """A prison sentence with everything blank but what the test names."""
+    kw.setdefault("kind", "prison")
+    kw.setdefault("active", True)
+    return MdocSentence(**kw)
+
+
+def _profile(sentences, **kw) -> MdocProfile:
+    """A profile carrying only what a spell derivation reads."""
+    kw.setdefault("legal_name", "Test Offender")
+    kw.setdefault("dob", _ymd(1990, 1, 1))
+    return MdocProfile(sentences=list(sentences), **kw)
+
+
+class TestDeriveSpells:
+    """The sentence rows are the only record a discharged offender has.
+
+    Values here are written by hand from the scenario each test describes, or
+    read off the fixture; none is produced by running the derivation.
+    """
+
+    def test_fixture_yields_one_spell_per_prison_sentence(self, profile):
+        # Fixture prison sentences: active (sentenced 1/12/2021, undischarged)
+        # and inactive (sentenced 9/9/2015, discharged 8/1/2019).
+        spells = derive_spells(profile)
+        assert len(spells) == 2
+        assert [s.case_id for s in spells] == ["20001111-01-FH", "15009999-FH"]
+
+    def test_probation_is_never_a_spell(self, profile):
+        """The fixture has a probation sentence; probation is not custody."""
+        assert any(s.kind == "probation" for s in profile.sentences)
+        assert len(derive_spells(profile)) == 2
+
+    def test_running_sentence_carries_its_start_and_no_end(self, profile):
+        running = derive_spells(profile)[0]
+        assert running.from_date == _ymd(2021, 1, 12)
+        assert running.to_date is None
+
+    def test_served_sentence_carries_the_date_it_actually_ended(self, profile):
+        served = derive_spells(profile)[1]
+        assert served.from_date == _ymd(2015, 9, 9)
+        assert served.to_date == _ymd(2019, 8, 1)
+
+    def test_projections_land_on_the_running_sentence_only(self, profile):
+        """Earliest release, max discharge and facility are offender-level.
+
+        Copying them onto every spell would put the same release on the
+        calendar once per sentence and would date the served spell wrongly.
+        """
+        running, served = derive_spells(profile)
+        assert running.earliest_release_date == _ymd(2031, 4, 15)
+        assert running.max_discharge_date == _ymd(2046, 4, 15)
+        assert running.facility == "Example Correctional Facility"
+        assert served.earliest_release_date is None
+        assert served.max_discharge_date is None
+        assert served.facility is None
+
+    def test_discharged_offender_with_an_empty_status_block_still_yields_spells(self):
+        """The bug this exists for.
+
+        Once someone is out, OTIS blanks Assigned Location and Earliest Release
+        Date, and max_discharge_date reads as None by design. Reading only the
+        status block therefore imported nothing for anyone not currently inside.
+        """
+        prof = _profile(
+            [
+                _sentence(
+                    active=False,
+                    court_file="11002233-FC",
+                    date_of_sentence=_ymd(2011, 3, 4),
+                    date_of_discharge=_ymd(2015, 8, 20),
+                )
+            ],
+            status="Discharged",
+        )
+        assert prof.facility is None
+        assert prof.max_discharge_date is None
+
+        (spell,) = derive_spells(prof)
+        assert spell.from_date == _ymd(2011, 3, 4)
+        assert spell.to_date == _ymd(2015, 8, 20)
+        assert spell.case_id == "11002233-FC"
+
+    def test_concurrent_open_sentences_produce_one_projected_release(self):
+        prof = _profile(
+            [
+                _sentence(court_file="A", date_of_sentence=_ymd(2019, 5, 1)),
+                _sentence(court_file="B", date_of_sentence=_ymd(2021, 7, 9)),
+                _sentence(court_file="C", date_of_sentence=_ymd(2020, 2, 2)),
+            ],
+            facility="Example Correctional Facility",
+            earliest_release_date=_ymd(2030, 1, 1),
+        )
+        spells = derive_spells(prof)
+        assert [s.case_id for s in spells] == ["A", "B", "C"]
+        # The latest start (B, 2021) is the one the projection belongs to.
+        assert [s.earliest_release_date for s in spells] == [None, _ymd(2030, 1, 1), None]
+        assert [s.facility for s in spells] == [None, "Example Correctional Facility", None]
+
+    def test_the_projection_lands_on_the_controlling_sentence(self):
+        """Ricardo Stanford's real shape, and the bug it exposed.
+
+        Concurrent counts are handed down on one day, so a start-date tiebreak
+        alone is arbitrary - it put a 2051 max discharge beside a two-year
+        felony-firearm count while the 20-to-35 assault that actually decides
+        the release date showed nothing.
+        """
+        same_day = _ymd(2015, 9, 3)
+        prof = _profile(
+            [
+                _sentence(
+                    court_file="AWIM",
+                    date_of_sentence=same_day,
+                    minimum_sentence="20 years 0 months 0 days",
+                    maximum_sentence="35 years 0 months",
+                ),
+                _sentence(
+                    court_file="FELFIRE",
+                    date_of_sentence=same_day,
+                    minimum_sentence="2 years 0 months 0 days",
+                    maximum_sentence="2 years 0 months",
+                ),
+            ],
+            facility="St. Louis Correctional Facility",
+            earliest_release_date=_ymd(2036, 11, 12),
+        )
+        awim, felfire = derive_spells(prof)
+        assert awim.earliest_release_date == _ymd(2036, 11, 12)
+        assert awim.facility == "St. Louis Correctional Facility"
+        assert felfire.earliest_release_date is None
+        assert felfire.facility is None
+
+    def test_a_life_count_outranks_any_term_of_years(self):
+        prof = _profile(
+            [
+                _sentence(court_file="YEARS", maximum_sentence="40 years 0 months"),
+                _sentence(court_file="LIFE", maximum_sentence="Life"),
+            ],
+            earliest_release_date=_ymd(2050, 1, 1),
+        )
+        years, life = derive_spells(prof)
+        assert life.life_sentence is True
+        assert years.earliest_release_date is None
+        # life_sentence nulls the release dates at the CRUD layer, but the
+        # facility still belongs on this row rather than on the shorter count.
+        assert life.earliest_release_date == _ymd(2050, 1, 1)
+
+    def test_a_served_sentence_never_takes_the_projection(self):
+        """Even when it started later than the one still running."""
+        prof = _profile(
+            [
+                _sentence(court_file="OPEN", date_of_sentence=_ymd(2018, 1, 1)),
+                _sentence(
+                    active=False,
+                    court_file="SERVED",
+                    date_of_sentence=_ymd(2022, 1, 1),
+                    date_of_discharge=_ymd(2024, 1, 1),
+                ),
+            ],
+            earliest_release_date=_ymd(2030, 1, 1),
+        )
+        spells = derive_spells(prof)
+        assert spells[0].earliest_release_date == _ymd(2030, 1, 1)
+        assert spells[1].earliest_release_date is None
+
+    def test_life_maximum_is_flagged_as_a_life_sentence(self):
+        prof = _profile([_sentence(minimum_sentence="25 years 0 months", maximum_sentence="Life")])
+        assert derive_spells(prof)[0].life_sentence is True
+
+    def test_a_term_of_years_is_not_a_life_sentence(self):
+        prof = _profile([_sentence(minimum_sentence="5 years", maximum_sentence="20 years")])
+        assert derive_spells(prof)[0].life_sentence is False
+
+    def test_no_prison_sentences_falls_back_to_the_status_block(self):
+        """A currently-serving prisoner whose sentence markup did not parse.
+
+        Better one bare spell with the facility and release dates than nothing.
+        """
+        prof = _profile(
+            [_sentence(kind="probation", active=False)],
+            facility="Example Correctional Facility",
+            earliest_release_date=_ymd(2029, 6, 1),
+        )
+        (spell,) = derive_spells(prof)
+        assert spell.facility == "Example Correctional Facility"
+        assert spell.earliest_release_date == _ymd(2029, 6, 1)
+        assert spell.from_date is None
+        assert spell.case_id is None
+
+    def test_a_probation_only_profile_yields_nothing(self):
+        """The shape that looks like a bug and is not.
+
+        OTIS covers probationers as well as prisoners. A discharged probationer
+        has an empty Status block *and* an empty Prison Sentences section, so
+        zero spells is the correct answer and the member page correctly reads
+        "No incarceration records". Loosening the filter to make this import
+        look productive would put supervision on the page as time served.
+        """
+        prof = _profile(
+            [
+                _sentence(
+                    kind="probation",
+                    active=False,
+                    court_file="11001386-01",
+                    date_of_sentence=_ymd(2011, 3, 29),
+                    date_of_discharge=_ymd(2012, 3, 2),
+                ),
+                _sentence(
+                    kind="probation",
+                    active=False,
+                    court_file="17003612-01-FH",
+                    date_of_sentence=_ymd(2017, 6, 6),
+                    date_of_discharge=_ymd(2019, 6, 13),
+                ),
+            ],
+            status="Discharged",
+        )
+        assert derive_spells(prof) == []
+
+    def test_an_offender_with_nothing_to_import_yields_no_spells(self):
+        assert derive_spells(_profile([])) == []
+
+    def test_notes_state_the_sentence_facts(self, profile):
+        served = derive_spells(profile)[1]
+        assert served.notes is not None
+        lines = served.notes.splitlines()
+        assert "Offense: Home Invasion - 2nd Degree" in lines
+        assert "MCL 750.110A3" in lines
+        assert "County: Oakland" in lines
+        assert "Conviction type: Plea" in lines
+        assert "Sentence: 2 years 0 months 0 days to 15 years 0 months" in lines
+        assert "Discharge reason: Offender Discharge" in lines
+
+    def test_notes_name_no_source_and_hedge_nothing(self, profile):
+        """House rule: entity text that renders on a page states the fact and stops."""
+        for spell in derive_spells(profile):
+            assert spell.notes is not None
+            lowered = spell.notes.lower()
+            for banned in ("otis", "mdoc", "imported", "according to", "appears to", "reportedly"):
+                assert banned not in lowered
+
+    def test_a_sentence_with_no_detail_gets_no_notes(self):
+        prof = _profile([_sentence(date_of_sentence=_ymd(2020, 1, 1))])
+        assert derive_spells(prof)[0].notes is None
+
+
 # ---------------------------------------------------------------------------
 # fetch_mdoc_profile: the session walk and its failure modes.
 #
@@ -250,13 +505,37 @@ class _StubClient:
 
 
 def _install(monkeypatch, posts, raise_on_get=None):
-    holder = {}
+    """Every attempt sees the same responses. Retry delays are zeroed so a test
+    of the give-up path does not spend the real backoff sleeping."""
+    holder = {"clients": 0}
 
     def factory(**kwargs):
+        holder["clients"] += 1
         holder["client"] = _StubClient(posts, raise_on_get=raise_on_get, **kwargs)
         return holder["client"]
 
     monkeypatch.setattr(mdoc_service.httpx, "AsyncClient", factory)
+    monkeypatch.setattr(mdoc_service, "PROFILE_RETRY_DELAYS", (0, 0))
+    return holder
+
+
+def _install_per_attempt(monkeypatch, attempts):
+    """Give each session-walk attempt its own responses, consumed in order.
+
+    OTIS's transient failure is per-session, so reproducing it needs the second
+    attempt to answer differently from the first - which the shared-list stub
+    above cannot express.
+    """
+    holder = {"clients": 0}
+    remaining = list(attempts)
+
+    def factory(**kwargs):
+        holder["clients"] += 1
+        holder["client"] = _StubClient(remaining.pop(0), **kwargs)
+        return holder["client"]
+
+    monkeypatch.setattr(mdoc_service.httpx, "AsyncClient", factory)
+    monkeypatch.setattr(mdoc_service, "PROFILE_RETRY_DELAYS", (0, 0))
     return holder
 
 
@@ -323,6 +602,57 @@ class TestFetchProfile:
         )
         with pytest.raises(mdoc_service.MdocFetchError, match="did not load a profile"):
             await mdoc_service.fetch_mdoc_profile("111222", proxy="socks5://x:1")
+
+    @pytest.mark.asyncio
+    async def test_a_rejected_session_is_retried_on_a_clean_one(self, monkeypatch, profile_html):
+        """The failure that broke real imports.
+
+        OTIS rejects a freshly-built session intermittently and answers
+        LoadProfile with the search form. Measured live at 2 failures in 8
+        single attempts against a profile that exists, so giving up on the
+        first bounce killed roughly one import in four.
+        """
+        holder = _install_per_attempt(
+            monkeypatch,
+            [
+                [httpx.Response(200, text=RESULTS), httpx.Response(200, text=SEARCH_FORM)],
+                [httpx.Response(200, text=RESULTS), httpx.Response(200, text=profile_html)],
+            ],
+        )
+        parsed = await mdoc_service.fetch_mdoc_profile("111222", proxy="socks5://x:1")
+        assert parsed.mdoc_number == "111222"
+        # A fresh client per attempt: what failed is the session, so reusing its
+        # cookies would just reproduce the rejection.
+        assert holder["clients"] == 2
+
+    @pytest.mark.asyncio
+    async def test_giving_up_takes_every_attempt(self, monkeypatch):
+        holder = _install(
+            monkeypatch,
+            [httpx.Response(200, text=RESULTS), httpx.Response(200, text=SEARCH_FORM)],
+        )
+        with pytest.raises(mdoc_service.MdocFetchError, match="did not load a profile"):
+            await mdoc_service.fetch_mdoc_profile("111222", proxy="socks5://x:1")
+        assert holder["clients"] == mdoc_service.PROFILE_ATTEMPTS
+
+    @pytest.mark.asyncio
+    async def test_an_unknown_number_is_not_retried(self, monkeypatch):
+        """A 500 is definitive. Retrying it would triple the wait to reach the
+        same answer, and would read as flakiness rather than "no such offender"."""
+        holder = _install(
+            monkeypatch,
+            [httpx.Response(200, text=RESULTS), httpx.Response(500, text=RUNTIME_ERROR)],
+        )
+        with pytest.raises(mdoc_service.MdocFetchError, match="no offender with MDOC number"):
+            await mdoc_service.fetch_mdoc_profile("999999", proxy="socks5://x:1")
+        assert holder["clients"] == 1
+
+    @pytest.mark.asyncio
+    async def test_a_dead_proxy_is_not_retried(self, monkeypatch):
+        holder = _install(monkeypatch, [], raise_on_get=httpx.ConnectError("nope"))
+        with pytest.raises(mdoc_service.MdocFetchError, match="MDOC_PROXY"):
+            await mdoc_service.fetch_mdoc_profile("111222", proxy="socks5://x:1")
+        assert holder["clients"] == 1
 
     @pytest.mark.asyncio
     async def test_transport_failure_points_at_the_proxy(self, monkeypatch):

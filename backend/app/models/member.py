@@ -69,6 +69,12 @@ class MemberIncarceration(SQLModel, table=True):
     # A federal spell legitimately has no earliest_release_date, so "no parole"
     # and "unknown" must stay distinguishable.
     from_date: dict | None = Field(default=None, sa_column=Column(JSONB(none_as_null=True)))
+    # When the spell actually ended. Set means historical: the release dates
+    # below are then projections that were overtaken by events, so nothing may
+    # present them as upcoming (the calendar skips a spell that has this).
+    # Distinct from max_discharge_date, which is the latest release the sentence
+    # allows and stays a forecast until this is filled in.
+    to_date: dict | None = Field(default=None, sa_column=Column(JSONB(none_as_null=True)))
     earliest_release_date: dict | None = Field(
         default=None, sa_column=Column(JSONB(none_as_null=True))
     )

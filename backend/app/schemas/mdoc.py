@@ -68,6 +68,24 @@ class MdocSentenceRead(BaseModel):
     discharge_reason: Optional[str] = None
 
 
+class MdocSpellRead(BaseModel):
+    """An incarceration spell derived from the profile, ready to post back.
+
+    Deliberately shaped like `MemberIncarcerationCreate` rather than like OTIS:
+    the client posts these at `/members/{id}/incarcerations` verbatim. See
+    `derive_spells` for why the projected dates land on only one of them.
+    """
+
+    from_date: FuzzyDateField = None
+    to_date: FuzzyDateField = None
+    earliest_release_date: FuzzyDateField = None
+    max_discharge_date: FuzzyDateField = None
+    life_sentence: bool = False
+    facility: Optional[str] = None
+    case_id: Optional[str] = None
+    notes: Optional[str] = None
+
+
 class MdocProfileResponse(BaseModel):
     legal_name: str
     dob: FuzzyDateField
@@ -94,6 +112,9 @@ class MdocProfileResponse(BaseModel):
     aliases: list[str] = []
     marks: list[str] = []
     sentences: list[MdocSentenceRead] = []
+    # The sentences above, reshaped into incarceration spells. `sentences` is
+    # what OTIS shows; this is what the wiki stores.
+    spells: list[MdocSpellRead] = []
 
 
 class MdocPhotoImportRequest(BaseModel):

@@ -9,11 +9,12 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Sheet, SheetContent, SheetClose } from '@/components/Sheet'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
+import { FuzzyDate } from '@/components/FuzzyDate'
 import { FuzzyDateInput } from '@/components/FuzzyDateInput'
 import {
   useCreateMember, useUpdateMember,
   useSets, useAlliances, useGangs, useMember, useMemberSearch,
-  useMdocLookup, useMdocImportPhoto,
+  useMdocLookup, useMdocImportPhoto, useMemberIncarcerations,
   useCreateSet, useCreateAlliance, useCreateGang,
 } from '@/lib/queries'
 import { useDebounce } from '@/hooks/useDebounce'
@@ -21,7 +22,7 @@ import { api } from '@/lib/api'
 import { currentAffiliations } from '@/lib/utils'
 import { UrlPasteBanner, useUrlPasteBanner } from '@/components/UrlPasteBanner'
 import { SourceFormSheet } from '@/routes/_app.sources.index'
-import type { MdocProfile, MemberListItem, MemberRead, MemberStatus, SetRank } from '@/lib/types'
+import type { MdocProfile, MdocSpell, MemberListItem, MemberRead, MemberStatus, SetRank } from '@/lib/types'
 import type { FuzzyDateValue } from '@/components/FuzzyDate'
 import { AffiliationCombobox, type ComboboxItem } from './pickers/AffiliationCombobox'
 import { PhotoSection, flushPhotoQueue } from './sections/PhotoSection'
@@ -482,6 +483,16 @@ function MemberFormSheetInner({ universeId, open, onClose, initial, defaultSetId
   const [facebook, setFacebook] = useState<string>(seedSocial('facebook'))
   const [instagram, setInstagram] = useState<string>(seedSocial('instagram'))
   const [twitter, setTwitter] = useState<string>(seedSocial('twitter'))
+  // Anything in social_media this form has no field for - a second account under
+  // a key like facebook_old, say. It has to be carried through the round trip:
+  // the submit below rebuilds the whole object, so a key with no input would be
+  // silently dropped by the act of opening the sheet and saving.
+  const extraSocial = useMemo<Record<string, string>>(() => {
+    const sm = (initial?.social_media ?? copyFrom?.social_media) as Record<string, string> | null | undefined
+    if (!sm) return {}
+    const known = new Set(['facebook', 'instagram', 'twitter'])
+    return Object.fromEntries(Object.entries(sm).filter(([k, v]) => !known.has(k) && v))
+  }, [initial?.social_media, copyFrom?.social_media])
   const [dob, setDob] = useState<FuzzyDateValue | null>(initial?.dob ?? copyFrom?.dob ?? null)
   const [dateOfDeath, setDateOfDeath] = useState<FuzzyDateValue | null>(initial?.date_of_death ?? copyFrom?.date_of_death ?? null)
   const [familyEntries, setFamilyEntries] = useState<FamilyEntry[]>(
@@ -491,12 +502,22 @@ function MemberFormSheetInner({ universeId, open, onClose, initial, defaultSetId
   const mdocLookup = useMdocLookup()
   const mdocImportPhoto = useMdocImportPhoto()
   const [mdocQuery, setMdocQuery] = useState('')
+  // The spells the backend derived from OTIS's sentence rows, held until the
+  // member exists to hang them on. One per prison sentence, so a discharged
+  // offender - whose whole record lives in those rows - imports his history
+  // instead of nothing.
   const [mdocPending, setMdocPending] = useState<{
-    earliest_release_date: FuzzyDateValue | null
-    max_discharge_date: FuzzyDateValue | null
-    facility: string | null
+    spells: MdocSpell[]
     photo_url: string | null
   } | null>(null)
+  // Not copied from `copyFrom`: a duplicated member is a different person, and
+  // an offender number is the one field that must never be shared.
+  const [mdocNumber, setMdocNumber] = useState(initial?.mdoc_number ?? '')
+  // Edit mode can import too, which is the only way to fix a member created
+  // before the importer read the sentence rows. Re-importing on top of spells
+  // that are already there would duplicate them, so the count gates it.
+  const existingIncarcerations = useMemberIncarcerations(isEdit ? (initial?.id ?? null) : null, universeId)
+  const existingSpellCount = existingIncarcerations.data?.length ?? 0
   // What OTIS returned, kept for review. Aliases and marks are deliberately
   // NOT written into the member automatically: OTIS mixes street names in with
   // legal-name spellings ("WILLIE NMN WALLACE") and even wholly different
@@ -529,7 +550,7 @@ function MemberFormSheetInner({ universeId, open, onClose, initial, defaultSetId
       return
     }
     const aliasList = aliases.split(',').map((s) => s.trim()).filter(Boolean)
-    const social: Record<string, string> = {}
+    const social: Record<string, string> = { ...extraSocial }
     if (facebook.trim()) social.facebook = facebook.trim()
     if (instagram.trim()) social.instagram = instagram.trim()
     if (twitter.trim()) social.twitter = twitter.trim()
@@ -539,6 +560,7 @@ function MemberFormSheetInner({ universeId, open, onClose, initial, defaultSetId
       legal_name: legalName || null,
       nickname_unknown: nicknameUnknown,
       is_rapper: isRapper,
+      mdoc_number: mdocNumber.trim() || null,
       status,
       affiliations: affiliations.filter((a) => a.set_id).map((a) => ({
         set_id: a.set_id,
@@ -559,6 +581,9 @@ function MemberFormSheetInner({ universeId, open, onClose, initial, defaultSetId
       if (isEdit) {
         await update.mutateAsync(body)
         toast.success(`Updated ${label}`)
+        if (initial) await flushMdocPending(initial.id)
+        setMdocPending(null)
+        setMdocFound(null)
       } else {
         const created = await create.mutateAsync(body)
         toast.success(`Created ${label}`)
@@ -588,41 +613,63 @@ function MemberFormSheetInner({ universeId, open, onClose, initial, defaultSetId
             toast.error(e instanceof Error ? `Couldn't save incarceration: ${e.message}` : "Couldn't save incarceration")
           }
         }
-        if (mdocPending && (mdocPending.earliest_release_date || mdocPending.max_discharge_date || mdocPending.facility)) {
-          try {
-            await api.post(`/members/${created.id}/incarcerations?universe_id=${universeId}`, {
-              from_date: null,
-              earliest_release_date: mdocPending.earliest_release_date,
-              max_discharge_date: mdocPending.max_discharge_date,
-              facility: mdocPending.facility,
-              case_id: null,
-              notes: null,
-            })
-            toast.success('Imported MDOC incarceration record')
-          } catch (e) {
-            toast.error(e instanceof Error ? `Couldn't save MDOC incarceration: ${e.message}` : "Couldn't save MDOC incarceration")
-          }
-        }
-        if (mdocPending?.photo_url) {
-          // Use the existing server-side fetch endpoint (avoids CORS on the MDOC URL).
-          // Photo lands in the media table; primary-photo selection is handled by the
-          // backend (first photo wins) so this still becomes primary if the queue was empty.
-          try {
-            await mdocImportPhoto.mutateAsync({
-              photo_url: mdocPending.photo_url,
-              member_id: created.id,
-              universe_id: universeId,
-            })
-            toast.success('Imported MDOC photo')
-          } catch (e) {
-            toast.error(e instanceof Error ? `Couldn't import MDOC photo: ${e.message}` : "Couldn't import MDOC photo")
-          }
-        }
+        await flushMdocPending(created.id)
         resetForm()
       }
       onClose()
     } catch (err) {
       setError(err instanceof Error ? err.message : `Failed to ${isEdit ? 'update' : 'create'} member`)
+    }
+  }
+
+  /** Write everything the OTIS lookup is holding onto a member that now exists.
+   *
+   *  Deferred rather than written at lookup time so that an import can be
+   *  reviewed and abandoned by closing the sheet, and so that create - where
+   *  there is no member id yet - and edit take the same path.
+   */
+  async function flushMdocPending(memberId: string) {
+    if (!mdocPending) return
+    // Skip anything already on record. Court file numbers are what makes a
+    // re-import safe: the same OTIS profile imported twice would otherwise
+    // duplicate every spell. A spell OTIS gives no court file for cannot be
+    // matched, so it is imported and the count below says so.
+    const onRecord = new Set(
+      (existingIncarcerations.data ?? []).map((s) => s.case_id).filter(Boolean) as string[]
+    )
+    const toImport = mdocPending.spells.filter((s) => !s.case_id || !onRecord.has(s.case_id))
+    const skipped = mdocPending.spells.length - toImport.length
+    if (skipped > 0) {
+      toast.info(skipped === 1 ? 'Skipped 1 sentence already on record' : `Skipped ${skipped} sentences already on record`)
+    }
+    // Sequential, not Promise.all: spells arrive in the order OTIS lists them,
+    // and the list view orders by created_at.
+    let saved = 0
+    for (const spell of toImport) {
+      try {
+        await api.post(`/members/${memberId}/incarcerations?universe_id=${universeId}`, spell)
+        saved += 1
+      } catch (e) {
+        toast.error(e instanceof Error ? `Couldn't save MDOC incarceration: ${e.message}` : "Couldn't save MDOC incarceration")
+      }
+    }
+    if (saved > 0) {
+      toast.success(saved === 1 ? 'Imported MDOC incarceration record' : `Imported ${saved} MDOC incarceration records`)
+    }
+    if (mdocPending.photo_url) {
+      // Server-side fetch, which also avoids CORS on the MDOC URL. The photo
+      // lands in the media table; the backend picks the primary (first wins),
+      // so this becomes primary only if nothing was there already.
+      try {
+        await mdocImportPhoto.mutateAsync({
+          photo_url: mdocPending.photo_url,
+          member_id: memberId,
+          universe_id: universeId,
+        })
+        toast.success('Imported MDOC photo')
+      } catch (e) {
+        toast.error(e instanceof Error ? `Couldn't import MDOC photo: ${e.message}` : "Couldn't import MDOC photo")
+      }
     }
   }
 
@@ -633,18 +680,18 @@ function MemberFormSheetInner({ universeId, open, onClose, initial, defaultSetId
     setAliases([...existing, alias].join(', '))
   }
 
+  const mdocProbationCount = mdocFound?.sentences.filter((x) => x.kind === 'probation').length ?? 0
+
   async function handleMdocImport() {
     if (!mdocQuery.trim()) return
     try {
       const profile = await mdocLookup.mutateAsync(mdocQuery.trim())
       if (profile.legal_name) setLegalName(profile.legal_name)
       if (profile.dob) setDob(profile.dob)
-      setMdocPending({
-        earliest_release_date: profile.earliest_release_date,
-        max_discharge_date: profile.max_discharge_date,
-        facility: profile.facility,
-        photo_url: profile.photo_url,
-      })
+      // Keep the number: it is how this record gets re-checked once parole or
+      // resentencing moves the dates.
+      setMdocNumber(profile.mdoc_number ?? mdocQuery.trim())
+      setMdocPending({ spells: profile.spells, photo_url: profile.photo_url })
       setMdocFound(profile)
       // Only a live prisoner implies LOCKED. Someone discharged is out, and
       // guessing LOCKED for them would put a false status on the page.
@@ -674,6 +721,7 @@ function MemberFormSheetInner({ universeId, open, onClose, initial, defaultSetId
     setFamilyEntries([])
     setError(null)
     setMdocQuery('')
+    setMdocNumber('')
     setMdocPending(null)
     setMdocFound(null)
     setIncFromDate(null)
@@ -713,95 +761,121 @@ function MemberFormSheetInner({ universeId, open, onClose, initial, defaultSetId
             <span className="ml-auto"><MemberStatusBadge status={status} /></span>
           </div>
           <div className="flex-1 divide-y divide-zinc-800/60 px-6 pt-4">
-          {!isEdit && (
-            <FormSection title="Import from MDOC">
-              <p className="text-xs text-zinc-400">
-                Enter an MDOC offender number to prefill legal name, date of birth, and create an incarceration record with the facility and release dates.
+          <FormSection title="Import from MDOC">
+            <p className="text-xs text-zinc-400">
+              Enter an MDOC offender number to prefill legal name, date of birth and photo, and to create one incarceration record per prison sentence on the profile - served ones included, which is the only record someone already released has.
+            </p>
+            {isEdit && existingSpellCount > 0 && (
+              <p className="text-xs text-zinc-500">
+                {existingSpellCount === 1 ? '1 incarceration record' : `${existingSpellCount} incarceration records`} already on this member. Sentences matching one by court file number are skipped.
               </p>
-              <div className="flex gap-2">
-                <Input
-                  value={mdocQuery}
-                  onChange={(e) => setMdocQuery(e.target.value)}
-                  placeholder="MDOC number, e.g. 352482"
-                  inputMode="numeric"
-                  className="flex-1"
-                />
-                <Button type="button" onClick={handleMdocImport} disabled={!mdocQuery.trim() || mdocLookup.isPending}>
-                  {mdocLookup.isPending ? 'Importing…' : 'Import'}
-                </Button>
-              </div>
-              {mdocPending && (
-                <p className="text-xs text-emerald-400">
-                  Will save on submit:{' '}
-                  {mdocPending.facility ?? 'unknown facility'}
-                  {mdocPending.earliest_release_date && ' · earliest release set'}
-                  {mdocPending.max_discharge_date && ' · max discharge set'}
-                  {mdocPending.photo_url && ' · photo'}
+            )}
+            <div className="flex gap-2">
+              <Input
+                value={mdocQuery}
+                onChange={(e) => setMdocQuery(e.target.value)}
+                placeholder="MDOC number, e.g. 352482"
+                inputMode="numeric"
+                className="flex-1"
+              />
+              <Button type="button" onClick={handleMdocImport} disabled={!mdocQuery.trim() || mdocLookup.isPending}>
+                {mdocLookup.isPending ? 'Importing…' : 'Import'}
+              </Button>
+            </div>
+            {mdocPending && (
+              <p className={mdocPending.spells.length > 0 || mdocPending.photo_url ? 'text-xs text-emerald-400' : 'text-xs text-amber-400'}>
+                {/* Say what OTIS does hold, not only what it lacks. Probation is
+                    supervision, not custody, and is deliberately never imported -
+                    without naming it, an empty result reads as a failed import. */}
+                {mdocPending.spells.length > 0
+                  ? `Will save on submit: ${mdocPending.spells.length} incarceration record${mdocPending.spells.length === 1 ? '' : 's'}`
+                  : mdocProbationCount > 0
+                    ? `No incarceration records: OTIS lists ${mdocProbationCount} probation sentence${mdocProbationCount === 1 ? '' : 's'} and no prison time`
+                    : 'No incarceration records: OTIS lists no prison sentence'}
+                {mdocPending.photo_url && ' · photo'}
+              </p>
+            )}
+            {mdocPending && mdocPending.spells.length > 0 && (
+              <ul className="space-y-0.5 pl-3 text-xs text-zinc-400">
+                {mdocPending.spells.map((spell, i) => (
+                  <li key={spell.case_id ?? i}>
+                    {spell.from_date ? <FuzzyDate value={spell.from_date} /> : 'start unknown'}
+                    {' → '}
+                    {spell.life_sentence
+                      ? 'life'
+                      : spell.to_date
+                        ? <FuzzyDate value={spell.to_date} />
+                        : spell.max_discharge_date
+                          ? <>max <FuzzyDate value={spell.max_discharge_date} /></>
+                          : 'ongoing'}
+                    {spell.case_id && <span className="text-zinc-500"> · {spell.case_id}</span>}
+                    {spell.facility && <span className="text-zinc-500"> · {spell.facility}</span>}
+                  </li>
+                ))}
+              </ul>
+            )}
+            {mdocFound && (
+              <div className="space-y-2 rounded border border-zinc-800 bg-zinc-900/40 p-2.5">
+                <p className="text-xs text-zinc-400">
+                  OTIS #{mdocFound.mdoc_number}
+                  {mdocFound.status && <> · {mdocFound.status}</>}
+                  {mdocFound.sid_number && <> · SID {mdocFound.sid_number}</>}
                 </p>
-              )}
-              {mdocFound && (
-                <div className="space-y-2 rounded border border-zinc-800 bg-zinc-900/40 p-2.5">
-                  <p className="text-xs text-zinc-400">
-                    OTIS #{mdocFound.mdoc_number}
-                    {mdocFound.status && <> · {mdocFound.status}</>}
-                    {mdocFound.sid_number && <> · SID {mdocFound.sid_number}</>}
-                  </p>
 
-                  {mdocFound.aliases.length > 0 && (
-                    <div className="space-y-1">
-                      <p className="text-xs text-zinc-400">
-                        Aliases on record <span className="text-zinc-500">(click to add; OTIS lists legal-name spellings alongside street names)</span>
-                      </p>
-                      <div className="flex flex-wrap gap-1">
-                        {mdocFound.aliases.map((a) => (
-                          <button
-                            key={a}
-                            type="button"
-                            onClick={() => addAlias(a)}
-                            className="rounded border border-zinc-700 px-1.5 py-0.5 text-xs text-zinc-300 hover:border-emerald-600 hover:text-emerald-400"
-                          >
-                            + {a}
-                          </button>
-                        ))}
-                      </div>
+                {mdocFound.aliases.length > 0 && (
+                  <div className="space-y-1">
+                    <p className="text-xs text-zinc-400">
+                      Aliases on record <span className="text-zinc-500">(click to add; OTIS lists legal-name spellings alongside street names)</span>
+                    </p>
+                    <div className="flex flex-wrap gap-1">
+                      {mdocFound.aliases.map((a) => (
+                        <button
+                          key={a}
+                          type="button"
+                          onClick={() => addAlias(a)}
+                          className="rounded border border-zinc-700 px-1.5 py-0.5 text-xs text-zinc-300 hover:border-emerald-600 hover:text-emerald-400"
+                        >
+                          + {a}
+                        </button>
+                      ))}
                     </div>
-                  )}
+                  </div>
+                )}
 
-                  {mdocFound.marks.length > 0 && (
-                    <details className="text-xs">
-                      <summary className="cursor-pointer text-zinc-400">
-                        Marks, scars &amp; tattoos ({mdocFound.marks.length})
-                      </summary>
-                      <ul className="mt-1 space-y-0.5 pl-3 text-zinc-300">
-                        {mdocFound.marks.map((m) => <li key={m}>{m}</li>)}
-                      </ul>
-                    </details>
-                  )}
+                {mdocFound.marks.length > 0 && (
+                  <details className="text-xs">
+                    <summary className="cursor-pointer text-zinc-400">
+                      Marks, scars &amp; tattoos ({mdocFound.marks.length})
+                    </summary>
+                    <ul className="mt-1 space-y-0.5 pl-3 text-zinc-300">
+                      {mdocFound.marks.map((m) => <li key={m}>{m}</li>)}
+                    </ul>
+                  </details>
+                )}
 
-                  {mdocFound.sentences.length > 0 && (
-                    <details className="text-xs">
-                      <summary className="cursor-pointer text-zinc-400">
-                        Sentences ({mdocFound.sentences.length})
-                      </summary>
-                      <ul className="mt-1 space-y-1 pl-3 text-zinc-300">
-                        {mdocFound.sentences.map((s, i) => (
-                          <li key={`${s.court_file}-${s.offense}-${i}`}>
-                            <span className={s.active ? 'text-emerald-400' : 'text-zinc-500'}>
-                              {s.active ? 'active' : 'inactive'}
-                            </span>{' '}
-                            {s.offense ?? 'unknown offense'}
-                            {s.county && <span className="text-zinc-500"> · {s.county}</span>}
-                            {s.court_file && <span className="text-zinc-500"> · {s.court_file}</span>}
-                            {s.conviction_type && <span className="text-zinc-500"> · {s.conviction_type}</span>}
-                          </li>
-                        ))}
-                      </ul>
-                    </details>
-                  )}
-                </div>
-              )}
-            </FormSection>
-          )}
+                {mdocFound.sentences.length > 0 && (
+                  <details className="text-xs">
+                    <summary className="cursor-pointer text-zinc-400">
+                      Sentences ({mdocFound.sentences.length})
+                    </summary>
+                    <ul className="mt-1 space-y-1 pl-3 text-zinc-300">
+                      {mdocFound.sentences.map((s, i) => (
+                        <li key={`${s.court_file}-${s.offense}-${i}`}>
+                          <span className={s.active ? 'text-emerald-400' : 'text-zinc-500'}>
+                            {s.active ? 'active' : 'inactive'}
+                          </span>{' '}
+                          {s.offense ?? 'unknown offense'}
+                          {s.county && <span className="text-zinc-500"> · {s.county}</span>}
+                          {s.court_file && <span className="text-zinc-500"> · {s.court_file}</span>}
+                          {s.conviction_type && <span className="text-zinc-500"> · {s.conviction_type}</span>}
+                        </li>
+                      ))}
+                    </ul>
+                  </details>
+                )}
+              </div>
+            )}
+          </FormSection>
           <FormSection title="Identity">
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="space-y-1.5">
@@ -828,6 +902,11 @@ function MemberFormSheetInner({ universeId, open, onClose, initial, defaultSetId
             <div className="space-y-1.5">
               <Label htmlFor="m-aliases">Aliases <span className="text-zinc-400">(comma-separated)</span></Label>
               <Input id="m-aliases" value={aliases} onChange={(e) => setAliases(e.target.value)} placeholder="e.g. Big L, Lucky" />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="m-mdoc">MDOC number <span className="text-zinc-400">(filled in by the import)</span></Label>
+              <Input id="m-mdoc" value={mdocNumber} onChange={(e) => setMdocNumber(e.target.value)} placeholder="e.g. 352482" inputMode="numeric" />
+              <p className="text-[11px] text-zinc-500">The only stable handle OTIS has: a profile has no URL. Keeping it here is what makes a re-check possible when parole moves the dates.</p>
             </div>
             <label htmlFor="m-rapper" className="flex w-fit cursor-pointer items-center gap-2 text-xs text-zinc-400 hover:text-zinc-300">
               <input
