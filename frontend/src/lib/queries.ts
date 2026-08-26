@@ -641,7 +641,7 @@ export const useMemberIncarcerations = (memberId: UUID | null, universeId: UUID 
 export const useCreateMemberIncarceration = (memberId: UUID, universeId: UUID) => {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (data: { from_date?: unknown; earliest_release_date?: unknown; max_discharge_date?: unknown; life_sentence?: boolean; facility?: string | null; case_id?: string | null; notes?: string | null }) =>
+    mutationFn: (data: { from_date?: unknown; to_date?: unknown; earliest_release_date?: unknown; max_discharge_date?: unknown; life_sentence?: boolean; facility?: string | null; case_id?: string | null; notes?: string | null }) =>
       api.post<MemberIncarcerationRead>(`/members/${memberId}/incarcerations?universe_id=${universeId}`, data),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['members', memberId, 'incarcerations'] })
@@ -653,7 +653,7 @@ export const useCreateMemberIncarceration = (memberId: UUID, universeId: UUID) =
 export const useUpdateMemberIncarceration = (memberId: UUID, universeId: UUID) => {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: ({ spellId, data }: { spellId: UUID; data: { from_date?: unknown; earliest_release_date?: unknown; max_discharge_date?: unknown; life_sentence?: boolean; facility?: string | null; case_id?: string | null; notes?: string | null } }) =>
+    mutationFn: ({ spellId, data }: { spellId: UUID; data: { from_date?: unknown; to_date?: unknown; earliest_release_date?: unknown; max_discharge_date?: unknown; life_sentence?: boolean; facility?: string | null; case_id?: string | null; notes?: string | null } }) =>
       api.patch<MemberIncarcerationRead>(`/members/${memberId}/incarcerations/${spellId}?universe_id=${universeId}`, data),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['members', memberId, 'incarcerations'] })

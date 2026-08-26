@@ -183,6 +183,9 @@ class MemberListItem(BaseModel):
 
 class MemberIncarcerationCreate(BaseModel):
     from_date: FuzzyDateField = None
+    # When the spell ended. Set means historical; see the model for why that is
+    # not the same field as max_discharge_date.
+    to_date: FuzzyDateField = None
     earliest_release_date: FuzzyDateField = None
     max_discharge_date: FuzzyDateField = None
     life_sentence: bool = False
@@ -193,6 +196,7 @@ class MemberIncarcerationCreate(BaseModel):
 
 class MemberIncarcerationUpdate(BaseModel):
     from_date: FuzzyDateField = None
+    to_date: FuzzyDateField = None
     earliest_release_date: FuzzyDateField = None
     max_discharge_date: FuzzyDateField = None
     life_sentence: Optional[bool] = None
@@ -207,6 +211,7 @@ class MemberIncarcerationRead(BaseModel):
     id: uuid.UUID
     member_id: uuid.UUID
     from_date: FuzzyDateField
+    to_date: FuzzyDateField
     earliest_release_date: FuzzyDateField
     max_discharge_date: FuzzyDateField
     life_sentence: bool

@@ -355,6 +355,20 @@ export interface MdocSentence {
   discharge_reason: string | null
 }
 
+/** An incarceration spell the backend derived from a profile's sentence rows.
+ *  Shaped like the incarceration create body, so it POSTs unchanged. */
+export interface MdocSpell {
+  from_date: FuzzyDateValue | null
+  /** When the spell actually ended. Set = historical. */
+  to_date: FuzzyDateValue | null
+  earliest_release_date: FuzzyDateValue | null
+  max_discharge_date: FuzzyDateValue | null
+  life_sentence: boolean
+  facility: string | null
+  case_id: string | null
+  notes: string | null
+}
+
 export interface MdocProfile {
   legal_name: string
   dob: FuzzyDateValue
@@ -383,12 +397,20 @@ export interface MdocProfile {
   /** Marks, scars and tattoos, verbatim. Tattoo text sometimes names a set. */
   marks: string[]
   sentences: MdocSentence[]
+  /** `sentences` reshaped into what the wiki stores. One per prison sentence;
+   *  probation is excluded, and the offender-level projected release dates land
+   *  on the single spell still running. */
+  spells: MdocSpell[]
 }
 
 export interface MemberIncarcerationRead {
   id: UUID
   member_id: UUID
   from_date: FuzzyDateValue | null
+  /** When the spell actually ended. Set means historical, and the two release
+   *  dates below are then projections that were overtaken by events - they are
+   *  kept for the record but must not be presented as upcoming. */
+  to_date: FuzzyDateValue | null
   earliest_release_date: FuzzyDateValue | null
   max_discharge_date: FuzzyDateValue | null
   life_sentence: boolean
@@ -414,6 +436,9 @@ export interface MemberRead extends MemberListItem {
   legal_name: string | null
   nickname_unknown: boolean
   is_rapper: boolean
+  /** MDOC offender number. The only stable handle OTIS has - the rebuilt site
+   *  gives profiles no URL - so it is stored to re-check a spell later. */
+  mdoc_number: string | null
   aliases: string[] | null
   biography: string
   alliance_id: UUID | null

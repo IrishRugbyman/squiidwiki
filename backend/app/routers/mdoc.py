@@ -12,12 +12,14 @@ from app.schemas.mdoc import (
     MdocPhotoImportRequest,
     MdocProfileResponse,
     MdocSentenceRead,
+    MdocSpellRead,
 )
 from app.schemas.media import MediaReadWithUrls
 from app.services.mdoc import (
     MdocFetchError,
     MdocParseError,
     MdocProfile,
+    derive_spells,
     fetch_mdoc_image,
     fetch_mdoc_profile,
     is_allowed_mdoc_url,
@@ -102,6 +104,7 @@ def _to_response(profile: MdocProfile) -> MdocProfileResponse:
         aliases=profile.aliases,
         marks=profile.marks,
         sentences=[MdocSentenceRead(**vars(s)) for s in profile.sentences],
+        spells=[MdocSpellRead(**vars(sp)) for sp in derive_spells(profile)],
     )
 
 

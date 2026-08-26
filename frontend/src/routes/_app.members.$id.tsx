@@ -148,6 +148,9 @@ interface IncarcerationDraft {
   case_id: string
   notes: string
   from_date: FuzzyDateValue | null
+  /** When the spell actually ended. Set means historical: the two dates below
+   *  become projections that were overtaken, and stop reaching the calendar. */
+  to_date: FuzzyDateValue | null
   earliest_release_date: FuzzyDateValue | null
   max_discharge_date: FuzzyDateValue | null
   life_sentence: boolean
@@ -155,7 +158,7 @@ interface IncarcerationDraft {
 
 const EMPTY_INCARCERATION_DRAFT: IncarcerationDraft = {
   facility: '', case_id: '', notes: '',
-  from_date: null, earliest_release_date: null, max_discharge_date: null,
+  from_date: null, to_date: null, earliest_release_date: null, max_discharge_date: null,
   life_sentence: false,
 }
 
@@ -187,17 +190,24 @@ function IncarcerationForm({
         placeholder="Case number (optional)"
         className="h-7 text-sm"
       />
-      <Input
+      <Textarea
         value={draft.notes}
         onChange={(e) => setDraft((d) => ({ ...d, notes: e.target.value }))}
         placeholder="Notes (optional)"
-        className="h-7 text-sm"
+        rows={3}
+        className="text-sm"
       />
       <FuzzyDateInput
         idPrefix={`${idPrefix}-from`}
         label="From"
         value={draft.from_date}
         onChange={(v) => setDraft((d) => ({ ...d, from_date: v }))}
+      />
+      <FuzzyDateInput
+        idPrefix={`${idPrefix}-to`}
+        label="To (actually released — leave blank if still inside)"
+        value={draft.to_date}
+        onChange={(v) => setDraft((d) => ({ ...d, to_date: v }))}
       />
       <label className="flex items-center gap-2 text-xs text-zinc-300 cursor-pointer">
         <input
@@ -222,6 +232,11 @@ function IncarcerationForm({
             value={draft.max_discharge_date}
             onChange={(v) => setDraft((d) => ({ ...d, max_discharge_date: v }))}
           />
+          {draft.to_date && (
+            <p className="text-[11px] text-zinc-500">
+              This spell has ended, so both dates above are kept as the record of what was projected. They no longer appear on the calendar.
+            </p>
+          )}
         </>
       )}
       <div className="flex justify-end gap-2 pt-1">
@@ -870,6 +885,7 @@ function MemberDetailPage() {
                             case_id: incarcerationDraft.case_id || null,
                             notes: incarcerationDraft.notes || null,
                             from_date: incarcerationDraft.from_date,
+                            to_date: incarcerationDraft.to_date,
                             earliest_release_date: incarcerationDraft.life_sentence ? null : incarcerationDraft.earliest_release_date,
                             max_discharge_date: incarcerationDraft.life_sentence ? null : incarcerationDraft.max_discharge_date,
                             life_sentence: incarcerationDraft.life_sentence,
@@ -905,6 +921,7 @@ function MemberDetailPage() {
                                       case_id: incarcerationDraft.case_id || null,
                                       notes: incarcerationDraft.notes || null,
                                       from_date: incarcerationDraft.from_date,
+                                      to_date: incarcerationDraft.to_date,
                                       earliest_release_date: incarcerationDraft.life_sentence ? null : incarcerationDraft.earliest_release_date,
                                       max_discharge_date: incarcerationDraft.life_sentence ? null : incarcerationDraft.max_discharge_date,
                                       life_sentence: incarcerationDraft.life_sentence,
@@ -920,7 +937,18 @@ function MemberDetailPage() {
                                   <p className="text-sm font-medium text-zinc-200 leading-snug">
                                     {spell.facility ?? 'Unknown facility'}
                                   </p>
-                                  {spell.life_sentence ? (
+                                  {/* A spell with `to_date` is over. Its release dates are then
+                                      projections that were overtaken, so the actual end is what
+                                      shows — printing "Max: 2046" for someone out since 2015
+                                      is the exact mistake this field exists to prevent. */}
+                                  {spell.to_date ? (
+                                    <p className="mt-0.5 text-[11px] text-zinc-400">
+                                      {spell.from_date ? <FuzzyDate value={spell.from_date} /> : '?'}
+                                      {' – '}
+                                      <FuzzyDate value={spell.to_date} />
+                                      {spell.life_sentence && <span className="text-rose-400"> · life sentence</span>}
+                                    </p>
+                                  ) : spell.life_sentence ? (
                                     <p className="mt-0.5 text-[11px] font-medium text-rose-400">
                                       {spell.from_date ? <><FuzzyDate value={spell.from_date} />{' – '}</> : null}
                                       Life sentence
@@ -948,7 +976,7 @@ function MemberDetailPage() {
                                     <p className="mt-0.5 font-mono text-[11px] text-zinc-400">#{spell.case_id}</p>
                                   )}
                                   {spell.notes && (
-                                    <p className="mt-0.5 text-[11px] text-zinc-400 italic">{spell.notes}</p>
+                                    <p className="mt-0.5 whitespace-pre-line text-[11px] text-zinc-400 italic">{spell.notes}</p>
                                   )}
                                 </div>
                                 {isAdmin && (
@@ -961,6 +989,7 @@ function MemberDetailPage() {
                                           case_id: spell.case_id ?? '',
                                           notes: spell.notes ?? '',
                                           from_date: spell.from_date,
+                                          to_date: spell.to_date,
                                           earliest_release_date: spell.earliest_release_date,
                                           max_discharge_date: spell.max_discharge_date,
                                           life_sentence: spell.life_sentence,

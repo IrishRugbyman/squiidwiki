@@ -30,10 +30,12 @@ fetch here raises ``MdocFetchError``; parsing supplied HTML still works.
 
 from __future__ import annotations
 
+import asyncio
 import base64
 import binascii
+import datetime
 import re
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from urllib.parse import unquote_to_bytes, urlparse
 
 import httpx
@@ -189,6 +191,161 @@ class MdocProfile:
         if self.status and self.status.strip().lower() == "discharged":
             return None
         return self.discharge_date
+
+
+@dataclass(frozen=True)
+class MdocSpell:
+    """One incarceration spell, assembled from what OTIS says about a sentence.
+
+    Field names are `MemberIncarcerationCreate`'s rather than OTIS's, so this
+    can be posted at `/members/{id}/incarcerations` unchanged. Deriving it here
+    keeps the knowledge of what each OTIS field means in one place - the client
+    that shows the profile should not have to know that "Discharge Date" means
+    two different things depending on the status above it.
+    """
+
+    from_date: FuzzyDate | None = None
+    to_date: FuzzyDate | None = None
+    earliest_release_date: FuzzyDate | None = None
+    max_discharge_date: FuzzyDate | None = None
+    life_sentence: bool = False
+    facility: str | None = None
+    case_id: str | None = None
+    notes: str | None = None
+
+
+_LIFE_TERM = re.compile(r"\blife\b", re.IGNORECASE)
+
+
+def _looks_like_life(sentence: MdocSentence) -> bool:
+    """True when OTIS gives the maximum as a life term.
+
+    Only the maximum is read. An indeterminate term can carry a minimum in
+    years and still top out at life, and it is the maximum that decides whether
+    a release date exists at all.
+    """
+    return bool(sentence.maximum_sentence and _LIFE_TERM.search(sentence.maximum_sentence))
+
+
+def _spell_notes(sentence: MdocSentence) -> str | None:
+    """The sentence detail that has no column of its own, as plain lines.
+
+    This text renders on the member page, so it names no source and hedges
+    nothing: it states what the sentence was and stops.
+    """
+    lines: list[str] = []
+    if sentence.offense:
+        lines.append(f"Offense: {sentence.offense}")
+    if sentence.mcl:
+        lines.append("MCL " + " / ".join(sentence.mcl))
+    if sentence.county:
+        lines.append(f"County: {sentence.county}")
+    if sentence.conviction_type:
+        lines.append(f"Conviction type: {sentence.conviction_type}")
+    if sentence.minimum_sentence or sentence.maximum_sentence:
+        lo = sentence.minimum_sentence or "unspecified"
+        hi = sentence.maximum_sentence or "unspecified"
+        lines.append(f"Sentence: {lo} to {hi}")
+    if sentence.date_of_offense:
+        lines.append(f"Date of offense: {sentence.date_of_offense.display()}")
+    if sentence.discharge_reason:
+        lines.append(f"Discharge reason: {sentence.discharge_reason}")
+    return "\n".join(lines) or None
+
+
+def _started(spell: MdocSpell) -> datetime.date:
+    """Sort key for "which open spell is the most recent"."""
+    if spell.from_date is None:
+        return datetime.date.min
+    return spell.from_date.to_sortable_date() or datetime.date.min
+
+
+_TERM_UNIT = re.compile(r"(\d+)\s*(year|month|day)s?", re.IGNORECASE)
+_UNIT_DAYS = {"year": 365, "month": 30, "day": 1}
+
+
+def _max_term_days(sentence: MdocSentence) -> float:
+    """How long the sentence can run, in rough days, for ranking only.
+
+    Approximate on purpose. This decides only which of several concurrent
+    sentences is the controlling one, so 365-day years are precise enough and
+    calendar arithmetic would be false precision.
+    """
+    raw = sentence.maximum_sentence or ""
+    if _LIFE_TERM.search(raw):
+        return float("inf")
+    return float(sum(int(n) * _UNIT_DAYS[u.lower()] for n, u in _TERM_UNIT.findall(raw)))
+
+
+def derive_spells(profile: MdocProfile) -> list[MdocSpell]:
+    """Turn an OTIS profile into incarceration spells, one per prison sentence.
+
+    Probation sentences are dropped, and that is a product rule rather than a
+    simplification. Probation is not custody, and a spell row for one would read
+    on the member page as time served - a false claim about a named living
+    person. A profile with three probation terms and no prison time therefore
+    yields zero spells, correctly. Do not loosen this filter to make an import
+    look more productive; see docs/SCHEMA.md, "Incarceration Spells".
+
+    The wrinkle is that OTIS splits the facts across two places. Each sentence
+    row carries its own start and, once served, its own end. The projected
+    release dates and the assigned facility live in the Status block instead,
+    and belong to the offender rather than to any one sentence - concurrent
+    sentences share them. They are therefore attached to exactly one spell - the
+    controlling one, meaning the still-running sentence with the longest maximum
+    term - so that someone serving three concurrent sentences yields one
+    projected release rather than three duplicates on the calendar, and it sits
+    on the count that actually determines the date.
+
+    A discharged offender has an empty Status block, which is the whole reason
+    this exists: their history is *only* in the sentence rows, and reading the
+    Status block alone (as the member form used to) imported nothing at all.
+    """
+    prison = [s for s in profile.sentences if s.kind == "prison"]
+    if not prison:
+        # Nothing usable in the sentence sections - either the offender has none
+        # or OTIS changed that markup. Fall back to the Status block so a
+        # currently-serving prisoner still imports something.
+        if profile.earliest_release_date or profile.max_discharge_date or profile.facility:
+            return [
+                MdocSpell(
+                    earliest_release_date=profile.earliest_release_date,
+                    max_discharge_date=profile.max_discharge_date,
+                    facility=profile.facility,
+                )
+            ]
+        return []
+
+    spells = [
+        MdocSpell(
+            from_date=s.date_of_sentence,
+            to_date=s.date_of_discharge,
+            life_sentence=_looks_like_life(s),
+            case_id=s.court_file,
+            notes=_spell_notes(s),
+        )
+        for s in prison
+    ]
+
+    # Prefer a sentence OTIS itself calls active; fall back to merely undischarged,
+    # since a row can lack a discharge date without sitting under an "Active" heading.
+    running = [i for i, s in enumerate(prison) if spells[i].to_date is None and s.active]
+    if not running:
+        running = [i for i, sp in enumerate(spells) if sp.to_date is None]
+    if running:
+        # Longest maximum term first, because that is the sentence controlling
+        # the release: concurrent sentences are handed down the same day, so a
+        # start-date tiebreak alone lands the projection arbitrarily - it put a
+        # 2051 max discharge on a two-year felony-firearm count next to the
+        # 20-to-35 assault that actually decides the date.
+        i = max(running, key=lambda i: (_max_term_days(prison[i]), _started(spells[i]), i))
+        spells[i] = replace(
+            spells[i],
+            earliest_release_date=profile.earliest_release_date,
+            max_discharge_date=profile.max_discharge_date,
+            facility=profile.facility,
+        )
+    return spells
 
 
 def is_allowed_mdoc_url(url: str) -> bool:
@@ -524,6 +681,68 @@ def _title_of(html: str) -> str:
     return _clean(m.group(1)) or "" if m else ""
 
 
+class _OtisBounced(Exception):
+    """LoadProfile came back as the search form: a session OTIS didn't accept.
+
+    Transient and says nothing about the offender, so it is retried rather than
+    surfaced. Kept separate from MdocFetchError precisely so that the definitive
+    failures - no such number, proxy unreachable - are not retried.
+    """
+
+
+# OTIS rejects a freshly-built session often enough to matter: measured 2
+# failures in 8 single attempts against a profile that exists and loads fine on
+# the next try. One attempt therefore meant roughly one import in four dying on
+# an error toast, which is what this exists to stop.
+PROFILE_ATTEMPTS = 3
+PROFILE_RETRY_DELAYS = (0.6, 1.5)
+
+
+async def _load_profile_once(number: str, proxy: str | None) -> str:
+    """One full session walk on a clean cookie jar. Returns the profile HTML.
+
+    A fresh client per attempt is the point: what fails is the session, so
+    reusing its cookies would just reproduce the same rejection.
+    """
+    async with httpx.AsyncClient(
+        proxy=proxy,
+        timeout=HTTP_TIMEOUT,
+        follow_redirects=True,
+        headers={"User-Agent": USER_AGENT},
+    ) as client:
+        try:
+            await client.get(f"{BASE_URL}/Search")
+            results = await client.post(
+                f"{BASE_URL}/Search",
+                data={**BLANK_SEARCH, "MDOCNumber": number, "action:Search": "Search"},
+            )
+            profile = await client.post(f"{BASE_URL}/Results", data={"action:LoadProfile": number})
+        except httpx.HTTPError as e:
+            # A transport failure, not an HTTP status: almost always the proxy.
+            # Not retried - a proxy that is down stays down, and the message
+            # below is more use than three slow repeats of it.
+            raise MdocFetchError(
+                f"Couldn't reach OTIS ({e}). It 403s this server's own IP, so "
+                "MDOC_PROXY must point at a SOCKS5 proxy that egresses "
+                "elsewhere, with something actually listening on it "
+                "(infra/otis-tunnel.sh opens one)."
+            ) from e
+
+    # OTIS raises rather than 404s for a number that doesn't exist. Definitive,
+    # so it is raised straight out of the retry loop rather than retried.
+    if profile.status_code >= 500:
+        raise MdocFetchError(
+            f"OTIS has no offender with MDOC number {number} "
+            f"(it answered {profile.status_code} {_title_of(profile.text)!r})."
+        )
+    if profile.status_code != 200 or PROFILE_TITLE not in _title_of(profile.text):
+        raise _OtisBounced(
+            f"({profile.status_code}, {_title_of(profile.text)!r}; the search "
+            f"step returned {_title_of(results.text)!r})"
+        )
+    return profile.text
+
+
 async def fetch_mdoc_profile(mdoc_number: str, proxy: str | None = None) -> MdocProfile:
     """Look an offender up by MDOC number and return their parsed profile.
 
@@ -553,42 +772,23 @@ async def fetch_mdoc_profile(mdoc_number: str, proxy: str | None = None) -> Mdoc
         raise ValueError("MDOC number must be digits")
 
     proxy = proxy or _configured_proxy()
-    async with httpx.AsyncClient(
-        proxy=proxy,
-        timeout=HTTP_TIMEOUT,
-        follow_redirects=True,
-        headers={"User-Agent": USER_AGENT},
-    ) as client:
+    last_bounce = ""
+    for attempt in range(PROFILE_ATTEMPTS):
         try:
-            await client.get(f"{BASE_URL}/Search")
-            results = await client.post(
-                f"{BASE_URL}/Search",
-                data={**BLANK_SEARCH, "MDOCNumber": number, "action:Search": "Search"},
-            )
-            profile = await client.post(f"{BASE_URL}/Results", data={"action:LoadProfile": number})
-        except httpx.HTTPError as e:
-            # A transport failure, not an HTTP status: almost always the proxy.
-            raise MdocFetchError(
-                f"Couldn't reach OTIS ({e}). It 403s this server's own IP, so "
-                "MDOC_PROXY must point at a SOCKS5 proxy that egresses "
-                "elsewhere, with something actually listening on it "
-                "(infra/otis-tunnel.sh opens one)."
-            ) from e
-
-    # OTIS raises rather than 404s for a number that doesn't exist.
-    if profile.status_code >= 500:
+            html = await _load_profile_once(number, proxy)
+            break
+        except _OtisBounced as e:
+            last_bounce = str(e)
+            if attempt + 1 < PROFILE_ATTEMPTS:
+                await asyncio.sleep(PROFILE_RETRY_DELAYS[attempt])
+    else:
         raise MdocFetchError(
-            f"OTIS has no offender with MDOC number {number} "
-            f"(it answered {profile.status_code} {_title_of(profile.text)!r})."
-        )
-    if profile.status_code != 200 or PROFILE_TITLE not in _title_of(profile.text):
-        raise MdocFetchError(
-            f"OTIS did not load a profile for MDOC number {number} "
-            f"({profile.status_code}, {_title_of(profile.text)!r}; the search "
-            f"step returned {_title_of(results.text)!r})."
+            f"OTIS did not load a profile for MDOC number {number} after "
+            f"{PROFILE_ATTEMPTS} attempts {last_bounce}. It rejects a new "
+            "session intermittently; try again in a moment."
         )
 
-    parsed = parse_mdoc_html(profile.text)
+    parsed = parse_mdoc_html(html)
     # Belt and braces. OTIS holds the selected offender in session state, so a
     # bug or a session mix-up upstream could hand back somebody else - and
     # attaching the wrong person's convictions to a member is the worst thing
