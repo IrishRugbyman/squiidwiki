@@ -3,9 +3,9 @@ import { Activity, Copy, Crosshair, Download, GitFork, Image as ImageIcon, ListT
 import { useEffect, useMemo, useState, lazy, Suspense } from 'react'
 import { toast } from 'sonner'
 import {
-  useSetDetail, useDeleteSet, useUpdateSet,
   useAddSetRelationship, useRemoveSetRelationship,
-  useSetMembers, useSetIncidents, useSets, useSetActivity,
+  useSetDetail, useDeleteSet, useUpdateSet,
+  useSetMembers, useSetIncidents, useAllSets, useSetActivity,
 } from '@/lib/queries'
 import { useUniverseStore } from '@/stores/universe'
 import { useAuthStore } from '@/stores/auth'
@@ -32,6 +32,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { SetAvatar, SetFormSheet } from './_app.sets.index'
 import { MemberFormSheet } from './_app.members.index'
 import { AddMemberToSetDialog } from '@/components/AddMemberToSetDialog'
+import { LineagePanel } from '@/components/sets/LineagePanel'
 import { useRecordRecent } from '@/stores/recents'
 import { useEditShortcut } from '@/hooks/useKeymap'
 import { INCIDENT_TYPE_CHIP } from '@/lib/incidentColors'
@@ -353,7 +354,7 @@ function buildSetMarkdown({
 function AddRelationshipDialog({
   setId, universeId, open, onClose, existingIds,
 }: { setId: string; universeId: string; open: boolean; onClose: () => void; existingIds: string[] }) {
-  const { data: allSets } = useSets(universeId)
+  const { data: allSets } = useAllSets(universeId)
   const add = useAddSetRelationship(setId, universeId)
   const [targetId, setTargetId] = useState('')
   const [type, setType] = useState<'FRIEND' | 'ENEMY'>('FRIEND')
@@ -774,6 +775,15 @@ function SetDetailPage() {
               {/* Wrap text column so the avatar grid still works */}
               <div className="min-w-0">
                 <div className="flex items-center gap-2">
+                  {set.emojis?.length ? (
+                    <span
+                      className="text-xl leading-none"
+                      title={`Signals this set: ${set.emojis.join(' ')}`}
+                      aria-label={`Emojis for this set: ${set.emojis.join(' ')}`}
+                    >
+                      {set.emojis.join('')}
+                    </span>
+                  ) : null}
                   <h1 className="text-2xl font-bold leading-none text-white">{set.name}</h1>
                   <CopyButton value={window.location.href} label="Copy link to this set" className="opacity-40 hover:opacity-100" />
                 </div>
@@ -1317,6 +1327,9 @@ function SetDetailPage() {
                     onRemove={(sid) => removeRel.mutate(sid)}
                     removingId={removeRel.isPending ? (removeRel.variables as string | undefined) ?? null : null}
                   />
+                  {universe && (
+                    <LineagePanel setId={set.id} setName={set.name} universeId={universe.id} />
+                  )}
                 </div>
               )}
             </TabsContent>

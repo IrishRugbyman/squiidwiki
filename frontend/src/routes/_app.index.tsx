@@ -15,7 +15,7 @@ const IncidentsOverTime = lazy(() =>
 const ReliabilityDonut = lazy(() =>
   import('@/components/charts/ReliabilityDonut').then((m) => ({ default: m.ReliabilityDonut })),
 )
-import { useIncidents, useSets, useUniverseAnalytics } from '@/lib/queries'
+import { useIncidents, useAllSets, useUniverseAnalytics } from '@/lib/queries'
 import { useUniverseStore } from '@/stores/universe'
 import { NoUniverse } from '@/components/NoUniverse'
 import { MEMBER_STATUS_HEX, MEMBER_STATUS_CHIP, MEMBER_STATUS_ORDER, MEMBER_STATUS_DESCRIPTION } from '@/lib/statusColors'
@@ -182,7 +182,7 @@ function Dashboard() {
   const universe = useUniverseStore((s) => s.activeUniverse)
   const { data: analytics, isLoading: analyticsLoading } = useUniverseAnalytics(universe?.id ?? null)
   const { data: incidentData, isLoading: incidentsLoading } = useIncidents(universe?.id ?? null)
-  const { data: setsData } = useSets(universe?.id ?? null)
+  const { data: setsData } = useAllSets(universe?.id ?? null)
 
   if (!universe) return <NoUniverse />
 

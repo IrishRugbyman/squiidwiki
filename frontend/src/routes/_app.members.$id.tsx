@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
 import {
-  AlertTriangle, Copy, Download, ExternalLink, GitFork,
-  Mic, Pencil, Plus, Skull, Trash2, X,
+  AlertTriangle, ChevronRight, Copy, Download, ExternalLink, GitFork,
+  Mic, Pencil, Plus, Rat, Skull, Trash2, X,
 } from 'lucide-react'
 import { FacebookIcon, InstagramIcon, TwitterIcon } from '@/components/icons/SocialIcons'
 import { lazy, Suspense, useMemo, useState } from 'react'
@@ -28,6 +28,10 @@ import {
   useCreateMemberIncarceration, useUpdateMemberIncarceration, useDeleteMemberIncarceration,
 } from '@/lib/queries'
 import type { IncidentListItem, MemberIncarcerationRead, MemberRead } from '@/lib/types'
+import {
+  controllingSpell, formatTermRange, groupIncarcerations, incarcerationStatus,
+  incarcerationSummary, OPEN_SENTENCE_LABEL, parseSentenceNotes,
+} from '@/lib/incarceration'
 import type { FuzzyDateValue } from '@/components/FuzzyDate'
 import { downloadText } from '@/lib/download'
 import {
@@ -51,6 +55,7 @@ const MemberFamilyGraph = lazy(() =>
 import { useRecordRecent } from '@/stores/recents'
 import { useEditShortcut } from '@/hooks/useKeymap'
 import { IncidentFormSheet } from './_app.incidents.index'
+import { socialEntries, socialHandle } from '@/lib/social'
 
 const MemberTimeline = lazy(() =>
   import('@/components/graphs/MemberTimeline').then((m) => ({ default: m.MemberTimeline })),
@@ -78,13 +83,6 @@ function DetailRow({ label, children }: { label: React.ReactNode; children: Reac
       <span className="text-sm text-zinc-200">{children}</span>
     </div>
   )
-}
-
-const SOCIAL_HOST_REGEX = /^https?:\/\/([^/]+)/i
-
-function extractHost(url: string): string | null {
-  const match = url.match(SOCIAL_HOST_REGEX)
-  return match?.[1] ?? null
 }
 
 function isValidUrl(url: string): boolean {
@@ -431,12 +429,12 @@ function buildMemberMarkdown({
     lines.push('')
   }
 
-  const social = member.social_media as Record<string, string> | null | undefined
-  if (social && Object.values(social).some((v) => v)) {
+  const socialRows = socialEntries(member.social_media)
+  if (socialRows.length > 0) {
     lines.push('## Social')
     lines.push('')
-    for (const [k, v] of Object.entries(social)) {
-      if (v) lines.push(`- **${k.charAt(0).toUpperCase() + k.slice(1)}:** ${v}`)
+    for (const { platform, raw } of socialRows) {
+      lines.push(`- **${platform.charAt(0).toUpperCase() + platform.slice(1)}:** ${raw}`)
     }
     lines.push('')
   }
@@ -457,11 +455,17 @@ function MemberDetailPage() {
   const memberUuid = member?.id ?? null
   const { data: incidents } = useMemberIncidents(memberUuid, universe?.id ?? null)
   const aliases = member?.aliases_detail ?? []
-  const incarcerations = member?.incarcerations ?? []
+  // Memoised so the grouping below has a stable input: `?? []` builds a fresh
+  // array every render, which would defeat the memo it feeds.
+  const incarcerations = useMemo(() => member?.incarcerations ?? [], [member?.incarcerations])
+  // One card per court file: the table holds one row per OTIS sentence.
+  const incarcerationGroups = useMemo(() => groupIncarcerations(incarcerations), [incarcerations])
+  const incarcerationSummaryData = useMemo(() => incarcerationSummary(incarcerationGroups), [incarcerationGroups])
   const createIncarceration = useCreateMemberIncarceration(memberUuid ?? '', universe?.id ?? '')
   const updateIncarceration = useUpdateMemberIncarceration(memberUuid ?? '', universe?.id ?? '')
   const deleteIncarceration = useDeleteMemberIncarceration(memberUuid ?? '', universe?.id ?? '')
   const [editingSpellId, setEditingSpellId] = useState<string | null>(null)
+  const [expandedCaseKey, setExpandedCaseKey] = useState<string | null>(null)
   const killedIn = member?.killed_in ?? null
 
   useRecordRecent(member ? { type: 'member', id: member.id, slug: member.slug, label: member.display_name } : null)
@@ -539,7 +543,7 @@ function MemberDetailPage() {
   }
 
   const isAdmin = user?.global_role === 'ADMIN'
-  const hasSocial = !!(member?.social_media && Object.values(member.social_media as Record<string, string>).some((v) => v))
+  const hasSocial = socialEntries(member?.social_media).length > 0
   const hasIncarcerationPanel = (incarcerations && incarcerations.length > 0) || isAdmin
   const incidentCount = incidents?.items.length ?? 0
   const allStatsZero = !stats || (stats.shootings + stats.assists + stats.kills + stats.times_shot_survived === 0)
@@ -604,6 +608,11 @@ function MemberDetailPage() {
                   {member.is_rapper && (
                     <span className="inline-flex items-center gap-1 rounded-full bg-fuchsia-950/50 px-2.5 py-0.5 text-xs text-fuchsia-300 ring-1 ring-fuchsia-800/60">
                       <Mic className="h-3 w-3" />Rapper
+                    </span>
+                  )}
+                  {member.is_snitch && (
+                    <span className="inline-flex items-center gap-1 rounded-full bg-amber-950/50 px-2.5 py-0.5 text-xs text-amber-300 ring-1 ring-amber-800/60">
+                      <Rat className="h-3 w-3" />Snitch
                     </span>
                   )}
                   {currentAffiliations(member.affiliations).map((aff) => (
@@ -896,126 +905,216 @@ function MemberDetailPage() {
                       />
                     )}
 
-                    {incarcerations && incarcerations.length > 0 ? (
-                      <div className="relative pl-4 space-y-0">
-                        <div className="absolute left-[7px] top-2 bottom-2 w-px bg-zinc-700/50" />
-                        {incarcerations.map((spell: MemberIncarcerationRead) => (
-                          <div key={spell.id} className="group relative pb-4 last:pb-0">
-                            <div className="absolute -left-[13px] top-1.5 h-2.5 w-2.5 rounded-full border-2 border-zinc-700 bg-zinc-900 ring-0 group-hover:border-violet-500 transition-colors" />
-                            {editingSpellId === spell.id ? (
-                              <IncarcerationForm
-                                draft={incarcerationDraft}
-                                setDraft={setIncarcerationDraft}
-                                idPrefix={`inc-edit-${spell.id}`}
-                                isPending={updateIncarceration.isPending}
-                                submitLabel="Save"
-                                onCancel={() => {
-                                  setIncarcerationDraft(EMPTY_INCARCERATION_DRAFT)
-                                  setEditingSpellId(null)
-                                }}
-                                onSubmit={async () => {
-                                  await updateIncarceration.mutateAsync({
-                                    spellId: spell.id,
-                                    data: {
-                                      facility: incarcerationDraft.facility || null,
-                                      case_id: incarcerationDraft.case_id || null,
-                                      notes: incarcerationDraft.notes || null,
-                                      from_date: incarcerationDraft.from_date,
-                                      to_date: incarcerationDraft.to_date,
-                                      earliest_release_date: incarcerationDraft.life_sentence ? null : incarcerationDraft.earliest_release_date,
-                                      max_discharge_date: incarcerationDraft.life_sentence ? null : incarcerationDraft.max_discharge_date,
-                                      life_sentence: incarcerationDraft.life_sentence,
-                                    },
-                                  })
-                                  setIncarcerationDraft(EMPTY_INCARCERATION_DRAFT)
-                                  setEditingSpellId(null)
-                                }}
-                              />
-                            ) : (
-                              <div className="flex items-start justify-between gap-2">
-                                <div className="min-w-0">
-                                  <p className="text-sm font-medium text-zinc-200 leading-snug">
-                                    {spell.facility ?? 'Unknown facility'}
-                                  </p>
-                                  {/* A spell with `to_date` is over. Its release dates are then
-                                      projections that were overtaken, so the actual end is what
-                                      shows — printing "Max: 2046" for someone out since 2015
-                                      is the exact mistake this field exists to prevent. */}
-                                  {spell.to_date ? (
-                                    <p className="mt-0.5 text-[11px] text-zinc-400">
-                                      {spell.from_date ? <FuzzyDate value={spell.from_date} /> : '?'}
-                                      {' – '}
-                                      <FuzzyDate value={spell.to_date} />
-                                      {spell.life_sentence && <span className="text-rose-400"> · life sentence</span>}
-                                    </p>
-                                  ) : spell.life_sentence ? (
-                                    <p className="mt-0.5 text-[11px] font-medium text-rose-400">
-                                      {spell.from_date ? <><FuzzyDate value={spell.from_date} />{' – '}</> : null}
-                                      Life sentence
-                                    </p>
-                                  ) : (spell.from_date || spell.earliest_release_date || spell.max_discharge_date) && (
-                                    <p className="mt-0.5 text-[11px] text-zinc-400">
-                                      {spell.from_date ? <FuzzyDate value={spell.from_date} /> : '?'}
-                                      {' – '}
-                                      {spell.earliest_release_date && spell.max_discharge_date ? (
-                                        <>
-                                          Earliest: <FuzzyDate value={spell.earliest_release_date} />
-                                          {' · Max: '}
-                                          <FuzzyDate value={spell.max_discharge_date} />
-                                        </>
-                                      ) : spell.max_discharge_date ? (
-                                        <>Max: <FuzzyDate value={spell.max_discharge_date} /></>
-                                      ) : spell.earliest_release_date ? (
-                                        <>Earliest: <FuzzyDate value={spell.earliest_release_date} /></>
-                                      ) : (
-                                        'present'
-                                      )}
-                                    </p>
-                                  )}
-                                  {spell.case_id && (
-                                    <p className="mt-0.5 font-mono text-[11px] text-zinc-400">#{spell.case_id}</p>
-                                  )}
-                                  {spell.notes && (
-                                    <p className="mt-0.5 whitespace-pre-line text-[11px] text-zinc-400 italic">{spell.notes}</p>
-                                  )}
-                                </div>
-                                {isAdmin && (
-                                  <div className="mt-0.5 flex shrink-0 items-center gap-2 opacity-0 transition-opacity group-hover:opacity-100">
-                                    <button
-                                      type="button"
-                                      onClick={() => {
-                                        setIncarcerationDraft({
-                                          facility: spell.facility ?? '',
-                                          case_id: spell.case_id ?? '',
-                                          notes: spell.notes ?? '',
-                                          from_date: spell.from_date,
-                                          to_date: spell.to_date,
-                                          earliest_release_date: spell.earliest_release_date,
-                                          max_discharge_date: spell.max_discharge_date,
-                                          life_sentence: spell.life_sentence,
-                                        })
-                                        setEditingSpellId(spell.id)
-                                        setAddingIncarceration(false)
-                                      }}
-                                      className="text-zinc-500 hover:text-violet-400 transition-colors"
-                                      aria-label="Edit incarceration"
-                                    >
-                                      <Pencil className="h-3 w-3" />
-                                    </button>
-                                    <button
-                                      type="button"
-                                      onClick={() => deleteIncarceration.mutate(spell.id)}
-                                      className="text-zinc-500 hover:text-red-400 transition-colors"
-                                      aria-label="Delete incarceration"
-                                    >
-                                      <Trash2 className="h-3 w-3" />
-                                    </button>
-                                  </div>
-                                )}
-                              </div>
+{incarcerationGroups.length > 0 ? (
+                      <div className="space-y-2">
+                        {/* Facility and release dates describe the man, not any one
+                            court file, so they head the panel once rather than
+                            repeating down every card. */}
+                        {incarcerationSummaryData && (
+                          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2 text-[11px] text-zinc-400">
+                            {incarcerationSummaryData.facility && (
+                              <span className="text-zinc-200">{incarcerationSummaryData.facility}</span>
+                            )}
+                            {incarcerationSummaryData.lifeSentence && (
+                              <span className="font-medium text-rose-400">Life sentence</span>
+                            )}
+                            {incarcerationSummaryData.earliestRelease && (
+                              <span>
+                                Earliest{' '}
+                                <span className="text-zinc-200 tabular-nums">
+                                  <FuzzyDate value={incarcerationSummaryData.earliestRelease} />
+                                </span>
+                              </span>
+                            )}
+                            {incarcerationSummaryData.maxDischarge && (
+                              <span>
+                                Max{' '}
+                                <span className="text-zinc-200 tabular-nums">
+                                  <FuzzyDate value={incarcerationSummaryData.maxDischarge} />
+                                </span>
+                              </span>
                             )}
                           </div>
-                        ))}
+                        )}
+
+                        <ul className="divide-y divide-zinc-800 overflow-hidden rounded-lg border border-zinc-800 bg-zinc-900/30">
+                          {incarcerationGroups.map((group) => {
+                            const status = incarcerationStatus(group)
+                            const head = parseSentenceNotes(controllingSpell(group).notes)
+                            const term = formatTermRange(head.minimum, head.maximum)
+                            const expanded = expandedCaseKey === group.key
+                            return (
+                              <li key={group.key}>
+                                <button
+                                  type="button"
+                                  onClick={() => setExpandedCaseKey(expanded ? null : group.key)}
+                                  aria-expanded={expanded}
+                                  className="flex w-full items-start gap-1.5 px-2.5 py-2 text-left transition-colors hover:bg-zinc-900/60"
+                                >
+                                  <ChevronRight
+                                    className={`mt-0.5 h-3 w-3 shrink-0 text-zinc-500 transition-transform ${expanded ? 'rotate-90' : ''}`}
+                                  />
+                                  {/* The offence gets the full width of its own
+                                      line: this panel sits in a ~230px column, and
+                                      sharing that line with the term and the status
+                                      truncated every charge to "Ass…". */}
+                                  <span className="min-w-0 flex-1">
+                                    <span
+                                      className={`block truncate text-xs leading-snug ${status === 'discharged' ? 'text-zinc-400' : 'text-zinc-200'}`}
+                                      title={head.offense ?? undefined}
+                                    >
+                                      {head.offense ?? group.caseId ?? 'Sentence'}
+                                    </span>
+                                    {/* Year, term, count and status all live on the
+                                        second line. Sharing the first line with the
+                                        status chip truncated every charge to "Ass…"
+                                        in this ~230px column. */}
+                                    <span className="mt-0.5 flex flex-wrap items-center gap-x-1.5 text-[10px] text-zinc-500">
+                                      <span className="font-mono tabular-nums">{group.from?.year ?? '—'}</span>
+                                      {term && (
+                                        <>
+                                          <span aria-hidden>·</span>
+                                          <span className="whitespace-nowrap font-mono tabular-nums">{term}</span>
+                                        </>
+                                      )}
+                                      {group.spells.length > 1 && (
+                                        <>
+                                          <span aria-hidden>·</span>
+                                          <span className="whitespace-nowrap tabular-nums">{group.spells.length} counts</span>
+                                        </>
+                                      )}
+                                      <span aria-hidden>·</span>
+                                      {/* The long form of "open" is in the title:
+                                          OTIS records no discharge, which is not the
+                                          same claim as "in this prison today". */}
+                                      {status === 'discharged' && group.to?.year ? (
+                                        <span className="whitespace-nowrap tabular-nums">out {group.to.year}</span>
+                                      ) : status === 'life' ? (
+                                        <span className="font-medium text-rose-400">life</span>
+                                      ) : status === 'projected' ? (
+                                        <span className="text-amber-400/80">serving</span>
+                                      ) : (
+                                        <span className="italic" title={OPEN_SENTENCE_LABEL}>open</span>
+                                      )}
+                                    </span>
+                                  </span>
+                                </button>
+
+                                {expanded && (
+                                  <div className="space-y-2 border-t border-zinc-800/60 bg-zinc-950/40 px-3 py-2.5">
+                                    <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[10px] text-zinc-500">
+                                      {group.caseId && head.offense && (
+                                        <span className="font-mono text-zinc-400">#{group.caseId}</span>
+                                      )}
+                                      {head.county && <span>{head.county} County</span>}
+                                      {head.convictionType && <span>{head.convictionType}</span>}
+                                      {head.dateOfOffense && <span>Offence {head.dateOfOffense}</span>}
+                                    </div>
+
+                                    {group.spells.map((spell: MemberIncarcerationRead) => {
+                                      const detail = parseSentenceNotes(spell.notes)
+                                      const spellTerm = formatTermRange(detail.minimum, detail.maximum)
+                                      if (editingSpellId === spell.id) {
+                                        return (
+                                          <IncarcerationForm
+                                            key={spell.id}
+                                            draft={incarcerationDraft}
+                                            setDraft={setIncarcerationDraft}
+                                            idPrefix={`inc-edit-${spell.id}`}
+                                            isPending={updateIncarceration.isPending}
+                                            submitLabel="Save"
+                                            onCancel={() => {
+                                              setIncarcerationDraft(EMPTY_INCARCERATION_DRAFT)
+                                              setEditingSpellId(null)
+                                            }}
+                                            onSubmit={async () => {
+                                              await updateIncarceration.mutateAsync({
+                                                spellId: spell.id,
+                                                data: {
+                                                  facility: incarcerationDraft.facility || null,
+                                                  case_id: incarcerationDraft.case_id || null,
+                                                  notes: incarcerationDraft.notes || null,
+                                                  from_date: incarcerationDraft.from_date,
+                                                  to_date: incarcerationDraft.to_date,
+                                                  earliest_release_date: incarcerationDraft.life_sentence ? null : incarcerationDraft.earliest_release_date,
+                                                  max_discharge_date: incarcerationDraft.life_sentence ? null : incarcerationDraft.max_discharge_date,
+                                                  life_sentence: incarcerationDraft.life_sentence,
+                                                },
+                                              })
+                                              setIncarcerationDraft(EMPTY_INCARCERATION_DRAFT)
+                                              setEditingSpellId(null)
+                                            }}
+                                          />
+                                        )
+                                      }
+                                      return (
+                                        <div key={spell.id} className="group flex items-start justify-between gap-2">
+                                          <div className="min-w-0">
+                                            {(detail.offense || detail.extra.length === 0) && (
+                                            <p className="text-[11px] text-zinc-300">
+                                              {detail.offense ?? (detail.extra.length === 0 && (
+                                                <span className="italic text-zinc-500">No offence recorded</span>
+                                              ))}
+                                              {spellTerm && (
+                                                <span className="ml-1.5 whitespace-nowrap font-mono text-zinc-500 tabular-nums">{spellTerm}</span>
+                                              )}
+                                            </p>
+                                            )}
+                                            <p className="text-[10px] text-zinc-500">
+                                              {detail.mcl.length > 0 && <span className="font-mono">MCL {detail.mcl.join(' / ')}</span>}
+                                              {detail.dischargeReason && <span> · {detail.dischargeReason}</span>}
+                                              {spell.to_date && (
+                                                <span> · discharged <FuzzyDate value={spell.to_date} /></span>
+                                              )}
+                                            </p>
+                                            {detail.extra.length > 0 && (
+                                              <p className="mt-0.5 whitespace-pre-line text-[10px] italic text-zinc-400">
+                                                {detail.extra.join('\n')}
+                                              </p>
+                                            )}
+                                          </div>
+                                          {isAdmin && (
+                                            <div className="mt-0.5 flex shrink-0 items-center gap-2 opacity-0 transition-opacity group-hover:opacity-100">
+                                              <button
+                                                type="button"
+                                                onClick={() => {
+                                                  setIncarcerationDraft({
+                                                    facility: spell.facility ?? '',
+                                                    case_id: spell.case_id ?? '',
+                                                    notes: spell.notes ?? '',
+                                                    from_date: spell.from_date,
+                                                    to_date: spell.to_date,
+                                                    earliest_release_date: spell.earliest_release_date,
+                                                    max_discharge_date: spell.max_discharge_date,
+                                                    life_sentence: spell.life_sentence,
+                                                  })
+                                                  setEditingSpellId(spell.id)
+                                                  setAddingIncarceration(false)
+                                                }}
+                                                className="text-zinc-500 transition-colors hover:text-violet-400"
+                                                aria-label="Edit sentence"
+                                              >
+                                                <Pencil className="h-3 w-3" />
+                                              </button>
+                                              <button
+                                                type="button"
+                                                onClick={() => deleteIncarceration.mutate(spell.id)}
+                                                className="text-zinc-500 transition-colors hover:text-red-400"
+                                                aria-label="Delete sentence"
+                                              >
+                                                <Trash2 className="h-3 w-3" />
+                                              </button>
+                                            </div>
+                                          )}
+                                        </div>
+                                      )
+                                    })}
+                                  </div>
+                                )}
+                              </li>
+                            )
+                          })}
+                        </ul>
                       </div>
                     ) : (
                       !addingIncarceration && <p className="text-xs text-zinc-400">No incarceration records.</p>
@@ -1035,33 +1134,36 @@ function MemberDetailPage() {
                   <div className="rounded-lg border border-zinc-800 bg-zinc-900/30 px-4 py-3">
                     <p className="mb-2.5 text-xs font-medium uppercase tracking-wider text-zinc-400">Social</p>
                     <div className="flex flex-wrap gap-2">
-                      {Object.entries(member.social_media as Record<string, string>).map(([platform, handle]) => {
-                        if (!handle) return null
-                        const raw = String(handle)
+                      {socialEntries(member.social_media).map(({ platform, raw, key }) => {
                         const url = socialUrl(platform, raw)
-                        const display = raw.startsWith('http') ? (extractHost(raw) ?? raw) : `@${raw.replace(/^@/, '')}`
+                        const display = socialHandle(raw)
                         const Icon = SOCIAL_ICON[platform.toLowerCase()] ?? null
                         if (url) {
                           return (
-                            <a key={platform} href={url} target="_blank" rel="noopener noreferrer"
-                              className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-700/60 bg-zinc-800/60 px-2.5 py-1.5 text-xs text-zinc-400 hover:border-zinc-600 hover:text-white transition-colors">
-                              {Icon && <Icon className="h-3.5 w-3.5" />}
-                              <span className="capitalize">{platform}</span>
-                              <ExternalLink className="h-2.5 w-2.5 opacity-50" />
-                            </a>
+                            <Tooltip key={key}>
+                              <TooltipTrigger asChild>
+                                <a href={url} target="_blank" rel="noopener noreferrer"
+                                  className="inline-flex max-w-full items-center gap-1.5 rounded-lg border border-zinc-700/60 bg-zinc-800/60 px-2.5 py-1.5 text-xs text-zinc-400 hover:border-zinc-600 hover:text-white transition-colors">
+                                  {Icon && <Icon className="h-3.5 w-3.5 shrink-0" />}
+                                  <span className="truncate">{display}</span>
+                                  <ExternalLink className="h-2.5 w-2.5 shrink-0 opacity-50" />
+                                </a>
+                              </TooltipTrigger>
+                              <TooltipContent side="bottom" className="capitalize">{platform}</TooltipContent>
+                            </Tooltip>
                           )
                         }
                         return (
-                          <Tooltip key={platform}>
+                          <Tooltip key={key}>
                             <TooltipTrigger asChild>
-                              <span className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-700/40 bg-zinc-800/40 px-2.5 py-1.5 text-xs text-zinc-400 cursor-default">
-                                {Icon && <Icon className="h-3.5 w-3.5" />}
-                                <span className="capitalize">{platform}</span>
-                                {raw.startsWith('http') && <AlertTriangle className="h-2.5 w-2.5 text-amber-500" />}
+                              <span className="inline-flex max-w-full items-center gap-1.5 rounded-lg border border-zinc-700/40 bg-zinc-800/40 px-2.5 py-1.5 text-xs text-zinc-400 cursor-default">
+                                {Icon && <Icon className="h-3.5 w-3.5 shrink-0" />}
+                                <span className="truncate">{display}</span>
+                                {raw.startsWith('http') && <AlertTriangle className="h-2.5 w-2.5 shrink-0 text-amber-500" />}
                               </span>
                             </TooltipTrigger>
                             <TooltipContent side="bottom">
-                              {raw.startsWith('http') ? 'Malformed URL' : display}
+                              {raw.startsWith('http') ? 'Malformed URL' : platform}
                             </TooltipContent>
                           </Tooltip>
                         )

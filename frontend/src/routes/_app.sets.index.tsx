@@ -21,6 +21,7 @@ import { downloadCsv } from '@/lib/download'
 import { useDebounce } from '@/hooks/useDebounce'
 import { EmptyState } from '@/components/EmptyState'
 import { TableRowSkeleton } from '@/components/skeletons'
+import { MAX_EMOJIS, formatEmojiInput, isLikelyEmoji, parseEmojiInput, setBadge } from '@/lib/emoji'
 import type { NameVariant, SetListItem, SetReadDetail, SetStatus, UUID } from '@/lib/types'
 
 function emptyVariant(isPrimary = false): NameVariant {
@@ -247,6 +248,9 @@ function SetFormSheetInner({ universeId, open, onClose, initial, onSaved, defaul
 
   const [variants, setVariants] = useState<NameVariant[]>(() => initialVariants(initial, copyFrom))
   const name = variantsToDisplayName(variants)
+  const [emojiText, setEmojiText] = useState(() => formatEmojiInput(initial?.emojis ?? copyFrom?.emojis ?? []))
+  const emojis = useMemo(() => parseEmojiInput(emojiText), [emojiText])
+  const badEmojis = useMemo(() => emojis.filter((e) => !isLikelyEmoji(e)), [emojis])
   const [bio, setBio] = useState(initial?.bio ?? copyFrom?.bio ?? '')
   const [status, setStatus] = useState<SetStatus>(initial?.status ?? copyFrom?.status ?? 'ACTIVE')
   const [allianceId, setAllianceId] = useState<string>(initial?.alliance_id ?? copyFrom?.alliance_id ?? defaultAllianceId ?? ALLIANCE_NONE)
@@ -337,10 +341,19 @@ function SetFormSheetInner({ universeId, open, onClose, initial, onSaved, defaul
       setError('The primary variant must have a name, initials, or number')
       return
     }
+    if (badEmojis.length) {
+      setError(`Not emojis: ${badEmojis.join(' ')}, plain text belongs in a name variant`)
+      return
+    }
+    if (emojis.length > MAX_EMOJIS) {
+      setError(`At most ${MAX_EMOJIS} emojis per set (got ${emojis.length})`)
+      return
+    }
     const payload = {
       universe_id: universeId,
       name: submitName,
       name_variants: cleanedVariants,
+      emojis: emojis.length ? emojis : null,
       bio: bio || null,
       status,
       alliance_id,
@@ -355,7 +368,7 @@ function SetFormSheetInner({ universeId, open, onClose, initial, onSaved, defaul
         toast.success(`Updated "${name}"`)
       } else {
         await create.mutateAsync(payload)
-        setVariants([emptyVariant(true)]); setBio(''); setStatus('ACTIVE')
+        setVariants([emptyVariant(true)]); setEmojiText(''); setBio(''); setStatus('ACTIVE')
         setAllianceId(ALLIANCE_NONE); setGangId(GANG_NONE); setMunicipalityId(MUNI_NONE); setTerritoryIds([])
         toast.success(`Created "${name}"`)
       }
@@ -604,6 +617,46 @@ function SetFormSheetInner({ universeId, open, onClose, initial, onSaved, defaul
             </div>
           )}
           <div className="space-y-1.5">
+            <Label htmlFor="set-emojis">Emojis</Label>
+            <Input
+              id="set-emojis"
+              value={emojiText}
+              onChange={(e) => setEmojiText(e.target.value)}
+              onBlur={() => setEmojiText(formatEmojiInput(parseEmojiInput(emojiText)))}
+              placeholder="Paste the glyphs this set uses…"
+            />
+            <p className="text-[11px] text-zinc-500">
+              First is the badge shown in lists. The rest are the other glyphs members
+              signal the set with, so an emoji in a handle can be traced back here.
+            </p>
+            {emojis.length > 0 && (
+              <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
+                {emojis.map((e, i) => (
+                  <span
+                    key={`${e}-${i}`}
+                    title={
+                      !isLikelyEmoji(e)
+                        ? 'Not an emoji, this will be rejected on save'
+                        : i === 0
+                          ? 'Badge'
+                          : undefined
+                    }
+                    className={
+                      'rounded px-1.5 py-0.5 text-base leading-none ' +
+                      (!isLikelyEmoji(e)
+                        ? 'bg-red-950 ring-1 ring-red-700'
+                        : i === 0
+                          ? 'bg-zinc-800 ring-1 ring-violet-600'
+                          : 'bg-zinc-800')
+                    }
+                  >
+                    {e}
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+          <div className="space-y-1.5">
             <Label htmlFor="set-bio">Bio</Label>
             <Textarea id="set-bio" value={bio} onChange={(e) => setBio(e.target.value)} placeholder="Background info…" />
           </div>
@@ -825,6 +878,7 @@ function SetCard({ set, isSelected, onToggleSelect, onEdit, onDuplicate, onDelet
 }) {
   const linkId = set.slug ?? set.id
   const aka = nonPrimaryVariantsText(set.name_variants)
+  const badge = setBadge(set.emojis)
   return (
     <div className={`group relative flex flex-col overflow-hidden rounded-lg border bg-zinc-900/40 transition-colors ${
       isSelected ? 'border-violet-700/70 bg-violet-950/20' : 'border-zinc-800 hover:border-zinc-700'
@@ -839,6 +893,7 @@ function SetCard({ set, isSelected, onToggleSelect, onEdit, onDuplicate, onDelet
           />
           <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-zinc-950 to-transparent p-3">
             <p className="truncate text-sm font-semibold text-white group-hover:text-violet-300 transition-colors">
+              {badge && <span className="mr-1.5" title={set.emojis?.join(' ')}>{badge}</span>}
               {set.name}
             </p>
             {aka && <p className="truncate text-[11px] text-zinc-400">{aka}</p>}
@@ -1375,7 +1430,12 @@ function SetsPage() {
                         <td className="p-0">
                           <Link to="/sets/$id" params={{ id: linkId }} className={`flex items-center gap-3 px-4 ${padY}`}>
                             <div className="min-w-0">
-                              <p className="truncate font-medium text-white group-hover:text-violet-400 transition-colors">{set.name}</p>
+                              <p className="truncate font-medium text-white group-hover:text-violet-400 transition-colors">
+                                {setBadge(set.emojis) && (
+                                  <span className="mr-1.5" title={set.emojis?.join(' ')}>{setBadge(set.emojis)}</span>
+                                )}
+                                {set.name}
+                              </p>
                             </div>
                           </Link>
                         </td>

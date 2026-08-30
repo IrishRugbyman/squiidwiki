@@ -177,6 +177,9 @@ export interface SetListItem {
   name: string
   slug: string | null
   name_variants: NameVariant[] | null
+  /** Glyphs the set is known by. First is the badge; the rest are the other
+   *  emojis members use to signal it in bios and display names. */
+  emojis: string[] | null
   status: SetStatus
   universe_id: UUID
   alliance_id: UUID | null
@@ -206,6 +209,27 @@ export interface SetReadDetail extends SetRead {
   territory_ids: UUID[]
   friend_ids: UUID[]
   enemy_ids: UUID[]
+  lineage: SetLineageItem[]
+}
+
+/** How a child set came out of a parent set. Always reads child KIND parent. */
+export type SetLineageKind =
+  | 'SPLINTERED_FROM'
+  | 'RENAMED_FROM'
+  | 'MERGED_FROM'
+  | 'YOUNGER_GENERATION_OF'
+
+export interface SetLineageItem {
+  id: UUID
+  kind: SetLineageKind
+  /** Where the *other* set sits relative to the set being viewed. */
+  direction: 'parent' | 'child'
+  other_id: UUID
+  other_name: string
+  other_slug: string | null
+  from_date: FuzzyDateValue | null
+  until_date: FuzzyDateValue | null
+  is_current: boolean
 }
 
 export interface SetTerritoryPolygon {
@@ -327,6 +351,7 @@ export interface MemberListItem {
   aliases: string[] | null
   date_of_death: FuzzyDateValue | null
   is_rapper: boolean
+  is_snitch: boolean
 }
 
 export interface MemberAliasRead {
@@ -436,6 +461,7 @@ export interface MemberRead extends MemberListItem {
   legal_name: string | null
   nickname_unknown: boolean
   is_rapper: boolean
+  is_snitch: boolean
   /** MDOC offender number. The only stable handle OTIS has - the rebuilt site
    *  gives profiles no URL - so it is stored to re-check a spell later. */
   mdoc_number: string | null
@@ -445,7 +471,8 @@ export interface MemberRead extends MemberListItem {
   dob: FuzzyDateValue | null
   date_of_death: FuzzyDateValue | null
   family: Record<string, string> | null
-  social_media: Record<string, string> | null
+  // One account per platform, or several. See lib/social.ts.
+  social_media: Record<string, string | string[]> | null
   death_incident_id: UUID | null
   created_at: string
   updated_at: string

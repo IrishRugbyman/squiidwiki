@@ -26,7 +26,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 - **NEVER MODIFY DATA IN PROD DB** without explicit instruction. The exception currently baked in is municipalities (see Architecture → DB toggle).
 - **Never name the French source in wiki prose, and never hedge a claim in it.** No entity text that renders on a page - biography, set bio, narrative, participant or incarceration note - may name `privedatabase` / privedatabase.wordpress.com, and none may argue with itself ("X adds that ..., which nothing corroborates", "this rests on one forum thread", "no press account names a shooter"). This database *is* the research: state the fact and stop. Reliability lives in the `source` row's rating, not in prose caveats. The site keeps one source row for traceability, titled "French-language gang research wiki" with its URL intact; that row is the only place the URL appears. `~/squiidape/research/privedatabase/tools/strip_source_attributions.py` did the cleanup and shows the shape of the rewrite.
-- **A biography says only what no other column holds.** Never write into `biography` (or any free-text field) something the page already renders from a column: the set, the gang, the alliance, the family, the aliases, the bare status, the legal name, the dates, or the incident a member died in. The test is **state versus circumstance** - "he is incarcerated" is a column and is banned, "took the charges for his members" is a fact no column holds. Same sentence, opposite verdicts. An empty bio is the correct answer when nothing survives the strip, and more output is not better output. This applies to prose written by hand as much as to agent-drafted batches; `~/squiidape/research/privedatabase/tools/verify_bios.py` mechanises the check, and the reasoning is in `~/squiidape/research/privedatabase/README.md` under "Biographies, and the rule that makes them worth having".
+- **A biography says only what no other column holds.** Never write into `biography` (or any free-text field) something the page already renders from a column: the set, the gang, the alliance, the family, the aliases, the bare status, the legal name, the dates, or the incident a member died in. The test is **state versus circumstance** - "he is incarcerated" is a column and is banned, "took the charges for his members" is a fact no column holds. Same sentence, opposite verdicts. An empty bio is the correct answer when nothing survives the strip, and more output is not better output. This applies to prose written by hand as much as to agent-drafted batches; `~/squiidape/research/privedatabase/tools/verify_bios.py` mechanises the check after the fact, and `~/squiidape/research/tools/wikilib/prose.py` now enforces it **before the write** for anything written through the `wiki` CLI: naming a source, hedging, or a moderation-safe spelling refuses the write outright, while restating a column only warns. That split is calibrated, not arbitrary: a refusing version was run against every biography on file and rejected roughly a third of them, mostly wrongly, because these biographies routinely name other people and no text-only rule can tell whose status a sentence describes. The reasoning is in `~/squiidape/research/privedatabase/README.md` under "Biographies, and the rule that makes them worth having".
 
 ## Development Environment (Linux server)
 
@@ -180,7 +180,13 @@ people. It was split out on 2026-08-25 with its full history.
 Nothing here depends on it, but it depends on this, in two different ways:
 
 - most of its tools drive the backend over **HTTP on :8001**, so the wiki has to be
-  running before any of them are, and an API contract change breaks them;
+  running before any of them are, and an API contract change breaks them. Since
+  2026-08-29 the supported write path is the `wiki` CLI at `research/tools/wiki`,
+  whose `wikilib` package owns one identity resolver per entity type. If you rename
+  a column it reads (`member.aliases`, `member.slug`, `member.mdoc_number`,
+  `member.status`) or change what `PATCH /members/{id}` returns, fix
+  `research/tools/wikilib/api.py` in the same change: it is the one module that
+  knows this schema, and its 91-test suite runs in under a second;
 - `research/corsica/tools/` (ten seeders that used to be `backend/app/scripts/seed_corsica*.py`,
   moved out on 2026-08-25 because they name 57 people) **import `app.core`, `app.crud`
   and `app.schemas` directly**, bootstrapping `sys.path` the way `ig` does. A moved

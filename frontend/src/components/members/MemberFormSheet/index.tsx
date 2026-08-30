@@ -13,13 +13,15 @@ import { FuzzyDate } from '@/components/FuzzyDate'
 import { FuzzyDateInput } from '@/components/FuzzyDateInput'
 import {
   useCreateMember, useUpdateMember,
-  useSets, useAlliances, useGangs, useMember, useMemberSearch,
+  useAllSets, useAlliances, useGangs, useMember, useMemberSearch,
   useMdocLookup, useMdocImportPhoto, useMemberIncarcerations,
   useCreateSet, useCreateAlliance, useCreateGang,
 } from '@/lib/queries'
 import { useDebounce } from '@/hooks/useDebounce'
 import { api } from '@/lib/api'
 import { currentAffiliations } from '@/lib/utils'
+import { normalizeHandle, splitSocial, SOCIAL_BASE, type SocialMap, type SocialPlatform } from '@/lib/social'
+import { memberStatusFromMdoc } from '@/lib/mdoc'
 import { UrlPasteBanner, useUrlPasteBanner } from '@/components/UrlPasteBanner'
 import { SourceFormSheet } from '@/routes/_app.sources.index'
 import type { MdocProfile, MdocSpell, MemberListItem, MemberRead, MemberStatus, SetRank } from '@/lib/types'
@@ -291,39 +293,18 @@ function FamilyEditor({
 
 // ─── Social helpers ───────────────────────────────────────────────────────────
 
-const SOCIAL_HOSTS: Record<'facebook' | 'instagram' | 'twitter', RegExp> = {
-  facebook: /^(?:https?:\/\/)?(?:www\.|m\.)?facebook\.com\//i,
-  instagram: /^(?:https?:\/\/)?(?:www\.)?instagram\.com\//i,
-  twitter: /^(?:https?:\/\/)?(?:www\.)?(?:twitter|x)\.com\//i,
-}
-
-const SOCIAL_BASE: Record<'facebook' | 'instagram' | 'twitter', string> = {
-  facebook: 'https://facebook.com/',
-  instagram: 'https://instagram.com/',
-  twitter: 'https://x.com/',
-}
-
-/** Strip protocol/host/@ to a bare handle. Empty input → empty output. */
-function normalizeHandle(platform: 'facebook' | 'instagram' | 'twitter', raw: string): string {
-  const trimmed = raw.trim()
-  if (!trimmed) return ''
-  const stripped = trimmed
-    .replace(SOCIAL_HOSTS[platform], '')
-    .replace(/^@/, '')
-    .replace(/[/?#].*$/, '')
-  return stripped
-}
-
 function SocialInput({
   platform, value, onChange, Icon, label,
 }: {
-  platform: 'facebook' | 'instagram' | 'twitter'
+  platform: SocialPlatform
   value: string
   onChange: (v: string) => void
   Icon: React.ComponentType<{ className?: string }>
   label: string
 }) {
-  const handle = normalizeHandle(platform, value)
+  // Comma-separated, because a man can have several accounts on one platform and
+  // handles cannot contain a comma. Each part is normalized and previewed alone.
+  const handles = splitSocial(value).map((v) => normalizeHandle(platform, v)).filter(Boolean)
   return (
     <div className="space-y-1">
       <div className="flex items-center gap-2">
@@ -332,15 +313,16 @@ function SocialInput({
           value={value}
           onChange={(e) => onChange(e.target.value)}
           onBlur={() => {
-            const cleaned = normalizeHandle(platform, value)
+            const cleaned = splitSocial(value).map((v) => normalizeHandle(platform, v)).filter(Boolean).join(', ')
             if (cleaned !== value) onChange(cleaned)
           }}
           placeholder={label}
           aria-label={label}
         />
       </div>
-      {handle && (
+      {handles.map((handle) => (
         <a
+          key={handle}
           href={SOCIAL_BASE[platform] + handle}
           target="_blank"
           rel="noreferrer noopener"
@@ -349,7 +331,7 @@ function SocialInput({
         >
           {SOCIAL_BASE[platform]}{handle}
         </a>
-      )}
+      ))}
     </div>
   )
 }
@@ -381,7 +363,7 @@ function MemberFormSheetInner({ universeId, open, onClose, initial, defaultSetId
   const update = useUpdateMember(initial?.id ?? '', universeId)
   const isEdit = !!initial
 
-  const { data: sets } = useSets(universeId)
+  const { data: sets } = useAllSets(universeId)
   const { data: alliances } = useAlliances(universeId)
   const { data: gangs } = useGangs(universeId)
   const createSet = useCreateSet()
@@ -460,6 +442,7 @@ function MemberFormSheetInner({ universeId, open, onClose, initial, defaultSetId
   const [legalName, setLegalName] = useState(initial?.legal_name ?? copyFrom?.legal_name ?? '')
   const [nicknameUnknown, setNicknameUnknown] = useState(initial?.nickname_unknown ?? copyFrom?.nickname_unknown ?? false)
   const [isRapper, setIsRapper] = useState(initial?.is_rapper ?? copyFrom?.is_rapper ?? false)
+  const [isSnitch, setIsSnitch] = useState(initial?.is_snitch ?? copyFrom?.is_snitch ?? false)
   const [status, setStatus] = useState<MemberStatus>(initial?.status ?? copyFrom?.status ?? 'UNKNOWN')
   type AffRow = { set_id: string; rank: SetRank | ''; is_primary: boolean }
   const seedAffiliations = (): AffRow[] => {
@@ -476,9 +459,11 @@ function MemberFormSheetInner({ universeId, open, onClose, initial, defaultSetId
   const [gangId, setGangId] = useState<string>(initial?.gang_id ?? copyFrom?.gang_id ?? '')
   const [biography, setBiography] = useState(initial?.biography ?? copyFrom?.biography ?? '')
   const [aliases, setAliases] = useState(initial?.aliases?.join(', ') ?? copyFrom?.aliases?.join(', ') ?? '')
-  const seedSocial = (key: 'facebook' | 'instagram' | 'twitter'): string => {
-    const sm = (initial?.social_media ?? copyFrom?.social_media) as Record<string, string> | null | undefined
-    return sm?.[key] ?? ''
+  const seedSocial = (key: SocialPlatform): string => {
+    const sm = (initial?.social_media ?? copyFrom?.social_media) as SocialMap
+    const v = sm?.[key]
+    if (Array.isArray(v)) return v.filter(Boolean).join(', ')
+    return v ?? ''
   }
   const [facebook, setFacebook] = useState<string>(seedSocial('facebook'))
   const [instagram, setInstagram] = useState<string>(seedSocial('instagram'))
@@ -487,8 +472,8 @@ function MemberFormSheetInner({ universeId, open, onClose, initial, defaultSetId
   // a key like facebook_old, say. It has to be carried through the round trip:
   // the submit below rebuilds the whole object, so a key with no input would be
   // silently dropped by the act of opening the sheet and saving.
-  const extraSocial = useMemo<Record<string, string>>(() => {
-    const sm = (initial?.social_media ?? copyFrom?.social_media) as Record<string, string> | null | undefined
+  const extraSocial = useMemo<Record<string, string | string[]>>(() => {
+    const sm = (initial?.social_media ?? copyFrom?.social_media) as SocialMap
     if (!sm) return {}
     const known = new Set(['facebook', 'instagram', 'twitter'])
     return Object.fromEntries(Object.entries(sm).filter(([k, v]) => !known.has(k) && v))
@@ -550,16 +535,21 @@ function MemberFormSheetInner({ universeId, open, onClose, initial, defaultSetId
       return
     }
     const aliasList = aliases.split(',').map((s) => s.trim()).filter(Boolean)
-    const social: Record<string, string> = { ...extraSocial }
-    if (facebook.trim()) social.facebook = facebook.trim()
-    if (instagram.trim()) social.instagram = instagram.trim()
-    if (twitter.trim()) social.twitter = twitter.trim()
+    // One account stays a bare string so existing rows keep their shape; only a
+    // genuine list becomes an array.
+    const social: Record<string, string | string[]> = { ...extraSocial }
+    for (const [key, raw] of [['facebook', facebook], ['instagram', instagram], ['twitter', twitter]] as const) {
+      const parts = splitSocial(raw)
+      if (parts.length === 1) social[key] = parts[0]
+      else if (parts.length > 1) social[key] = parts
+    }
     const body: Record<string, unknown> = {
       universe_id: universeId,
       nickname: nickname || null,
       legal_name: legalName || null,
       nickname_unknown: nicknameUnknown,
       is_rapper: isRapper,
+      is_snitch: isSnitch,
       mdoc_number: mdocNumber.trim() || null,
       status,
       affiliations: affiliations.filter((a) => a.set_id).map((a) => ({
@@ -694,8 +684,12 @@ function MemberFormSheetInner({ universeId, open, onClose, initial, defaultSetId
       setMdocPending({ spells: profile.spells, photo_url: profile.photo_url })
       setMdocFound(profile)
       // Only a live prisoner implies LOCKED. Someone discharged is out, and
-      // guessing LOCKED for them would put a false status on the page.
-      if (status === 'UNKNOWN' && profile.status === 'Prisoner') setStatus('LOCKED')
+      // guessing LOCKED for them would put a false status on the page. The
+      // custody state has to be read off the front of the string: OTIS appends
+      // prose ("Prisoner - Released to court on writ (08/13/2026)"), and an
+      // exact match on 'Prisoner' silently skipped every such record.
+      const implied = memberStatusFromMdoc(profile.status)
+      if (status === 'UNKNOWN' && implied) setStatus(implied)
       toast.success('Imported from MDOC. Review and save')
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'MDOC import failed'
@@ -908,16 +902,28 @@ function MemberFormSheetInner({ universeId, open, onClose, initial, defaultSetId
               <Input id="m-mdoc" value={mdocNumber} onChange={(e) => setMdocNumber(e.target.value)} placeholder="e.g. 352482" inputMode="numeric" />
               <p className="text-[11px] text-zinc-500">The only stable handle OTIS has: a profile has no URL. Keeping it here is what makes a re-check possible when parole moves the dates.</p>
             </div>
-            <label htmlFor="m-rapper" className="flex w-fit cursor-pointer items-center gap-2 text-xs text-zinc-400 hover:text-zinc-300">
-              <input
-                id="m-rapper"
-                type="checkbox"
-                checked={isRapper}
-                onChange={(e) => setIsRapper(e.target.checked)}
-                className="h-3.5 w-3.5 rounded border-zinc-700 bg-zinc-900 accent-violet-600"
-              />
-              Rapper
-            </label>
+            <div className="flex flex-wrap gap-4">
+              <label htmlFor="m-rapper" className="flex w-fit cursor-pointer items-center gap-2 text-xs text-zinc-400 hover:text-zinc-300">
+                <input
+                  id="m-rapper"
+                  type="checkbox"
+                  checked={isRapper}
+                  onChange={(e) => setIsRapper(e.target.checked)}
+                  className="h-3.5 w-3.5 rounded border-zinc-700 bg-zinc-900 accent-violet-600"
+                />
+                Rapper
+              </label>
+              <label htmlFor="m-snitch" className="flex w-fit cursor-pointer items-center gap-2 text-xs text-zinc-400 hover:text-zinc-300">
+                <input
+                  id="m-snitch"
+                  type="checkbox"
+                  checked={isSnitch}
+                  onChange={(e) => setIsSnitch(e.target.checked)}
+                  className="h-3.5 w-3.5 rounded border-zinc-700 bg-zinc-900 accent-violet-600"
+                />
+                Snitch
+              </label>
+            </div>
           </FormSection>
 
           <FormSection title="Photos" hint={isEdit ? 'uploads immediately' : 'queued, first becomes primary'}>

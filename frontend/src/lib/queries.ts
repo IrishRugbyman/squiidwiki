@@ -11,7 +11,6 @@ import type {
   GangRead,
   GlobalRole,
   IncidentListItem,
-  UniverseAnalytics,
   IncidentRead,
   IncidentReadDetail,
   MdocProfile,
@@ -19,10 +18,10 @@ import type {
   MediaWithUrls,
   MemberAliasRead,
   MemberIncarcerationRead,
-  MemberReleaseEvent,
   MemberListItem,
   MemberRead,
   MemberReadDetail,
+  MemberReleaseEvent,
   MemberStats,
   MunicipalityGeoJSON,
   MunicipalityListItem,
@@ -30,17 +29,20 @@ import type {
   OffsetPage,
   ResearchNoteListItem,
   ResearchNoteRead,
-  SetListItem,
   SetActivityEntry,
+  SetLineageItem,
+  SetLineageKind,
+  SetListItem,
   SetRead,
   SetReadDetail,
   SetReadDetailFull,
   SetTerritoryPolygon,
   SourceListItem,
   SourceRead,
+  UniverseAnalytics,
+  UniverseRole,
   UserListItem,
   UserUniverseAccessItem,
-  UniverseRole,
   UUID,
 } from './types'
 
@@ -228,7 +230,6 @@ export const useUpdateSet = (id: UUID) => {
   return useMutation({
     mutationFn: (body: Record<string, unknown>) => api.patch<SetRead>(`/sets/${id}?universe_id=${body.universe_id}`, body),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['sets', id] })
       qc.invalidateQueries({ queryKey: ['sets'] })
       qc.invalidateQueries({ queryKey: ['alliances'] })
       qc.invalidateQueries({ queryKey: ['set-territory-polygons'] })
@@ -292,6 +293,59 @@ export const useAddSetRelationship = (setId: UUID, universeId: UUID) => {
       return { prev }
     },
     onError: (_e, _v, ctx: any) => { if (ctx?.prev) restoreSnapshot(qc, ctx.prev) },
+    onSettled: () => { qc.invalidateQueries({ queryKey: ['sets', setId] }) },
+  })
+}
+
+// ── Set lineage ───────────────────────────────────────────────────────────────
+//
+// Descent is separate from friend/enemy on purpose: the relationships table is
+// symmetric and cannot say which set came out of which. See the SetLineage model.
+
+export const useSetLineage = (setId: UUID | null, universeId: UUID | null, includeEnded = true) =>
+  useQuery({
+    queryKey: ['sets', setId, 'lineage', includeEnded],
+    enabled: !!setId && !!universeId,
+    staleTime: 30_000,
+    queryFn: () =>
+      api.get<SetLineageItem[]>(
+        `/sets/${setId}/lineage?universe_id=${universeId}&include_ended=${includeEnded}`,
+      ),
+  })
+
+export const useAddSetLineage = (setId: UUID, universeId: UUID) => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (body: {
+      other_id: UUID
+      kind: SetLineageKind
+      direction: 'parent' | 'child'
+      from_date?: unknown
+    }) => api.post<SetLineageItem>(`/sets/${setId}/lineage?universe_id=${universeId}`, body),
+    // No optimistic write: the server refuses an edge that would make a set its
+    // own ancestor, and painting one in before that answer comes back would show
+    // a link that is about to vanish.
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: ['sets', setId] })
+      qc.invalidateQueries({ queryKey: ['sets'] })
+    },
+  })
+}
+
+export const useEndSetLineage = (setId: UUID, universeId: UUID) => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ lineageId, until_date }: { lineageId: UUID; until_date?: unknown }) =>
+      api.post(`/sets/${setId}/lineage/${lineageId}/end?universe_id=${universeId}`, { until_date }),
+    onSettled: () => { qc.invalidateQueries({ queryKey: ['sets', setId] }) },
+  })
+}
+
+export const useDeleteSetLineage = (setId: UUID, universeId: UUID) => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (lineageId: UUID) =>
+      api.delete(`/sets/${setId}/lineage/${lineageId}?universe_id=${universeId}`),
     onSettled: () => { qc.invalidateQueries({ queryKey: ['sets', setId] }) },
   })
 }
@@ -375,7 +429,6 @@ export const useUpdateAlliance = (id: UUID, universeId: UUID) => {
   return useMutation({
     mutationFn: (body: Record<string, unknown>) => api.patch<AllianceRead>(`/alliances/${id}?universe_id=${universeId}`, body),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['alliances', id] })
       qc.invalidateQueries({ queryKey: ['alliances'] })
     },
   })
@@ -498,8 +551,7 @@ export const useCreateMember = () => {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: (body: Record<string, unknown>) => api.post<MemberRead>('/members/', body),
-    onSuccess: (data) => {
-      qc.invalidateQueries({ queryKey: ['members', data.universe_id] })
+    onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['members'] })
     },
   })
@@ -575,7 +627,6 @@ export const useReassignSetsToAlliance = (allianceId: UUID, universeId: UUID) =>
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['sets'] })
-      qc.invalidateQueries({ queryKey: ['alliances', allianceId] })
       qc.invalidateQueries({ queryKey: ['alliances'] })
     },
   })
@@ -586,7 +637,6 @@ export const useUpdateMember = (id: UUID, universeId: UUID) => {
   return useMutation({
     mutationFn: (body: Record<string, unknown>) => api.patch<MemberRead>(`/members/${id}?universe_id=${universeId}`, body),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['members', id] })
       qc.invalidateQueries({ queryKey: ['members'] })
     },
   })
@@ -613,7 +663,6 @@ export const useCreateMemberAlias = (memberId: UUID, universeId: UUID) => {
     mutationFn: (data: { alias: string; from_date?: unknown; until_date?: unknown; source_id?: string | null }) =>
       api.post<MemberAliasRead>(`/members/${memberId}/aliases?universe_id=${universeId}`, data),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['members', memberId, 'aliases'] })
       qc.invalidateQueries({ queryKey: ['members', memberId] })
     },
   })
@@ -625,7 +674,6 @@ export const useDeleteMemberAlias = (memberId: UUID, universeId: UUID) => {
     mutationFn: (aliasId: UUID) =>
       api.delete(`/members/${memberId}/aliases/${aliasId}?universe_id=${universeId}`),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['members', memberId, 'aliases'] })
       qc.invalidateQueries({ queryKey: ['members', memberId] })
     },
   })
@@ -644,7 +692,6 @@ export const useCreateMemberIncarceration = (memberId: UUID, universeId: UUID) =
     mutationFn: (data: { from_date?: unknown; to_date?: unknown; earliest_release_date?: unknown; max_discharge_date?: unknown; life_sentence?: boolean; facility?: string | null; case_id?: string | null; notes?: string | null }) =>
       api.post<MemberIncarcerationRead>(`/members/${memberId}/incarcerations?universe_id=${universeId}`, data),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['members', memberId, 'incarcerations'] })
       qc.invalidateQueries({ queryKey: ['members', memberId] })
     },
   })
@@ -656,7 +703,6 @@ export const useUpdateMemberIncarceration = (memberId: UUID, universeId: UUID) =
     mutationFn: ({ spellId, data }: { spellId: UUID; data: { from_date?: unknown; to_date?: unknown; earliest_release_date?: unknown; max_discharge_date?: unknown; life_sentence?: boolean; facility?: string | null; case_id?: string | null; notes?: string | null } }) =>
       api.patch<MemberIncarcerationRead>(`/members/${memberId}/incarcerations/${spellId}?universe_id=${universeId}`, data),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['members', memberId, 'incarcerations'] })
       qc.invalidateQueries({ queryKey: ['members', memberId] })
     },
   })
@@ -691,7 +737,6 @@ export const useDeleteMemberIncarceration = (memberId: UUID, universeId: UUID) =
     mutationFn: (spellId: UUID) =>
       api.delete(`/members/${memberId}/incarcerations/${spellId}?universe_id=${universeId}`),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['members', memberId, 'incarcerations'] })
       qc.invalidateQueries({ queryKey: ['members', memberId] })
     },
   })
@@ -838,7 +883,6 @@ export const useUpdateIncident = (id: UUID, universeId: UUID) => {
     mutationFn: (body: Record<string, unknown>) =>
       api.patch<IncidentRead>(`/incidents/${id}?universe_id=${universeId}`, body),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['incidents', id] })
       qc.invalidateQueries({ queryKey: ['incidents'] })
     },
   })
@@ -907,7 +951,6 @@ export const useUpdateSource = (id: UUID, universeId: UUID) => {
     mutationFn: (body: Record<string, unknown>) =>
       api.patch<SourceRead>(`/sources/${id}?universe_id=${universeId}`, body),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['sources', id] })
       qc.invalidateQueries({ queryKey: ['sources'] })
     },
   })
@@ -986,7 +1029,6 @@ export const useUpdateMunicipality = (id: UUID, universeId: UUID) => {
     mutationFn: (body: Record<string, unknown>) =>
       api.patch<MunicipalityRead>(`/municipalities/${id}?universe_id=${universeId}`, body),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['municipalities', id] })
       qc.invalidateQueries({ queryKey: ['municipalities'] })
     },
   })
@@ -1029,8 +1071,7 @@ export const useCreateResearchNote = () => {
   return useMutation({
     mutationFn: (body: { universe_id: UUID; title: string; content: string }) =>
       api.post<ResearchNoteRead>('/research/', body),
-    onSuccess: (data) => {
-      qc.invalidateQueries({ queryKey: ['research', data.universe_id] })
+    onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['research'] })
     },
   })
@@ -1042,7 +1083,6 @@ export const useUpdateResearchNote = (id: UUID, universeId: UUID) => {
     mutationFn: (body: { title?: string; content?: string }) =>
       api.patch<ResearchNoteRead>(`/research/${id}?universe_id=${universeId}`, body),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['research', id] })
       qc.invalidateQueries({ queryKey: ['research'] })
     },
   })

@@ -11,7 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { ReliabilityBadge } from '@/components/StatusBadge'
-import { useIncident, useAllMembers, useAllSources, useDeleteIncident, useMunicipality, useSets } from '@/lib/queries'
+import { useIncident, useAllMembers, useAllSources, useDeleteIncident, useMunicipality, useAllSets } from '@/lib/queries'
 import { primaryAffiliation, timeAgo } from '@/lib/utils'
 import { useUniverseStore } from '@/stores/universe'
 import { useAuthStore } from '@/stores/auth'
@@ -41,7 +41,7 @@ function IncidentDetailPage() {
   const { data: incident, isLoading, isError, refetch } = useIncident(id, universe?.id ?? null)
   const { data: allMembers } = useAllMembers(universe?.id ?? null)
   const { data: allSources } = useAllSources(universe?.id ?? null)
-  const { data: allSets } = useSets(universe?.id ?? null)
+  const { data: allSets } = useAllSets(universe?.id ?? null)
   const { data: municipality } = useMunicipality(
     incident?.municipality_id ?? '',
     incident?.municipality_id ? (universe?.id ?? null) : null,
