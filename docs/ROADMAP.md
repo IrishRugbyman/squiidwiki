@@ -1,6 +1,8 @@
-# SquiidWiki — Backlog
+# SquiidWiki - Roadmap
 
-Open items only. Implemented ideas are in git history.
+Forward-looking only: open items and future work. Nothing here is ticked.
+When something ships, remove its line from this file; what was built and why
+goes in `CHANGELOG.md`.
 
 ---
 
@@ -8,7 +10,6 @@ Open items only. Implemented ideas are in git history.
 
 *Schema changes that unlock multiple downstream features.*
 
-- [ ] **Set lineage / splinter relationships** — directional edge type on the existing set-relationship table (`SPLINTERED_FROM`, `MERGED_INTO`, `RENAMED_TO`). Sets are not static; the macro alliance graph misses this dimension.
 - [ ] **Conflict / beef entity** — a `Conflict` row (set_a, set_b, started_on, ended_on?, summary) that incidents can link to. Lets you tell the story rather than scroll an incident list.
 - [ ] **Court case entity** — links one or more incidents to charges, verdicts, sentence length. Many incidents map to one case (co-defendants); one incident can spawn many cases.
 - [ ] **Funeral / memorial events** — sub-type of incident. Frequent retaliation triggers and often the only public photo of a network in one place at one time.
@@ -35,6 +36,9 @@ Open items only. Implemented ideas are in git history.
 ---
 
 ## Content & editing
+
+- [ ] **Video links as first-class media**: a member's YouTube link currently survives only as a bare URL pasted into their biography, because `media` is images-only and sources do not render on member pages. Give members (and sets) a video section: store the URL on `media` with a `kind` for it, show a thumbnail grid that opens the video, and let a track carry a title and a channel. Once it exists, the bare URLs can come out of the biographies, where they break the rule that a biography says only what no column holds.
+- [ ] **Show a member's sources on their page**: `MemberReadDetail` returns `source_ids` and the member page renders none of them, so a citation attached to a member is invisible in the UI and only reachable through the sources list. Set and incident pages have the same gap. Blocks any cleanup that moves a URL out of prose into a source row.
 
 - [ ] **Per-fact citations** — let a sentence in a biography or incident narrative reference a specific source. Inline `[[source:123]]` markers rendered as superscript footnotes. Entity-scoped citations are fine for "this member exists" but useless for "this member fired the gun."
 - [ ] **Member merge** — when duplicate records exist, a merge dialog picks the canonical record and migrates all incident participations, family links, and source citations.
@@ -145,8 +149,7 @@ Open items only. Implemented ideas are in git history.
 
 - [ ] **Entity references in text** — auto-link `@MemberName` or `#SetName` in biographies and notes to their pages.
 - [ ] **Recent edits feed (global)** *(partial)* — per-set activity feed shipped. Remaining: a universe-wide dashboard widget aggregating latest changes across all entities.
-
-create a test db where you test alembic migration always before applying on prod, to verify it does not alter the data
+- [ ] **Migration dry-run against a throwaway DB**: always test an Alembic migration on a copy before it touches prod, and verify it does not alter existing data, not just that it applies.
 
 ---
 
