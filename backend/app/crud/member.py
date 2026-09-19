@@ -2,6 +2,7 @@ import uuid
 from datetime import UTC, datetime
 
 import sqlalchemy as sa
+from fastapi import HTTPException, status
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select
@@ -24,16 +25,22 @@ from app.schemas.member import (
     MemberUpdate,
 )
 
+# Gender-neutral on purpose: a `brother` role with no `sister`, and a `father`
+# with no `mother`, meant a sister was stored as her brother's brother and a
+# mother could not be stored at all. `uncle` and `nephew` stay as they are;
+# their neutral forms are awkward and nobody on file has needed them.
 INVERSE_REL: dict[str, str] = {
-    "father": "son",
-    "son": "father",
+    "parent": "child",
+    "child": "parent",
     "uncle": "nephew",
     "nephew": "uncle",
-    "brother": "brother",
+    "sibling": "sibling",
     "cousin": "cousin",
     "spouse": "spouse",
 }
-SINGLE_RELS = {"father"}
+# Roles stored as one id rather than a list. Empty since `parent` replaced
+# `father`: a member has up to two parents, and the clients cap it there.
+SINGLE_RELS: set[str] = set()
 
 
 def _family_ids(family: dict | None, rel: str) -> set[str]:
@@ -319,7 +326,39 @@ async def _attach_affiliations_bulk(session: AsyncSession, members: list[Member]
     return members
 
 
+async def _assert_bop_register_number_free(
+    session: AsyncSession,
+    universe_id: uuid.UUID,
+    number: str | None,
+    exclude_id: uuid.UUID | None = None,
+) -> None:
+    """Refuse a register number another member of the universe already holds.
+
+    The partial unique index enforces the same thing, but an IntegrityError at
+    commit surfaces as a 500 with the transaction half-applied; checking first
+    turns it into a 409 that names the member who has the number.
+
+    Raises:
+        HTTPException: 409 when another member in the universe holds `number`.
+    """
+    if number is None:
+        return
+    stmt = select(Member).where(
+        Member.universe_id == universe_id, Member.bop_register_number == number
+    )
+    if exclude_id is not None:
+        stmt = stmt.where(Member.id != exclude_id)
+    holder = (await session.execute(stmt)).scalars().first()
+    if holder is not None:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"BOP register number {number} already belongs to {holder.display_name} "
+            f"({holder.slug}); one register number is one person",
+        )
+
+
 async def create_member(session: AsyncSession, data: MemberCreate, actor_id: uuid.UUID) -> Member:
+    await _assert_bop_register_number_free(session, data.universe_id, data.bop_register_number)
     dump = data.model_dump(exclude={"source_ids", "affiliations", "dob", "date_of_death"})
     dump["dob"] = _fuzzy_to_dict(data.dob)
     dump["date_of_death"] = _fuzzy_to_dict(data.date_of_death)
@@ -424,6 +463,10 @@ async def update_member(
     if "date_of_death" in data.model_fields_set:
         dump["date_of_death"] = _fuzzy_to_dict(data.date_of_death)
     dump["updated_at"] = datetime.now(UTC)
+    if "bop_register_number" in data.model_fields_set:
+        await _assert_bop_register_number_free(
+            session, universe_id, data.bop_register_number, exclude_id=id
+        )
 
     nickname_changed = (
         "nickname" in data.model_fields_set or "nickname_unknown" in data.model_fields_set

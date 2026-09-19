@@ -23,6 +23,9 @@ from app.schemas.gang_set import (
     IncidentsPerYear,
     SetActivityEntry,
     SetCreate,
+    SetLineageCreate,
+    SetLineageEnd,
+    SetLineageItem,
     SetListItem,
     SetPolygonItem,
     SetRead,
@@ -60,6 +63,7 @@ def _to_list_item(obj) -> SetListItem:
         name=obj.name,
         slug=obj.slug,
         name_variants=obj.name_variants,
+        emojis=obj.emojis,
         status=obj.status,
         universe_id=obj.universe_id,
         alliance_id=obj.alliance_id,
@@ -335,6 +339,7 @@ async def get_set(
         territory_ids=territory_ids,
         friend_ids=friend_ids,
         enemy_ids=enemy_ids,
+        lineage=await crud.list_set_lineage(session, obj.id),
     )
 
 
@@ -382,7 +387,11 @@ async def add_relationship(
     friend_ids, enemy_ids = await crud.list_set_relationships(session, id, universe_id)
     base = SetRead.model_validate(obj)
     return SetReadDetail(
-        **base.model_dump(), territory_ids=territory_ids, friend_ids=friend_ids, enemy_ids=enemy_ids
+        **base.model_dump(),
+        territory_ids=territory_ids,
+        friend_ids=friend_ids,
+        enemy_ids=enemy_ids,
+        lineage=await crud.list_set_lineage(session, obj.id),
     )
 
 
@@ -460,3 +469,79 @@ async def get_set_stats_endpoint(
         raise HTTPException(404)
     stats = await get_set_stats(session, id)
     return SetStats(**stats)
+
+
+@router.post("/{id}/lineage", response_model=SetLineageItem, status_code=201)
+async def add_lineage(
+    id: uuid.UUID,
+    universe_id: uuid.UUID,
+    data: SetLineageCreate,
+    _: CurrentUser,
+    session: Annotated[AsyncSession, Depends(get_session)],
+):
+    """Record that this set came out of another, or the other way round.
+
+    `direction` is from this set's point of view: "parent" means the other set
+    is the one this set came out of. Refuses an edge that would make a set its
+    own ancestor.
+    """
+    obj = await crud.get_gang_set(session, id, universe_id)
+    if obj is None:
+        raise HTTPException(404)
+    row = await crud.add_set_lineage(session, id, data, universe_id)
+    for item in await crud.list_set_lineage(session, id):
+        if item["id"] == row.id:
+            return item
+    raise HTTPException(500, detail="lineage row vanished after write")
+
+
+@router.get("/{id}/lineage", response_model=list[SetLineageItem])
+async def get_lineage(
+    id: uuid.UUID,
+    universe_id: uuid.UUID,
+    _: CurrentUser,
+    session: Annotated[AsyncSession, Depends(get_session)],
+    include_ended: bool = True,
+):
+    """Every descent edge touching this set, current first."""
+    obj = await crud.get_gang_set(session, id, universe_id)
+    if obj is None:
+        raise HTTPException(404)
+    return await crud.list_set_lineage(session, id, include_ended=include_ended)
+
+
+@router.post("/{id}/lineage/{lineage_id}/end", status_code=204)
+async def end_lineage(
+    id: uuid.UUID,
+    lineage_id: uuid.UUID,
+    universe_id: uuid.UUID,
+    data: SetLineageEnd,
+    _: CurrentUser,
+    session: Annotated[AsyncSession, Depends(get_session)],
+):
+    """Record that the descent link stopped applying, keeping it as history."""
+    obj = await crud.get_gang_set(session, id, universe_id)
+    if obj is None:
+        raise HTTPException(404)
+    ok = await crud.end_set_lineage(
+        session, id, lineage_id, data.until_date.model_dump() if data.until_date else None
+    )
+    if not ok:
+        raise HTTPException(404, detail="No open lineage link with that id for this set")
+
+
+@router.delete("/{id}/lineage/{lineage_id}", status_code=204)
+async def remove_lineage(
+    id: uuid.UUID,
+    lineage_id: uuid.UUID,
+    universe_id: uuid.UUID,
+    _: CurrentUser,
+    session: Annotated[AsyncSession, Depends(get_session)],
+):
+    """Delete a descent row entered in error. Use /end when the link really ended."""
+    obj = await crud.get_gang_set(session, id, universe_id)
+    if obj is None:
+        raise HTTPException(404)
+    ok = await crud.delete_set_lineage(session, id, lineage_id)
+    if not ok:
+        raise HTTPException(404)

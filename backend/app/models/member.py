@@ -92,7 +92,22 @@ class MemberIncarceration(SQLModel, table=True):
 
 class Member(SQLModel, table=True):
     __tablename__ = "member"
-    __table_args__ = (sa.Index("uq_member_universe_slug", "universe_id", "slug", unique=True),)
+    __table_args__ = (
+        sa.Index("uq_member_universe_slug", "universe_id", "slug", unique=True),
+        # One register number is one person inside a universe: the BOP assigns it
+        # once for life. Partial, so the many members without one never collide.
+        sa.Index(
+            "uq_member_universe_bop_register_number",
+            "universe_id",
+            "bop_register_number",
+            unique=True,
+            postgresql_where=sa.text("bop_register_number IS NOT NULL"),
+        ),
+        sa.CheckConstraint(
+            "bop_register_number ~ '^[0-9]{5}-[0-9]{3}$'",
+            name="ck_member_bop_register_number_format",
+        ),
+    )
 
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
     universe_id: uuid.UUID = Field(foreign_key="universe.id", index=True)
@@ -108,12 +123,27 @@ class Member(SQLModel, table=True):
     # and resentencing - instead of every lookup starting from a name search.
     # Not unique: OTIS is the authority on collisions, not this table.
     mdoc_number: str | None = Field(default=None, index=True)
+    # Federal Bureau of Prisons register number, NNNNN-NNN: the federal twin of
+    # mdoc_number. Unlike an MDOC number it is unique here (see __table_args__),
+    # because the BOP never reuses one and the locator answers by it directly,
+    # with no tunnel. The last three digits are the committing district
+    # (039 is the Eastern District of Michigan). Stored normalised by
+    # `app.schemas.member.normalise_bop_register_number`.
+    bop_register_number: str | None = Field(default=None)
 
     # Rapping is an attribute of the person, not a circumstance, so it is a column
     # and never a biography sentence (see the bio rule in CLAUDE.md).
     is_rapper: bool = Field(
         default=False,
         sa_column=Column("is_rapper", sa.Boolean, nullable=False, server_default="false"),
+    )
+
+    # Same reasoning as is_rapper: whether someone has cooperated with authorities
+    # is an attribute of the person, not a circumstance, so it is a column and
+    # never a biography sentence.
+    is_snitch: bool = Field(
+        default=False,
+        sa_column=Column("is_snitch", sa.Boolean, nullable=False, server_default="false"),
     )
 
     biography: str = ""

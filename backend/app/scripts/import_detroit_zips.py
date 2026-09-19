@@ -1,7 +1,7 @@
 """Import Detroit ZIP-code areas as child municipalities of Detroit.
 
 Source: City of Detroit Zip Code Tabulation Areas (ZCTA) — 34 features.
-Each feature -> a child municipality of "Detroit" in the metro-detroit universe,
+Each feature -> a child municipality of "Detroit" in the michigan universe (Metro Detroit until 2026-09-16),
 named with the bare ZIP (e.g. "48201").
 
 Idempotent: skips features whose name (zipcode) + parent_id already exist.
@@ -9,6 +9,7 @@ Idempotent: skips features whose name (zipcode) + parent_id already exist.
 Run from backend/:
   $PY -m app.scripts.import_detroit_zips
 """
+
 import asyncio
 import json
 import sys
@@ -20,7 +21,7 @@ from sqlalchemy import text
 from app.core.database import _session_factories
 
 GEOJSON_PATH = Path(__file__).resolve().parent / "data" / "detroit_zip_codes.geojson"
-UNIVERSE_SLUG = "metro-detroit"
+UNIVERSE_SLUG = "michigan"
 PARENT_NAME = "Detroit"
 
 
@@ -34,22 +35,26 @@ async def main() -> int:
     print(f"Loaded {len(features)} features from {GEOJSON_PATH.name}")
 
     async with _session_factories["prod"]() as s:
-        univ_row = (await s.execute(
-            text("SELECT id FROM universe WHERE slug = :slug"),
-            {"slug": UNIVERSE_SLUG},
-        )).first()
+        univ_row = (
+            await s.execute(
+                text("SELECT id FROM universe WHERE slug = :slug"),
+                {"slug": UNIVERSE_SLUG},
+            )
+        ).first()
         if univ_row is None:
             print(f"Universe '{UNIVERSE_SLUG}' not found.", file=sys.stderr)
             return 1
         universe_id: uuid.UUID = univ_row[0]
 
-        parent_row = (await s.execute(
-            text(
-                "SELECT id FROM municipality "
-                "WHERE universe_id = :uid AND name = :name AND parent_id IS NULL"
-            ),
-            {"uid": str(universe_id), "name": PARENT_NAME},
-        )).first()
+        parent_row = (
+            await s.execute(
+                text(
+                    "SELECT id FROM municipality "
+                    "WHERE universe_id = :uid AND name = :name AND parent_id IS NULL"
+                ),
+                {"uid": str(universe_id), "name": PARENT_NAME},
+            )
+        ).first()
         if parent_row is None:
             print(
                 f"Parent municipality '{PARENT_NAME}' not found in universe '{UNIVERSE_SLUG}'.",
@@ -60,13 +65,15 @@ async def main() -> int:
 
         existing_names = {
             r[0]
-            for r in (await s.execute(
-                text(
-                    "SELECT name FROM municipality "
-                    "WHERE universe_id = :uid AND parent_id = :pid"
-                ),
-                {"uid": str(universe_id), "pid": str(parent_id)},
-            )).all()
+            for r in (
+                await s.execute(
+                    text(
+                        "SELECT name FROM municipality "
+                        "WHERE universe_id = :uid AND parent_id = :pid"
+                    ),
+                    {"uid": str(universe_id), "pid": str(parent_id)},
+                )
+            ).all()
         }
 
         inserted = 0

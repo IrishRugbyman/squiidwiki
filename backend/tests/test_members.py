@@ -331,3 +331,142 @@ async def test_member_without_an_mdoc_number_still_reads(
     )
     assert fetched.status_code == 200
     assert fetched.json()["mdoc_number"] is None
+
+
+async def test_bop_register_number_is_normalised_and_round_trips(
+    client: AsyncClient, db_session: AsyncSession
+):
+    """A register number keeps the BOP's own NNNNN-NNN shape whatever was typed.
+
+    Written with and without the hyphen, and with stray spaces, it has to land as
+    the one spelling the locator answers to, or a lookup by number misses and a
+    duplicate check compares two spellings of the same man.
+    """
+    token = await _admin_token(client, db_session)
+    universe_id = await _make_universe(client, token)
+    auth = {"Authorization": f"Bearer {token}"}
+
+    created = await client.post(
+        "/api/v1/members/",
+        json={
+            "universe_id": universe_id,
+            "nickname": "Federal",
+            "bop_register_number": " 12345000 ",
+        },
+        headers=auth,
+    )
+    assert created.status_code == 201, created.text
+    assert created.json()["bop_register_number"] == "12345-000"
+
+    fetched = await client.get(
+        f"/api/v1/members/{created.json()['id']}?universe_id={universe_id}", headers=auth
+    )
+    assert fetched.json()["bop_register_number"] == "12345-000"
+
+
+async def test_bop_register_number_rejects_what_is_not_one(
+    client: AsyncClient, db_session: AsyncSession
+):
+    """An MDOC number or a docket number in this field is refused, not stored.
+
+    Both have been misfiled as register numbers before (a docket in `case_id`, a
+    register number in notes); a malformed value here would pass for a key.
+    """
+    token = await _admin_token(client, db_session)
+    universe_id = await _make_universe(client, token)
+    auth = {"Authorization": f"Bearer {token}"}
+    for bad in ("123456", "2:00-cr-00000", "12345-00", "1234-5000"):
+        r = await client.post(
+            "/api/v1/members/",
+            json={"universe_id": universe_id, "nickname": f"Bad {bad}", "bop_register_number": bad},
+            headers=auth,
+        )
+        assert r.status_code == 422, (bad, r.status_code, r.text)
+
+
+async def test_bop_register_number_is_unique_within_a_universe_only(
+    client: AsyncClient, db_session: AsyncSession
+):
+    """One register number is one person: a second row with it is a duplicate.
+
+    The BOP assigns the number once for life, so two members of one universe
+    holding it are the same man entered twice. A different universe is a
+    different namespace and may legitimately hold its own row for him.
+    """
+    token = await _admin_token(client, db_session)
+    auth = {"Authorization": f"Bearer {token}"}
+    universe_a = await _make_universe(client, token)
+    universe_b = await _make_universe(client, token)
+
+    first = await client.post(
+        "/api/v1/members/",
+        json={"universe_id": universe_a, "nickname": "Once", "bop_register_number": "12346-000"},
+        headers=auth,
+    )
+    assert first.status_code == 201, first.text
+
+    again = await client.post(
+        "/api/v1/members/",
+        json={"universe_id": universe_a, "nickname": "Twice", "bop_register_number": "12346-000"},
+        headers=auth,
+    )
+    assert again.status_code == 409, again.text
+
+    other = await client.post(
+        "/api/v1/members/",
+        json={
+            "universe_id": universe_b,
+            "nickname": "Elsewhere",
+            "bop_register_number": "12346-000",
+        },
+        headers=auth,
+    )
+    assert other.status_code == 201, other.text
+
+    # Moving an existing member onto a number another member holds is the same
+    # duplicate by another route.
+    third = (
+        await client.post(
+            "/api/v1/members/",
+            json={"universe_id": universe_a, "nickname": "Third"},
+            headers=auth,
+        )
+    ).json()
+    moved = await client.patch(
+        f"/api/v1/members/{third['id']}?universe_id={universe_a}",
+        json={"bop_register_number": "12346000"},
+        headers=auth,
+    )
+    assert moved.status_code == 409, moved.text
+
+
+async def test_bop_register_number_can_be_cleared(client: AsyncClient, db_session: AsyncSession):
+    """An empty string clears the number, as the member form sends when emptied."""
+    token = await _admin_token(client, db_session)
+    universe_id = await _make_universe(client, token)
+    auth = {"Authorization": f"Bearer {token}"}
+    created = (
+        await client.post(
+            "/api/v1/members/",
+            json={
+                "universe_id": universe_id,
+                "nickname": "Cleared",
+                "bop_register_number": "12347-000",
+            },
+            headers=auth,
+        )
+    ).json()
+    patched = await client.patch(
+        f"/api/v1/members/{created['id']}?universe_id={universe_id}",
+        json={"bop_register_number": ""},
+        headers=auth,
+    )
+    assert patched.status_code == 200, patched.text
+    assert patched.json()["bop_register_number"] is None
+    # The same member may now take the number back without tripping the check.
+    back = await client.patch(
+        f"/api/v1/members/{created['id']}?universe_id={universe_id}",
+        json={"bop_register_number": "12347-000"},
+        headers=auth,
+    )
+    assert back.status_code == 200, back.text

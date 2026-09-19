@@ -87,6 +87,25 @@ class SetRelationshipType(str, Enum):
     ENEMY = "ENEMY"
 
 
+class SetLineageKind(str, Enum):
+    """How a child set came out of a parent set.
+
+    Every kind reads in one direction, **child KIND parent**, so a row is
+    unambiguous without knowing which column it came from: "Set B
+    SPLINTERED_FROM Set A". Mixing readings inside one enum is what makes
+    directional edges get stored backwards.
+
+    MERGED_FROM is the one that reads the other way round in ordinary speech
+    ("the old set merged into the new one"). It is named for the child here on
+    purpose, to keep the single reading rule intact.
+    """
+
+    SPLINTERED_FROM = "SPLINTERED_FROM"
+    RENAMED_FROM = "RENAMED_FROM"
+    MERGED_FROM = "MERGED_FROM"
+    YOUNGER_GENERATION_OF = "YOUNGER_GENERATION_OF"
+
+
 class BusinessType(str, Enum):
     GAMING = "GAMING"
     NIGHTLIFE = "NIGHTLIFE"

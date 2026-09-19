@@ -6,7 +6,7 @@ from sqlalchemy import CheckConstraint, Column, DateTime
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlmodel import Field, SQLModel
 
-from app.core.enums import SetRelationshipType, SetStatus
+from app.core.enums import SetLineageKind, SetRelationshipType, SetStatus
 
 
 # M2M join tables
@@ -57,6 +57,45 @@ class SetRelationship(SQLModel, table=True):
     until_date: dict | None = Field(default=None, sa_column=Column(JSONB(none_as_null=True)))
 
 
+class SetLineage(SQLModel, table=True):
+    """Directional descent between two sets: which one came out of which.
+
+    Deliberately **not** in `set_relationships`. That table is symmetric by
+    construction - a `set_a_id < set_b_id` CHECK plus a trigger, so the
+    endpoints are stored in UUID order - which means it cannot say which of the
+    pair is the parent. Its partial unique index also allows only one current
+    row per pair, and a splinter set at war with the set it left needs both
+    facts recorded at once. So lineage gets its own table, and a pair may hold
+    a lineage row and an ENEMY row simultaneously.
+
+    `kind` reads **child KIND parent** (see `SetLineageKind`).
+
+    Like a relationship, descent is a spell: `until_date` closes it rather than
+    deleting the row, because "this set was a chapter of that one until 2015" is
+    a fact worth keeping once it stops being true.
+    """
+
+    __tablename__ = "set_lineage"
+    __table_args__ = (
+        CheckConstraint("parent_id <> child_id", name="ck_set_lineage_no_self"),
+        sa.Index(
+            "uq_set_lineage_current",
+            "parent_id",
+            "child_id",
+            unique=True,
+            postgresql_where=sa.text("until_date IS NULL"),
+        ),
+    )
+
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    parent_id: uuid.UUID = Field(foreign_key="sets.id", index=True)
+    child_id: uuid.UUID = Field(foreign_key="sets.id", index=True)
+    kind: SetLineageKind
+    # none_as_null is load-bearing: see the note on MemberSet.until_date.
+    from_date: dict | None = Field(default=None, sa_column=Column(JSONB(none_as_null=True)))
+    until_date: dict | None = Field(default=None, sa_column=Column(JSONB(none_as_null=True)))
+
+
 class GangSet(SQLModel, table=True):
     __tablename__ = "sets"
     __table_args__ = (sa.Index("uq_sets_universe_slug", "universe_id", "slug", unique=True),)
@@ -68,6 +107,14 @@ class GangSet(SQLModel, table=True):
     # Replaces the prior flat `aliases: list[str]`. Each entry is a triplet
     # encoding one variant of the set's name; exactly one entry is primary.
     name_variants: list | None = Field(default=None, sa_column=Column(JSONB))
+    # Plain list of emoji, e.g. ["\U0001f535", "\U0001f54a\ufe0f"]. First is the badge shown
+    # wherever the set is listed; the rest are the other glyphs the set is known
+    # by. Members signal affiliation with these in bios and display names, so the
+    # list is what makes an emoji in a handle resolvable back to a set.
+    # none_as_null is load-bearing, same as on the FuzzyDate columns above:
+    # without it, clearing the field stores the JSON scalar `null` rather than
+    # SQL NULL, and `emojis IS NULL` then misses every set that was cleared.
+    emojis: list | None = Field(default=None, sa_column=Column(JSONB(none_as_null=True)))
     bio: str | None = None
     status: SetStatus = SetStatus.ACTIVE
     gang_id: uuid.UUID | None = Field(default=None, foreign_key="gang.id", index=True)

@@ -4,7 +4,7 @@ from typing import Any, Literal, Optional
 
 from pydantic import BaseModel, model_validator
 
-from app.core.enums import SetRelationshipType, SetStatus
+from app.core.enums import SetLineageKind, SetRelationshipType, SetStatus
 from app.schemas.common import FuzzyDateField
 
 
@@ -25,6 +25,40 @@ class NameVariant(BaseModel):
             # Fall back silently if lead points to an empty slot.
             self.lead = None
         return self
+
+
+MAX_EMOJIS = 12
+MAX_EMOJI_LENGTH = 16
+
+
+def _normalize_emojis(emojis: Optional[list[str]]) -> Optional[list[str]]:
+    """Trim, drop blanks, de-duplicate, and reject anything that is not a glyph.
+
+    Order is meaningful - the first entry is the badge - so de-duplication keeps
+    first occurrence rather than sorting.
+
+    The "not a glyph" test is that an entry cannot be *entirely* ASCII. A real
+    emoji never is, even the keycaps (`1\ufe0f\u20e3` is an ASCII digit plus two
+    non-ASCII code points), while `BO` or `752` is, and those belong in
+    `name_variants` where they are searchable as names. Anything looser and this
+    column quietly becomes a second alias field.
+    """
+    if emojis is None:
+        return None
+    out: list[str] = []
+    for raw in emojis:
+        e = (raw or "").strip()
+        if not e:
+            continue
+        if len(e) > MAX_EMOJI_LENGTH:
+            raise ValueError(f"emoji entry too long (max {MAX_EMOJI_LENGTH} characters): {e!r}")
+        if all(ord(c) < 128 for c in e):
+            raise ValueError(f"not an emoji: {e!r} - plain text belongs in name_variants")
+        if e not in out:
+            out.append(e)
+    if len(out) > MAX_EMOJIS:
+        raise ValueError(f"at most {MAX_EMOJIS} emojis per set (got {len(out)})")
+    return out or None
 
 
 def _normalize_variants(variants: Optional[list[NameVariant]]) -> Optional[list[NameVariant]]:
@@ -96,6 +130,7 @@ class SetCreate(BaseModel):
     universe_id: uuid.UUID
     name: str
     name_variants: Optional[list[NameVariant]] = None
+    emojis: Optional[list[str]] = None
     bio: Optional[str] = None
     status: SetStatus = SetStatus.ACTIVE
     alliance_id: Optional[uuid.UUID] = None
@@ -110,12 +145,14 @@ class SetCreate(BaseModel):
     @model_validator(mode="after")
     def _normalize(self):
         self.name_variants = _normalize_variants(self.name_variants)
+        self.emojis = _normalize_emojis(self.emojis)
         return self
 
 
 class SetUpdate(BaseModel):
     name: Optional[str] = None
     name_variants: Optional[list[NameVariant]] = None
+    emojis: Optional[list[str]] = None
     bio: Optional[str] = None
     status: Optional[SetStatus] = None
     alliance_id: Optional[uuid.UUID] = None
@@ -136,6 +173,8 @@ class SetUpdate(BaseModel):
         fields_set = self.model_fields_set
         if "name_variants" in fields_set:
             self.name_variants = _normalize_variants(self.name_variants)
+        if "emojis" in fields_set:
+            self.emojis = _normalize_emojis(self.emojis)
         if "territory_polygon" in fields_set:
             self.territory_polygon = _validate_polygon(self.territory_polygon)
         if "territory_point" in fields_set:
@@ -151,6 +190,7 @@ class SetRead(BaseModel):
     name: str
     slug: Optional[str]
     name_variants: Optional[list[NameVariant]]
+    emojis: Optional[list[str]] = None
     bio: Optional[str]
     status: SetStatus
     alliance_id: Optional[uuid.UUID]
@@ -170,6 +210,7 @@ class SetReadDetail(SetRead):
     territory_ids: list[uuid.UUID]
     friend_ids: list[uuid.UUID]
     enemy_ids: list[uuid.UUID]
+    lineage: list["SetLineageItem"] = []
 
 
 class SetPolygonItem(BaseModel):
@@ -197,6 +238,7 @@ class SetListItem(BaseModel):
     name: str
     slug: Optional[str]
     name_variants: Optional[list[NameVariant]]
+    emojis: Optional[list[str]] = None
     status: SetStatus
     universe_id: uuid.UUID
     alliance_id: Optional[uuid.UUID]
@@ -235,6 +277,39 @@ class SetRelationshipHistoryItem(BaseModel):
     other_name: str
     other_slug: Optional[str] = None
     type: SetRelationshipType
+    from_date: Optional[dict[str, Any]] = None
+    until_date: Optional[dict[str, Any]] = None
+    is_current: bool
+
+
+class SetLineageCreate(BaseModel):
+    """Open a descent spell between this set and another.
+
+    `direction` says which side of the edge the *other* set is on, so the same
+    form works from either set's page: "parent" means the other set is the one
+    this set came out of.
+    """
+
+    other_id: uuid.UUID
+    kind: SetLineageKind
+    direction: Literal["parent", "child"]
+    from_date: FuzzyDateField = None
+
+
+class SetLineageEnd(BaseModel):
+    until_date: FuzzyDateField = None
+
+
+class SetLineageItem(BaseModel):
+    model_config = {"from_attributes": True}
+
+    id: uuid.UUID
+    kind: SetLineageKind
+    # Where the *other* set sits relative to the set being viewed.
+    direction: Literal["parent", "child"]
+    other_id: uuid.UUID
+    other_name: str
+    other_slug: Optional[str] = None
     from_date: Optional[dict[str, Any]] = None
     until_date: Optional[dict[str, Any]] = None
     is_current: bool

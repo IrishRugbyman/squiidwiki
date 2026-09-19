@@ -1,3 +1,4 @@
+import json
 import uuid
 from datetime import UTC, datetime
 from typing import Literal
@@ -13,10 +14,10 @@ from app.core.fuzzy_date import FuzzyDate
 from app.core.slug import slugify
 from app.models.alliance import Alliance
 from app.models.gang import Gang
-from app.models.gang_set import GangSet, SetMunicipality, SetRelationship
+from app.models.gang_set import GangSet, SetLineage, SetMunicipality, SetRelationship
 from app.models.member import Member, MemberSet
 from app.models.municipality import Municipality
-from app.schemas.gang_set import SetCreate, SetUpdate
+from app.schemas.gang_set import SetCreate, SetLineageCreate, SetUpdate
 
 SortKey = Literal["name", "status", "member_count", "updated_at", "created_at"]
 SortOrder = Literal["asc", "desc"]
@@ -371,6 +372,8 @@ async def update_gang_set(
         setattr(obj, k, v)
     # SQLModel/SQLAlchemy doesn't auto-detect mutations on JSONB dicts assigned
     # via setattr; flag_modified ensures a polygon update actually gets flushed.
+    if "emojis" in dump:
+        sa.orm.attributes.flag_modified(obj, "emojis")
     if "territory_polygon" in dump:
         sa.orm.attributes.flag_modified(obj, "territory_polygon")
     if "territory_point" in dump:
@@ -916,3 +919,217 @@ async def search_gang_sets(session: AsyncSession, universe_id: uuid.UUID, q: str
         )
     )
     return result.scalars().all()
+
+
+# ── Set lineage ───────────────────────────────────────────────────────────────
+#
+# Directional descent, kept out of set_relationships for the reasons on the
+# SetLineage model. Everything here works on *current* rows (until_date IS NULL)
+# unless it says otherwise; closed rows are history and are never rewritten.
+
+
+async def _lineage_would_cycle(
+    session: AsyncSession, parent_id: uuid.UUID, child_id: uuid.UUID
+) -> bool:
+    """True if making `parent_id` the parent of `child_id` closes a loop.
+
+    Walks the current lineage upward from `parent_id`: if `child_id` is already
+    an ancestor, the new edge would make each set its own ancestor. A recursive
+    CTE does the walk in one round trip and terminates on cycles that somehow
+    already exist, because UNION (not UNION ALL) drops nodes it has seen.
+
+    Self-parenting is caught by the ck_set_lineage_no_self CHECK, but is tested
+    here too so the caller gets a 409 with a sentence rather than a 500 from the
+    constraint.
+    """
+    if parent_id == child_id:
+        return True
+    rows = await session.execute(
+        sa.text("""
+            WITH RECURSIVE ancestors(id) AS (
+                SELECT parent_id FROM set_lineage
+                 WHERE child_id = :parent_id AND until_date IS NULL
+                UNION
+                SELECT l.parent_id FROM set_lineage l
+                  JOIN ancestors a ON l.child_id = a.id
+                 WHERE l.until_date IS NULL
+            )
+            SELECT 1 FROM ancestors WHERE id = :child_id LIMIT 1
+        """),
+        {"parent_id": str(parent_id), "child_id": str(child_id)},
+    )
+    return rows.first() is not None
+
+
+async def add_set_lineage(
+    session: AsyncSession, set_id: uuid.UUID, data: SetLineageCreate, universe_id: uuid.UUID
+) -> SetLineage:
+    """Open a descent spell between `set_id` and `data.other_id`.
+
+    `direction` is read from the viewed set's point of view: "parent" means the
+    other set is the one this set came out of. Both sets must be in the same
+    universe - lineage across universes would be a data-entry slip, not a claim
+    anyone means to make.
+    """
+    other = await get_gang_set(session, data.other_id, universe_id)
+    if other is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Other set not found in this universe"
+        )
+    if data.direction == "parent":
+        parent_id, child_id = data.other_id, set_id
+    else:
+        parent_id, child_id = set_id, data.other_id
+
+    if await _lineage_would_cycle(session, parent_id, child_id):
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="That would make a set its own ancestor",
+        )
+
+    existing = (
+        await session.execute(
+            select(SetLineage).where(
+                SetLineage.parent_id == parent_id,
+                SetLineage.child_id == child_id,
+                SetLineage.until_date.is_(None),
+            )
+        )
+    ).scalar_one_or_none()
+    if existing is not None:
+        if existing.kind != data.kind:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="These sets already have an open lineage link of a different kind",
+            )
+        return existing
+
+    row = SetLineage(
+        parent_id=parent_id,
+        child_id=child_id,
+        kind=data.kind,
+        # Plain JSONB, not the FuzzyDate TypeDecorator, so dump it here the way
+        # add_set_relationship does.
+        from_date=data.from_date.model_dump() if data.from_date else None,
+    )
+    session.add(row)
+    await session.commit()
+    await session.refresh(row)
+    return row
+
+
+async def list_set_lineage(
+    session: AsyncSession, set_id: uuid.UUID, include_ended: bool = True
+) -> list[dict]:
+    """Every descent edge touching this set, current first.
+
+    Returned from the viewed set's point of view: `direction` says where the
+    *other* set sits, so the caller never has to work out which column it came
+    from.
+    """
+    parent_side = sa.orm.aliased(GangSet)
+    child_side = sa.orm.aliased(GangSet)
+    stmt = (
+        select(
+            SetLineage.id,
+            SetLineage.parent_id,
+            SetLineage.child_id,
+            SetLineage.kind,
+            SetLineage.from_date,
+            SetLineage.until_date,
+            parent_side.name.label("parent_name"),
+            parent_side.slug.label("parent_slug"),
+            child_side.name.label("child_name"),
+            child_side.slug.label("child_slug"),
+        )
+        .join(parent_side, parent_side.id == SetLineage.parent_id)
+        .join(child_side, child_side.id == SetLineage.child_id)
+        .where((SetLineage.parent_id == set_id) | (SetLineage.child_id == set_id))
+        .order_by(SetLineage.until_date.is_(None).desc(), SetLineage.id)
+    )
+    if not include_ended:
+        stmt = stmt.where(SetLineage.until_date.is_(None))
+
+    out = []
+    for r in (await session.execute(stmt)).all():
+        other_is_parent = r.child_id == set_id
+        out.append(
+            {
+                "id": r.id,
+                "kind": r.kind,
+                "direction": "parent" if other_is_parent else "child",
+                "other_id": r.parent_id if other_is_parent else r.child_id,
+                "other_name": r.parent_name if other_is_parent else r.child_name,
+                "other_slug": r.parent_slug if other_is_parent else r.child_slug,
+                "from_date": r.from_date,
+                "until_date": r.until_date,
+                "is_current": r.until_date is None,
+            }
+        )
+    return out
+
+
+async def end_set_lineage(
+    session: AsyncSession, set_id: uuid.UUID, lineage_id: uuid.UUID, until_date: dict | None
+) -> bool:
+    """Close an open descent spell, keeping it as history.
+
+    Only open rows can be closed, matching end_set_relationship: re-closing a
+    closed one would rewrite the record rather than state that it ended.
+    """
+    row = (
+        await session.execute(
+            select(SetLineage).where(
+                SetLineage.id == lineage_id,
+                (SetLineage.parent_id == set_id) | (SetLineage.child_id == set_id),
+                SetLineage.until_date.is_(None),
+            )
+        )
+    ).scalar_one_or_none()
+    if row is None:
+        return False
+    row.until_date = until_date
+    await session.commit()
+    return True
+
+
+async def delete_set_lineage(
+    session: AsyncSession, set_id: uuid.UUID, lineage_id: uuid.UUID
+) -> bool:
+    """Remove a descent row outright, for when it was entered in error.
+
+    Ending is the right move when the link really stopped; this is for typos.
+    """
+    row = (
+        await session.execute(
+            select(SetLineage).where(
+                SetLineage.id == lineage_id,
+                (SetLineage.parent_id == set_id) | (SetLineage.child_id == set_id),
+            )
+        )
+    ).scalar_one_or_none()
+    if row is None:
+        return False
+    await session.delete(row)
+    await session.commit()
+    return True
+
+
+async def sets_by_emoji(session: AsyncSession, universe_id: uuid.UUID, emoji: str) -> list[GangSet]:
+    """Every set that claims this emoji, in any position.
+
+    The research direction: a glyph seen in a handle or bio, resolved back to
+    the sets that use it. Several sets can share one, so this returns a list and
+    the caller decides.
+    """
+    stmt = (
+        select(GangSet)
+        .where(
+            GangSet.universe_id == universe_id,
+            sa.text("sets.emojis @> :needle").bindparams(
+                sa.bindparam("needle", value=json.dumps([emoji]), type_=sa.Text)
+            ),
+        )
+        .order_by(GangSet.name)
+    )
+    return list((await session.execute(stmt)).scalars().all())

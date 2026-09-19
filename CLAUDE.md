@@ -184,7 +184,7 @@ Nothing here depends on it, but it depends on this, in two different ways:
   2026-08-29 the supported write path is the `wiki` CLI at `research/tools/wiki`,
   whose `wikilib` package owns one identity resolver per entity type. If you rename
   a column it reads (`member.aliases`, `member.slug`, `member.mdoc_number`,
-  `member.status`) or change what `PATCH /members/{id}` returns, fix
+  `member.bop_register_number`, `member.status`) or change what `PATCH /members/{id}` returns, fix
   `research/tools/wikilib/api.py` in the same change: it is the one module that
   knows this schema, and its 91-test suite runs in under a second;
 - `research/corsica/tools/` (ten seeders that used to be `backend/app/scripts/seed_corsica*.py`,

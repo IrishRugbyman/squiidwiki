@@ -1,11 +1,38 @@
+import re
 import uuid
 from datetime import datetime
-from typing import Any, Optional
+from typing import Annotated, Any, Optional
 
-from pydantic import BaseModel, computed_field, model_validator
+from pydantic import AfterValidator, BaseModel, computed_field, model_validator
 
 from app.core.enums import MemberStatus, SetRank
 from app.schemas.common import FuzzyDateField
+
+_BOP_REGISTER_NUMBER = re.compile(r"^(\d{5})-?(\d{3})$")
+
+
+def normalise_bop_register_number(value: str | None) -> str | None:
+    """A BOP register number in the locator's own `NNNNN-NNN` spelling, or None.
+
+    Accepts the hyphen or not and stray whitespace, and turns an empty string
+    into None so the member form can clear the field. Anything else is refused:
+    an MDOC number or a docket pasted here would otherwise pass for a key.
+
+    Raises:
+        ValueError: If the value is not five digits and three digits.
+    """
+    if value is None:
+        return None
+    value = value.strip()
+    if not value:
+        return None
+    match = _BOP_REGISTER_NUMBER.match(value)
+    if match is None:
+        raise ValueError("a BOP register number is five digits, a hyphen and three digits")
+    return f"{match.group(1)}-{match.group(2)}"
+
+
+BopRegisterNumber = Annotated[Optional[str], AfterValidator(normalise_bop_register_number)]
 
 
 class MemberSetAffiliationIn(BaseModel):
@@ -47,8 +74,10 @@ class MemberCreate(BaseModel):
     # The MDOC offender number, when known: OTIS's only stable handle
     # since the rebuilt site gives profiles no URL.
     mdoc_number: Optional[str] = None
+    bop_register_number: BopRegisterNumber = None
     nickname_unknown: bool = False
     is_rapper: bool = False
+    is_snitch: bool = False
     aliases: Optional[list[str]] = None
     biography: str = ""
     affiliations: list[MemberSetAffiliationIn] = []
@@ -72,8 +101,10 @@ class MemberUpdate(BaseModel):
     nickname: Optional[str] = None
     legal_name: Optional[str] = None
     mdoc_number: Optional[str] = None
+    bop_register_number: BopRegisterNumber = None
     nickname_unknown: Optional[bool] = None
     is_rapper: Optional[bool] = None
+    is_snitch: Optional[bool] = None
     aliases: Optional[list[str]] = None
     biography: Optional[str] = None
     affiliations: Optional[list[MemberSetAffiliationIn]] = None
@@ -113,8 +144,10 @@ class MemberRead(BaseModel):
     # Defaulted, unlike its neighbours: MemberRead is assembled from dicts in
     # several places, and a required field breaks every one that predates it.
     mdoc_number: Optional[str] = None
+    bop_register_number: BopRegisterNumber = None
     nickname_unknown: bool
     is_rapper: bool = False
+    is_snitch: bool = False
     aliases: Optional[list[str]]
     biography: str
     affiliations: list[MemberSetAffiliationOut] = []
@@ -177,8 +210,13 @@ class MemberListItem(BaseModel):
     primary_photo_url: Optional[str] = None
     primary_photo_thumb_url: Optional[str] = None
     aliases: Optional[list[str]] = None
+    # Both dates: the calendar renders a death, a recurring memorial and a
+    # recurring birthday off this one list, and refetching each member to find
+    # a date of birth would be one request per row.
+    dob: FuzzyDateField = None
     date_of_death: FuzzyDateField = None
     is_rapper: bool = False
+    is_snitch: bool = False
 
 
 class MemberIncarcerationCreate(BaseModel):
