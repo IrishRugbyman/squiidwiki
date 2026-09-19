@@ -1,6 +1,7 @@
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from 'recharts'
 import { RELIABILITY_HEX } from '@/lib/statusColors'
 import type { SourceReliability } from '@/lib/types'
+import { useMeasuredWidth } from '@/hooks/useMeasuredWidth'
 
 interface ReliabilityDonutProps {
   counts: Record<string, number>
@@ -10,6 +11,7 @@ interface ReliabilityDonutProps {
 const ORDER: SourceReliability[] = ['HIGH', 'MEDIUM', 'LOW', 'UNVERIFIED']
 
 export function ReliabilityDonut({ counts, className }: ReliabilityDonutProps) {
+  const [ref, width] = useMeasuredWidth<HTMLDivElement>()
   const data = ORDER
     .map((key) => ({ name: key, value: counts[key] ?? 0 }))
     .filter((d) => d.value > 0)
@@ -19,8 +21,9 @@ export function ReliabilityDonut({ counts, className }: ReliabilityDonutProps) {
   const total = data.reduce((s, d) => s + d.value, 0)
 
   return (
-    <div className={className} style={{ width: '100%', height: 160 }}>
-      <ResponsiveContainer>
+    <div ref={ref} className={className} style={{ width: '100%', height: 160 }}>
+      {width > 0 && (
+      <ResponsiveContainer width={width} height={160}>
         <PieChart>
           <Pie
             data={data}
@@ -49,6 +52,7 @@ export function ReliabilityDonut({ counts, className }: ReliabilityDonutProps) {
           />
         </PieChart>
       </ResponsiveContainer>
+      )}
     </div>
   )
 }

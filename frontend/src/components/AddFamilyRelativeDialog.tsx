@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { useDebounce } from '@/hooks/useDebounce'
 import { useMemberSearch, useUpdateMember } from '@/lib/queries'
 import {
-  FAMILY_ROLES, ROLE_LABEL, familyDictToEntries, familyEntriesToDict,
+  FAMILY_ROLES, ROLE_LABEL, MAX_PARENTS, familyDictToEntries, familyEntriesToDict,
   type FamilyRole,
 } from '@/routes/_app.members.index'
 import type { MemberRead, UUID } from '@/lib/types'
@@ -32,7 +32,7 @@ export function AddFamilyRelativeDialog({
 }: AddFamilyRelativeDialogProps) {
   const update = useUpdateMember(member.id, universeId)
   const [search, setSearch] = useState('')
-  const [role, setRole] = useState<FamilyRole>('brother')
+  const [role, setRole] = useState<FamilyRole>('sibling')
   const [pending, setPending] = useState<PendingRelative[]>([])
   const debouncedSearch = useDebounce(search, 200)
   const { data: results } = useMemberSearch(universeId, debouncedSearch)
@@ -43,15 +43,19 @@ export function AddFamilyRelativeDialog({
   const pendingPairs = new Set(pending.map((p) => `${p.member_id}:${p.role}`))
   const pendingMemberIds = new Set(pending.map((p) => p.member_id))
 
-  const hasFather =
-    existingEntries.some((e) => e.role === 'father') ||
-    pending.some((p) => p.role === 'father')
+  // Two parents, counting the ones already staged. `father` was a single id and
+  // adding a second silently replaced the first; a parent past the second is
+  // now refused instead.
+  const parentsFull =
+    existingEntries.filter((e) => e.role === 'parent').length +
+      pending.filter((p) => p.role === 'parent').length >=
+    MAX_PARENTS
 
   function addPending(memberId: UUID, memberName: string) {
     if (memberId === member.id) return
     const pairKey = `${memberId}:${role}`
     if (existingPairs.has(pairKey) || pendingPairs.has(pairKey)) return
-    if (role === 'father' && hasFather) return
+    if (role === 'parent' && parentsFull) return
     setPending((prev) => [...prev, { member_id: memberId, member_name: memberName, role }])
     setSearch('')
   }
@@ -63,7 +67,7 @@ export function AddFamilyRelativeDialog({
   function reset() {
     setSearch('')
     setPending([])
-    setRole('brother')
+    setRole('sibling')
   }
 
   function handleClose() {
@@ -98,13 +102,13 @@ export function AddFamilyRelativeDialog({
         <div className="space-y-1 pt-2">
           <Label>Role</Label>
           <Select value={role} onValueChange={(v) => setRole(v as FamilyRole)}>
-            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectTrigger aria-label="Relationship"><SelectValue /></SelectTrigger>
             <SelectContent>
               {FAMILY_ROLES.map((r) => {
-                const disabled = r === 'father' && hasFather
+                const disabled = r === 'parent' && parentsFull
                 return (
                   <SelectItem key={r} value={r} disabled={disabled}>
-                    {ROLE_LABEL[r]}{disabled ? ' (already set)' : ''}
+                    {ROLE_LABEL[r]}{disabled ? ' (both set)' : ''}
                   </SelectItem>
                 )
               })}
@@ -126,8 +130,8 @@ export function AddFamilyRelativeDialog({
                 results.map((m) => {
                   const isSelf = m.id === member.id
                   const samePair = existingPairs.has(`${m.id}:${role}`) || pendingPairs.has(`${m.id}:${role}`)
-                  const fatherBlock = role === 'father' && hasFather
-                  const disabled = isSelf || samePair || fatherBlock
+                  const parentBlock = role === 'parent' && parentsFull
+                  const disabled = isSelf || samePair || parentBlock
                   const note = isSelf
                     ? '(self)'
                     : samePair
@@ -143,7 +147,12 @@ export function AddFamilyRelativeDialog({
                       onClick={() => addPending(m.id, m.display_name)}
                       className="w-full px-3 py-2 text-left text-sm text-zinc-300 hover:bg-zinc-800 transition-colors disabled:opacity-40 disabled:hover:bg-transparent disabled:cursor-not-allowed flex items-center justify-between gap-3"
                     >
-                      <span className="truncate">{m.display_name}</span>
+                      <span className="flex min-w-0 flex-col">
+                        <span className="truncate">{m.display_name}</span>
+                        {m.primary_set_name && (
+                          <span className="truncate text-[10px] leading-tight text-zinc-500">{m.primary_set_name}</span>
+                        )}
+                      </span>
                       {note && <span className="text-xs text-zinc-400 shrink-0">{note}</span>}
                     </button>
                   )

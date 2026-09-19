@@ -14,7 +14,6 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
@@ -29,10 +28,12 @@ import { currentAffiliations, timeAgo } from '@/lib/utils'
 import { downloadText } from '@/lib/download'
 import { DetailHeaderSkeleton } from '@/components/skeletons'
 import { Skeleton } from '@/components/ui/skeleton'
-import { SetAvatar, SetFormSheet } from './_app.sets.index'
+import { GangPill, SetAvatar, SetFormSheet } from './_app.sets.index'
 import { MemberFormSheet } from './_app.members.index'
 import { AddMemberToSetDialog } from '@/components/AddMemberToSetDialog'
 import { LineagePanel } from '@/components/sets/LineagePanel'
+import { AffiliationCombobox } from '@/components/members/MemberFormSheet/pickers/AffiliationCombobox'
+import { setPickerItems } from '@/lib/setPicker'
 import { useRecordRecent } from '@/stores/recents'
 import { useEditShortcut } from '@/hooks/useKeymap'
 import { INCIDENT_TYPE_CHIP } from '@/lib/incidentColors'
@@ -296,6 +297,7 @@ function buildSetMarkdown({
   lines.push('## Identity')
   lines.push('')
   lines.push(`- **Status:** ${set.status}`)
+  if (set.gang_name) lines.push(`- **Nation:** ${set.gang_name}`)
   if (allianceName) lines.push(`- **Alliance:** ${allianceName}`)
   if (muniName) lines.push(`- **Municipality:** ${muniName}`)
   if (founderName) lines.push(`- **Founder:** ${founderName}`)
@@ -360,8 +362,11 @@ function AddRelationshipDialog({
   const [type, setType] = useState<'FRIEND' | 'ENEMY'>('FRIEND')
   const [error, setError] = useState<string | null>(null)
 
-  const available = (allSets?.items ?? []).filter(
-    (s) => s.id !== setId && !existingIds.includes(s.id)
+  const available = useMemo(
+    () => setPickerItems(
+      (allSets?.items ?? []).filter((s) => s.id !== setId && !existingIds.includes(s.id)),
+    ),
+    [allSets, setId, existingIds],
   )
 
   async function handleSubmit(e: React.FormEvent) {
@@ -421,18 +426,13 @@ function AddRelationshipDialog({
           </div>
           <div className="space-y-1.5">
             <label className="text-sm font-medium text-zinc-300">Set</label>
-            <Select value={targetId} onValueChange={setTargetId}>
-              <SelectTrigger><SelectValue placeholder="Select a set…" /></SelectTrigger>
-              <SelectContent>
-                {available.length === 0 ? (
-                  <div className="px-2 py-4 text-center text-xs text-zinc-400">No available sets to link.</div>
-                ) : (
-                  available.map((s) => (
-                    <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
-                  ))
-                )}
-              </SelectContent>
-            </Select>
+            <AffiliationCombobox
+              label="Set"
+              value={targetId}
+              onChange={setTargetId}
+              items={available}
+              placeholder="Select a set…"
+            />
           </div>
           {error && <p className="text-sm text-red-400">{error}</p>}
           <div className="flex gap-2 justify-end">
@@ -846,6 +846,7 @@ function SetDetailPage() {
                       System
                     </span>
                   )}
+                  {!isReserved && set.gang_name && <GangPill name={set.gang_name} />}
                   {!isReserved && alliance && (
                     <Link
                       to="/alliances/$id"

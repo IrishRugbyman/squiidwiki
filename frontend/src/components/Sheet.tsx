@@ -34,7 +34,12 @@ const WIDTH_CLASS: Record<NonNullable<SheetContentProps['width']>, string> = {
 }
 
 const SheetContent = React.forwardRef<React.ElementRef<typeof DialogPrimitive.Content>, SheetContentProps>(
-  ({ className, children, title, description, width = 'md', ...props }, ref) => (
+  ({ className, children, title, description, width = 'md', ...props }, ref) => {
+    // A unique id per instance keeps aria-describedby valid even when two sheets
+    // are mounted. The Description is always rendered (sr-only when there is no
+    // description text) so Radix never warns about a missing description.
+    const descId = React.useId()
+    return (
     <DialogPrimitive.Portal>
       <SheetOverlay />
       <DialogPrimitive.Content
@@ -44,17 +49,18 @@ const SheetContent = React.forwardRef<React.ElementRef<typeof DialogPrimitive.Co
           WIDTH_CLASS[width],
           className,
         )}
-        aria-describedby={description ? 'sheet-description' : undefined}
+        aria-describedby={descId}
         {...props}
       >
         <div className="flex items-center justify-between border-b border-zinc-800 px-6 py-4">
           <div>
             <DialogPrimitive.Title className="text-base font-semibold text-white">{title}</DialogPrimitive.Title>
-            {description && (
-              <DialogPrimitive.Description id="sheet-description" className="mt-0.5 text-xs text-zinc-400">
-                {description}
-              </DialogPrimitive.Description>
-            )}
+            <DialogPrimitive.Description
+              id={descId}
+              className={description ? 'mt-0.5 text-xs text-zinc-400' : 'sr-only'}
+            >
+              {description ?? title}
+            </DialogPrimitive.Description>
           </div>
           <DialogPrimitive.Close className="rounded-md text-zinc-400 hover:text-white transition-colors focus:outline-none focus:ring-2 focus:ring-violet-500">
             <X className="h-4 w-4" />
@@ -64,7 +70,8 @@ const SheetContent = React.forwardRef<React.ElementRef<typeof DialogPrimitive.Co
         <div className="flex-1 overflow-y-auto px-6 py-4">{children}</div>
       </DialogPrimitive.Content>
     </DialogPrimitive.Portal>
-  ),
+    )
+  },
 )
 SheetContent.displayName = 'SheetContent'
 

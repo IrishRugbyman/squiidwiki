@@ -19,9 +19,9 @@ import type { MemberRead, UUID } from '@/lib/types'
 
 const ROLE_TINT: Record<FamilyRole, string> = {
   spouse: 'bg-rose-950/60 border-rose-700 text-rose-200',
-  father: 'bg-amber-950/60 border-amber-700 text-amber-200',
-  son: 'bg-sky-950/60 border-sky-700 text-sky-200',
-  brother: 'bg-violet-950/60 border-violet-700 text-violet-200',
+  parent: 'bg-amber-950/60 border-amber-700 text-amber-200',
+  child: 'bg-sky-950/60 border-sky-700 text-sky-200',
+  sibling: 'bg-violet-950/60 border-violet-700 text-violet-200',
   cousin: 'bg-emerald-950/60 border-emerald-700 text-emerald-200',
   uncle: 'bg-orange-950/60 border-orange-700 text-orange-200',
   nephew: 'bg-pink-950/60 border-pink-700 text-pink-200',

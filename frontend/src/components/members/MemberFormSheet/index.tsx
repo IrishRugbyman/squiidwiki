@@ -27,6 +27,7 @@ import { SourceFormSheet } from '@/routes/_app.sources.index'
 import type { MdocProfile, MdocSpell, MemberListItem, MemberRead, MemberStatus, SetRank } from '@/lib/types'
 import type { FuzzyDateValue } from '@/components/FuzzyDate'
 import { AffiliationCombobox, type ComboboxItem } from './pickers/AffiliationCombobox'
+import { setPickerItems } from '@/lib/setPicker'
 import { PhotoSection, flushPhotoQueue } from './sections/PhotoSection'
 import { MemberStatusBadge } from '@/components/StatusBadge'
 
@@ -54,19 +55,38 @@ const ALL_STATUSES: MemberStatus[] = ['FREE', 'LOCKED', 'ESCAPEE', 'ABSCONDER', 
 
 // ─── Family types ─────────────────────────────────────────────────────────────
 
-export type FamilyRole = 'father' | 'son' | 'brother' | 'cousin' | 'uncle' | 'nephew' | 'spouse'
+// Gender-neutral on purpose. The roles used to be father, son and brother with
+// no feminine counterpart, so a sister was stored as her brother's brother and
+// a mother could not be stored at all. Uncle and nephew stay: their neutral
+// forms are awkward and nobody on file has needed them.
+export type FamilyRole = 'parent' | 'child' | 'sibling' | 'cousin' | 'uncle' | 'nephew' | 'spouse'
 
-export const FAMILY_ROLES: FamilyRole[] = ['father', 'son', 'brother', 'cousin', 'uncle', 'nephew', 'spouse']
+export const FAMILY_ROLES: FamilyRole[] = ['parent', 'child', 'sibling', 'cousin', 'uncle', 'nephew', 'spouse']
 
 export const ROLE_LABEL: Record<FamilyRole, string> = {
   spouse: 'Spouse',
-  father: 'Father',
-  son: 'Son',
-  brother: 'Brother',
+  parent: 'Parent',
+  child: 'Child',
+  sibling: 'Sibling',
   cousin: 'Cousin',
   uncle: 'Uncle',
   nephew: 'Nephew',
 }
+
+// Not every plural is the singular plus an s, and "Childs" shipped the moment
+// the roles stopped being father and son.
+export const ROLE_LABEL_PLURAL: Record<FamilyRole, string> = {
+  spouse: 'Spouses',
+  parent: 'Parents',
+  child: 'Children',
+  sibling: 'Siblings',
+  cousin: 'Cousins',
+  uncle: 'Uncles',
+  nephew: 'Nephews',
+}
+
+/** A person has at most two parents. Every other role is unbounded. */
+export const MAX_PARENTS = 2
 
 export interface FamilyEntry { role: FamilyRole; memberId: string }
 
@@ -82,14 +102,12 @@ export function familyDictToEntries(family: Record<string, unknown> | null | und
 
 export function familyEntriesToDict(entries: FamilyEntry[]): Record<string, unknown> | null {
   if (!entries.length) return null
-  const result: Record<string, string | string[]> = {}
+  // Every role is a list now. `father` was the one scalar, and `parent`
+  // replaced it precisely because a person can have two.
+  const result: Record<string, string[]> = {}
   for (const { role, memberId } of entries) {
-    if (role === 'father') {
-      result.father = memberId
-    } else {
-      if (!Array.isArray(result[role])) result[role] = []
-      ;(result[role] as string[]).push(memberId)
-    }
+    if (!Array.isArray(result[role])) result[role] = []
+    if (!result[role].includes(memberId)) result[role].push(memberId)
   }
   return result
 }
@@ -150,7 +168,7 @@ function FamilyEditor({
   universeId: string
   excludeMemberId?: string
 }) {
-  const [newRole, setNewRole] = useState<FamilyRole>('brother')
+  const [newRole, setNewRole] = useState<FamilyRole>('sibling')
   const [newMemberId, setNewMemberId] = useState('')
   const [memberSearch, setMemberSearch] = useState('')
   const [showDropdown, setShowDropdown] = useState(false)
@@ -179,12 +197,11 @@ function FamilyEditor({
 
   function addEntry() {
     if (!newMemberId) return
-    if (newRole === 'father') {
-      onChange([...entries.filter((e) => e.role !== 'father'), { role: newRole, memberId: newMemberId }])
-    } else {
-      if (entries.some((e) => e.role === newRole && e.memberId === newMemberId)) return
-      onChange([...entries, { role: newRole, memberId: newMemberId }])
-    }
+    if (entries.some((e) => e.role === newRole && e.memberId === newMemberId)) return
+    // Two parents, and the third is refused rather than silently replacing one:
+    // `father` used to be a single id, so adding one overwrote whoever was there.
+    if (newRole === 'parent' && entries.filter((e) => e.role === 'parent').length >= MAX_PARENTS) return
+    onChange([...entries, { role: newRole, memberId: newMemberId }])
     setNewMemberId('')
     setMemberSearch('')
   }
@@ -235,7 +252,7 @@ function FamilyEditor({
         <p className="mb-1 text-[11px] text-zinc-400">Add family member</p>
         <div className="flex gap-1.5">
           <Select value={newRole} onValueChange={(v) => setNewRole(v as FamilyRole)}>
-            <SelectTrigger className="h-9 w-28 text-xs">
+            <SelectTrigger aria-label="Relationship" className="h-9 w-28 text-xs">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -272,9 +289,14 @@ function FamilyEditor({
                       setShowDropdown(false)
                     }}
                   >
-                    <span className={`h-1.5 w-1.5 rounded-full ${STATUS_DOT[m.status]}`} />
-                    <span className="text-zinc-200">{m.display_name}</span>
-                    <span className="ml-auto text-zinc-400 text-[10px]">{m.status}</span>
+                    <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${STATUS_DOT[m.status]}`} />
+                    <span className="flex min-w-0 flex-col">
+                      <span className="truncate text-zinc-200">{m.display_name}</span>
+                      {m.primary_set_name && (
+                        <span className="truncate text-[10px] leading-tight text-zinc-500">{m.primary_set_name}</span>
+                      )}
+                    </span>
+                    <span className="ml-auto shrink-0 pl-2 text-zinc-400 text-[10px]">{m.status}</span>
                   </button>
                 ))}
               </div>
@@ -370,15 +392,7 @@ function MemberFormSheetInner({ universeId, open, onClose, initial, defaultSetId
   const createAlliance = useCreateAlliance()
   const createGang = useCreateGang(universeId)
 
-  const setItems: ComboboxItem[] = useMemo(
-    () => (sets?.items ?? []).map((s) => ({
-      id: s.id,
-      name: s.name,
-      hint: s.status === 'EXTINCT' ? 'extinct' : undefined,
-      dotClass: s.status === 'EXTINCT' ? 'bg-zinc-600' : 'bg-emerald-400',
-    })),
-    [sets],
-  )
+  const setItems = useMemo(() => setPickerItems(sets?.items ?? []), [sets])
   const allianceItems: ComboboxItem[] = useMemo(
     () => (alliances?.items ?? []).map((a) => ({
       id: a.id,
@@ -498,6 +512,9 @@ function MemberFormSheetInner({ universeId, open, onClose, initial, defaultSetId
   // Not copied from `copyFrom`: a duplicated member is a different person, and
   // an offender number is the one field that must never be shared.
   const [mdocNumber, setMdocNumber] = useState(initial?.mdoc_number ?? '')
+  // Same rule as the MDOC number: never copied onto a duplicate, since the
+  // BOP gives one number to one person and the API refuses a second holder.
+  const [bopNumber, setBopNumber] = useState(initial?.bop_register_number ?? '')
   // Edit mode can import too, which is the only way to fix a member created
   // before the importer read the sentence rows. Re-importing on top of spells
   // that are already there would duplicate them, so the count gates it.
@@ -551,6 +568,7 @@ function MemberFormSheetInner({ universeId, open, onClose, initial, defaultSetId
       is_rapper: isRapper,
       is_snitch: isSnitch,
       mdoc_number: mdocNumber.trim() || null,
+      bop_register_number: bopNumber.trim() || null,
       status,
       affiliations: affiliations.filter((a) => a.set_id).map((a) => ({
         set_id: a.set_id,
@@ -901,6 +919,11 @@ function MemberFormSheetInner({ universeId, open, onClose, initial, defaultSetId
               <Label htmlFor="m-mdoc">MDOC number <span className="text-zinc-400">(filled in by the import)</span></Label>
               <Input id="m-mdoc" value={mdocNumber} onChange={(e) => setMdocNumber(e.target.value)} placeholder="e.g. 352482" inputMode="numeric" />
               <p className="text-[11px] text-zinc-500">The only stable handle OTIS has: a profile has no URL. Keeping it here is what makes a re-check possible when parole moves the dates.</p>
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="m-bop">BOP register number <span className="text-zinc-400">(federal)</span></Label>
+              <Input id="m-bop" value={bopNumber} onChange={(e) => setBopNumber(e.target.value)} placeholder="e.g. 12345-000" inputMode="numeric" />
+              <p className="text-[11px] text-zinc-500">Five digits and three, from the BOP inmate locator; the last three are the committing district (039 is the Eastern District of Michigan). One number is one person, so the wiki refuses a second member holding it.</p>
             </div>
             <div className="flex flex-wrap gap-4">
               <label htmlFor="m-rapper" className="flex w-fit cursor-pointer items-center gap-2 text-xs text-zinc-400 hover:text-zinc-300">

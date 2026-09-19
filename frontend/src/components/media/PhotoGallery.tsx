@@ -1,10 +1,11 @@
 import { useState } from 'react'
-import { Star, Trash2, Loader2 } from 'lucide-react'
+import { Captions, Star, Trash2, Loader2 } from 'lucide-react'
 import { useMedia, useUpdateMedia, useDeleteMedia } from '@/lib/queries'
 import type { MediaEntityType, MediaWithUrls, UUID } from '@/lib/types'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { EmptyState } from '@/components/EmptyState'
 import { PhotoUploadDropzone } from './PhotoUploadDropzone'
+import { PhotoCaptionDialog } from './PhotoCaptionDialog'
 import { PhotoLightbox } from './PhotoLightbox'
 
 interface PhotoGalleryProps {
@@ -22,9 +23,17 @@ export function PhotoGallery({ entityType, entityId, universeId, hideUpload }: P
 
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null)
   const [confirmDeleteId, setConfirmDeleteId] = useState<UUID | null>(null)
+  const [captionTargetId, setCaptionTargetId] = useState<UUID | null>(null)
 
   const photos = items ?? []
   const confirmTarget = photos.find((m) => m.id === confirmDeleteId)
+  const captionTarget = photos.find((m) => m.id === captionTargetId) ?? null
+
+  // One mutation hook serves both the primary toggle and the caption editor,
+  // so each control's spinner is gated on the payload that control sends.
+  const pendingVars = updateMedia.isPending ? updateMedia.variables : undefined
+  const captionPendingId = pendingVars?.caption !== undefined ? pendingVars.id : null
+  const primaryPendingId = pendingVars?.is_primary !== undefined ? pendingVars.id : null
 
   return (
     <div className="space-y-4">
@@ -51,10 +60,10 @@ export function PhotoGallery({ entityType, entityId, universeId, hideUpload }: P
               media={m}
               onClick={() => setLightboxIndex(i)}
               onSetPrimary={() => updateMedia.mutate({ id: m.id, is_primary: true })}
+              onEditCaption={() => setCaptionTargetId(m.id)}
               onDelete={() => setConfirmDeleteId(m.id)}
-              setPrimaryPending={
-                updateMedia.isPending && updateMedia.variables?.id === m.id
-              }
+              setPrimaryPending={primaryPendingId === m.id}
+              captionPending={captionPendingId === m.id}
               deletePending={deleteMedia.isPending && deleteMedia.variables === m.id}
             />
           ))}
@@ -66,6 +75,22 @@ export function PhotoGallery({ entityType, entityId, universeId, hideUpload }: P
         index={lightboxIndex ?? 0}
         open={lightboxIndex !== null}
         onClose={() => setLightboxIndex(null)}
+      />
+
+      <PhotoCaptionDialog
+        media={captionTarget}
+        open={captionTargetId !== null}
+        pending={captionPendingId !== null}
+        onSave={(caption) => {
+          if (!captionTarget) return
+          updateMedia.mutate(
+            { id: captionTarget.id, caption },
+            // On error the global mutation handler toasts and the dialog stays
+            // open with the draft intact, so nothing typed is lost.
+            { onSuccess: () => setCaptionTargetId(null) },
+          )
+        }}
+        onCancel={() => setCaptionTargetId(null)}
       />
 
       <ConfirmDialog
@@ -96,12 +121,23 @@ interface PhotoTileProps {
   media: MediaWithUrls
   onClick: () => void
   onSetPrimary: () => void
+  onEditCaption: () => void
   onDelete: () => void
   setPrimaryPending: boolean
+  captionPending: boolean
   deletePending: boolean
 }
 
-function PhotoTile({ media, onClick, onSetPrimary, onDelete, setPrimaryPending, deletePending }: PhotoTileProps) {
+function PhotoTile({
+  media,
+  onClick,
+  onSetPrimary,
+  onEditCaption,
+  onDelete,
+  setPrimaryPending,
+  captionPending,
+  deletePending,
+}: PhotoTileProps) {
   const thumbSrc = media.thumb_url ?? media.url
   return (
     <div className="group relative aspect-square overflow-hidden rounded-lg bg-zinc-900 ring-1 ring-zinc-800">
@@ -131,7 +167,16 @@ function PhotoTile({ media, onClick, onSetPrimary, onDelete, setPrimaryPending, 
         </div>
       )}
 
-      <div className="absolute inset-x-0 bottom-0 flex items-center justify-end gap-1 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-2 opacity-0 transition-opacity group-hover:opacity-100">
+      {/* The caption strip and the action bar share the bottom edge: the strip
+          is what a resting tile shows, and hovering (or tabbing into) the tile
+          swaps it for the controls. The full caption is in the lightbox. */}
+      {media.caption && (
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 truncate bg-gradient-to-t from-black/80 via-black/50 to-transparent px-2 pb-1.5 pt-4 text-[11px] leading-tight text-zinc-100 transition-opacity group-hover:opacity-0 group-focus-within:opacity-0">
+          {media.caption}
+        </div>
+      )}
+
+      <div className="absolute inset-x-0 bottom-0 flex items-center justify-end gap-1 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-2 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
         {!media.is_primary && (
           <button
             type="button"
@@ -151,6 +196,19 @@ function PhotoTile({ media, onClick, onSetPrimary, onDelete, setPrimaryPending, 
           type="button"
           onClick={(e) => {
             e.stopPropagation()
+            onEditCaption()
+          }}
+          disabled={captionPending}
+          className="inline-flex h-7 w-7 items-center justify-center rounded-md bg-zinc-800/90 text-zinc-100 ring-1 ring-zinc-700 hover:bg-zinc-700 disabled:opacity-50"
+          title={media.caption ? 'Edit caption' : 'Add caption'}
+          aria-label={media.caption ? 'Edit caption' : 'Add caption'}
+        >
+          {captionPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <Captions className="h-3.5 w-3.5" />}
+        </button>
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation()
             onDelete()
           }}
           disabled={deletePending}
@@ -160,12 +218,6 @@ function PhotoTile({ media, onClick, onSetPrimary, onDelete, setPrimaryPending, 
           {deletePending ? <Loader2 className="h-3 w-3 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
         </button>
       </div>
-
-      {media.caption && (
-        <div className="pointer-events-none absolute inset-x-0 top-0 truncate bg-gradient-to-b from-black/70 to-transparent px-2 py-1 text-[11px] text-zinc-200 opacity-0 transition-opacity group-hover:opacity-100">
-          {media.caption}
-        </div>
-      )}
     </div>
   )
 }

@@ -1,5 +1,6 @@
 import { Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis, CartesianGrid } from 'recharts'
 import { BRAND } from '@/lib/brand'
+import { useMeasuredWidth } from '@/hooks/useMeasuredWidth'
 
 interface Point {
   month: string
@@ -12,6 +13,7 @@ interface IncidentsOverTimeProps {
 }
 
 export function IncidentsOverTime({ data, className }: IncidentsOverTimeProps) {
+  const [ref, width] = useMeasuredWidth<HTMLDivElement>()
   if (!data.length) return null
 
   // recharts draws something weird with a single data point; pad with a
@@ -21,8 +23,9 @@ export function IncidentsOverTime({ data, className }: IncidentsOverTimeProps) {
     : data
 
   return (
-    <div className={className} style={{ width: '100%', height: 160 }}>
-      <ResponsiveContainer>
+    <div ref={ref} className={className} style={{ width: '100%', height: 160 }}>
+      {width > 0 && (
+      <ResponsiveContainer width={width} height={160}>
         <LineChart data={points} margin={{ top: 8, right: 8, left: -18, bottom: 0 }}>
           <CartesianGrid stroke="#27272a" strokeDasharray="3 3" vertical={false} />
           <XAxis
@@ -61,6 +64,7 @@ export function IncidentsOverTime({ data, className }: IncidentsOverTimeProps) {
           />
         </LineChart>
       </ResponsiveContainer>
+      )}
     </div>
   )
 }

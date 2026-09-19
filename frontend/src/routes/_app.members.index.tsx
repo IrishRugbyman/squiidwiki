@@ -7,6 +7,7 @@ import { NoUniverse } from '@/components/NoUniverse'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { AffiliationCombobox } from '@/components/members/MemberFormSheet/pickers/AffiliationCombobox'
 import { Skeleton } from '@/components/ui/skeleton'
 import {
   useMembers, useMemberSearch,
@@ -32,6 +33,8 @@ export {
   familyEntriesToDict,
   FAMILY_ROLES,
   ROLE_LABEL,
+  ROLE_LABEL_PLURAL,
+  MAX_PARENTS,
 } from '@/components/members/MemberFormSheet'
 export type { FamilyRole, FamilyEntry } from '@/components/members/MemberFormSheet'
 
@@ -204,7 +207,7 @@ function MembersPage() {
               >
                 <span className={`h-1.5 w-1.5 rounded-full ${STATUS_DOT[s]}`} />
                 {s}
-                <span className={active ? 'opacity-70' : 'opacity-50'}>{statusCounts[s]}</span>
+                <span className={active ? '' : 'text-zinc-400'}>{statusCounts[s]}</span>
               </button>
             )
           })}
@@ -225,15 +228,15 @@ function MembersPage() {
           <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" />
           <Input className="pl-8 h-8 text-sm" placeholder="Search members…" value={q} onChange={(e) => { setQ(e.target.value); setCursor(undefined) }} />
         </div>
-        <Select value={setFilter || 'all'} onValueChange={(v) => setSetFilter(v === 'all' ? '' : v)}>
-          <SelectTrigger className="h-8 w-36 text-xs"><SelectValue placeholder="All sets" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all" className="text-xs">All sets</SelectItem>
-            {(setsData?.items ?? []).map((s) => (
-              <SelectItem key={s.id} value={s.id} className="text-xs">{s.name}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <div className="w-44">
+          <AffiliationCombobox
+            label="Set"
+            value={setFilter}
+            onChange={setSetFilter}
+            items={(setsData?.items ?? []).map((s) => ({ id: s.id, name: s.name }))}
+            placeholder="All sets"
+          />
+        </div>
         <Button variant="outline" size="sm" className="h-8" onClick={() => downloadCsv(`/members/?universe_id=${universe.id}&format=csv`, exportFilename())}>
           <Download className="mr-1.5 h-3.5 w-3.5" />Export
         </Button>
@@ -273,7 +276,7 @@ function MembersPage() {
                   Status <span className="text-zinc-400" aria-hidden>{sortKey === 'status' ? (sortDir === 'asc' ? '↑' : '↓') : '↕'}</span>
                 </button>
               </th>
-              <th className="w-8 px-3 py-2.5" scope="col" aria-label="Actions" />
+              <th className="w-8 px-3 py-2.5" scope="col"><span className="sr-only">Actions</span></th>
             </tr>
           </thead>
           <tbody className="divide-y divide-zinc-800/60">
@@ -478,7 +481,7 @@ function MembersPage() {
           <div className="h-4 w-px bg-zinc-700" />
           <span className="text-xs text-zinc-400">Set status:</span>
           <Select value={bulkStatus} onValueChange={(v) => setBulkStatus(v as MemberStatus)}>
-            <SelectTrigger className="h-7 w-28 text-xs border-zinc-700 bg-zinc-800"><SelectValue /></SelectTrigger>
+            <SelectTrigger aria-label="Set status for selected members" className="h-7 w-28 text-xs border-zinc-700 bg-zinc-800"><SelectValue /></SelectTrigger>
             <SelectContent>
               {ALL_STATUSES.map((s) => <SelectItem key={s} value={s} className="text-xs">{s}</SelectItem>)}
             </SelectContent>

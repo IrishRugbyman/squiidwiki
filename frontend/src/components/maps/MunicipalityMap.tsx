@@ -124,14 +124,55 @@ export default function MunicipalityMap({
 
   const incidentGeoJSON = useMemo(() => {
     if (!incidentPoints?.length) return null
-    return {
-      type: 'FeatureCollection' as const,
-      features: incidentPoints.map((p) => ({
-        type: 'Feature' as const,
-        geometry: { type: 'Point' as const, coordinates: [p.lng, p.lat] },
-        properties: { id: p.id, incidentType: p.type, label: p.label ?? '' },
-      })),
+
+    // Incidents genuinely share a position: three of the Corsican records happened
+    // at the same airport, and any incident placed at its commune's centre rather
+    // than a street lands on the same point as every other one there. Clustering
+    // handles that up to `clusterMaxZoom`, and above it coincident pins draw exactly
+    // on top of one another - so the map showed one marker, and the others could not
+    // be seen or clicked at all.
+    //
+    // The stored coordinates are not touched. Only the rendered position is fanned
+    // out, on a ring small enough to stay inside the place it describes and large
+    // enough to separate once you are zoomed in far enough for clustering to stop.
+    // The click still opens the right incident, because the id travels with it.
+    // 100 m puts three pins about 18 px apart at zoom 14, the first zoom where
+    // clustering stops and they have to stand on their own; the markers are 12 px
+    // across, so that reads as three rather than a smudge.
+    const RING_METRES = 100
+    // A plain record, not a Map: `Map` in this module is react-map-gl's component.
+    const byPosition: Record<string, IncidentPoint[]> = {}
+    for (const p of incidentPoints) {
+      const key = `${p.lat.toFixed(5)},${p.lng.toFixed(5)}`
+      ;(byPosition[key] ??= []).push(p)
     }
+
+    const features: {
+      type: 'Feature'
+      geometry: { type: 'Point'; coordinates: [number, number] }
+      properties: { id: string; incidentType: IncidentType; label: string }
+    }[] = []
+    for (const bucket of Object.values(byPosition)) {
+      // Sorted so the fan is stable across renders rather than reshuffling.
+      const group = bucket.length > 1 ? [...bucket].sort((a, b) => a.id.localeCompare(b.id)) : bucket
+      group.forEach((p: IncidentPoint, i: number) => {
+        let { lat, lng } = p
+        if (group.length > 1) {
+          const angle = (2 * Math.PI * i) / group.length
+          const dLat = (RING_METRES / 111_320) * Math.cos(angle)
+          const dLng =
+            (RING_METRES / (111_320 * Math.cos((lat * Math.PI) / 180))) * Math.sin(angle)
+          lat += dLat
+          lng += dLng
+        }
+        features.push({
+          type: 'Feature' as const,
+          geometry: { type: 'Point' as const, coordinates: [lng, lat] as [number, number] },
+          properties: { id: p.id, incidentType: p.type, label: p.label ?? '' },
+        })
+      })
+    }
+    return { type: 'FeatureCollection' as const, features }
   }, [incidentPoints])
 
   const setGeoJSON = useMemo(() => {

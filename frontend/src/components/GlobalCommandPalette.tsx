@@ -3,6 +3,7 @@ import { AlertTriangle, Clock, FileText, Globe, MapPin, Network, NotebookText, P
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '@/lib/api'
+import { useDebounce } from '@/hooks/useDebounce'
 import {
   useAllianceSearch, useIncidentSearch, useMemberSearch, useMunicipalitySearch,
   useSetSearch, useSourceSearch, useCreateUniverse,
@@ -71,14 +72,14 @@ function CreateUniverseSheet({ open, onClose }: { open: boolean; onClose: (creat
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-1.5">
             <Label htmlFor="u-name">Name *</Label>
-            <Input id="u-name" required value={name} onChange={(e) => handleNameChange(e.target.value)} placeholder="e.g. Metro Chicago" />
+            <Input id="u-name" required value={name} onChange={(e) => handleNameChange(e.target.value)} placeholder="e.g. Illinois (one universe per state)" />
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="u-slug">Slug *</Label>
             <Input
               id="u-slug" required value={slug}
               onChange={(e) => { setSlug(e.target.value); setSlugDirty(true) }}
-              placeholder="metro-chicago"
+              placeholder="illinois"
               pattern="[a-z0-9\-]+"
             />
             <p className="text-xs text-zinc-400">Lowercase letters, numbers, and hyphens only.</p>
@@ -133,6 +134,16 @@ const RECENT_ROUTE: Record<RecentEntityType, string> = {
   research: '/research',
 }
 
+// ─── Result group sizing ──────────────────────────────────────────────────────
+
+// Rows shown per group before truncation. When more matched, the heading says so
+// (e.g. "Members · 10 matches") instead of silently hiding them.
+const GROUP_CAP = 8
+
+function groupHeading(label: string, total: number): string {
+  return total > GROUP_CAP ? `${label} · ${total} matches` : label
+}
+
 // ─── Global command palette ───────────────────────────────────────────────────
 
 interface GlobalCommandPaletteProps {
@@ -148,6 +159,9 @@ export function GlobalCommandPalette({ open, onClose }: GlobalCommandPaletteProp
   const universeId = activeUniverse?.id ?? null
 
   const [q, setQ] = useState('')
+  // Debounce the query the search hooks see, so a fast typist does not fire six
+  // endpoints per keystroke. The input stays bound to `q` for instant feedback.
+  const dq = useDebounce(q, 200)
   const [creating, setCreating] = useState(false)
   const recents = useRecentsStore((s) => s.entries)
 
@@ -157,14 +171,14 @@ export function GlobalCommandPalette({ open, onClose }: GlobalCommandPaletteProp
     staleTime: 60_000,
   })
 
-  const { data: memberResults } = useMemberSearch(universeId, q)
-  const { data: setResults } = useSetSearch(universeId, q)
-  const { data: allianceResults } = useAllianceSearch(universeId, q)
-  const { data: incidentResults } = useIncidentSearch(universeId, q)
-  const { data: sourceResults } = useSourceSearch(universeId, q)
-  const { data: municipalityResults } = useMunicipalitySearch(universeId, q)
+  const { data: memberResults } = useMemberSearch(universeId, dq)
+  const { data: setResults } = useSetSearch(universeId, dq)
+  const { data: allianceResults } = useAllianceSearch(universeId, dq)
+  const { data: incidentResults } = useIncidentSearch(universeId, dq)
+  const { data: sourceResults } = useSourceSearch(universeId, dq)
+  const { data: municipalityResults } = useMunicipalitySearch(universeId, dq)
 
-  const searching = q.length >= 2
+  const searching = dq.length >= 2
   const hasResults = searching && (
     (memberResults?.length ?? 0) > 0 ||
     (setResults?.length ?? 0) > 0 ||
@@ -208,20 +222,25 @@ export function GlobalCommandPalette({ open, onClose }: GlobalCommandPaletteProp
 
           {/* Entity search results */}
           {searching && (memberResults?.length ?? 0) > 0 && (
-            <CommandGroup heading="Members">
-              {memberResults!.slice(0, 5).map((m) => (
+            <CommandGroup heading={groupHeading('Members', memberResults!.length)}>
+              {memberResults!.slice(0, GROUP_CAP).map((m) => (
                 <CommandItem key={m.id} value={`member-${m.id}`} onSelect={() => go(`/members/${m.slug ?? m.id}`)}>
                   <Users className="mr-2 h-3.5 w-3.5 shrink-0 text-zinc-400" />
-                  <span>{m.display_name}</span>
-                  <span className="ml-auto text-[10px] text-zinc-400">{m.status}</span>
+                  <span className="flex min-w-0 flex-col">
+                    <span className="truncate">{m.display_name}</span>
+                    {m.primary_set_name && (
+                      <span className="truncate text-[10px] leading-tight text-zinc-500">{m.primary_set_name}</span>
+                    )}
+                  </span>
+                  <span className="ml-auto shrink-0 pl-2 text-[10px] text-zinc-400">{m.status}</span>
                 </CommandItem>
               ))}
             </CommandGroup>
           )}
 
           {searching && (setResults?.length ?? 0) > 0 && (
-            <CommandGroup heading="Sets">
-              {setResults!.slice(0, 5).map((s) => {
+            <CommandGroup heading={groupHeading('Sets', setResults!.length)}>
+              {setResults!.slice(0, GROUP_CAP).map((s) => {
                 const ql = q.toLowerCase()
                 const matchedVariant = (s.name_variants ?? []).find((v) => {
                   if (!v || v.is_primary) return false
@@ -247,8 +266,8 @@ export function GlobalCommandPalette({ open, onClose }: GlobalCommandPaletteProp
           )}
 
           {searching && (allianceResults?.length ?? 0) > 0 && (
-            <CommandGroup heading="Alliances">
-              {allianceResults!.slice(0, 5).map((a) => (
+            <CommandGroup heading={groupHeading('Alliances', allianceResults!.length)}>
+              {allianceResults!.slice(0, GROUP_CAP).map((a) => (
                 <CommandItem key={a.id} value={`alliance-${a.id}`} onSelect={() => go(`/alliances/${a.slug ?? a.id}`)}>
                   <Network className="mr-2 h-3.5 w-3.5 shrink-0 text-zinc-400" />
                   <span>{a.name}</span>
@@ -259,8 +278,8 @@ export function GlobalCommandPalette({ open, onClose }: GlobalCommandPaletteProp
           )}
 
           {searching && (incidentResults?.length ?? 0) > 0 && (
-            <CommandGroup heading="Incidents">
-              {incidentResults!.slice(0, 5).map((inc) => (
+            <CommandGroup heading={groupHeading('Incidents', incidentResults!.length)}>
+              {incidentResults!.slice(0, GROUP_CAP).map((inc) => (
                 <CommandItem key={inc.id} value={`incident-${inc.id}`} onSelect={() => go(`/incidents/${inc.id}`)}>
                   <AlertTriangle className="mr-2 h-3.5 w-3.5 shrink-0 text-zinc-400" />
                   <span>{inc.type}</span>
@@ -272,8 +291,8 @@ export function GlobalCommandPalette({ open, onClose }: GlobalCommandPaletteProp
           )}
 
           {searching && (municipalityResults?.length ?? 0) > 0 && (
-            <CommandGroup heading="Municipalities">
-              {municipalityResults!.slice(0, 5).map((m) => (
+            <CommandGroup heading={groupHeading('Municipalities', municipalityResults!.length)}>
+              {municipalityResults!.slice(0, GROUP_CAP).map((m) => (
                 <CommandItem key={m.id} value={`municipality-${m.id}`} onSelect={() => go(`/municipalities/${m.id}`)}>
                   <MapPin className="mr-2 h-3.5 w-3.5 shrink-0 text-zinc-400" />
                   <span>{m.name}</span>
@@ -286,8 +305,8 @@ export function GlobalCommandPalette({ open, onClose }: GlobalCommandPaletteProp
           )}
 
           {searching && (sourceResults?.length ?? 0) > 0 && (
-            <CommandGroup heading="Sources">
-              {sourceResults!.slice(0, 5).map((src) => (
+            <CommandGroup heading={groupHeading('Sources', sourceResults!.length)}>
+              {sourceResults!.slice(0, GROUP_CAP).map((src) => (
                 <CommandItem key={src.id} value={`source-${src.id}`} onSelect={() => go(`/sources/${src.id}`)}>
                   <FileText className="mr-2 h-3.5 w-3.5 shrink-0 text-zinc-400" />
                   <span className="truncate">{src.title}</span>

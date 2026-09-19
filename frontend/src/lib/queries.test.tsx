@@ -5,6 +5,7 @@ import { describe, expect, it } from 'vitest'
 import { HttpResponse, http, server } from '@/test/msw'
 import { makeTestQueryClient } from '@/test/utils'
 import {
+  useAllMembers,
   useCreateMemberIncarceration,
   useMemberIncarcerations,
   useUniverseReleaseEvents,
@@ -192,6 +193,60 @@ describe('useUniverseReleaseEvents', () => {
   it('stays idle without a universe', () => {
     const { wrapper } = wrap()
     const { result } = renderHook(() => useUniverseReleaseEvents(null, 2026), { wrapper })
+    expect(result.current.fetchStatus).toBe('idle')
+  })
+})
+
+describe('useAllMembers', () => {
+  it('follows the cursor instead of stopping at the first page', async () => {
+    // It used to request one page of 200 and hand it back as the whole
+    // universe. Nothing reported the truncation, so the calendar lost two
+    // thirds of its memorials and the timeline lost the same rows.
+    const page = (ids: string[], next: string | null) =>
+      HttpResponse.json({
+        items: ids.map((id) => ({ id, display_name: id, status: 'FREE' })),
+        next_cursor: next,
+        total: null,
+      })
+    const seen: (string | null)[] = []
+    server.use(
+      http.get('/api/v1/members/', ({ request }) => {
+        const cursor = new URL(request.url).searchParams.get('cursor')
+        seen.push(cursor)
+        if (cursor === null) return page(['a', 'b'], 'CUR1')
+        if (cursor === 'CUR1') return page(['c', 'd'], 'CUR2')
+        return page(['e'], null)
+      }),
+    )
+
+    const { wrapper } = wrap()
+    const { result } = renderHook(() => useAllMembers(UNIVERSE), { wrapper })
+    await waitFor(() => expect(result.current.isSuccess).toBe(true))
+
+    expect(result.current.data?.items.map((m) => m.id)).toEqual(['a', 'b', 'c', 'd', 'e'])
+    expect(seen).toEqual([null, 'CUR1', 'CUR2'])
+    // Nothing is left dangling: a caller reading next_cursor must see the end.
+    expect(result.current.data?.next_cursor).toBeNull()
+  })
+
+  it('asks for the largest page the server allows', async () => {
+    // At limit=200 a 4571-member universe is 23 round trips.
+    let limit: string | null = null
+    server.use(
+      http.get('/api/v1/members/', ({ request }) => {
+        limit = new URL(request.url).searchParams.get('limit')
+        return HttpResponse.json({ items: [], next_cursor: null, total: null })
+      }),
+    )
+    const { wrapper } = wrap()
+    const { result } = renderHook(() => useAllMembers(UNIVERSE), { wrapper })
+    await waitFor(() => expect(result.current.isSuccess).toBe(true))
+    expect(limit).toBe('500')
+  })
+
+  it('does not fire until the universe is known', async () => {
+    const { wrapper } = wrap()
+    const { result } = renderHook(() => useAllMembers(null), { wrapper })
     expect(result.current.fetchStatus).toBe('idle')
   })
 })

@@ -1,8 +1,9 @@
 import { Link } from '@tanstack/react-router'
 import { ListTree, Plus, Trash2, X } from 'lucide-react'
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 
 import { FuzzyDate, type FuzzyDateValue } from '@/components/FuzzyDate'
+import { AffiliationCombobox } from '@/components/members/MemberFormSheet/pickers/AffiliationCombobox'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -25,6 +26,7 @@ import {
   useEndSetLineage,
   useSetLineage,
 } from '@/lib/queries'
+import { setPickerItems } from '@/lib/setPicker'
 import type { SetLineageItem, SetLineageKind } from '@/lib/types'
 
 // ─── Lineage side panel ───────────────────────────────────────────────────────
@@ -178,7 +180,11 @@ function AddLineageDialog({ setId, setName, universeId, open, onClose }: {
   const [direction, setDirection] = useState<'parent' | 'child'>('parent')
   const [error, setError] = useState<string | null>(null)
 
-  const available = (allSets?.items ?? []).filter((s) => s.id !== setId)
+  // Police, Civilian and Unknown are placeholders, not organisations anything descends from.
+  const available = useMemo(
+    () => setPickerItems((allSets?.items ?? []).filter((s) => s.id !== setId && !s.is_reserved)),
+    [allSets, setId],
+  )
   const otherName = available.find((s) => s.id === otherId)?.name ?? 'the other set'
 
   // The sentence the row will read as, shown before saving, because the
@@ -243,18 +249,13 @@ function AddLineageDialog({ setId, setName, universeId, open, onClose }: {
           </div>
           <div className="space-y-1.5">
             <label className="text-sm font-medium text-zinc-300">Set</label>
-            <Select value={otherId} onValueChange={setOtherId}>
-              <SelectTrigger><SelectValue placeholder="Select a set…" /></SelectTrigger>
-              <SelectContent>
-                {available.length === 0 ? (
-                  <div className="px-2 py-4 text-center text-xs text-zinc-400">No available sets to link.</div>
-                ) : (
-                  available.map((s) => (
-                    <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
-                  ))
-                )}
-              </SelectContent>
-            </Select>
+            <AffiliationCombobox
+              label="Set"
+              value={otherId}
+              onChange={setOtherId}
+              items={available}
+              placeholder="Select a set…"
+            />
           </div>
           <div className="space-y-1.5">
             <label className="text-sm font-medium text-zinc-300">How</label>

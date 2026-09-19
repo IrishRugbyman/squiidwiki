@@ -781,9 +781,12 @@ function StatTile({ label, value, active, onClick, accent }: {
   )
 }
 
-function GangPill({ name }: { name: string }) {
+export function GangPill({ name }: { name: string }) {
   return (
-    <span className="inline-flex items-center rounded-full bg-emerald-950/50 px-2 py-0.5 text-[11px] font-medium text-emerald-300 ring-1 ring-emerald-800/50">
+    <span
+      title={`Nation: ${name}`}
+      className="inline-flex items-center rounded-full bg-emerald-950/50 px-2 py-0.5 text-[11px] font-medium text-emerald-300 ring-1 ring-emerald-800/50"
+    >
       {name}
     </span>
   )

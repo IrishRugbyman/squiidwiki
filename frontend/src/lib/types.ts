@@ -349,6 +349,7 @@ export interface MemberListItem {
   primary_photo_url: string | null
   primary_photo_thumb_url: string | null
   aliases: string[] | null
+  dob: FuzzyDateValue | null
   date_of_death: FuzzyDateValue | null
   is_rapper: boolean
   is_snitch: boolean
@@ -465,6 +466,9 @@ export interface MemberRead extends MemberListItem {
   /** MDOC offender number. The only stable handle OTIS has - the rebuilt site
    *  gives profiles no URL - so it is stored to re-check a spell later. */
   mdoc_number: string | null
+  /** Federal Bureau of Prisons register number, always `NNNNN-NNN` (the API
+   *  normalises it). Unique within a universe: the BOP assigns one for life. */
+  bop_register_number: string | null
   aliases: string[] | null
   biography: string
   alliance_id: UUID | null

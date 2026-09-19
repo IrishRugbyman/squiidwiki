@@ -7,6 +7,8 @@ export interface ComboboxItem {
   id: string
   name: string
   hint?: string
+  /** Extra search terms that match but are not shown, e.g. a set's initials or number */
+  keywords?: string
   /** Tailwind bg-* class for a small status dot */
   dotClass?: string
 }
@@ -88,10 +90,11 @@ export function AffiliationCombobox({
         aria-expanded={open}
         aria-label={label}
         className={cn(
-          'flex h-9 w-full items-center justify-between rounded-md border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm text-zinc-100 ring-offset-zinc-950 placeholder:text-zinc-400',
+          'flex h-9 w-full items-center rounded-md border border-zinc-700 bg-zinc-950 py-2 pl-3 text-sm text-zinc-100 ring-offset-zinc-950 placeholder:text-zinc-400',
           'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/50 focus-visible:ring-offset-1',
           'disabled:cursor-not-allowed disabled:opacity-50',
           'hover:border-zinc-600 transition-colors',
+          selected && !disabled ? 'pr-14' : 'pr-9',
         )}
       >
         <span className="flex min-w-0 items-center gap-2">
@@ -100,21 +103,25 @@ export function AffiliationCombobox({
             {selected ? selected.name : placeholder}
           </span>
         </span>
-        <span className="flex shrink-0 items-center gap-1 text-zinc-400">
-          {selected && !disabled && (
-            <span
-              role="button"
-              tabIndex={-1}
-              onClick={clear}
-              aria-label={`Clear ${label}`}
-              className="rounded p-0.5 hover:bg-zinc-800 hover:text-zinc-200"
-            >
-              <X className="h-3.5 w-3.5" />
-            </span>
-          )}
-          <ChevronsUpDown className="h-3.5 w-3.5" />
-        </span>
       </button>
+      {/* Clear + chevron overlay. The container is non-interactive so a click on
+          the chevron falls through to the trigger button beneath; only the clear
+          control captures pointer events, keeping it a sibling of (not nested
+          inside) the trigger button - which nested-interactive a11y rules forbid. */}
+      <div className="pointer-events-none absolute right-2 top-1/2 flex -translate-y-1/2 items-center gap-1 text-zinc-400">
+        {selected && !disabled && (
+          <button
+            type="button"
+            tabIndex={-1}
+            onClick={clear}
+            aria-label={`Clear ${label}`}
+            className="pointer-events-auto rounded p-0.5 hover:bg-zinc-800 hover:text-zinc-200"
+          >
+            <X className="h-3.5 w-3.5" />
+          </button>
+        )}
+        <ChevronsUpDown className="h-3.5 w-3.5" />
+      </div>
 
       {open && (
         <div className="absolute left-0 right-0 top-full z-50 mt-1 overflow-hidden rounded-md border border-zinc-700 bg-zinc-950 shadow-2xl shadow-black/50">
@@ -137,7 +144,7 @@ export function AffiliationCombobox({
                   return (
                     <CommandItem
                       key={item.id}
-                      value={`${item.name} ${item.hint ?? ''}`}
+                      value={`${item.name} ${item.hint ?? ''} ${item.keywords ?? ''}`}
                       onSelect={() => pick(item.id)}
                       className="flex items-center gap-2"
                     >

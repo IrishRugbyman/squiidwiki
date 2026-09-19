@@ -1,8 +1,8 @@
-import { useCallback, useState } from 'react'
-import type React from 'react'
+import { useCallback } from 'react'
 import { useDropzone } from 'react-dropzone'
 import { Upload, ImagePlus, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
+import { usePageImagePaste } from '@/hooks/usePageImagePaste'
 import { useUploadMedia } from '@/lib/queries'
 import type { MediaEntityType, UUID } from '@/lib/types'
 
@@ -16,7 +16,6 @@ const MAX_BYTES = 10 * 1024 * 1024
 
 export function PhotoUploadDropzone({ entityType, entityId, universeId }: PhotoUploadDropzoneProps) {
   const upload = useUploadMedia(entityType, entityId, universeId)
-  const [pasteHover, setPasteHover] = useState(false)
 
   const handleFiles = useCallback(
     async (files: File[]) => {
@@ -41,33 +40,17 @@ export function PhotoUploadDropzone({ entityType, entityId, universeId }: PhotoU
     multiple: true,
   })
 
-  const onPaste = useCallback(
-    (e: React.ClipboardEvent<HTMLDivElement>) => {
-      const items = e.clipboardData?.items
-      if (!items) return
-      const files: File[] = []
-      for (const item of items) {
-        if (item.kind === 'file' && item.type.startsWith('image/')) {
-          const f = item.getAsFile()
-          if (f) files.push(f)
-        }
-      }
-      if (files.length > 0) {
-        e.preventDefault()
-        void handleFiles(files)
-      }
-    },
-    [handleFiles],
-  )
+  // Paste works anywhere on the page, not only once the zone has focus.
+  const pasteRef = usePageImagePaste<HTMLDivElement>((files) => {
+    toast.message(files.length === 1 ? 'Uploading pasted image' : `Uploading ${files.length} pasted images`)
+    void handleFiles(files)
+  })
 
   const isUploading = upload.isPending
 
   return (
     <div
-      {...getRootProps()}
-      onPaste={onPaste}
-      onMouseEnter={() => setPasteHover(true)}
-      onMouseLeave={() => setPasteHover(false)}
+      {...getRootProps({ ref: pasteRef })}
       tabIndex={0}
       className={`relative rounded-lg border border-dashed transition-colors p-6 text-center cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-violet-500 ${
         isDragActive
@@ -91,7 +74,7 @@ export function PhotoUploadDropzone({ entityType, entityId, universeId }: PhotoU
           <>
             <ImagePlus className="h-6 w-6 text-zinc-400" />
             <span>
-              Drop, click, {pasteHover ? <span className="text-violet-300">or paste (⌘/Ctrl-V)</span> : 'or paste an image'}
+              Drop, click, or paste an image anywhere on the page (⌘/Ctrl-V)
             </span>
             <span className="text-xs text-zinc-400">JPEG / PNG / WebP / GIF, up to 10 MB</span>
           </>

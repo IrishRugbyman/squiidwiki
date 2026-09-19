@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
-import { Banknote, Bomb, CheckCircle2, ChevronLeft, ChevronRight, Flame, Flower, HandCoins, Keyboard, ShieldAlert, Skull, Swords, Unlock, UserX } from 'lucide-react'
+import { Banknote, Bomb, Cake, CheckCircle2, ChevronLeft, ChevronRight, Flame, Flower, HandCoins, Keyboard, ShieldAlert, Skull, Swords, Unlock, UserX } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { NoUniverse } from '@/components/NoUniverse'
 import { Button } from '@/components/ui/button'
@@ -23,7 +23,7 @@ const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 
 // ─── Event types ─────────────────────────────────────────────────────────────
 
-type EventKind = IncidentType | 'DEATH' | 'MEMORIAL' | 'RELEASE'
+type EventKind = IncidentType | 'DEATH' | 'MEMORIAL' | 'BIRTHDAY' | 'RELEASE'
 
 // `text` is spelled out rather than derived from `dot` because Tailwind v4 only
 // emits classes it can find as literals in the source.
@@ -41,6 +41,7 @@ const KIND_CONFIG: Record<EventKind, {
   DEATH:      { dot: 'bg-zinc-500',    text: 'text-zinc-400',    pill: 'bg-zinc-900 text-zinc-400 ring-1 ring-zinc-700',                pillHover: 'hover:ring-zinc-500',    icon: Skull,       label: 'Death'      },
   // Flower rather than Flame: ARSON now owns the flame glyph.
   MEMORIAL:   { dot: 'bg-fuchsia-500', text: 'text-fuchsia-400', pill: 'bg-fuchsia-950/80 text-fuchsia-300 ring-1 ring-fuchsia-800/50', pillHover: 'hover:ring-fuchsia-500', icon: Flower,      label: 'Memorial'   },
+  BIRTHDAY:   { dot: 'bg-sky-500',     text: 'text-sky-400',     pill: 'bg-sky-950/80 text-sky-300 ring-1 ring-sky-800/50',             pillHover: 'hover:ring-sky-500',     icon: Cake,        label: 'Birthday'   },
   RELEASE:    { dot: 'bg-emerald-500', text: 'text-emerald-400', pill: 'bg-emerald-950/80 text-emerald-300 ring-1 ring-emerald-800/50', pillHover: 'hover:ring-emerald-500', icon: Unlock,      label: 'Release'    },
 }
 
@@ -295,6 +296,42 @@ function CalendarPage() {
           sublabel: `Memorial · ${years} year${years === 1 ? '' : 's'}`,
           href: `/members/${m.slug ?? m.id}`,
           date: { year, month, day: dod.day, precision: 'YMD', approx: false },
+        })
+      }
+    }
+
+    // Birthdays, built the same way a death is: the day itself in the year it
+    // happened, then recurring in every year after. Separate from the loop
+    // above because that one starts by skipping everyone still alive, and a
+    // birthday belongs to the living first.
+    for (const m of members) {
+      const dob = m.dob
+      if (!dob || !dob.year || !dob.month || !dob.day) continue
+
+      if (fuzzyMatchesMonth(dob, year, month)) {
+        evs.push({
+          id: m.id + '-born',
+          kind: 'BIRTHDAY',
+          label: m.display_name,
+          sublabel: 'Born',
+          href: `/members/${m.slug ?? m.id}`,
+          date: dob,
+        })
+      }
+
+      if (dob.month === month && year > dob.year) {
+        // An age is something a living person turns. For someone dead the
+        // count would be an age he never reached, so print the birth year and
+        // let the reader do whatever arithmetic they want.
+        const dead = m.status === 'DEAD'
+        const age = year - dob.year
+        evs.push({
+          id: `${m.id}-birthday-${year}`,
+          kind: 'BIRTHDAY',
+          label: m.display_name,
+          sublabel: dead ? `Birthday · born ${dob.year}` : `Birthday · turns ${age}`,
+          href: `/members/${m.slug ?? m.id}`,
+          date: { year, month, day: dob.day, precision: 'YMD', approx: false },
         })
       }
     }

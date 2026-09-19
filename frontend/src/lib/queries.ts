@@ -158,6 +158,7 @@ export const useSetSearch = (universeId: UUID | null, q: string) =>
     queryKey: ['sets', 'search', universeId, q],
     queryFn: () => api.get<SetListItem[]>(`/sets/search?universe_id=${universeId}&q=${encodeURIComponent(q)}`),
     enabled: !!universeId && q.length >= 2,
+    placeholderData: keepPreviousData,
   })
 
 export const useAllianceSearch = (universeId: UUID | null, q: string) =>
@@ -165,6 +166,7 @@ export const useAllianceSearch = (universeId: UUID | null, q: string) =>
     queryKey: ['alliances', 'search', universeId, q],
     queryFn: () => api.get<AllianceListItem[]>(`/alliances/search?universe_id=${universeId}&q=${encodeURIComponent(q)}`),
     enabled: !!universeId && q.length >= 2,
+    placeholderData: keepPreviousData,
   })
 
 export const useIncidentSearch = (universeId: UUID | null, q: string) =>
@@ -172,6 +174,7 @@ export const useIncidentSearch = (universeId: UUID | null, q: string) =>
     queryKey: ['incidents', 'search', universeId, q],
     queryFn: () => api.get<IncidentListItem[]>(`/incidents/search?universe_id=${universeId}&q=${encodeURIComponent(q)}`),
     enabled: !!universeId && q.length >= 2,
+    placeholderData: keepPreviousData,
   })
 
 export const useSourceSearch = (universeId: UUID | null, q: string) =>
@@ -179,6 +182,7 @@ export const useSourceSearch = (universeId: UUID | null, q: string) =>
     queryKey: ['sources', 'search', universeId, q],
     queryFn: () => api.get<SourceListItem[]>(`/sources/search?universe_id=${universeId}&q=${encodeURIComponent(q)}`),
     enabled: !!universeId && q.length >= 2,
+    placeholderData: keepPreviousData,
   })
 
 export const useMunicipalitySearch = (universeId: UUID | null, q: string) =>
@@ -186,6 +190,7 @@ export const useMunicipalitySearch = (universeId: UUID | null, q: string) =>
     queryKey: ['municipalities', 'search', universeId, q],
     queryFn: () => api.get<MunicipalityListItem[]>(`/municipalities/search?universe_id=${universeId}&q=${encodeURIComponent(q)}`),
     enabled: !!universeId && q.length >= 2,
+    placeholderData: keepPreviousData,
   })
 
 export const useSet = (id: UUID, universeId: UUID | null, enabled = true) =>
@@ -496,10 +501,37 @@ export const useMembers = (universeId: UUID | null, cursor?: string) =>
     placeholderData: keepPreviousData,
   })
 
+/**
+ * Every member of a universe, following the cursor to the end.
+ *
+ * This used to fetch one page of 200 and hand it over as if it were the whole
+ * universe. Nothing said it had truncated: Metro Detroit has 398 members and
+ * Metro Chicago 4571, so the calendar silently lost two thirds of its
+ * memorials, the timeline lost the same rows, and the "add member" dialogs
+ * could not find anybody past the cap. A cap that reports itself is a page; a
+ * cap that does not is missing data, so there is no cap here.
+ *
+ * `limit` is the server's own maximum (500), which makes this one request for
+ * every universe but Chicago. The result keeps the `CursorPage` shape, with
+ * `next_cursor` null because there is nothing left to fetch, so every caller
+ * reads it unchanged.
+ */
 export const useAllMembers = (universeId: UUID | null) =>
   useQuery({
     queryKey: ['members', 'all', universeId],
-    queryFn: () => api.get<CursorPage<MemberListItem>>(`/members/?universe_id=${universeId}&limit=200`),
+    queryFn: async () => {
+      const items: MemberListItem[] = []
+      let cursor: string | null = null
+      do {
+        const qs = `?universe_id=${universeId}&limit=500${cursor ? `&cursor=${cursor}` : ''}`
+        const page: CursorPage<MemberListItem> = await api.get<CursorPage<MemberListItem>>(
+          `/members/${qs}`,
+        )
+        items.push(...page.items)
+        cursor = page.next_cursor
+      } while (cursor)
+      return { items, next_cursor: null, total: items.length } satisfies CursorPage<MemberListItem>
+    },
     enabled: !!universeId,
     staleTime: 30_000,
   })
@@ -531,6 +563,7 @@ export const useMemberSearch = (universeId: UUID | null, q: string) =>
     queryKey: ['members', 'search', universeId, q],
     queryFn: () => api.get<MemberListItem[]>(`/members/search?universe_id=${universeId}&q=${encodeURIComponent(q)}`),
     enabled: !!universeId && q.length >= 2,
+    placeholderData: keepPreviousData,
   })
 
 export const useMember = (id: UUID, universeId: UUID | null) =>

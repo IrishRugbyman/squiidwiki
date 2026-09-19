@@ -42,7 +42,7 @@ import {
 } from '@/lib/incidentColors'
 import { useUniverseStore } from '@/stores/universe'
 import { useAuthStore } from '@/stores/auth'
-import { MemberFormSheet, familyDictToEntries, ROLE_LABEL } from './_app.members.index'
+import { MemberFormSheet, familyDictToEntries, ROLE_LABEL, ROLE_LABEL_PLURAL } from './_app.members.index'
 import type { FamilyRole } from './_app.members.index'
 import { AddFamilyRelativeDialog } from '@/components/AddFamilyRelativeDialog'
 const PhotoGallery = lazy(() =>
@@ -253,9 +253,9 @@ function IncarcerationForm({
 
 const ROLE_COLOR: Record<FamilyRole, string> = {
   spouse: 'text-rose-400',
-  father: 'text-amber-400',
-  son: 'text-sky-400',
-  brother: 'text-violet-400',
+  parent: 'text-amber-400',
+  child: 'text-sky-400',
+  sibling: 'text-violet-400',
   cousin: 'text-emerald-400',
   uncle: 'text-orange-400',
   nephew: 'text-pink-400',
@@ -263,9 +263,9 @@ const ROLE_COLOR: Record<FamilyRole, string> = {
 
 const ROLE_TOOLTIP: Record<FamilyRole, string> = {
   spouse: 'Married or long-term partner',
-  father: 'Biological or adoptive father',
-  son: 'Male child of this member',
-  brother: 'Brother (shared parent)',
+  parent: 'Biological or adoptive parent',
+  child: 'Child of this member',
+  sibling: 'Shares a parent with this member',
   cousin: 'Shares a grandparent',
   uncle: "Sibling of this member's parent",
   nephew: "Child of this member's sibling",
@@ -287,7 +287,7 @@ function FamilyPanel({
   const memberMap = relatives
 
   const entries = familyDictToEntries(family)
-  const grouped = (['spouse', 'father', 'son', 'brother', 'cousin', 'uncle', 'nephew'] as FamilyRole[])
+  const grouped = (['spouse', 'parent', 'child', 'sibling', 'cousin', 'uncle', 'nephew'] as FamilyRole[])
     .map((role) => ({ role, ids: entries.filter((e) => e.role === role).map((e) => e.memberId) }))
     .filter((g) => g.ids.length > 0)
 
@@ -325,7 +325,7 @@ function FamilyPanel({
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <span className={`text-[10px] font-semibold uppercase tracking-wider ${ROLE_COLOR[role]}`}>
-                      {ROLE_LABEL[role]}{ids.length > 1 ? 's' : ''}
+                      {ids.length > 1 ? ROLE_LABEL_PLURAL[role] : ROLE_LABEL[role]}
                     </span>
                   </TooltipTrigger>
                   <TooltipContent side="right">{ROLE_TOOLTIP[role]}</TooltipContent>
@@ -392,6 +392,8 @@ function buildMemberMarkdown({
   if (member.aliases && member.aliases.length > 0) {
     lines.push(`- **Aliases:** ${member.aliases.join(', ')}`)
   }
+  if (member.mdoc_number) lines.push(`- **MDOC number:** ${member.mdoc_number}`)
+  if (member.bop_register_number) lines.push(`- **BOP register number:** ${member.bop_register_number}`)
   lines.push('')
 
   if (member.biography) {
@@ -408,10 +410,10 @@ function buildMemberMarkdown({
     for (const { role, name } of family) {
       (grouped[role] ??= []).push(name)
     }
-    for (const role of (['spouse', 'father', 'son', 'brother', 'cousin', 'uncle', 'nephew'] as FamilyRole[])) {
+    for (const role of (['spouse', 'parent', 'child', 'sibling', 'cousin', 'uncle', 'nephew'] as FamilyRole[])) {
       const names = grouped[role]
       if (!names) continue
-      const label = ROLE_LABEL[role] + (names.length > 1 ? 's' : '')
+      const label = names.length > 1 ? ROLE_LABEL_PLURAL[role] : ROLE_LABEL[role]
       lines.push(`- **${label}:** ${names.join(', ')}`)
     }
     lines.push('')
@@ -609,6 +611,17 @@ function MemberDetailPage() {
                     <span className="inline-flex items-center gap-1 rounded-full bg-fuchsia-950/50 px-2.5 py-0.5 text-xs text-fuchsia-300 ring-1 ring-fuchsia-800/60">
                       <Mic className="h-3 w-3" />Rapper
                     </span>
+                  )}
+                  {member.bop_register_number && (
+                    <a
+                      href="https://www.bop.gov/inmateloc/"
+                      target="_blank"
+                      rel="noreferrer"
+                      title="Federal Bureau of Prisons register number: search it in the BOP inmate locator"
+                      className="inline-flex items-center rounded-full bg-zinc-900/60 px-2.5 py-0.5 font-mono text-xs text-zinc-400 ring-1 ring-zinc-700/60 hover:text-violet-400"
+                    >
+                      BOP {member.bop_register_number}
+                    </a>
                   )}
                   {member.is_snitch && (
                     <span className="inline-flex items-center gap-1 rounded-full bg-amber-950/50 px-2.5 py-0.5 text-xs text-amber-300 ring-1 ring-amber-800/60">
