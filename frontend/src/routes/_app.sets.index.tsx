@@ -1,71 +1,22 @@
-import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
-import { Copy, Download, HelpCircle, LayoutGrid, MapPin, MoreVertical, Pencil, Plus, Rows3, Search, Shield, Trash2, User, Users, X } from 'lucide-react'
-import { useEffect, useMemo, useState } from 'react'
+import { createFileRoute } from '@tanstack/react-router'
+import { HelpCircle, Plus, Shield, User } from 'lucide-react'
+import { useMemo, useState } from 'react'
 import { toast } from 'sonner'
-import { NoUniverse } from '@/components/NoUniverse'
-import { PageHeader } from '@/components/PageHeader'
-import { SetStatusBadge } from '@/components/StatusBadge'
 import { Sheet, SheetContent, SheetClose } from '@/components/Sheet'
 import { Button } from '@/components/ui/button'
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Textarea } from '@/components/ui/textarea'
-import { useAlliances, useAllSets, useCreateSet, useDeleteSet, useGangs, useMunicipalities, useReservedSets, useSet, useSets, useUpdateSet, type SetsListParams } from '@/lib/queries'
-import { BulkActionBar } from '@/components/BulkActionBar'
-import { ConfirmDialog } from '@/components/ConfirmDialog'
-import { useUniverseStore } from '@/stores/universe'
-import { downloadCsv } from '@/lib/download'
-import { useDebounce } from '@/hooks/useDebounce'
-import { EmptyState } from '@/components/EmptyState'
-import { TableRowSkeleton } from '@/components/skeletons'
-import { MAX_EMOJIS, formatEmojiInput, isLikelyEmoji, parseEmojiInput, setBadge } from '@/lib/emoji'
-import type { NameVariant, SetListItem, SetReadDetail, SetStatus, UUID } from '@/lib/types'
+import { useAlliances, useAllSets, useCreateSet, useGangs, useMunicipalities, useSet, useUpdateSet } from '@/lib/queries'
+import { MAX_EMOJIS, formatEmojiInput, isLikelyEmoji, parseEmojiInput } from '@/lib/emoji'
+import { gangColorStyle, setColorStyle, variantsToDisplayName } from '@/lib/setDisplay'
+import type { NameVariant, SetListItem, SetReadDetail, SetStatus } from '@/lib/types'
+import { textParam } from '@/lib/searchParams'
 
 function emptyVariant(isPrimary = false): NameVariant {
   return { name: '', initials: '', number: '', is_primary: isPrimary, lead: null }
-}
-
-// Pick which slot leads display for this variant. Honors v.lead when it
-// points to a populated slot; otherwise falls back to name → initials → number.
-function variantLead(v: NameVariant): 'name' | 'initials' | 'number' | null {
-  if (v.lead && v[v.lead]?.trim()) return v.lead
-  if (v.name?.trim()) return 'name'
-  if (v.initials?.trim()) return 'initials'
-  if (v.number?.trim()) return 'number'
-  return null
-}
-
-function variantDisplay(v: NameVariant): string {
-  const lead = variantLead(v)
-  return lead ? (v[lead] ?? '').trim() : ''
-}
-
-function variantsToDisplayName(variants: NameVariant[]): string {
-  const primary = variants.find((v) => v.is_primary) ?? variants[0]
-  return primary ? variantDisplay(primary) : ''
-}
-
-// Render one variant compactly using its lead slot first, e.g.
-// "5674 (JeffMobb ReubGang · JMRB)" or "Across The Ave (ATA · 282)".
-function formatVariant(v: NameVariant): string {
-  const lead = variantLead(v)
-  if (!lead) return ''
-  const head = (v[lead] ?? '').trim()
-  const extras: string[] = []
-  for (const slot of ['name', 'initials', 'number'] as const) {
-    if (slot === lead) continue
-    const val = v[slot]?.trim()
-    if (val) extras.push(val)
-  }
-  return extras.length > 0 ? `${head} (${extras.join(' · ')})` : head
-}
-
-function nonPrimaryVariantsText(variants?: NameVariant[] | null, sep = ' · '): string {
-  if (!variants) return ''
-  return variants.filter((v) => !v.is_primary).map(formatVariant).filter(Boolean).join(sep)
 }
 
 function initialVariants(initial?: SetReadDetail | null, copyFrom?: SetReadDetail | null): NameVariant[] {
@@ -85,10 +36,10 @@ function initialVariants(initial?: SetReadDetail | null, copyFrom?: SetReadDetai
 
 // ─── URL search params ────────────────────────────────────────────────────────
 
-type SortKey = 'name' | 'status' | 'member_count' | 'updated_at' | 'created_at'
-type ViewMode = 'table' | 'cards'
+export type SortKey = 'name' | 'status' | 'member_count' | 'alliance' | 'municipality' | 'updated_at' | 'created_at'
+export type ViewMode = 'table' | 'cards'
 
-interface SetsSearch {
+export interface SetsSearch {
   q?: string
   status?: SetStatus
   alliance?: string  // UUID, 'none', or undefined
@@ -97,15 +48,15 @@ interface SetsSearch {
   sort?: SortKey
   order?: 'asc' | 'desc'
   view?: ViewMode
-  page?: number
-  size?: number
 }
 
-const SORT_KEYS: SortKey[] = ['name', 'status', 'member_count', 'updated_at', 'created_at']
+const SORT_KEYS: SortKey[] = ['name', 'status', 'member_count', 'alliance', 'municipality', 'updated_at', 'created_at']
 
 export const Route = createFileRoute('/_app/sets/')({
+  // `page` and `size` are gone: the whole universe loads at once and the table
+  // virtualises. Old links carrying them still open, the keys are just dropped.
   validateSearch: (s: Record<string, unknown>): SetsSearch => ({
-    q: typeof s.q === 'string' && s.q ? s.q : undefined,
+    q: textParam(s.q),
     status: s.status === 'ACTIVE' || s.status === 'EXTINCT' ? s.status : undefined,
     alliance: typeof s.alliance === 'string' && s.alliance ? s.alliance : undefined,
     gang: typeof s.gang === 'string' && s.gang ? s.gang : undefined,
@@ -113,54 +64,18 @@ export const Route = createFileRoute('/_app/sets/')({
     sort: typeof s.sort === 'string' && (SORT_KEYS as string[]).includes(s.sort) ? (s.sort as SortKey) : undefined,
     order: s.order === 'desc' ? 'desc' : s.order === 'asc' ? 'asc' : undefined,
     view: s.view === 'cards' ? 'cards' : s.view === 'table' ? 'table' : undefined,
-    page: typeof s.page === 'number' && s.page > 0 ? Math.floor(s.page) : undefined,
-    size: typeof s.size === 'number' && [20, 50, 100].includes(s.size) ? s.size : undefined,
   }),
-  component: SetsPage,
+  // The page itself is in _app.sets.index.lazy.tsx, its own chunk. This file
+  // stays in the main bundle because other screens import SetFormSheet from it.
 })
 
 // ─── Set avatar ───────────────────────────────────────────────────────────────
 
-// Perceptually uniform palette: HSL with fixed saturation + lightness so every
-// avatar has the same brightness regardless of the hashed hue.
-function setColorStyle(name: string): React.CSSProperties {
-  let h = 0
-  for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) & 0xffff
-  const hue = h % 360
-  return {
-    backgroundColor: `hsl(${hue} 45% 26% / 0.75)`,
-    color: `hsl(${hue} 60% 78%)`,
-    borderColor: `hsl(${hue} 40% 36% / 0.45)`,
-  }
-}
-
-// Parse a #RRGGBB / #RGB hex into an [r,g,b] tuple, or null if unparseable.
-function parseHex(hex: string): [number, number, number] | null {
-  let h = hex.trim().replace(/^#/, '')
-  if (h.length === 3) h = h.split('').map((c) => c + c).join('')
-  if (h.length !== 6 && h.length !== 8) return null
-  const n = parseInt(h.slice(0, 6), 16)
-  if (Number.isNaN(n)) return null
-  return [(n >> 16) & 0xff, (n >> 8) & 0xff, n & 0xff]
-}
-
-// Translate a gang's hex color into the same dim-bg / bright-fg / soft-border
-// triplet that setColorStyle uses for hashed colors, so avatars stay visually
-// consistent regardless of the source.
-export function gangColorStyle(hex: string): React.CSSProperties {
-  const rgb = parseHex(hex)
-  if (!rgb) return setColorStyle(hex)
-  const [r, g, b] = rgb
-  return {
-    backgroundColor: `rgba(${r}, ${g}, ${b}, 0.22)`,
-    color: `rgb(${Math.min(255, r + 80)}, ${Math.min(255, g + 80)}, ${Math.min(255, b + 80)})`,
-    borderColor: `rgba(${r}, ${g}, ${b}, 0.55)`,
-  }
-}
-
-/** Which glyph stands in for a system set. */
-function reservedIcon(name: string) {
-  return name === 'Police' ? Shield : name === 'Unknown' ? HelpCircle : User
+/** The glyph for a reserved set, as a component so render never picks a component type. */
+export function ReservedSetIcon({ name, className }: { name: string; className?: string }) {
+  if (name === 'Police') return <Shield className={className} />
+  if (name === 'Unknown') return <HelpCircle className={className} />
+  return <User className={className} />
 }
 
 export function SetAvatar({ name, thumbUrl, size = 'md', isReserved = false, gangColor = null }: { name: string; thumbUrl?: string | null; size?: 'sm' | 'md' | 'xl'; isReserved?: boolean; gangColor?: string | null }) {
@@ -171,13 +86,12 @@ export function SetAvatar({ name, thumbUrl, size = 'md', isReserved = false, gan
     'h-8 w-8 text-sm rounded-md'
   const iconSz = size === 'sm' ? 'h-3.5 w-3.5' : size === 'xl' ? 'h-8 w-8' : 'h-4 w-4'
   if (isReserved) {
-    const Icon = reservedIcon(name)
     return (
       <div
         className={`${sz} shrink-0 border border-zinc-700 bg-zinc-800/60 flex items-center justify-center`}
         aria-hidden
       >
-        <Icon className={`${iconSz} text-zinc-400`} />
+        <ReservedSetIcon name={name} className={`${iconSz} text-zinc-400`} />
       </div>
     )
   }
@@ -260,7 +174,7 @@ function SetFormSheetInner({ universeId, open, onClose, initial, onSaved, defaul
   const [error, setError] = useState<string | null>(null)
 
   // Top-level municipalities only — these are the choices for the primary anchor.
-  const allMunis = munisData?.items ?? []
+  const allMunis = useMemo(() => munisData?.items ?? [], [munisData])
   const topLevelMunis = useMemo(
     () => allMunis.filter((m) => !m.parent_id).sort((a, b) => a.name.localeCompare(b.name)),
     [allMunis],
@@ -677,7 +591,7 @@ function SetFormSheetInner({ universeId, open, onClose, initial, onSaved, defaul
 
 // ─── Lazy edit sheet (fetches full set on open) ───────────────────────────────
 
-function EditSetSheet({ setId, universeId, open, onClose }: {
+export function EditSetSheet({ setId, universeId, open, onClose }: {
   setId: string; universeId: string; open: boolean; onClose: () => void
 }) {
   const { data: set } = useSet(setId, universeId)
@@ -695,910 +609,20 @@ function EditSetSheet({ setId, universeId, open, onClose }: {
   return <SetFormSheet universeId={universeId} open={open} onClose={onClose} initial={set} />
 }
 
-// ─── Small UI bits ────────────────────────────────────────────────────────────
-
-type StatusFilter = 'ALL' | 'ACTIVE' | 'EXTINCT'
-
-function StatusTabs({ value, onChange, counts }: {
-  value: StatusFilter
-  onChange: (v: StatusFilter) => void
-  counts: Record<StatusFilter, number>
-}) {
-  const tabs: { key: StatusFilter; label: string }[] = [
-    { key: 'ALL', label: 'All' },
-    { key: 'ACTIVE', label: 'Active' },
-    { key: 'EXTINCT', label: 'Extinct' },
-  ]
-  return (
-    <div className="flex items-center gap-1 rounded-lg border border-zinc-800 bg-zinc-900/50 p-1">
-      {tabs.map(({ key, label }) => (
-        <button
-          key={key}
-          onClick={() => onChange(key)}
-          aria-pressed={value === key}
-          className={`flex items-center gap-1.5 rounded-md px-3 py-1 text-xs font-medium transition-colors ${
-            value === key ? 'bg-zinc-700 text-white' : 'text-zinc-400 hover:text-zinc-300'
-          }`}
-        >
-          {label}
-          <span className={`tabular-nums ${value === key ? 'text-zinc-300' : 'text-zinc-400'}`}>
-            {counts[key]}
-          </span>
-        </button>
-      ))}
-    </div>
-  )
-}
-
-function SortHeader({ label, col, sort, order, onSort, align = 'left' }: {
-  label: string; col: SortKey; sort: SortKey; order: 'asc' | 'desc'
-  onSort: (k: SortKey) => void; align?: 'left' | 'right'
-}) {
-  const sorted = sort === col
-  return (
-    <th
-      className={`px-4 py-2.5 ${align === 'right' ? 'text-right' : 'text-left'}`}
-      scope="col"
-      aria-sort={sorted ? (order === 'asc' ? 'ascending' : 'descending') : 'none'}
-    >
-      <button
-        onClick={() => onSort(col)}
-        className={`inline-flex items-center gap-1 text-xs font-medium text-zinc-400 hover:text-white transition-colors focus-visible:outline-none focus-visible:text-white ${
-          align === 'right' ? 'ml-auto' : ''
-        }`}
-      >
-        {label}
-        <span className="text-zinc-400" aria-hidden>{sorted ? (order === 'asc' ? '↑' : '↓') : '↕'}</span>
-      </button>
-    </th>
-  )
-}
-
-function StatTile({ label, value, active, onClick, accent }: {
-  label: string
-  value: string | number
-  active?: boolean
-  onClick?: () => void
-  accent?: 'green' | 'zinc' | 'blue' | 'violet'
-}) {
-  const ring = active
-    ? 'ring-1 ring-violet-600/60 bg-violet-950/30'
-    : 'hover:bg-zinc-900/70'
-  const accentColor =
-    accent === 'green' ? 'text-emerald-400'
-      : accent === 'blue' ? 'text-blue-400'
-      : accent === 'violet' ? 'text-violet-400'
-      : 'text-zinc-200'
-  const Comp = onClick ? 'button' : 'div'
-  return (
-    <Comp
-      onClick={onClick}
-      className={`flex flex-1 min-w-0 flex-col items-start rounded-lg border border-zinc-800 bg-zinc-900/40 px-3 py-2 text-left transition-colors ${ring}`}
-    >
-      <span className="text-[10px] font-medium uppercase tracking-wider text-zinc-400">{label}</span>
-      <span className={`mt-0.5 text-lg font-bold tabular-nums ${accentColor}`}>{value}</span>
-    </Comp>
-  )
-}
-
 export function GangPill({ name }: { name: string }) {
   return (
     <span
       title={`Nation: ${name}`}
-      className="inline-flex items-center rounded-full bg-emerald-950/50 px-2 py-0.5 text-[11px] font-medium text-emerald-300 ring-1 ring-emerald-800/50"
+      className="inline-flex max-w-full items-center rounded-full bg-emerald-950/50 px-2 py-0.5 text-[11px] font-medium text-emerald-300 ring-1 ring-emerald-800/50"
     >
-      {name}
+      <span className="truncate">{name}</span>
     </span>
-  )
-}
-
-function AlliancePill({ name, slug, id }: { name: string; slug: string | null; id: string }) {
-  return (
-    <Link
-      to="/alliances/$id"
-      params={{ id: slug ?? id }}
-      onClick={(e) => e.stopPropagation()}
-      className="inline-flex items-center rounded-full bg-blue-950/60 px-2 py-0.5 text-[11px] font-medium text-blue-300 ring-1 ring-blue-800/50 hover:ring-blue-600 transition-colors"
-    >
-      {name}
-    </Link>
-  )
-}
-
-function MunicipalityPill({ name }: { name: string }) {
-  return (
-    <span className="inline-flex items-center gap-1 rounded-full bg-zinc-800/80 px-2 py-0.5 text-[11px] font-medium text-zinc-300 ring-1 ring-zinc-700">
-      <MapPin className="h-2.5 w-2.5" aria-hidden />
-      {name}
-    </span>
-  )
-}
-
-function MemberCount({ n, large = false }: { n: number; large?: boolean }) {
-  return (
-    <span className={`inline-flex items-center gap-1 tabular-nums ${large ? 'text-sm text-zinc-200' : 'text-xs text-zinc-400'}`}>
-      <Users className={large ? 'h-3.5 w-3.5' : 'h-3 w-3'} aria-hidden />
-      {n}
-    </span>
-  )
-}
-
-// ─── Row actions ──────────────────────────────────────────────────────────────
-
-function RowActions({ set, onEdit, onDuplicate, onDelete }: {
-  set: SetListItem
-  onEdit: () => void
-  onDuplicate: () => void
-  onDelete: () => void
-}) {
-  if (set.is_reserved) {
-    return (
-      <button
-        onClick={onEdit}
-        aria-label={`Edit ${set.name}`}
-        className="rounded p-1.5 text-zinc-400 hover:bg-zinc-800 hover:text-zinc-300 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/50"
-      >
-        <Pencil className="h-3.5 w-3.5" />
-      </button>
-    )
-  }
-  return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <button
-          aria-label={`Actions for ${set.name}`}
-          onClick={(e) => e.stopPropagation()}
-          className="rounded p-1.5 text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/50"
-        >
-          <MoreVertical className="h-4 w-4" />
-        </button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-40">
-        <DropdownMenuItem onSelect={onEdit}>
-          <Pencil className="mr-2 h-3.5 w-3.5" />Edit
-        </DropdownMenuItem>
-        <DropdownMenuItem onSelect={onDuplicate}>
-          <Copy className="mr-2 h-3.5 w-3.5" />Duplicate
-        </DropdownMenuItem>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem onSelect={onDelete} className="text-red-400 focus:bg-red-950/40 focus:text-red-300">
-          <Trash2 className="mr-2 h-3.5 w-3.5" />Delete
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
-  )
-}
-
-// ─── Card view ────────────────────────────────────────────────────────────────
-
-function SetCard({ set, isSelected, onToggleSelect, onEdit, onDuplicate, onDelete }: {
-  set: SetListItem
-  isSelected: boolean
-  onToggleSelect: () => void
-  onEdit: () => void
-  onDuplicate: () => void
-  onDelete: () => void
-}) {
-  const linkId = set.slug ?? set.id
-  const aka = nonPrimaryVariantsText(set.name_variants)
-  const badge = setBadge(set.emojis)
-  return (
-    <div className={`group relative flex flex-col overflow-hidden rounded-lg border bg-zinc-900/40 transition-colors ${
-      isSelected ? 'border-violet-700/70 bg-violet-950/20' : 'border-zinc-800 hover:border-zinc-700'
-    }`}>
-      <Link to="/sets/$id" params={{ id: linkId }} className="flex flex-col">
-        {/* Header band: gang/set color block */}
-        <div className="relative h-16 w-full overflow-hidden bg-zinc-950">
-          <div
-            className="h-full w-full"
-            style={set.gang_color ? gangColorStyle(set.gang_color) : setColorStyle(set.name)}
-            aria-hidden
-          />
-          <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-zinc-950 to-transparent p-3">
-            <p className="truncate text-sm font-semibold text-white group-hover:text-violet-300 transition-colors">
-              {badge && <span className="mr-1.5" title={set.emojis?.join(' ')}>{badge}</span>}
-              {set.name}
-            </p>
-            {aka && <p className="truncate text-[11px] text-zinc-400">{aka}</p>}
-          </div>
-        </div>
-        <div className="flex flex-wrap gap-1.5 p-3">
-          {set.gang_name && <GangPill name={set.gang_name} />}
-          {set.alliance_id && set.alliance_name && (
-            <AlliancePill name={set.alliance_name} slug={null} id={set.alliance_id} />
-          )}
-          {set.municipality_name && <MunicipalityPill name={set.municipality_name} />}
-          {!set.gang_name && !set.alliance_name && !set.municipality_name && (
-            <span className="text-[11px] text-zinc-400">No affiliations</span>
-          )}
-        </div>
-        <div className="flex items-center justify-between border-t border-zinc-800/80 px-3 py-2">
-          <MemberCount n={set.member_count} large />
-          <SetStatusBadge status={set.status} />
-        </div>
-      </Link>
-      {!set.is_reserved && (
-        <div className="absolute right-2 top-2 flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
-          <button
-            onClick={(e) => { e.stopPropagation(); onToggleSelect() }}
-            aria-label={`Select ${set.name}`}
-            className={`rounded border px-1.5 py-1 text-[10px] font-medium uppercase tracking-wide transition-colors ${
-              isSelected
-                ? 'border-violet-500 bg-violet-700 text-white'
-                : 'border-zinc-700 bg-zinc-900/80 text-zinc-300 hover:bg-zinc-800'
-            }`}
-          >
-            {isSelected ? 'Selected' : 'Select'}
-          </button>
-          <div onClick={(e) => e.stopPropagation()}>
-            <RowActions set={set} onEdit={onEdit} onDuplicate={onDuplicate} onDelete={onDelete} />
-          </div>
-        </div>
-      )}
-    </div>
-  )
-}
-
-// ─── Page ─────────────────────────────────────────────────────────────────────
-
-// ─── Page ─────────────────────────────────────────────────────────────────────
-
-const ALL_SENTINEL = '__all__'
-const NONE_SENTINEL = 'none'
-
-function SetsPage() {
-  const universe = useUniverseStore((s) => s.activeUniverse)
-  const search = Route.useSearch()
-  const navigate = useNavigate({ from: Route.fullPath })
-
-  // Local input state (debounced into the URL)
-  const [qInput, setQInput] = useState(search.q ?? '')
-  const debouncedQ = useDebounce(qInput, 250)
-
-  // Push debounced search into URL once it stabilizes (and reset to page 1).
-  useEffect(() => {
-    const next = debouncedQ.trim() ? debouncedQ.trim() : undefined
-    if (next === (search.q ?? undefined)) return
-    navigate({ search: (prev) => ({ ...prev, q: next, page: undefined }) })
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [debouncedQ])
-
-  // Keep the input in sync if the URL changes externally (back/forward).
-  useEffect(() => {
-    if ((search.q ?? '') !== qInput) setQInput(search.q ?? '')
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [search.q])
-
-  const [creating, setCreating] = useState(false)
-  const [editingId, setEditingId] = useState<string | null>(null)
-  const [duplicatingId, setDuplicatingId] = useState<string | null>(null)
-  const [deletingSet, setDeletingSet] = useState<SetListItem | null>(null)
-  const [confirmingBulkDelete, setConfirmingBulkDelete] = useState(false)
-  const [bulkDeleting, setBulkDeleting] = useState(false)
-  const [selected, setSelected] = useState<Set<UUID>>(new Set())
-
-  // Settings — persisted defaults via URL (sharable). Effective values:
-  const view: ViewMode = search.view ?? 'table'
-  const sort: SortKey = search.sort ?? 'name'
-  const order: 'asc' | 'desc' = search.order ?? 'asc'
-  const pageSize = search.size ?? 20
-  const page = search.page ?? 1
-  const offset = (page - 1) * pageSize
-
-  const statusFilter: StatusFilter = (search.status as StatusFilter | undefined) ?? 'ALL'
-  const allianceFilter = search.alliance ?? ALL_SENTINEL
-  const gangFilter = search.gang ?? ALL_SENTINEL
-  const muniFilter = search.muni ?? ALL_SENTINEL
-  const hasFilters = !!(search.status || search.alliance || search.gang || search.muni || search.q)
-
-  // Mobile-only forces card view; we just compute it for layout decisions.
-  const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' && window.innerWidth < 640)
-  useEffect(() => {
-    if (typeof window === 'undefined') return
-    const onResize = () => setIsMobile(window.innerWidth < 640)
-    window.addEventListener('resize', onResize)
-    return () => window.removeEventListener('resize', onResize)
-  }, [])
-  const effectiveView: ViewMode = isMobile ? 'cards' : view
-
-  // Build list params for the server.
-  const listParams: SetsListParams = {
-    offset,
-    limit: pageSize,
-    q: debouncedQ.trim() || undefined,
-    status: search.status,
-    alliance_id: allianceFilter !== ALL_SENTINEL ? allianceFilter : undefined,
-    gang_id: gangFilter !== ALL_SENTINEL ? gangFilter : undefined,
-    municipality_id: muniFilter !== ALL_SENTINEL ? muniFilter : undefined,
-    reserved: false,
-    sort,
-    order,
-  }
-
-  const { data, isLoading } = useSets(universe?.id ?? null, listParams)
-  const { data: alliancesData } = useAlliances(universe?.id ?? null)
-  const { data: gangsData } = useGangs(universe?.id ?? null)
-  const { data: munisData } = useMunicipalities(universe?.id ?? null)
-  const deleteSet = useDeleteSet(universe?.id ?? '')
-
-  // Unfiltered totals for the KPI strip — separate query, cached, light.
-  // Fetched without any filters so the KPIs reflect the whole universe.
-  const { data: kpiData } = useSets(universe?.id ?? null, { limit: 200, reserved: false })
-  // The system row is its own query so it survives every search and filter.
-  const { data: reservedData } = useReservedSets(universe?.id ?? null)
-
-  if (!universe) return <NoUniverse />
-
-  const items = data?.items ?? []
-  const reservedSets = reservedData?.items ?? []
-  const total = data?.total ?? 0
-  const selectableIds = items.map((s) => s.id)
-  const allSelected = selectableIds.length > 0 && selectableIds.every((id) => selected.has(id))
-
-  // KPI stats over the universe (excluding reserved sets).
-  const allKpiSets = kpiData?.items ?? []
-  const kpiActive = allKpiSets.filter((s) => s.status === 'ACTIVE').length
-  const kpiExtinct = allKpiSets.filter((s) => s.status === 'EXTINCT').length
-  const kpiInAlliance = allKpiSets.filter((s) => !!s.alliance_id).length
-  const totalMembers = allKpiSets.reduce((sum, s) => sum + (s.member_count ?? 0), 0)
-  const avgCrew = allKpiSets.length ? Math.round(totalMembers / allKpiSets.length) : 0
-
-  function patchSearch(patch: Partial<SetsSearch>) {
-    navigate({ search: (prev) => {
-      const next: SetsSearch = { ...prev, ...patch }
-      // Reset to page 1 when filters or sort change (but NOT for view/page/size itself).
-      const filterKeys: (keyof SetsSearch)[] = ['q', 'status', 'alliance', 'gang', 'muni', 'sort', 'order', 'size']
-      if (filterKeys.some((k) => k in patch)) next.page = undefined
-      // Strip undefineds to keep URLs clean.
-      for (const k of Object.keys(next) as (keyof SetsSearch)[]) {
-        if (next[k] === undefined || next[k] === ALL_SENTINEL) delete next[k]
-      }
-      return next
-    } })
-  }
-
-  function setStatusFilter(v: StatusFilter) {
-    patchSearch({ status: v === 'ALL' ? undefined : v })
-  }
-  function toggleSort(key: SortKey) {
-    if (sort === key) patchSearch({ order: order === 'asc' ? 'desc' : 'asc' })
-    else patchSearch({ sort: key, order: 'asc' })
-  }
-  function clearAllFilters() {
-    setQInput('')
-    navigate({ search: (prev) => ({ view: prev.view, size: prev.size }) })
-  }
-
-  function toggleSelectSet(id: UUID) {
-    setSelected((prev) => {
-      const next = new Set(prev); next.has(id) ? next.delete(id) : next.add(id); return next
-    })
-  }
-
-  async function bulkDeleteSets() {
-    if (selected.size === 0) return
-    const ids = Array.from(selected)
-    setBulkDeleting(true)
-    try {
-      await Promise.all(ids.map((id) => deleteSet.mutateAsync(id)))
-      toast.success(`Deleted ${ids.length} set${ids.length === 1 ? '' : 's'}`)
-      setSelected(new Set())
-      setConfirmingBulkDelete(false)
-    } finally {
-      setBulkDeleting(false)
-    }
-  }
-
-  async function deleteSingleSet(s: SetListItem) {
-    try {
-      await deleteSet.mutateAsync(s.id)
-      toast.success(`Deleted "${s.name}"`)
-    } finally {
-      setDeletingSet(null)
-    }
-  }
-
-  const allianceOptions = alliancesData?.items ?? []
-  const gangOptions = gangsData?.items ?? []
-  const muniOptions = (munisData?.items ?? []).filter((m) => !m.parent_id)
-  const allianceLabel = (id: string) =>
-    id === NONE_SENTINEL ? 'No alliance' : allianceOptions.find((a) => a.id === id)?.name ?? '?'
-  const gangLabel = (id: string) =>
-    id === NONE_SENTINEL ? 'No gang' : gangOptions.find((g) => g.id === id)?.name ?? '?'
-  const muniLabel = (id: string) =>
-    id === NONE_SENTINEL ? 'No municipality' : muniOptions.find((m) => m.id === id)?.name ?? '?'
-
-  const totalPages = Math.max(1, Math.ceil(total / pageSize))
-  const editingSetForDuplication = duplicatingId
-    ? items.find((s) => s.id === duplicatingId) ?? null
-    : null
-
-  return (
-    <div>
-      <PageHeader
-        title="Sets"
-        description={
-          isLoading ? undefined :
-          total === 0 ? 'No sets yet' :
-          hasFilters
-            ? `${total} match${total === 1 ? '' : 'es'}`
-            : `${kpiActive} active · ${kpiExtinct} extinct`
-        }
-        action={
-          <Button size="sm" onClick={() => setCreating(true)}>
-            <Plus className="mr-1.5 h-4 w-4" />Add Set
-          </Button>
-        }
-      />
-
-      {/* KPI strip */}
-      {allKpiSets.length > 0 && (
-        <div className="mb-4 flex flex-wrap gap-2">
-          <StatTile
-            label="Active"
-            value={kpiActive}
-            accent="green"
-            active={statusFilter === 'ACTIVE'}
-            onClick={() => setStatusFilter(statusFilter === 'ACTIVE' ? 'ALL' : 'ACTIVE')}
-          />
-          <StatTile
-            label="Extinct"
-            value={kpiExtinct}
-            accent="zinc"
-            active={statusFilter === 'EXTINCT'}
-            onClick={() => setStatusFilter(statusFilter === 'EXTINCT' ? 'ALL' : 'EXTINCT')}
-          />
-          <StatTile
-            label="In an alliance"
-            value={kpiInAlliance}
-            accent="blue"
-          />
-          <StatTile
-            label="Avg crew size"
-            value={avgCrew}
-            accent="violet"
-          />
-        </div>
-      )}
-
-      {/* Toolbar */}
-      <div className="mb-3 flex flex-wrap items-center gap-2">
-        <div className="relative min-w-48 flex-1 max-w-sm">
-          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" />
-          <Input
-            className="pl-8"
-            placeholder="Search sets…"
-            value={qInput}
-            onChange={(e) => setQInput(e.target.value)}
-          />
-        </div>
-
-        <StatusTabs
-          value={statusFilter}
-          onChange={setStatusFilter}
-          counts={{ ALL: allKpiSets.length, ACTIVE: kpiActive, EXTINCT: kpiExtinct }}
-        />
-
-        {/* Alliance */}
-        <Select
-          value={allianceFilter}
-          onValueChange={(v) => patchSearch({ alliance: v === ALL_SENTINEL ? undefined : v })}
-        >
-          <SelectTrigger className="h-8 w-auto min-w-32 text-xs">
-            <SelectValue placeholder="Alliance" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value={ALL_SENTINEL}>All alliances</SelectItem>
-            <SelectItem value={NONE_SENTINEL}>No alliance</SelectItem>
-            {allianceOptions.map((a) => (
-              <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-
-        {/* Gang */}
-        <Select
-          value={gangFilter}
-          onValueChange={(v) => patchSearch({ gang: v === ALL_SENTINEL ? undefined : v })}
-        >
-          <SelectTrigger className="h-8 w-auto min-w-28 text-xs">
-            <SelectValue placeholder="Gang" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value={ALL_SENTINEL}>All gangs</SelectItem>
-            <SelectItem value={NONE_SENTINEL}>No gang</SelectItem>
-            {gangOptions.map((g) => (
-              <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-
-        {/* Municipality */}
-        <Select
-          value={muniFilter}
-          onValueChange={(v) => patchSearch({ muni: v === ALL_SENTINEL ? undefined : v })}
-        >
-          <SelectTrigger className="h-8 w-auto min-w-32 text-xs">
-            <SelectValue placeholder="Municipality" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value={ALL_SENTINEL}>All municipalities</SelectItem>
-            <SelectItem value={NONE_SENTINEL}>No municipality</SelectItem>
-            {muniOptions.map((m) => (
-              <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-
-        <div className="ml-auto flex items-center gap-2">
-          {/* Sort (cards mode only — table has sortable headers) */}
-          {effectiveView === 'cards' && (
-            <Select
-              value={`${sort}:${order}`}
-              onValueChange={(v) => {
-                const [s, o] = v.split(':') as [SortKey, 'asc' | 'desc']
-                patchSearch({ sort: s, order: o })
-              }}
-            >
-              <SelectTrigger className="h-8 w-auto min-w-32 text-xs">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="name:asc">Name A→Z</SelectItem>
-                <SelectItem value="name:desc">Name Z→A</SelectItem>
-                <SelectItem value="member_count:desc">Members ↓</SelectItem>
-                <SelectItem value="member_count:asc">Members ↑</SelectItem>
-                <SelectItem value="updated_at:desc">Recently updated</SelectItem>
-                <SelectItem value="created_at:desc">Recently created</SelectItem>
-              </SelectContent>
-            </Select>
-          )}
-
-          {/* View toggle (hidden on mobile — cards forced) */}
-          {!isMobile && (
-            <div className="flex items-center rounded-lg border border-zinc-800 bg-zinc-900/50 p-0.5">
-              <button
-                onClick={() => patchSearch({ view: 'table' })}
-                aria-label="Table view"
-                aria-pressed={view === 'table'}
-                className={`rounded-md p-1.5 transition-colors ${view === 'table' ? 'bg-zinc-700 text-white' : 'text-zinc-400 hover:text-zinc-300'}`}
-              >
-                <Rows3 className="h-3.5 w-3.5" />
-              </button>
-              <button
-                onClick={() => patchSearch({ view: 'cards' })}
-                aria-label="Card view"
-                aria-pressed={view === 'cards'}
-                className={`rounded-md p-1.5 transition-colors ${view === 'cards' ? 'bg-zinc-700 text-white' : 'text-zinc-400 hover:text-zinc-300'}`}
-              >
-                <LayoutGrid className="h-3.5 w-3.5" />
-              </button>
-            </div>
-          )}
-
-          <Button
-            variant="outline" size="sm"
-            onClick={() => {
-              const date = new Date().toISOString().slice(0, 10)
-              const url = `/sets/?${new URLSearchParams({ universe_id: universe.id, format: 'csv' }).toString()}`
-              downloadCsv(url, `sets-${universe.slug}-${date}.csv`)
-            }}
-          >
-            <Download className="mr-1.5 h-3.5 w-3.5" />Export
-          </Button>
-        </div>
-      </div>
-
-      {/* Active filter chips */}
-      {hasFilters && (
-        <div className="mb-3 flex flex-wrap items-center gap-1.5" aria-live="polite">
-          {search.q && (
-            <FilterChip label={`Search: "${search.q}"`} onClear={() => { setQInput(''); patchSearch({ q: undefined }) }} />
-          )}
-          {search.status && (
-            <FilterChip label={`Status: ${search.status === 'ACTIVE' ? 'Active' : 'Extinct'}`} onClear={() => patchSearch({ status: undefined })} />
-          )}
-          {search.alliance && (
-            <FilterChip label={`Alliance: ${allianceLabel(search.alliance)}`} onClear={() => patchSearch({ alliance: undefined })} />
-          )}
-          {search.gang && (
-            <FilterChip label={`Gang: ${gangLabel(search.gang)}`} onClear={() => patchSearch({ gang: undefined })} />
-          )}
-          {search.muni && (
-            <FilterChip label={`Municipality: ${muniLabel(search.muni)}`} onClear={() => patchSearch({ muni: undefined })} />
-          )}
-          <button
-            onClick={clearAllFilters}
-            className="text-xs text-zinc-400 hover:text-zinc-200 underline-offset-4 hover:underline"
-          >
-            Clear all
-          </button>
-        </div>
-      )}
-
-      {/* System sets (Civilian, Police, Unknown). Their own query, so the row stands
-          whatever is typed in the search box, and they are cut from the list itself
-          server-side - otherwise a search for "civ" reported a match the table could
-          not show. */}
-      {reservedSets.length > 0 && (
-        <div className="mb-4 flex items-center gap-2">
-          <span className="text-[11px] font-medium uppercase tracking-wider text-zinc-400">System</span>
-          {reservedSets.map((s) => {
-            // The icon sits bare inside the pill: a bordered tile within a bordered
-            // capsule puts a square inside a round and reads as two nested boxes.
-            const Icon = reservedIcon(s.name)
-            return (
-              <Link
-                key={s.id}
-                to="/sets/$id"
-                params={{ id: s.slug ?? s.id }}
-                title={`${s.name} - ${s.member_count ?? 0} members`}
-                className="group inline-flex items-center gap-1.5 rounded-full border border-zinc-700 bg-zinc-900/50 px-3 py-1 text-xs text-zinc-400 transition-colors hover:border-zinc-500 hover:text-zinc-200"
-              >
-                <Icon className="h-3.5 w-3.5 text-zinc-500 transition-colors group-hover:text-zinc-300" />
-                {s.name}
-                <span className="tabular-nums text-zinc-500 transition-colors group-hover:text-zinc-400">
-                  {s.member_count ?? 0}
-                </span>
-              </Link>
-            )
-          })}
-        </div>
-      )}
-
-      {/* List body */}
-      {effectiveView === 'cards' ? (
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {isLoading
-            ? Array.from({ length: 8 }).map((_, i) => (
-                <div key={i} className="overflow-hidden rounded-lg border border-zinc-800 bg-zinc-900/40">
-                  <Skeleton className="h-24 w-full rounded-none" />
-                  <div className="space-y-2 p-3">
-                    <Skeleton className="h-3 w-32" />
-                    <Skeleton className="h-3 w-20" />
-                  </div>
-                  <div className="border-t border-zinc-800 px-3 py-2">
-                    <Skeleton className="h-4 w-16" />
-                  </div>
-                </div>
-              ))
-            : items.length === 0
-              ? (
-                <div className="col-span-full">
-                  <EmptyState
-                    icon={Shield}
-                    title={hasFilters ? 'No sets match your filters' : 'No sets yet'}
-                    description={hasFilters ? undefined : 'Create a set to start tracking a crew.'}
-                    action={hasFilters
-                      ? <Button size="sm" variant="outline" onClick={clearAllFilters}>Clear filters</Button>
-                      : <Button size="sm" onClick={() => setCreating(true)}><Plus className="mr-1.5 h-4 w-4" />Create the first set</Button>
-                    }
-                  />
-                </div>
-              )
-              : items.map((set) => (
-                <SetCard
-                  key={set.id}
-                  set={set}
-                  isSelected={selected.has(set.id)}
-                  onToggleSelect={() => toggleSelectSet(set.id)}
-                  onEdit={() => setEditingId(set.id)}
-                  onDuplicate={() => setDuplicatingId(set.id)}
-                  onDelete={() => setDeletingSet(set)}
-                />
-              ))
-          }
-        </div>
-      ) : (
-        <div className="overflow-x-auto rounded-lg border border-zinc-800">
-          <table className="w-full text-sm">
-            <thead className="sticky top-0 z-10 bg-zinc-900/90 backdrop-blur">
-              <tr className="border-b border-zinc-800">
-                <th className="w-10 px-3 py-2.5" scope="col">
-                  <input
-                    type="checkbox"
-                    aria-label="Select all sets"
-                    checked={allSelected}
-                    onChange={() => setSelected(allSelected ? new Set() : new Set(selectableIds))}
-                    className="rounded border-zinc-700 bg-zinc-900 accent-violet-600"
-                  />
-                </th>
-                <SortHeader label="Set" col="name" sort={sort} order={order} onSort={toggleSort} />
-                <th className="hidden px-4 py-2.5 text-left text-xs font-medium text-zinc-400 md:table-cell">Gang</th>
-                <th className="hidden px-4 py-2.5 text-left text-xs font-medium text-zinc-400 md:table-cell">Alliance</th>
-                <th className="hidden px-4 py-2.5 text-left text-xs font-medium text-zinc-400 md:table-cell">Municipality</th>
-                <SortHeader label="Members" col="member_count" sort={sort} order={order} onSort={toggleSort} align="right" />
-                <SortHeader label="Status" col="status" sort={sort} order={order} onSort={toggleSort} />
-                <th className="w-8" aria-label="Actions" />
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-zinc-800">
-              {isLoading
-                ? Array.from({ length: 5 }).map((_, i) => <TableRowSkeleton key={i} cols={8} height={44} />)
-                : items.map((set) => {
-                    const linkId = set.slug ?? set.id
-                    const isSelected = selected.has(set.id)
-                    const padY = 'py-1.5'
-                    return (
-                      <tr key={set.id} className={`group hover:bg-zinc-900/50 transition-colors ${isSelected ? 'bg-violet-950/20' : ''}`}>
-                        <td className={`px-3 ${padY}`}>
-                          <input
-                            type="checkbox"
-                            aria-label={`Select ${set.name}`}
-                            checked={isSelected}
-                            onChange={() => toggleSelectSet(set.id)}
-                            className="rounded border-zinc-700 bg-zinc-900 accent-violet-600"
-                          />
-                        </td>
-                        <td className="p-0">
-                          <Link to="/sets/$id" params={{ id: linkId }} className={`flex items-center gap-3 px-4 ${padY}`}>
-                            <div className="min-w-0">
-                              <p className="truncate font-medium text-white group-hover:text-violet-400 transition-colors">
-                                {setBadge(set.emojis) && (
-                                  <span className="mr-1.5" title={set.emojis?.join(' ')}>{setBadge(set.emojis)}</span>
-                                )}
-                                {set.name}
-                              </p>
-                            </div>
-                          </Link>
-                        </td>
-                        <td className={`hidden px-4 ${padY} md:table-cell`}>
-                          {set.gang_name ? <GangPill name={set.gang_name} /> : <span className="text-xs text-zinc-500">—</span>}
-                        </td>
-                        <td className={`hidden px-4 ${padY} md:table-cell`}>
-                          {set.alliance_id && set.alliance_name ? (
-                            <AlliancePill name={set.alliance_name} slug={null} id={set.alliance_id} />
-                          ) : <span className="text-xs text-zinc-500">—</span>}
-                        </td>
-                        <td className={`hidden px-4 ${padY} md:table-cell`}>
-                          {set.municipality_name ? <MunicipalityPill name={set.municipality_name} /> : <span className="text-xs text-zinc-500">—</span>}
-                        </td>
-                        <td className={`px-4 ${padY} text-right`}>
-                          <MemberCount n={set.member_count} />
-                        </td>
-                        <td className={`px-4 ${padY}`}>
-                          <SetStatusBadge status={set.status} />
-                        </td>
-                        <td className={`pr-3 ${padY}`}>
-                          <RowActions
-                            set={set}
-                            onEdit={() => setEditingId(set.id)}
-                            onDuplicate={() => setDuplicatingId(set.id)}
-                            onDelete={() => setDeletingSet(set)}
-                          />
-                        </td>
-                      </tr>
-                    )
-                  })}
-              {!isLoading && items.length === 0 && (
-                <tr>
-                  <td colSpan={8}>
-                    <EmptyState
-                      icon={Shield}
-                      title={hasFilters ? 'No sets match your filters' : 'No sets yet'}
-                      description={hasFilters ? undefined : 'Create a set to start tracking a crew.'}
-                      action={hasFilters
-                        ? <Button size="sm" variant="outline" onClick={clearAllFilters}>Clear filters</Button>
-                        : <Button size="sm" onClick={() => setCreating(true)}><Plus className="mr-1.5 h-4 w-4" />Create the first set</Button>
-                      }
-                    />
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      )}
-
-      {/* Pagination */}
-      {total > 0 && (
-        <nav className="mt-4 flex flex-wrap items-center justify-between gap-3 text-sm text-zinc-400" aria-label="Pagination">
-          <div className="flex items-center gap-3">
-            <span aria-live="polite">
-              Showing <span className="text-zinc-200 tabular-nums">{offset + 1}</span>–<span className="text-zinc-200 tabular-nums">{Math.min(offset + pageSize, total)}</span> of{' '}
-              <span className="text-zinc-200 tabular-nums">{total}</span>
-              {hasFilters && <span className="ml-1 text-zinc-400">(filtered)</span>}
-            </span>
-            <Select value={String(pageSize)} onValueChange={(v) => patchSearch({ size: Number(v) })}>
-              <SelectTrigger className="h-7 w-auto text-xs"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="20">20 / page</SelectItem>
-                <SelectItem value="50">50 / page</SelectItem>
-                <SelectItem value="100">100 / page</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-zinc-400 tabular-nums">Page {page} of {totalPages}</span>
-            <Button
-              variant="outline" size="sm"
-              aria-disabled={page === 1} disabled={page === 1}
-              onClick={() => patchSearch({ page: page - 1 > 1 ? page - 1 : undefined })}
-            >Prev</Button>
-            <Button
-              variant="outline" size="sm"
-              aria-disabled={page >= totalPages} disabled={page >= totalPages}
-              onClick={() => patchSearch({ page: page + 1 })}
-            >Next</Button>
-          </div>
-        </nav>
-      )}
-
-      <SetFormSheet universeId={universe.id} open={creating} onClose={() => setCreating(false)} />
-      {editingId && (
-        <EditSetSheet
-          setId={editingId}
-          universeId={universe.id}
-          open={!!editingId}
-          onClose={() => setEditingId(null)}
-        />
-      )}
-      {duplicatingId && (
-        <DuplicateSetSheet
-          key={`dup-${duplicatingId}`}
-          setId={duplicatingId}
-          universeId={universe.id}
-          open={!!duplicatingId}
-          onClose={() => setDuplicatingId(null)}
-          fallback={editingSetForDuplication}
-        />
-      )}
-
-      <BulkActionBar count={selected.size} label="set" onClear={() => setSelected(new Set())}>
-        <Button
-          size="sm"
-          variant="destructive"
-          className="h-7 text-xs"
-          onClick={() => setConfirmingBulkDelete(true)}
-          disabled={bulkDeleting}
-        >
-          <Trash2 className="mr-1 h-3 w-3" />
-          Delete
-        </Button>
-      </BulkActionBar>
-
-      <ConfirmDialog
-        open={confirmingBulkDelete}
-        title={`Delete ${selected.size} set${selected.size === 1 ? '' : 's'}?`}
-        description="This cannot be undone. Members in these sets will be unassigned, and friend/enemy edges will be removed."
-        confirmLabel="Delete"
-        destructive
-        pending={bulkDeleting}
-        onConfirm={bulkDeleteSets}
-        onCancel={() => setConfirmingBulkDelete(false)}
-      />
-
-      <ConfirmDialog
-        open={!!deletingSet}
-        title={`Delete "${deletingSet?.name ?? ''}"?`}
-        description="This cannot be undone. Members in this set will be unassigned, and friend/enemy edges will be removed."
-        confirmLabel="Delete"
-        destructive
-        pending={deleteSet.isPending}
-        onConfirm={() => deletingSet && deleteSingleSet(deletingSet)}
-        onCancel={() => setDeletingSet(null)}
-      />
-    </div>
-  )
-}
-
-// ─── Filter chip ──────────────────────────────────────────────────────────────
-
-function FilterChip({ label, onClear }: { label: string; onClear: () => void }) {
-  return (
-    <button
-      onClick={onClear}
-      className="group inline-flex items-center gap-1 rounded-full border border-zinc-700 bg-zinc-900/60 px-2.5 py-1 text-xs text-zinc-300 transition-colors hover:border-zinc-500 hover:text-white"
-    >
-      <span>{label}</span>
-      <X className="h-3 w-3 text-zinc-400 group-hover:text-zinc-200" aria-hidden />
-    </button>
   )
 }
 
 // ─── Duplicate sheet (lazy-fetches full set and seeds copyFrom) ───────────────
 
-function DuplicateSetSheet({ setId, universeId, open, onClose, fallback }: {
+export function DuplicateSetSheet({ setId, universeId, open, onClose, fallback }: {
   setId: string; universeId: string; open: boolean; onClose: () => void; fallback: SetListItem | null
 }) {
   const { data: set } = useSet(setId, universeId)

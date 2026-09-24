@@ -52,7 +52,8 @@ interface CalendarEvent {
   kind: EventKind
   label: string
   sublabel?: string
-  href: string
+  /** A typed route and its param, so the Link is checked rather than cast. */
+  link: { to: '/incidents/$id' | '/members/$id'; id: string }
   date: FuzzyDateValue | null
   verified?: boolean
 }
@@ -90,7 +91,7 @@ function DayDetail({ day, month, year, events, onClose }: {
           return (
             <Link
               key={ev.id}
-              to={ev.href as any}
+              to={ev.link.to} params={{ id: ev.link.id }}
               className={`flex items-start gap-3 rounded-lg p-2.5 transition-all ${cfg.pill} ${cfg.pillHover}`}
             >
               <div className="mt-0.5 shrink-0">
@@ -163,12 +164,12 @@ function MonthYearPicker({ year, month, onChange }: {
     return () => document.removeEventListener('mousedown', handle)
   }, [])
 
-  useEffect(() => { if (open) setPickerYear(year) }, [open, year])
-
   return (
     <div ref={ref} className="relative">
       <button
-        onClick={() => setOpen((v) => !v)}
+        // Opening resets the picker to the shown year here, in the handler: an
+        // effect keyed on `open` did the same one render late.
+        onClick={() => { if (!open) setPickerYear(year); setOpen(!open) }}
         className="flex items-center gap-1.5 rounded-lg px-2 py-1 text-xl font-bold text-white hover:bg-zinc-800 transition-colors"
       >
         {MONTH_NAMES[month - 1]} <span className="text-zinc-400">{year}</span>
@@ -217,8 +218,17 @@ function MonthYearPicker({ year, month, onChange }: {
 function CalendarPage() {
   const universe = useUniverseStore((s) => s.activeUniverse)
   const today = new Date()
-  const [year, setYear]   = useState(today.getFullYear())
-  const [month, setMonth] = useState(today.getMonth() + 1)
+  // Year and month are one value. They were two states, and the arrow keys
+  // called setYear from inside setMonth's updater: React runs updaters twice
+  // under StrictMode, so every January crossing took off two years (thirteen
+  // presses back from 2026 landed in 2000, not 2013). A pure shift cannot.
+  const [view, setView] = useState({ year: today.getFullYear(), month: today.getMonth() + 1 })
+  const { year, month } = view
+  const shiftMonth = (delta: number) =>
+    setView((v) => {
+      const i = v.year * 12 + (v.month - 1) + delta
+      return { year: Math.floor(i / 12), month: (i % 12) + 1 }
+    })
   const [selectedDay, setSelectedDay] = useState<number | null>(null)
 
   // Keyboard navigation
@@ -227,11 +237,11 @@ function CalendarPage() {
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return
       if (e.key === 'ArrowLeft') {
         setSelectedDay(null)
-        setMonth((m) => { if (m === 1) { setYear((y) => y - 1); return 12 } return m - 1 })
+        shiftMonth(-1)
       }
       if (e.key === 'ArrowRight') {
         setSelectedDay(null)
-        setMonth((m) => { if (m === 12) { setYear((y) => y + 1); return 1 } return m + 1 })
+        shiftMonth(1)
       }
     }
     window.addEventListener('keydown', handle)
@@ -242,11 +252,11 @@ function CalendarPage() {
   const { data: memberData }   = useAllMembers(universe?.id ?? null)
   const { data: releaseData }  = useUniverseReleaseEvents(universe?.id ?? null, year)
 
-  if (!universe) return <NoUniverse />
-
-  const incidents = incidentData?.items ?? []
-  const members   = memberData?.items ?? []
-  const releases  = releaseData ?? []
+  // Stable references: a bare `?? []` is a new array every render, which made
+  // every memo below recompute on every render and defeated the memoising.
+  const incidents = useMemo(() => incidentData?.items ?? [], [incidentData])
+  const members   = useMemo(() => memberData?.items ?? [], [memberData])
+  const releases  = useMemo(() => releaseData ?? [], [releaseData])
 
   // All three derived collections depend only on data + year/month, not selectedDay.
   // Memoising prevents re-building on every cell click.
@@ -265,7 +275,7 @@ function CalendarPage() {
         kind: inc.type,
         label,
         sublabel: victims.length > 0 ? typeLabel : undefined,
-        href: `/incidents/${inc.id}`,
+        link: { to: '/incidents/$id', id: inc.id },
         date: inc.date,
         verified: inc.verified,
       })
@@ -281,7 +291,7 @@ function CalendarPage() {
           kind: 'DEATH',
           label: m.display_name,
           sublabel: 'Died',
-          href: `/members/${m.slug ?? m.id}`,
+          link: { to: '/members/$id', id: m.slug ?? m.id },
           date: dod,
         })
       }
@@ -294,7 +304,7 @@ function CalendarPage() {
           kind: 'MEMORIAL',
           label: `${m.display_name} Day`,
           sublabel: `Memorial · ${years} year${years === 1 ? '' : 's'}`,
-          href: `/members/${m.slug ?? m.id}`,
+          link: { to: '/members/$id', id: m.slug ?? m.id },
           date: { year, month, day: dod.day, precision: 'YMD', approx: false },
         })
       }
@@ -314,7 +324,7 @@ function CalendarPage() {
           kind: 'BIRTHDAY',
           label: m.display_name,
           sublabel: 'Born',
-          href: `/members/${m.slug ?? m.id}`,
+          link: { to: '/members/$id', id: m.slug ?? m.id },
           date: dob,
         })
       }
@@ -330,7 +340,7 @@ function CalendarPage() {
           kind: 'BIRTHDAY',
           label: m.display_name,
           sublabel: dead ? `Birthday · born ${dob.year}` : `Birthday · turns ${age}`,
-          href: `/members/${m.slug ?? m.id}`,
+          link: { to: '/members/$id', id: m.slug ?? m.id },
           date: { year, month, day: dob.day, precision: 'YMD', approx: false },
         })
       }
@@ -338,7 +348,7 @@ function CalendarPage() {
 
     for (const r of releases) {
       if (r.life_sentence) continue
-      const memberHref = `/members/${r.member_slug ?? r.member_id}`
+      const memberLink = { to: '/members/$id' as const, id: r.member_slug ?? r.member_id }
       const facilityNote = r.facility ? ` · ${r.facility}` : ''
       if (r.earliest_release_date && fuzzyMatchesMonth(r.earliest_release_date, year, month)) {
         evs.push({
@@ -346,7 +356,7 @@ function CalendarPage() {
           kind: 'RELEASE',
           label: r.member_display_name,
           sublabel: `Earliest release${facilityNote}`,
-          href: memberHref,
+          link: memberLink,
           date: r.earliest_release_date,
         })
       }
@@ -356,7 +366,7 @@ function CalendarPage() {
           kind: 'RELEASE',
           label: r.member_display_name,
           sublabel: `Max discharge${facilityNote}`,
-          href: memberHref,
+          link: memberLink,
           date: r.max_discharge_date,
         })
       }
@@ -396,20 +406,25 @@ function CalendarPage() {
     return grid
   }, [year, month])
 
+  // After every hook, never before one: returning early above them changed the
+  // hook count between renders, and React throws on that as soon as the active
+  // universe is cleared (the prod/test switch does exactly that).
+  if (!universe) return <NoUniverse />
+
   const isToday = (d: number) =>
     d === today.getDate() && month === today.getMonth() + 1 && year === today.getFullYear()
 
   function prevMonth() {
     setSelectedDay(null)
-    if (month === 1) { setMonth(12); setYear(year - 1) } else setMonth(month - 1)
+    shiftMonth(-1)
   }
   function nextMonth() {
     setSelectedDay(null)
-    if (month === 12) { setMonth(1); setYear(year + 1) } else setMonth(month + 1)
+    shiftMonth(1)
   }
   function goToday() {
     setSelectedDay(null)
-    setYear(today.getFullYear()); setMonth(today.getMonth() + 1)
+    setView({ year: today.getFullYear(), month: today.getMonth() + 1 })
   }
 
   const selectedEvents = selectedDay ? (dayEvents[selectedDay] ?? []) : []
@@ -419,7 +434,7 @@ function CalendarPage() {
       {/* Header */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <MonthYearPicker year={year} month={month} onChange={(y, m) => { setYear(y); setMonth(m); setSelectedDay(null) }} />
+          <MonthYearPicker year={year} month={month} onChange={(y, m) => { setView({ year: y, month: m }); setSelectedDay(null) }} />
           <div className="mt-1 pl-2">
             <MonthSummary events={allMonthEvents} />
           </div>
@@ -472,7 +487,7 @@ function CalendarPage() {
               const cfg = KIND_CONFIG[ev.kind]
               const Icon = cfg.icon
               return (
-                <Link key={ev.id} to={ev.href as any}
+                <Link key={ev.id} to={ev.link.to} params={{ id: ev.link.id }}
                   className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs ${cfg.pill} ${cfg.pillHover} transition-all`}>
                   <Icon className="h-3 w-3" />
                   {ev.label}

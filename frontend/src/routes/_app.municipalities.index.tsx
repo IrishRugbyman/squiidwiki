@@ -1,23 +1,32 @@
-import { createFileRoute, Link } from '@tanstack/react-router'
-import { AlertTriangle, ChevronRight, Map, MapPin, Pencil, Plus, Search, X } from 'lucide-react'
-import { useState, useMemo } from 'react'
+import { createFileRoute } from '@tanstack/react-router'
+import { useState } from 'react'
 import { toast } from 'sonner'
-import { NoUniverse } from '@/components/NoUniverse'
-import { PageHeader } from '@/components/PageHeader'
 import { Sheet, SheetContent, SheetClose } from '@/components/Sheet'
-import { EmptyState } from '@/components/EmptyState'
-import { TreeSkeleton } from '@/components/skeletons'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
-import { useCreateMunicipality, useUpdateMunicipality, useMunicipalities } from '@/lib/queries'
-import { useUniverseStore } from '@/stores/universe'
+import { useCreateMunicipality, useUpdateMunicipality } from '@/lib/queries'
 import type { MunicipalityListItem, MunicipalityRead } from '@/lib/types'
+import { textParam } from '@/lib/searchParams'
 
+export type MunicipalitySortKey = 'name' | 'incidents' | 'sets'
+
+export interface MunicipalitiesSearch {
+  q?: string
+  sort?: MunicipalitySortKey
+  /** Only municipalities with no boundary, which the map cannot draw. */
+  noBoundary?: boolean
+}
+
+// The page is in _app.municipalities.index.lazy.tsx, its own chunk; this file
+// keeps the URL schema and the form sheet, which the municipality page imports.
 export const Route = createFileRoute('/_app/municipalities/')({
-  component: MunicipalitiesPage,
+  validateSearch: (s: Record<string, unknown>): MunicipalitiesSearch => ({
+    q: textParam(s.q),
+    sort: s.sort === 'incidents' || s.sort === 'sets' ? s.sort : undefined,
+    noBoundary: s.noBoundary === true || s.noBoundary === 'true' ? true : undefined,
+  }),
 })
 
 // ─── Form sheet (also exported for detail page) ───────────────────────────────
@@ -150,319 +159,5 @@ function MunicipalityFormSheetInner({ universeId, open, onClose, initial, defaul
         </form>
       </SheetContent>
     </Sheet>
-  )
-}
-
-// ─── Row ──────────────────────────────────────────────────────────────────────
-
-function MuniRow({
-  m,
-  indent = false,
-  dim = false,
-  orphan = false,
-  expanded,
-  onToggleExpand,
-  onEdit,
-}: {
-  m: MunicipalityListItem
-  indent?: boolean
-  dim?: boolean
-  orphan?: boolean
-  expanded?: boolean
-  onToggleExpand?: () => void
-  onEdit: (m: MunicipalityListItem) => void
-}) {
-  const canExpand = m.child_count > 0 && !!onToggleExpand
-  return (
-    <div className={`group relative flex items-center gap-3 rounded-lg border border-zinc-800 bg-zinc-900/30 px-4 py-3 transition-colors hover:border-zinc-700 hover:bg-zinc-900/60 ${dim ? 'opacity-60' : ''}`}>
-      {indent && (
-        <div className="absolute left-0 top-0 bottom-0 w-px ml-6 bg-zinc-800" />
-      )}
-      {indent && <div className="w-4 shrink-0" />}
-      {canExpand ? (
-        <button
-          type="button"
-          onClick={onToggleExpand}
-          aria-expanded={expanded}
-          aria-label={expanded ? `Collapse ${m.name}` : `Expand ${m.name}`}
-          className="-ml-1 grid h-5 w-5 shrink-0 place-items-center rounded text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/50"
-        >
-          <ChevronRight className={`h-3.5 w-3.5 transition-transform ${expanded ? 'rotate-90' : ''}`} />
-        </button>
-      ) : (
-        <MapPin className={`h-4 w-4 shrink-0 ${indent ? 'text-zinc-400' : 'text-zinc-400'}`} />
-      )}
-      <Link
-        to="/municipalities/$id"
-        params={{ id: m.id }}
-        className="min-w-0 flex-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/50 rounded"
-      >
-        <span className={`text-sm ${indent ? 'text-zinc-300' : 'font-medium text-zinc-100'}`}>
-          {m.name}
-        </span>
-      </Link>
-      <div className="flex shrink-0 items-center gap-2">
-        {orphan && (
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <span className="inline-flex items-center gap-1 rounded-full border border-amber-900/60 bg-amber-950/40 px-2 py-0.5 text-[11px] text-amber-400">
-                <AlertTriangle className="h-3 w-3" /> orphan
-              </span>
-            </TooltipTrigger>
-            <TooltipContent>This municipality's parent no longer exists.</TooltipContent>
-          </Tooltip>
-        )}
-        {m.child_count > 0 && (
-          canExpand ? (
-            <button
-              type="button"
-              onClick={onToggleExpand}
-              className="rounded-full border border-zinc-700 bg-zinc-800/60 px-2 py-0.5 text-[11px] text-zinc-400 hover:border-zinc-600 hover:text-zinc-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/50"
-            >
-              {m.child_count} {m.child_count === 1 ? 'district' : 'districts'}
-            </button>
-          ) : (
-            <span className="rounded-full border border-zinc-700 bg-zinc-800/60 px-2 py-0.5 text-[11px] text-zinc-400">
-              {m.child_count} {m.child_count === 1 ? 'district' : 'districts'}
-            </span>
-          )
-        )}
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <span
-              className={`rounded-full px-2 py-0.5 text-[11px] font-medium tabular-nums ${
-                m.incident_count > 0
-                  ? 'bg-amber-500/10 text-amber-400'
-                  : 'bg-zinc-800/60 text-zinc-400'
-              }`}
-            >
-              {m.incident_count} {m.incident_count === 1 ? 'incident' : 'incidents'}
-            </span>
-          </TooltipTrigger>
-          <TooltipContent>
-            {m.incident_count > 0 ? 'Amber highlight = has recorded incidents' : 'No incidents recorded'}
-          </TooltipContent>
-        </Tooltip>
-        <button
-          onClick={(e) => { e.preventDefault(); e.stopPropagation(); onEdit(m) }}
-          aria-label={`Edit ${m.name}`}
-          className="rounded-md p-1.5 text-zinc-400 transition-colors hover:bg-zinc-700 hover:text-zinc-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/50 lg:opacity-0 lg:group-hover:opacity-100 lg:group-focus-within:opacity-100"
-        >
-          <Pencil className="h-3.5 w-3.5" />
-        </button>
-      </div>
-    </div>
-  )
-}
-
-// ─── Page ─────────────────────────────────────────────────────────────────────
-
-function MunicipalitiesPage() {
-  const universe = useUniverseStore((s) => s.activeUniverse)
-  const [creating, setCreating] = useState(false)
-  const [editTarget, setEditTarget] = useState<MunicipalityListItem | null>(null)
-  const [q, setQ] = useState('')
-  const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set())
-
-  const { data, isLoading } = useMunicipalities(universe?.id ?? null)
-
-  const items = data?.items ?? []
-
-  function toggleExpand(id: string) {
-    setExpandedIds((prev) => {
-      const next = new Set(prev)
-      if (next.has(id)) next.delete(id)
-      else next.add(id)
-      return next
-    })
-  }
-
-  // Match any name containing the query; when searching, we keep the tree
-  // structure but dim non-matching ancestors so context is preserved.
-  const matchIds = useMemo(() => {
-    if (!q.trim()) return null
-    const lower = q.toLowerCase()
-    return new Set(
-      items.filter((m) => m.name.toLowerCase().includes(lower)).map((m) => m.id),
-    )
-  }, [items, q])
-
-  if (!universe) return <NoUniverse />
-
-  // Build tree: top-level items, each with their children
-  const topLevel = items.filter((m) => !m.parent_id)
-  const childMap: Record<string, MunicipalityListItem[]> = {}
-  for (const m of items) {
-    if (m.parent_id) {
-      if (!childMap[m.parent_id]) childMap[m.parent_id] = []
-      childMap[m.parent_id].push(m)
-    }
-  }
-
-  const orphanIds = new Set(
-    items.filter((m) => m.parent_id && !items.find((p) => p.id === m.parent_id)).map((m) => m.id),
-  )
-
-  // A parent is "relevant" when it or any child matches the query
-  function branchMatches(parent: MunicipalityListItem): boolean {
-    if (!matchIds) return true
-    if (matchIds.has(parent.id)) return true
-    return (childMap[parent.id] ?? []).some((c) => matchIds.has(c.id))
-  }
-
-  // While searching, force-expand any branch that has a matching child so
-  // the user can see the matches without an extra click.
-  const forcedExpanded = useMemo(() => {
-    if (!matchIds) return null
-    const ids = new Set<string>()
-    for (const parent of items) {
-      if (parent.parent_id) continue
-      const children = childMap[parent.id] ?? []
-      if (children.some((c) => matchIds.has(c.id))) ids.add(parent.id)
-    }
-    return ids
-  }, [matchIds, items, childMap])
-
-  const isExpanded = (id: string) =>
-    forcedExpanded ? forcedExpanded.has(id) || expandedIds.has(id) : expandedIds.has(id)
-
-  const parentsWithChildren = topLevel.filter((p) => (childMap[p.id]?.length ?? 0) > 0)
-  const allExpanded = parentsWithChildren.length > 0 && parentsWithChildren.every((p) => expandedIds.has(p.id))
-  function expandAll() {
-    setExpandedIds(new Set(parentsWithChildren.map((p) => p.id)))
-  }
-  function collapseAll() {
-    setExpandedIds(new Set())
-  }
-
-  const editItem = editTarget
-    ? (items.find((m) => m.id === editTarget.id) ?? editTarget)
-    : null
-
-  return (
-    <div className="space-y-4">
-      <PageHeader
-        title="Municipalities"
-        description={`${data?.total ?? 0} total`}
-        action={
-          <div className="flex items-center gap-2">
-            <Link to="/municipalities/map" search={{ focus: undefined }}>
-              <Button size="sm" variant="outline">
-                <Map className="mr-1.5 h-4 w-4" />Map view
-              </Button>
-            </Link>
-            <Button size="sm" onClick={() => setCreating(true)}>
-              <Plus className="mr-1.5 h-4 w-4" />Add
-            </Button>
-          </div>
-        }
-      />
-
-      {/* Search + expand toggle */}
-      <div className="flex items-center gap-2">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400" />
-          <Input
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-            placeholder="Search municipalities…"
-            className="pl-9 pr-9"
-          />
-          {q && (
-            <button onClick={() => setQ('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-white">
-              <X className="h-4 w-4" />
-            </button>
-          )}
-        </div>
-        {parentsWithChildren.length > 0 && (
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={allExpanded ? collapseAll : expandAll}
-          >
-            {allExpanded ? 'Collapse all' : 'Expand all'}
-          </Button>
-        )}
-      </div>
-
-      {/* List */}
-      <TooltipProvider delayDuration={250}>
-        {isLoading ? (
-          <TreeSkeleton rows={8} />
-        ) : items.length === 0 ? (
-          <EmptyState
-            icon={MapPin}
-            title="No municipalities yet"
-            description="Add cities and districts to organise incidents geographically."
-            action={
-              <Button size="sm" onClick={() => setCreating(true)}>
-                <Plus className="mr-1.5 h-4 w-4" /> Add the first one
-              </Button>
-            }
-          />
-        ) : matchIds && matchIds.size === 0 ? (
-          <EmptyState icon={Search} title={`No municipalities match "${q}"`} />
-        ) : (
-          // Tree view — when searching, non-matches are dimmed; ancestors stay for context.
-          <div className="space-y-2">
-            {topLevel.filter(branchMatches).map((parent) => {
-              const expanded = isExpanded(parent.id)
-              const children = childMap[parent.id] ?? []
-              return (
-                <div key={parent.id} className="space-y-1">
-                  <MuniRow
-                    m={parent}
-                    dim={!!matchIds && !matchIds.has(parent.id)}
-                    expanded={expanded}
-                    onToggleExpand={children.length > 0 ? () => toggleExpand(parent.id) : undefined}
-                    onEdit={setEditTarget}
-                  />
-                  {expanded && children.map((child) => (
-                    <MuniRow
-                      key={child.id}
-                      m={child}
-                      indent
-                      dim={!!matchIds && !matchIds.has(child.id)}
-                      onEdit={setEditTarget}
-                    />
-                  ))}
-                </div>
-              )
-            })}
-            {/* Orphaned children (parent deleted) */}
-            {Array.from(orphanIds)
-              .map((id) => items.find((m) => m.id === id)!)
-              .filter((m) => !matchIds || matchIds.has(m.id))
-              .map((m) => (
-                <MuniRow
-                  key={m.id}
-                  m={m}
-                  orphan
-                  onEdit={setEditTarget}
-                />
-              ))}
-          </div>
-        )}
-      </TooltipProvider>
-
-      {/* Create sheet */}
-      <MunicipalityFormSheet
-        universeId={universe.id}
-        open={creating}
-        onClose={() => setCreating(false)}
-        allMunicipalities={items}
-      />
-
-      {/* Edit sheet */}
-      {editItem && universe && (
-        <MunicipalityFormSheet
-          universeId={universe.id}
-          open={!!editTarget}
-          onClose={() => setEditTarget(null)}
-          initial={editItem as MunicipalityRead}
-          allMunicipalities={items}
-        />
-      )}
-    </div>
   )
 }

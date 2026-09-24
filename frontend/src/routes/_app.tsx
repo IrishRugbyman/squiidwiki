@@ -13,6 +13,7 @@ import {
   Network,
   NotebookText,
   ScrollText,
+  Search,
   Shield,
   Users,
   UserCog,
@@ -24,6 +25,7 @@ import { UniverseSwitcher } from '@/components/UniverseSwitcher'
 import { GlobalCommandPalette } from '@/components/GlobalCommandPalette'
 import { useAuthStore, type AuthState } from '@/stores/auth'
 import { useUniverseStore } from '@/stores/universe'
+import { useCommandPalette } from '@/stores/commandPalette'
 import { useDbMode, useSetDbMode } from '@/lib/queries'
 import { useQueryClient } from '@tanstack/react-query'
 import { api, ApiError } from '@/lib/api'
@@ -71,6 +73,7 @@ const SHORTCUT_GROUPS: ShortcutGroup[] = [
     title: 'Global',
     items: [
       { keys: 'Ctrl+K', desc: 'Open global search / universe switcher' },
+      { keys: '/', desc: 'Search' },
       { keys: '?', desc: 'Show keyboard shortcuts' },
       { keys: 'Esc', desc: 'Close dialogs / sheets' },
     ],
@@ -140,7 +143,9 @@ function AppLayout() {
   const clearAuth = useAuthStore((s: AuthState) => s.clearAuth)
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [helpOpen, setHelpOpen] = useState(false)
-  const [commandOpen, setCommandOpen] = useState(false)
+  const commandOpen = useCommandPalette((s) => s.open)
+  const setCommandOpen = useCommandPalette((s) => s.setOpen)
+  const toggleCommand = useCommandPalette((s) => s.toggle)
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   useGoToNavigation()
@@ -163,16 +168,19 @@ function AppLayout() {
     function onKey(e: KeyboardEvent) {
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
         e.preventDefault()
-        setCommandOpen((v) => !v)
+        toggleCommand()
         return
       }
-      const tag = (e.target as HTMLElement).tagName
-      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return
+      const el = e.target as HTMLElement
+      if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT' || el.isContentEditable) return
+      if (e.metaKey || e.ctrlKey || e.altKey) return
       if (e.key === '?') { e.preventDefault(); setHelpOpen(true) }
+      // `/` is the search key on GitHub, YouTube, Gmail and MDN alike.
+      if (e.key === '/') { e.preventDefault(); setCommandOpen(true) }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [])
+  }, [toggleCommand, setCommandOpen])
 
   // Edge swipe to open the mobile sidebar — detects a touch starting in the
   // leftmost ~20px and ending >50px to the right, mostly horizontal.
@@ -304,6 +312,15 @@ function AppLayout() {
           </button>
           <img src="/logo.png" alt="" className="mr-2 h-7 w-7 rounded-md object-cover" />
           <span className="font-bold tracking-tight text-white">SquiidWiki</span>
+          {/* Search was unreachable on a phone: Ctrl+K needs a keyboard, and the
+              only other way in was the universe switcher inside the drawer. */}
+          <button
+            onClick={() => setCommandOpen(true)}
+            aria-label="Search"
+            className="ml-auto inline-flex h-9 w-9 items-center justify-center rounded-md text-zinc-400 hover:bg-zinc-800 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/50"
+          >
+            <Search className="h-5 w-5" />
+          </button>
         </div>
 
         <main id="main-content" className="flex-1 overflow-y-auto overflow-x-hidden p-6">

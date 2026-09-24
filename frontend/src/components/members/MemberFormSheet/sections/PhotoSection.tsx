@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo } from 'react'
 import { useDropzone } from 'react-dropzone'
 import { ImagePlus, Loader2, Upload, X } from 'lucide-react'
 import { toast } from 'sonner'
@@ -37,35 +37,16 @@ export function PhotoSection({ mode, universeId, memberId, queuedFiles = [], onQ
 }
 
 function QueueDropzone({ files, onChange }: { files: File[]; onChange: (files: File[]) => void }) {
-  const [previews, setPreviews] = useState<QueuedFile[]>([])
-
-  // Sync previews with files whenever the parent's array changes (e.g. reset).
-  useEffect(() => {
-    setPreviews((prev) => {
-      const stillUsed = new Map(prev.map((p) => [p.file, p]))
-      const next = files.map((file) => {
-        const existing = stillUsed.get(file)
-        if (existing) {
-          stillUsed.delete(file)
-          return existing
-        }
-        return { file, preview: URL.createObjectURL(file) }
-      })
-      // Revoke previews for files no longer in the list.
-      for (const stale of stillUsed.values()) URL.revokeObjectURL(stale.preview)
-      return next
-    })
-  }, [files])
-
-  // Final cleanup on unmount.
-  useEffect(() => {
-    return () => {
-      setPreviews((current) => {
-        for (const p of current) URL.revokeObjectURL(p.preview)
-        return []
-      })
-    }
-  }, [])
+  // Object URLs follow the file list: made for the list in a memo, revoked in
+  // the cleanup of the effect keyed on it. They used to be created inside a
+  // setState updater, which React may run twice, leaking one URL per photo.
+  const previews = useMemo<QueuedFile[]>(
+    () => files.map((file) => ({ file, preview: URL.createObjectURL(file) })),
+    [files],
+  )
+  useEffect(() => () => {
+    for (const p of previews) URL.revokeObjectURL(p.preview)
+  }, [previews])
 
   const handleDrop = useCallback(
     (dropped: File[]) => {

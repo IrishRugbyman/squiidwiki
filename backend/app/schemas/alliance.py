@@ -66,3 +66,8 @@ class AllianceListItem(BaseModel):
     slug: Optional[str] = None
     primary_photo_url: Optional[str] = None
     primary_photo_thumb_url: Optional[str] = None
+    # Filled on list rows only (crud.attach_alliance_list_stats); zero elsewhere.
+    set_count: int = 0
+    member_count: int = 0
+    gang_name: Optional[str] = None
+    gang_color: Optional[str] = None

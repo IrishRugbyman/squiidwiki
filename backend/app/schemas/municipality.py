@@ -37,5 +37,9 @@ class MunicipalityListItem(BaseModel):
     parent_id: Optional[uuid.UUID]
     universe_id: uuid.UUID
     incident_count: int = 0
+    # Own incidents plus its sub-districts'; equal to incident_count for a district.
+    total_incident_count: int = 0
     child_count: int = 0
+    # Real sets anchored to it (a city) or claiming it as territory (a district).
+    set_count: int = 0
     has_geometry: bool = False

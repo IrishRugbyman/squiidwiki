@@ -129,16 +129,26 @@ export const useSets = (universeId: UUID | null, params?: SetsListParams) =>
 
 /**
  * Every set in the universe, for callers that need to resolve arbitrary set ids
- * (graph lookups, pickers, map layers) rather than show a page.
- *
- * The limit is a real cap, not decoration: it was 200 while Metro Chicago already
- * held 291 sets, so every caller was silently short. Raise it again before any
- * universe approaches 1000, or paginate.
+ * (graph lookups, pickers, map layers) and for the Sets list, which filters it
+ * client-side. Pages at the API's ceiling of 1000 until the total is reached, so
+ * no universe is ever silently short: the old single request was capped at 200
+ * while Illinois already held 291 sets.
  */
 export const useAllSets = (universeId: UUID | null) =>
   useQuery({
     queryKey: ['sets', 'all', universeId],
-    queryFn: () => api.get<OffsetPage<SetListItem>>(`/sets/?universe_id=${universeId}&limit=1000`),
+    queryFn: async (): Promise<OffsetPage<SetListItem>> => {
+      const PAGE = 1000
+      const url = (offset: number) => `/sets/?universe_id=${universeId}&limit=${PAGE}&offset=${offset}`
+      const first = await api.get<OffsetPage<SetListItem>>(url(0))
+      let items = first.items
+      while (items.length < first.total) {
+        const next = await api.get<OffsetPage<SetListItem>>(url(items.length))
+        if (next.items.length === 0) break
+        items = items.concat(next.items)
+      }
+      return { items, total: first.total }
+    },
     enabled: !!universeId,
     staleTime: 30_000,
   })
@@ -237,6 +247,9 @@ export const useUpdateSet = (id: UUID) => {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['sets'] })
       qc.invalidateQueries({ queryKey: ['alliances'] })
+      // A set moving in or out of an alliance changes that alliance's roster and incidents.
+      qc.invalidateQueries({ queryKey: ['members', 'alliance'] })
+      qc.invalidateQueries({ queryKey: ['incidents', 'alliance'] })
       qc.invalidateQueries({ queryKey: ['set-territory-polygons'] })
     },
   })
@@ -264,6 +277,29 @@ function restoreSnapshot(qc: QueryClient, prev: ReturnType<QueryClient['getQueri
   for (const [key, data] of prev) qc.setQueryData(key, data)
 }
 
+// A cache key prefix matches every query under it, so an optimistic updater
+// receives values of several shapes (a list page, a detail, an activity feed)
+// and must check which one it holds. These guards do that instead of `any`.
+type Row = { id: UUID }
+
+function isPage(v: unknown): v is { items: Row[]; total?: number } {
+  return typeof v === 'object' && v !== null && Array.isArray((v as { items?: unknown }).items)
+}
+
+function isRowArray(v: unknown): v is Row[] {
+  return Array.isArray(v)
+}
+
+function isRow(v: unknown): v is Row {
+  return typeof v === 'object' && v !== null && typeof (v as { id?: unknown }).id === 'string'
+}
+
+function hasRelations(v: unknown): v is Pick<SetReadDetail, 'friend_ids' | 'enemy_ids'> {
+  if (typeof v !== 'object' || v === null) return false
+  const o = v as { friend_ids?: unknown; enemy_ids?: unknown }
+  return Array.isArray(o.friend_ids) && Array.isArray(o.enemy_ids)
+}
+
 export const useDeleteSet = (universeId: UUID) => {
   const qc = useQueryClient()
   return useMutation({
@@ -271,12 +307,12 @@ export const useDeleteSet = (universeId: UUID) => {
     onMutate: async (id) => {
       await qc.cancelQueries({ queryKey: ['sets', universeId] })
       const prev = qc.getQueriesData({ queryKey: ['sets', universeId] })
-      qc.setQueriesData({ queryKey: ['sets', universeId] }, (old: any) =>
-        old?.items ? { ...old, items: old.items.filter((s: any) => s.id !== id), total: Math.max(0, (old.total ?? 1) - 1) } : old
+      qc.setQueriesData({ queryKey: ['sets', universeId] }, (old: unknown) =>
+        isPage(old) ? { ...old, items: old.items.filter((s) => s.id !== id), total: Math.max(0, (old.total ?? 1) - 1) } : old
       )
       return { prev }
     },
-    onError: (_e, _id, ctx: any) => { if (ctx?.prev) restoreSnapshot(qc, ctx.prev) },
+    onError: (_e, _id, ctx) => { if (ctx?.prev) restoreSnapshot(qc, ctx.prev) },
     onSettled: () => { qc.invalidateQueries({ queryKey: ['sets'] }) },
   })
 }
@@ -290,14 +326,14 @@ export const useAddSetRelationship = (setId: UUID, universeId: UUID) => {
       await qc.cancelQueries({ queryKey: ['sets', setId] })
       const prev = qc.getQueriesData({ queryKey: ['sets', setId] })
       const field = type === 'FRIEND' ? 'friend_ids' : 'enemy_ids'
-      qc.setQueriesData({ queryKey: ['sets', setId] }, (old: any) => {
-        if (!old || !Array.isArray(old[field])) return old
+      qc.setQueriesData({ queryKey: ['sets', setId] }, (old: unknown) => {
+        if (!hasRelations(old)) return old
         if (old[field].includes(target_id)) return old
         return { ...old, [field]: [...old[field], target_id] }
       })
       return { prev }
     },
-    onError: (_e, _v, ctx: any) => { if (ctx?.prev) restoreSnapshot(qc, ctx.prev) },
+    onError: (_e, _v, ctx) => { if (ctx?.prev) restoreSnapshot(qc, ctx.prev) },
     onSettled: () => { qc.invalidateQueries({ queryKey: ['sets', setId] }) },
   })
 }
@@ -363,41 +399,75 @@ export const useRemoveSetRelationship = (setId: UUID, universeId: UUID) => {
     onMutate: async (targetId) => {
       await qc.cancelQueries({ queryKey: ['sets', setId] })
       const prev = qc.getQueriesData({ queryKey: ['sets', setId] })
-      qc.setQueriesData({ queryKey: ['sets', setId] }, (old: any) => {
-        if (!old) return old
-        const friend_ids = (old.friend_ids ?? []).filter((x: string) => x !== targetId)
-        const enemy_ids = (old.enemy_ids ?? []).filter((x: string) => x !== targetId)
+      qc.setQueriesData({ queryKey: ['sets', setId] }, (old: unknown) => {
+        if (!hasRelations(old)) return old
+        const friend_ids = old.friend_ids.filter((x) => x !== targetId)
+        const enemy_ids = old.enemy_ids.filter((x) => x !== targetId)
         return { ...old, friend_ids, enemy_ids }
       })
       return { prev }
     },
-    onError: (_e, _v, ctx: any) => { if (ctx?.prev) restoreSnapshot(qc, ctx.prev) },
+    onError: (_e, _v, ctx) => { if (ctx?.prev) restoreSnapshot(qc, ctx.prev) },
     onSettled: () => { qc.invalidateQueries({ queryKey: ['sets', setId] }) },
   })
 }
 
+/**
+ * Every row of a cursor-paged list. One request was capped at 500: the busiest
+ * set already sits at 334 incidents, so a single page would soon have gone
+ * silently short, with every count derived from it.
+ */
+async function fetchAllCursorPages<T>(path: string): Promise<CursorPage<T>> {
+  const items: T[] = []
+  let cursor: string | null = null
+  do {
+    const page: CursorPage<T> = await api.get<CursorPage<T>>(`${path}&limit=500${cursor ? `&cursor=${encodeURIComponent(cursor)}` : ''}`)
+    items.push(...page.items)
+    cursor = page.next_cursor
+  } while (cursor)
+  return { items, next_cursor: null, total: items.length }
+}
+
+/** The set's current members (closed spells excluded server-side). */
 export const useSetMembers = (setId: UUID, universeId: UUID | null, primaryOnly = false) =>
   useQuery({
     queryKey: ['members', 'set', setId, primaryOnly],
-    queryFn: () => api.get<CursorPage<MemberListItem>>(`/members/?universe_id=${universeId}&set_id=${setId}&limit=500${primaryOnly ? '&primary_only=true' : ''}`),
+    queryFn: () => fetchAllCursorPages<MemberListItem>(`/members/?universe_id=${universeId}&set_id=${setId}${primaryOnly ? '&primary_only=true' : ''}`),
     enabled: !!universeId && !!setId,
   })
 
 export const useSetIncidents = (setId: UUID, universeId: UUID | null) =>
   useQuery({
     queryKey: ['incidents', 'set', setId],
-    queryFn: () => api.get<CursorPage<IncidentListItem>>(`/incidents/?universe_id=${universeId}&set_id=${setId}&limit=500`),
+    queryFn: () => fetchAllCursorPages<IncidentListItem>(`/incidents/?universe_id=${universeId}&set_id=${setId}`),
     enabled: !!universeId && !!setId,
   })
 
 // ─── Alliances ────────────────────────────────────────────────────────────────
 
-export const useAlliances = (universeId: UUID | null, offset = 0) =>
+/**
+ * Every alliance in the universe, name-ordered, with set and member counts.
+ * Pages at the API's ceiling until the total is reached: the old call asked for
+ * one page at the server default of 50, so pickers and the list would have gone
+ * silently short past that.
+ */
+export const useAlliances = (universeId: UUID | null) =>
   useQuery({
-    queryKey: ['alliances', universeId, offset],
-    queryFn: () => api.get<OffsetPage<AllianceListItem>>(`/alliances/?universe_id=${universeId}&offset=${offset}`),
+    queryKey: ['alliances', universeId],
+    queryFn: async (): Promise<OffsetPage<AllianceListItem>> => {
+      const PAGE = 1000
+      const url = (offset: number) => `/alliances/?universe_id=${universeId}&limit=${PAGE}&offset=${offset}`
+      const first = await api.get<OffsetPage<AllianceListItem>>(url(0))
+      let items = first.items
+      while (items.length < first.total) {
+        const next = await api.get<OffsetPage<AllianceListItem>>(url(items.length))
+        if (next.items.length === 0) break
+        items = items.concat(next.items)
+      }
+      return { items, total: first.total }
+    },
     enabled: !!universeId,
-    placeholderData: keepPreviousData,
+    staleTime: 30_000,
   })
 
 export const useAlliance = (id: UUID, universeId: UUID | null) =>
@@ -410,7 +480,9 @@ export const useAlliance = (id: UUID, universeId: UUID | null) =>
 export const useAllianceMembers = (id: UUID, universeId: UUID | null) =>
   useQuery({
     queryKey: ['members', 'alliance', id],
-    queryFn: () => api.get<CursorPage<MemberListItem>>(`/alliances/${id}/members?universe_id=${universeId}`),
+    // Every page: one request stopped at the server default of 50, and the
+    // largest alliances are near that already.
+    queryFn: () => fetchAllCursorPages<MemberListItem>(`/alliances/${id}/members?universe_id=${universeId}`),
     enabled: !!universeId && !!id,
   })
 
@@ -443,7 +515,12 @@ export const useDeleteAlliance = (universeId: UUID) => {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: (id: UUID) => api.delete(`/alliances/${id}?universe_id=${universeId}`),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['alliances'] }) },
+    // Its sets and members lose the link, so their cached rows are stale too.
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['alliances'] })
+      qc.invalidateQueries({ queryKey: ['sets'] })
+      qc.invalidateQueries({ queryKey: ['members'] })
+    },
   })
 }
 
@@ -795,23 +872,22 @@ export const useUpdateMemberStatus = (universeId: UUID) => {
     onMutate: async ({ id, status }) => {
       await qc.cancelQueries({ queryKey: ['members'] })
       const prev = qc.getQueriesData({ queryKey: ['members'] })
-      qc.setQueriesData({ queryKey: ['members'] }, (old: any) => {
-        if (!old) return old
-        // Member detail (single MemberRead/MemberReadDetail)
-        if (old.id === id) return { ...old, status }
+      qc.setQueriesData({ queryKey: ['members'] }, (old: unknown) => {
         // CursorPage<MemberListItem> (paginated lists, by-set, by-alliance, all, by-source)
-        if (Array.isArray(old.items)) {
-          return { ...old, items: old.items.map((m: any) => (m.id === id ? { ...m, status } : m)) }
+        if (isPage(old)) {
+          return { ...old, items: old.items.map((m) => (m.id === id ? { ...m, status } : m)) }
         }
         // Search results (raw MemberListItem[])
-        if (Array.isArray(old)) {
-          return old.map((m: any) => (m.id === id ? { ...m, status } : m))
+        if (isRowArray(old)) {
+          return old.map((m) => (m.id === id ? { ...m, status } : m))
         }
+        // Member detail (single MemberRead/MemberReadDetail)
+        if (isRow(old) && old.id === id) return { ...old, status }
         return old
       })
       return { prev }
     },
-    onError: (_e, _v, ctx: any) => { if (ctx?.prev) restoreSnapshot(qc, ctx.prev) },
+    onError: (_e, _v, ctx) => { if (ctx?.prev) restoreSnapshot(qc, ctx.prev) },
     onSettled: () => { qc.invalidateQueries({ queryKey: ['members'] }) },
   })
 }
@@ -884,10 +960,26 @@ export const useDatedIncidents = (universeId: UUID | null) =>
     staleTime: 30_000,
   })
 
+/**
+ * Every incident of a universe, following the cursor to the end - the same
+ * contract as useAllMembers. It used to fetch one page of 200 and say nothing,
+ * which is the cap that cost the calendar two thirds of its memorials. Illinois
+ * (3345 incidents) is seven requests of 500, about a second; the rest are one.
+ */
 export const useAllIncidents = (universeId: UUID | null) =>
   useQuery({
     queryKey: ['incidents', 'all', universeId],
-    queryFn: () => api.get<CursorPage<IncidentListItem>>(`/incidents/?universe_id=${universeId}&limit=200`),
+    queryFn: async () => {
+      const items: IncidentListItem[] = []
+      let cursor: string | null = null
+      do {
+        const qs = `?universe_id=${universeId}&limit=500${cursor ? `&cursor=${cursor}` : ''}`
+        const page: CursorPage<IncidentListItem> = await api.get<CursorPage<IncidentListItem>>(`/incidents/${qs}`)
+        items.push(...page.items)
+        cursor = page.next_cursor
+      } while (cursor)
+      return { items, next_cursor: null, total: items.length } satisfies CursorPage<IncidentListItem>
+    },
     enabled: !!universeId,
     staleTime: 30_000,
   })
@@ -903,9 +995,11 @@ export const useCreateIncident = () => {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: (body: Record<string, unknown>) => api.post<IncidentRead>('/incidents/', body),
-    onSuccess: (data) => {
-      qc.invalidateQueries({ queryKey: ['incidents', data.universe_id] })
-      qc.invalidateQueries({ queryKey: ['incidents', 'municipality'] })
+    // Every incidents query: the list, 'all', 'dated' (calendar, dashboard) and
+    // the per-municipality ones. Keying on the universe id alone left the full
+    // list and the calendar stale for their 30 s staleTime.
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['incidents'] })
     },
   })
 }
@@ -933,18 +1027,28 @@ export const useDeleteIncident = (universeId: UUID) => {
 
 // ─── Sources ──────────────────────────────────────────────────────────────────
 
-export const useSources = (universeId: UUID | null, offset = 0) =>
-  useQuery({
-    queryKey: ['sources', universeId, offset],
-    queryFn: () => api.get<OffsetPage<SourceListItem>>(`/sources/?universe_id=${universeId}&offset=${offset}`),
-    enabled: !!universeId,
-    placeholderData: keepPreviousData,
-  })
-
+/**
+ * Every source, newest first, with citation counts. Pages by offset to the end
+ * at the API's ceiling of 1000. The old paged hook asked for the server default
+ * of 50 while its page stepped by 100, so half of Michigan's 400 sources never
+ * appeared on the list.
+ */
 export const useAllSources = (universeId: UUID | null) =>
   useQuery({
     queryKey: ['sources', 'all', universeId],
-    queryFn: () => api.get<OffsetPage<SourceListItem>>(`/sources/?universe_id=${universeId}&limit=200`),
+    queryFn: async () => {
+      const items: SourceListItem[] = []
+      let total = 0
+      do {
+        const page = await api.get<OffsetPage<SourceListItem>>(
+          `/sources/?universe_id=${universeId}&limit=1000&offset=${items.length}`,
+        )
+        items.push(...page.items)
+        total = page.total
+        if (page.items.length === 0) break
+      } while (items.length < total)
+      return { items, total: items.length } satisfies OffsetPage<SourceListItem>
+    },
     enabled: !!universeId,
     staleTime: 30_000,
   })
@@ -993,19 +1097,40 @@ export const useDeleteSource = (universeId: UUID) => {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: (id: UUID) => api.delete(`/sources/${id}?universe_id=${universeId}`),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['sources'] }) },
+    // Its citations go with it, so the records that cited it are stale too.
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['sources'] })
+      qc.invalidateQueries({ queryKey: ['incidents'] })
+      qc.invalidateQueries({ queryKey: ['members'] })
+      qc.invalidateQueries({ queryKey: ['sets'] })
+    },
   })
 }
 
 // ─── Municipalities ───────────────────────────────────────────────────────────
 
-export const useMunicipalities = (universeId: UUID | null, offset = 0) =>
+/**
+ * Every municipality in the universe, name-ordered, with counts. Pages at the
+ * API's ceiling of 1000 until the total is reached: the old call took one page
+ * at the server default of 100, and every city picker in the app reads this,
+ * so a universe past 100 districts would have lost the rest silently.
+ */
+export const useMunicipalities = (universeId: UUID | null) =>
   useQuery({
-    queryKey: ['municipalities', universeId, offset],
-    queryFn: () =>
-      api.get<OffsetPage<MunicipalityListItem>>(`/municipalities/?universe_id=${universeId}&offset=${offset}`),
+    queryKey: ['municipalities', universeId],
+    queryFn: async (): Promise<OffsetPage<MunicipalityListItem>> => {
+      const url = (offset: number) => `/municipalities/?universe_id=${universeId}&limit=1000&offset=${offset}`
+      const first = await api.get<OffsetPage<MunicipalityListItem>>(url(0))
+      let items = first.items
+      while (items.length < first.total) {
+        const next = await api.get<OffsetPage<MunicipalityListItem>>(url(items.length))
+        if (next.items.length === 0) break
+        items = items.concat(next.items)
+      }
+      return { items, total: first.total }
+    },
     enabled: !!universeId,
-    placeholderData: keepPreviousData,
+    staleTime: 30_000,
   })
 
 /**
@@ -1321,7 +1446,7 @@ export const useUpdateMedia = (
       })
       return { prev }
     },
-    onError: (_e, _v, ctx: any) => { if (ctx?.prev) restoreSnapshot(qc, ctx.prev) },
+    onError: (_e, _v, ctx) => { if (ctx?.prev) restoreSnapshot(qc, ctx.prev) },
     onSettled: () => {
       qc.invalidateQueries({ queryKey: mediaQueryKey(entityType, entityId) })
       qc.invalidateQueries({ queryKey: [`${entityType}s`] })
@@ -1355,7 +1480,7 @@ export const useDeleteMedia = (
       })
       return { prev }
     },
-    onError: (_e, _id, ctx: any) => { if (ctx?.prev) restoreSnapshot(qc, ctx.prev) },
+    onError: (_e, _id, ctx) => { if (ctx?.prev) restoreSnapshot(qc, ctx.prev) },
     onSettled: () => {
       qc.invalidateQueries({ queryKey: mediaQueryKey(entityType, entityId) })
       qc.invalidateQueries({ queryKey: [`${entityType}s`] })

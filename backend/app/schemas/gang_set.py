@@ -252,6 +252,12 @@ class SetListItem(BaseModel):
     is_reserved: bool = False
     primary_photo_url: Optional[str] = None
     primary_photo_thumb_url: Optional[str] = None
+    # Declared so they survive serialisation: the router always passed
+    # territory_ids, but without the field Pydantic dropped it, and the set form's
+    # "also claimed by" hints read an empty list for every set.
+    territory_ids: list[uuid.UUID] = []
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
 
 
 class SetRelationshipCreate(BaseModel):

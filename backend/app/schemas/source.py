@@ -1,6 +1,6 @@
 import uuid
 from datetime import date, datetime
-from typing import Optional
+from typing import Any, Optional
 
 from pydantic import BaseModel
 
@@ -55,3 +55,13 @@ class SourceListItem(BaseModel):
     title: str
     url: str
     reliability: SourceReliability
+    publication: Optional[str] = None
+    published_at: Optional[dict[str, Any]] = None
+    created_at: Optional[datetime] = None
+    # Filled on list rows only (crud.attach_citation_counts); zero elsewhere.
+    incident_count: int = 0
+    member_count: int = 0
+    set_count: int = 0
+    business_count: int = 0
+    custody_count: int = 0
+    alias_count: int = 0

@@ -53,7 +53,11 @@ export interface MunicipalityListItem {
   parent_id: UUID | null
   universe_id: UUID
   incident_count: number
+  /** Own incidents plus its sub-districts'; equal to incident_count for a district. */
+  total_incident_count: number
   child_count: number
+  /** Real sets anchored to it (a city) or claiming it as territory (a district). */
+  set_count: number
   has_geometry: boolean
 }
 
@@ -91,6 +95,17 @@ export interface SourceListItem {
   title: string
   url: string
   reliability: SourceReliability
+  publication: string | null
+  published_at: FuzzyDateValue | null
+  created_at: string
+  /** How many records cite it. Filled on list rows only; 0 elsewhere. */
+  incident_count: number
+  member_count: number
+  set_count: number
+  business_count: number
+  /** Custody numbers and member aliases that name it as their source. */
+  custody_count: number
+  alias_count: number
 }
 
 // Research notes
@@ -112,12 +127,9 @@ export interface ResearchNoteListItem {
 
 export interface SourceRead extends SourceListItem {
   universe_id: UUID
-  publication: string | null
-  published_at: FuzzyDateValue | null
   accessed_at: string | null
   notes: string | null
   archive_url: string | null
-  created_at: string
   updated_at: string
 }
 
@@ -149,6 +161,12 @@ export interface AllianceListItem {
   slug: string | null
   primary_photo_url: string | null
   primary_photo_thumb_url: string | null
+  /** Filled on list rows only; 0 and null on single reads. */
+  set_count: number
+  /** Tagged directly plus current members of its sets, each counted once. */
+  member_count: number
+  gang_name: string | null
+  gang_color: string | null
 }
 
 export interface AllianceRead extends AllianceListItem {
@@ -194,13 +212,13 @@ export interface SetListItem {
   primary_photo_url: string | null
   primary_photo_thumb_url: string | null
   territory_ids: UUID[]
+  created_at: string
+  updated_at: string
 }
 
 export interface SetRead extends SetListItem {
   bio: string | null
   founder_id: UUID | null
-  created_at: string
-  updated_at: string
   territory_polygon: GeoJSON.Polygon | null
   territory_point: { type: 'Point'; coordinates: [number, number] } | null
 }
@@ -490,12 +508,28 @@ export interface MemberKilledInSummary {
   municipality_name: string | null
 }
 
+/** A number one custody system issued to a member: MDOC, BOP, a Georgia GDC ID
+ *  or OTN, a jail booking. A member can hold several, in several systems. MDOC
+ *  and BOP rows mirror the member's `mdoc_number` / `bop_register_number`. */
+export interface MemberCustodyIdRead {
+  id: UUID
+  member_id: UUID
+  system: string
+  number: string
+  source_id: UUID | null
+  photo_media_id: UUID | null
+  retrieved_at: string | null
+  notes: string | null
+  created_at: string
+}
+
 export interface MemberReadDetail extends MemberRead {
   source_ids: UUID[]
   alliance_name: string | null
   alliance_slug: string | null
   aliases_detail: MemberAliasRead[]
   incarcerations: MemberIncarcerationRead[]
+  custody_ids: MemberCustodyIdRead[]
   stats: MemberStats | null
   killed_in: MemberKilledInSummary | null
 }
@@ -512,6 +546,13 @@ export interface MemberStats {
 export interface ParticipantRead {
   member_name?: string | null
   member_slug?: string | null
+  /** Filled on the incident detail payload, so the page needs no member dump. */
+  member_status?: MemberStatus | null
+  member_photo_url?: string | null
+  /** The member's current set (primary first); membership is not dated to the incident. */
+  set_id?: UUID | null
+  set_name?: string | null
+  set_slug?: string | null
   member_id: UUID
   role: ParticipantRole
   outcome: ParticipantOutcome
@@ -554,10 +595,20 @@ export interface IncidentRead extends IncidentListItem {
   updated_at: string
 }
 
+export interface IncidentSourceBrief {
+  id: UUID
+  title: string
+  url: string
+  publication: string | null
+  reliability: SourceReliability
+}
+
 export interface IncidentReadDetail extends IncidentRead {
   participants: ParticipantRead[]
   set_participants: SetParticipantRead[]
   source_ids: UUID[]
+  /** The cited sources, in citation order. */
+  sources: IncidentSourceBrief[]
 }
 
 // Audit

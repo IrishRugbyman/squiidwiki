@@ -35,10 +35,10 @@ const WIDTH_CLASS: Record<NonNullable<SheetContentProps['width']>, string> = {
 
 const SheetContent = React.forwardRef<React.ElementRef<typeof DialogPrimitive.Content>, SheetContentProps>(
   ({ className, children, title, description, width = 'md', ...props }, ref) => {
-    // A unique id per instance keeps aria-describedby valid even when two sheets
-    // are mounted. The Description is always rendered (sr-only when there is no
-    // description text) so Radix never warns about a missing description.
-    const descId = React.useId()
+    // The Description is always rendered (sr-only when there is no description
+    // text) and Radix wires aria-describedby to it itself. Setting our own id
+    // replaced the one Radix checks for, so every sheet warned in dev that its
+    // description was missing.
     return (
     <DialogPrimitive.Portal>
       <SheetOverlay />
@@ -49,14 +49,12 @@ const SheetContent = React.forwardRef<React.ElementRef<typeof DialogPrimitive.Co
           WIDTH_CLASS[width],
           className,
         )}
-        aria-describedby={descId}
         {...props}
       >
         <div className="flex items-center justify-between border-b border-zinc-800 px-6 py-4">
           <div>
             <DialogPrimitive.Title className="text-base font-semibold text-white">{title}</DialogPrimitive.Title>
             <DialogPrimitive.Description
-              id={descId}
               className={description ? 'mt-0.5 text-xs text-zinc-400' : 'sr-only'}
             >
               {description ?? title}

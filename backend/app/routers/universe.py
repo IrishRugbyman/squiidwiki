@@ -151,6 +151,8 @@ async def get_universe_analytics(
             JOIN incident_participant ip ON ip.member_id = m.id
             JOIN incident i ON i.id = ip.incident_id AND i.universe_id = :uid
             WHERE s.universe_id = :uid
+              -- Unknown, Civilian and Police are holding pens, not crews.
+              AND NOT s.is_reserved
             GROUP BY s.id, s.name
             ORDER BY incident_count DESC
             LIMIT 5

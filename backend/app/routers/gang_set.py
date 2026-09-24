@@ -78,6 +78,8 @@ def _to_list_item(obj) -> SetListItem:
         primary_photo_url=getattr(obj, "primary_photo_url", None),
         primary_photo_thumb_url=getattr(obj, "primary_photo_thumb_url", None),
         territory_ids=getattr(obj, "_territory_ids", []),
+        created_at=obj.created_at,
+        updated_at=obj.updated_at,
     )
 
 
@@ -128,6 +130,7 @@ async def list_sets(
     territory_map = await crud.batch_load_set_territory_ids(session, [o.id for o in items])
     for o in items:
         object.__setattr__(o, "_territory_ids", territory_map.get(o.id, []))
+    await attach_primary_photos_sets(session, items)
     return OffsetPage(items=[_to_list_item(o) for o in items], total=total)
 
 

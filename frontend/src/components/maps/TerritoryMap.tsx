@@ -100,6 +100,35 @@ function stripePatternId(s: SetTerritoryPolygon): string | null {
 }
 
 // Build a 16×16 diagonal-stripe tile: primary-color lines over secondary fill.
+/** The teardrop pin, drawn white so an SDF icon can take any colour. */
+function buildPinImage(): ImageData | null {
+  const w = 22, h = 30
+  const canvas = document.createElement('canvas')
+  canvas.width = w
+  canvas.height = h
+  const ctx = canvas.getContext('2d')
+  if (!ctx) return null
+  ctx.fillStyle = 'white'
+  ctx.beginPath()
+  ctx.arc(w / 2, w / 2 - 1, w / 2 - 1, 0, Math.PI * 2)
+  ctx.fill()
+  ctx.beginPath()
+  ctx.moveTo(w / 2 - 5, w / 2 + 4)
+  ctx.lineTo(w / 2, h - 2)
+  ctx.lineTo(w / 2 + 5, w / 2 + 4)
+  ctx.fill()
+  // Punch the hole through the head.
+  ctx.globalCompositeOperation = 'destination-out'
+  ctx.beginPath()
+  ctx.arc(w / 2, w / 2 - 1, 4, 0, Math.PI * 2)
+  ctx.fillStyle = 'rgba(0,0,0,1)'
+  ctx.fill()
+  ctx.globalCompositeOperation = 'source-over'
+  return ctx.getImageData(0, 0, w, h)
+}
+
+const STRIPE_ID = /^stripe-([0-9a-fA-F]{3,8})-([0-9a-fA-F]{3,8})$/
+
 function buildStripeCanvas(primary: string, secondary: string): ImageData {
   const size = 16
   const canvas = document.createElement('canvas')
@@ -143,7 +172,6 @@ export default function TerritoryMap({
 }: TerritoryMapProps) {
   const mapRef = useRef<MapRef | null>(null)
   const drawRef = useRef<TerraDraw | null>(null)
-  const registeredPatternsRef = useRef<Set<string>>(new Set())
   const [hovered, setHovered] = useState<{ id: UUID; name: string; lng: number; lat: number } | null>(null)
   const [mapReady, setMapReady] = useState(false)
 
@@ -360,14 +388,31 @@ export default function TerritoryMap({
     return fallbackCenter
   }, [allBounds, fallbackCenter])
 
-  // Refit when `fitSignal` changes (sidebar select / reset button).
+  // Refit when `fitSignal` changes (sidebar select / reset button): to the
+  // selected set's own boundary or pin when it has one, else to everything.
+  // It used to refit to every loaded polygon, so picking a set never moved
+  // the map to that set.
   useEffect(() => {
-    if (!mapRef.current) return
-    if (allBounds) {
-      mapRef.current.fitBounds(allBounds, { padding: 60, duration: 600 })
+    const map = mapRef.current
+    if (!map) return
+    const sel = selectedSetId ? setPolygons.find((s) => s.id === selectedSetId) : undefined
+    if (sel?.territory_polygon) {
+      const b = polygonBounds([sel.territory_polygon])
+      if (b) {
+        map.fitBounds(b, { padding: 80, duration: 600, maxZoom: 15 })
+        return
+      }
     }
+    if (sel?.territory_point) {
+      const [lng, lat] = sel.territory_point.coordinates
+      map.flyTo({ center: [lng, lat], zoom: Math.max(map.getZoom(), 14), duration: 600 })
+      return
+    }
+    if (allBounds) map.fitBounds(allBounds, { padding: 60, duration: 600 })
+    // Also on selectedSetId: the selection arrives through the URL, which can
+    // land a render after the signal, and the fit must see the new set.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [fitSignal])
+  }, [fitSignal, selectedSetId])
 
   // ─── terra-draw lifecycle ────────────────────────────────────────────────
 
@@ -395,53 +440,6 @@ export default function TerritoryMap({
     // onPolygonComplete deliberately omitted — we use the latest closure via ref.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mapReady])
-
-  // Register a custom SDF pin icon once the map is ready.
-  useEffect(() => {
-    if (!mapReady) return
-    const map = mapRef.current?.getMap()
-    if (!map || map.hasImage('set-territory-pin')) return
-    const w = 22, h = 30
-    const canvas = document.createElement('canvas')
-    canvas.width = w
-    canvas.height = h
-    const ctx = canvas.getContext('2d')
-    if (!ctx) return
-    // Pin head (circle)
-    ctx.fillStyle = 'white'
-    ctx.beginPath()
-    ctx.arc(w / 2, w / 2 - 1, w / 2 - 1, 0, Math.PI * 2)
-    ctx.fill()
-    // Pin tail (downward triangle)
-    ctx.beginPath()
-    ctx.moveTo(w / 2 - 5, w / 2 + 4)
-    ctx.lineTo(w / 2, h - 2)
-    ctx.lineTo(w / 2 + 5, w / 2 + 4)
-    ctx.fill()
-    // Inner hole (transparent) — destination-out punches through the white
-    ctx.globalCompositeOperation = 'destination-out'
-    ctx.beginPath()
-    ctx.arc(w / 2, w / 2 - 1, 4, 0, Math.PI * 2)
-    ctx.fillStyle = 'rgba(0,0,0,1)'
-    ctx.fill()
-    ctx.globalCompositeOperation = 'source-over'
-    const imageData = ctx.getImageData(0, 0, w, h)
-    map.addImage('set-territory-pin', imageData, { sdf: true })
-  }, [mapReady])
-
-  // Register diagonal stripe patterns for each unique gang color pair.
-  useEffect(() => {
-    if (!mapReady) return
-    const map = mapRef.current?.getMap()
-    if (!map) return
-    for (const s of setPolygons) {
-      const id = stripePatternId(s)
-      if (!id) continue
-      if (registeredPatternsRef.current.has(id) || map.hasImage(id)) continue
-      map.addImage(id, buildStripeCanvas(s.gang_color!, s.gang_color_secondary!))
-      registeredPatternsRef.current.add(id)
-    }
-  }, [mapReady, setPolygons])
 
   // Toggle drawing on/off when `drawingFor` flips, and seed initial polygon.
   useEffect(() => {
@@ -542,7 +540,21 @@ export default function TerritoryMap({
         onMouseMove={onMouseMove}
         onMouseLeave={onMouseLeave}
         onClick={onClick}
-        onLoad={() => setMapReady(true)}
+        onLoad={(e) => {
+          // Images are registered here, before any layer that uses them can
+          // mount (those wait for mapReady). Registered from effects instead,
+          // they always arrived after the layers, since React runs a child's
+          // effects first, and maplibre warned of each missing image.
+          const map = e.target
+          const pin = buildPinImage()
+          if (pin && !map.hasImage('set-territory-pin')) map.addImage('set-territory-pin', pin, { sdf: true })
+          // Stripe patterns are made on demand: a set's two gang colours are in its pattern id.
+          map.on('styleimagemissing', (ev: { id: string }) => {
+            const m = STRIPE_ID.exec(ev.id)
+            if (m && !map.hasImage(ev.id)) map.addImage(ev.id, buildStripeCanvas(`#${m[1]}`, `#${m[2]}`))
+          })
+          setMapReady(true)
+        }}
         cursor={drawingFor || pinMode ? 'crosshair' : hovered ? 'pointer' : 'grab'}
       >
         <NavigationControl position="top-right" />
@@ -579,8 +591,9 @@ export default function TerritoryMap({
               ] as unknown as number,
             }}
           />
-          {/* Diagonal stripe fill — for gang sets with two colors */}
-          <Layer
+          {/* Diagonal stripe fill, for gang sets with two colours. After load,
+              when its patterns can be supplied. */}
+          {mapReady && <Layer
             id="set-polygons-pattern"
             type="fill"
             filter={['!=', ['get', 'patternId'], null] as unknown as boolean}
@@ -592,7 +605,7 @@ export default function TerritoryMap({
                 0.4,
               ] as unknown as number,
             }}
-          />
+          />}
           <Layer
             id="set-polygons-line"
             type="line"
@@ -700,7 +713,7 @@ export default function TerritoryMap({
         )}
 
         {/* Set territory point markers — teardrop pins above polygon layers */}
-        {setPointsFC.features.length > 0 && (
+        {mapReady && setPointsFC.features.length > 0 && (
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           <Source id="set-points" type="geojson" data={setPointsFC as any}>
             <Layer
@@ -727,7 +740,7 @@ export default function TerritoryMap({
         )}
 
         {/* Pending pin preview (pin mode, before save) */}
-        {pendingPointFC && (
+        {mapReady && pendingPointFC && (
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           <Source id="pending-point" type="geojson" data={pendingPointFC as any}>
             <Layer

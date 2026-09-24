@@ -2,16 +2,15 @@ import uuid
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.dependencies import CurrentUser, require_global_role
+from app.core.csv_export import to_csv_response
 from app.core.database import get_session
 from app.core.enums import GlobalRole
-from app.core.csv_export import to_csv_response
-from app.crud import source as crud
-from app.crud import member as member_crud
 from app.crud import incident as incident_crud
+from app.crud import member as member_crud
+from app.crud import source as crud
 from app.schemas.common import CursorPage, OffsetPage
 from app.schemas.incident import IncidentListItem
 from app.schemas.member import MemberListItem
@@ -26,7 +25,7 @@ async def list_sources(
     _: CurrentUser,
     session: Annotated[AsyncSession, Depends(get_session)],
     offset: int = Query(0, ge=0),
-    limit: int = Query(50, ge=1, le=200),
+    limit: int = Query(50, ge=1, le=1000),
     format: str = Query("json"),
 ):
     if format == "csv":

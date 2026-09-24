@@ -4,7 +4,13 @@ from typing import Optional
 
 from pydantic import BaseModel
 
-from app.core.enums import IncidentType, ParticipantOutcome, ParticipantRole
+from app.core.enums import (
+    IncidentType,
+    MemberStatus,
+    ParticipantOutcome,
+    ParticipantRole,
+    SourceReliability,
+)
 from app.schemas.common import FuzzyDateField
 
 
@@ -28,6 +34,27 @@ class ParticipantRead(BaseModel):
     # truncated member dump (4,600+ members; list endpoints cap at 500).
     member_name: Optional[str] = None
     member_slug: Optional[str] = None
+    # Also filled by the detail endpoint, so the page draws each participant
+    # (photo, status, set) without downloading the whole universe's members.
+    member_status: Optional[MemberStatus] = None
+    member_photo_url: Optional[str] = None
+    # The member's current set: primary when there is one. Membership is not
+    # dated to the incident, so this is who they run with now.
+    set_id: Optional[uuid.UUID] = None
+    set_name: Optional[str] = None
+    set_slug: Optional[str] = None
+
+
+class IncidentSourceBrief(BaseModel):
+    """A cited source as the incident page shows it."""
+
+    model_config = {"from_attributes": True}
+
+    id: uuid.UUID
+    title: str
+    url: str
+    publication: Optional[str] = None
+    reliability: SourceReliability
 
 
 class SetParticipantCreate(BaseModel):
@@ -98,6 +125,7 @@ class IncidentReadDetail(IncidentRead):
     participants: list[ParticipantRead]
     set_participants: list[SetParticipantRead]
     source_ids: list[uuid.UUID]
+    sources: list[IncidentSourceBrief] = []
 
 
 class IncidentListItem(BaseModel):

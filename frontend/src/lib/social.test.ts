@@ -56,6 +56,16 @@ describe('socialHandle', () => {
     expect(socialHandle('https://www.facebook.com/profile.php')).toBe('www.facebook.com')
   })
 
+  it('keeps a dotted vanity name as the handle, not the host', () => {
+    expect(socialHandle('https://www.facebook.com/linwood.mcgiver')).toBe('@linwood.mcgiver')
+    expect(socialHandle('https://www.instagram.com/lil.jay_/')).toBe('@lil.jay_')
+  })
+
+  it('still treats a page file as no handle, whatever its extension', () => {
+    expect(socialHandle('https://www.facebook.com/home.html')).toBe('www.facebook.com')
+    expect(socialHandle('https://example.com/Profile.ASPX')).toBe('example.com')
+  })
+
   it('labels a vanity-less Facebook account by its numeric id, not by profile.php', () => {
     expect(socialHandle('profile.php?id=100020370098269')).toBe('@100020370098269')
     expect(socialHandle('https://www.facebook.com/profile.php?id=100020370098269')).toBe('@100020370098269')

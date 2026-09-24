@@ -43,8 +43,14 @@ export function useRecordRecent(
   entry: Omit<RecentEntity, 'visitedAt'> | null | undefined,
 ) {
   const record = useRecentsStore((s) => s.record)
+  // Keyed on the fields, not the object: callers build `entry` inline, so it
+  // is a new object every render and would re-record on each one.
+  const type = entry?.type
+  const id = entry?.id
+  const slug = entry?.slug ?? null
+  const label = entry?.label
   useEffect(() => {
-    if (!entry) return
-    record(entry)
-  }, [entry?.type, entry?.id, entry?.label, entry?.slug, record])
+    if (!type || !id || label === undefined) return
+    record({ type, id, slug, label })
+  }, [type, id, slug, label, record])
 }

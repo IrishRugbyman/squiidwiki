@@ -1,5 +1,5 @@
 import { useNavigate } from '@tanstack/react-router'
-import { AlertTriangle, Clock, FileText, Globe, MapPin, Network, NotebookText, Plus, Shield, Users } from 'lucide-react'
+import { AlertTriangle, Clock, FileText, Globe, MapPin, Network, Plus, Shield, Users } from 'lucide-react'
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '@/lib/api'
@@ -10,7 +10,8 @@ import {
 } from '@/lib/queries'
 import { useUniverseStore, type Universe } from '@/stores/universe'
 import { useAuthStore } from '@/stores/auth'
-import { useRecentsStore, type RecentEntityType } from '@/stores/recents'
+import { useRecentsStore } from '@/stores/recents'
+import { RECENT_ICON, RECENT_ROUTE } from '@/lib/recentRoutes'
 import {
   CommandDialog,
   CommandEmpty,
@@ -112,28 +113,6 @@ function fmtDate(d: FuzzyDateValue | null): string {
   return `${d.year}/${String(d.month).padStart(2, '0')}/${String(d.day).padStart(2, '0')}`
 }
 
-// ─── Recent-entity icon mapping ───────────────────────────────────────────────
-
-const RECENT_ICON: Record<RecentEntityType, typeof Users> = {
-  member: Users,
-  set: Shield,
-  alliance: Network,
-  incident: AlertTriangle,
-  source: FileText,
-  municipality: MapPin,
-  research: NotebookText,
-}
-
-const RECENT_ROUTE: Record<RecentEntityType, string> = {
-  member: '/members',
-  set: '/sets',
-  alliance: '/alliances',
-  incident: '/incidents',
-  source: '/sources',
-  municipality: '/municipalities',
-  research: '/research',
-}
-
 // ─── Result group sizing ──────────────────────────────────────────────────────
 
 // Rows shown per group before truncation. When more matched, the heading says so
@@ -191,7 +170,8 @@ export function GlobalCommandPalette({ open, onClose }: GlobalCommandPaletteProp
   function go(path: string) {
     onClose()
     setQ('')
-    navigate({ to: path as any })
+    // Paths here are built from data (`/members/<slug>`), so they go by href.
+    navigate({ href: path })
   }
 
   function handleCreated(u?: Universe) {

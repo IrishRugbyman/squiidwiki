@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { UserPlus, X } from 'lucide-react'
 import { toast } from 'sonner'
 import { FacebookIcon, InstagramIcon, TwitterIcon } from '@/components/icons/SocialIcons'
@@ -178,15 +178,21 @@ function FamilyEditor({
   const debouncedSearch = useDebounce(memberSearch, 300)
   const { data: searchResults } = useMemberSearch(universeId, debouncedSearch)
 
-  useEffect(() => {
-    const results = searchResults ?? []
-    if (!results.length) return
-    setNameCache((prev) => {
-      const next = { ...prev }
-      for (const m of results) next[m.id] = m.display_name
-      return next
-    })
-  }, [searchResults])
+  // Remember the names of members seen in search results, so a picked relative
+  // keeps a label after the search moves on. Adjusted during render when the
+  // results change (React's pattern for state derived from a changing input),
+  // not in an effect that re-rendered once more each time.
+  const [seenResults, setSeenResults] = useState(searchResults)
+  if (searchResults !== seenResults) {
+    setSeenResults(searchResults)
+    if (searchResults?.length) {
+      setNameCache((prev) => {
+        const next = { ...prev }
+        for (const m of searchResults) next[m.id] = m.display_name
+        return next
+      })
+    }
+  }
 
   const filteredMembers = useMemo(
     () => (searchResults ?? []).filter((m) => m.id !== excludeMemberId).slice(0, 8),

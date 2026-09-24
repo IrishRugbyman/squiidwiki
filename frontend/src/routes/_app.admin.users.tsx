@@ -199,6 +199,16 @@ function AdminUsersPage() {
   const { data, isLoading } = useUsers(offset)
   const updateRole = useUpdateUserRole()
 
+  const total = data?.total ?? 0
+
+  const items = useMemo(() => {
+    return (data?.items ?? [])
+      .filter((u) => !q || u.email.toLowerCase().includes(q.toLowerCase()))
+      .filter((u) => roleFilter === 'ALL' || u.global_role === roleFilter)
+  }, [data, q, roleFilter])
+
+  // Guard after every hook: returning above one changes the hook count
+  // between renders, and React throws the moment the condition flips.
   if (user?.global_role !== 'ADMIN') {
     return (
       <div className="py-24 text-center text-sm text-zinc-400">
@@ -206,15 +216,6 @@ function AdminUsersPage() {
       </div>
     )
   }
-
-  const allItems = data?.items ?? []
-  const total = data?.total ?? 0
-
-  const items = useMemo(() => {
-    return allItems
-      .filter((u) => !q || u.email.toLowerCase().includes(q.toLowerCase()))
-      .filter((u) => roleFilter === 'ALL' || u.global_role === roleFilter)
-  }, [allItems, q, roleFilter])
 
   function confirmRoleChange() {
     if (!pendingChange) return

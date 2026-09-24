@@ -73,3 +73,23 @@ export const MEMBER_STATUS_DESCRIPTION: Record<MemberStatus, string> = {
 export const MEMBER_STATUS_ORDER: MemberStatus[] = [
   'FREE', 'LOCKED', 'ESCAPEE', 'ABSCONDER', 'DEAD', 'UNKNOWN',
 ]
+
+/** Small dot beside a member's name or a status chip. */
+export const MEMBER_STATUS_DOT: Record<MemberStatus, string> = {
+  FREE: 'bg-emerald-400',
+  LOCKED: 'bg-orange-400',
+  DEAD: 'bg-zinc-600',
+  UNKNOWN: 'bg-zinc-600',
+  ESCAPEE: 'bg-amber-400',
+  ABSCONDER: 'bg-yellow-400',
+}
+
+/** A member status filter chip when it is the one selected. */
+export const MEMBER_STATUS_CHIP_ACTIVE: Record<MemberStatus, string> = {
+  FREE: 'bg-emerald-900/60 text-emerald-300 border-emerald-700',
+  LOCKED: 'bg-orange-900/60 text-orange-300 border-orange-700',
+  DEAD: 'bg-zinc-800 text-zinc-300 border-zinc-600',
+  UNKNOWN: 'bg-zinc-800 text-zinc-300 border-zinc-600',
+  ESCAPEE: 'bg-amber-900/60 text-amber-300 border-amber-700',
+  ABSCONDER: 'bg-yellow-900/60 text-yellow-300 border-yellow-700',
+}

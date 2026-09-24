@@ -94,8 +94,11 @@ export function socialHandle(value: string): string {
   try {
     const segments = new URL(v).pathname.split('/').filter(Boolean)
     const last = segments[segments.length - 1]
-    // A segment with a dot is a file (profile.php), not a handle.
-    if (last && !last.includes('.')) return `@${last}`
+    // A page like profile.php names no one. Only a web-file extension marks
+    // one: Facebook vanity names carry dots (linwood.mcgiver), and treating
+    // every dotted segment as a file showed 48 of 121 profile links as bare
+    // "www.facebook.com".
+    if (last && !/\.(php|html?|aspx?|jsp)$/i.test(last)) return `@${last}`
   } catch {
     return v
   }

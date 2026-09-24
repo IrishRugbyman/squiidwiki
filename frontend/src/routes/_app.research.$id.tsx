@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { Pencil, Save, Trash2, X } from 'lucide-react'
-import { useEffect, useRef, useState } from 'react'
+import { useState } from 'react'
 import { toast } from 'sonner'
 import { Breadcrumbs } from '@/components/Breadcrumbs'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
@@ -14,6 +14,7 @@ import { useDeleteResearchNote, useResearchNote, useUpdateResearchNote } from '@
 import { useUniverseStore } from '@/stores/universe'
 import { useEditShortcut } from '@/hooks/useKeymap'
 import { useRecordRecent } from '@/stores/recents'
+import { LinkifiedText } from '@/components/LinkifiedText'
 
 export const Route = createFileRoute('/_app/research/$id')({
   validateSearch: (s: Record<string, unknown>) => ({
@@ -21,33 +22,6 @@ export const Route = createFileRoute('/_app/research/$id')({
   }),
   component: ResearchDetailPage,
 })
-
-const URL_SPLIT_RE = /(https?:\/\/[^\s)]+)/g
-const URL_TEST_RE = /^https?:\/\/[^\s)]+$/
-
-function renderContent(text: string): React.ReactNode[] {
-  if (!text) return []
-  const out: React.ReactNode[] = []
-  const parts = text.split(URL_SPLIT_RE)
-  parts.forEach((part, i) => {
-    if (URL_TEST_RE.test(part)) {
-      out.push(
-        <a
-          key={i}
-          href={part}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-violet-400 hover:text-violet-300 underline decoration-violet-700 underline-offset-2 break-all"
-        >
-          {part}
-        </a>,
-      )
-    } else {
-      out.push(part)
-    }
-  })
-  return out
-}
 
 function ResearchDetailPage() {
   const { id } = Route.useParams()
@@ -63,18 +37,17 @@ function ResearchDetailPage() {
   const [title, setTitle] = useState('')
   const [content, setContent] = useState('')
   const [deleting, setDeleting] = useState(false)
-  const seededRef = useRef<string | null>(null)
+  const [seededId, setSeededId] = useState<string | null>(null)
 
   // Seed local state when the note loads or changes id, and start in edit mode
-  // when ?edit=1 is set (used by the "+ New note" flow).
-  useEffect(() => {
-    if (!note) return
-    if (seededRef.current === note.id) return
-    seededRef.current = note.id
+  // when ?edit=1 is set (used by the "+ New note" flow). Done during render,
+  // keyed on the note id, rather than in an effect one render late.
+  if (note && seededId !== note.id) {
+    setSeededId(note.id)
     setTitle(note.title)
     setContent(note.content)
     if (edit === 1) setEditing(true)
-  }, [note, edit])
+  }
 
   useEditShortcut(() => note && setEditing(true))
   useRecordRecent(note ? { type: 'research', id: note.id, slug: null, label: note.title || 'Untitled note' } : null)
@@ -172,7 +145,7 @@ function ResearchDetailPage() {
             />
           ) : note.content.trim() ? (
             <div className="whitespace-pre-wrap rounded-lg border border-zinc-800 bg-zinc-900/30 p-4 text-sm leading-relaxed text-zinc-200">
-              {renderContent(note.content)}
+              <LinkifiedText text={note.content} />
             </div>
           ) : (
             <div className="rounded-lg border border-dashed border-zinc-800 p-8 text-center">

@@ -1,4 +1,32 @@
+import {
+  Banknote, Bomb, Flame, HandCoins, ShieldAlert, Skull, Swords, UserX, type LucideIcon,
+} from 'lucide-react'
 import type { IncidentType, ParticipantOutcome, ParticipantRole } from './types'
+
+/** Glyph per incident type; the incidents list's own table uses the same set. */
+export const INCIDENT_TYPE_ICON: Record<IncidentType, LucideIcon> = {
+  SHOOTING: Swords,
+  MURDER: Skull,
+  FIGHT: ShieldAlert,
+  BOMBING: Bomb,
+  ARSON: Flame,
+  EXTORTION: HandCoins,
+  KIDNAPPING: UserX,
+  ROBBERY: Banknote,
+}
+
+/** Tinted square behind an incident glyph. Literal strings so Tailwind v4 emits them. */
+export const INCIDENT_TYPE_TILE: Record<IncidentType, string> = {
+  SHOOTING: 'bg-amber-950/60 text-amber-400',
+  MURDER: 'bg-rose-950/60 text-rose-400',
+  FIGHT: 'bg-violet-950/60 text-violet-400',
+  BOMBING: 'bg-yellow-950/60 text-yellow-400',
+  ARSON: 'bg-pink-950/60 text-pink-400',
+  EXTORTION: 'bg-teal-950/60 text-teal-400',
+  KIDNAPPING: 'bg-blue-950/60 text-blue-400',
+  ROBBERY: 'bg-emerald-950/60 text-emerald-400',
+}
+
 
 export const INCIDENT_TYPE_CHIP: Record<IncidentType, string> = {
   SHOOTING: 'border-amber-800/70 text-amber-400 bg-amber-950/30',

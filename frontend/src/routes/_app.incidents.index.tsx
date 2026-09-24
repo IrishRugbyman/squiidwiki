@@ -1,6 +1,7 @@
-import { createFileRoute, Link, useLocation, useNavigate } from '@tanstack/react-router'
+import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
 import { Banknote, Bomb, Bookmark, BookmarkPlus, CheckCircle2, Download, Flame, HandCoins, Pencil, Plus, Search, ShieldAlert, Skull, Swords, Trash2, User, UserX, X } from 'lucide-react'
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import { toast } from 'sonner'
 import { FuzzyDate } from '@/components/FuzzyDate'
@@ -27,7 +28,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Textarea } from '@/components/ui/textarea'
 import {
   useCreateIncident, useUpdateIncident, useIncident,
-  useIncidents, useIncidentsByMunicipality, useMemberIncidents, useMemberSearch,
+  useAllIncidents, useIncidentsByMunicipality, useMember, useMemberIncidents, useMemberSearch,
   useMunicipalities, useAllMembers, useAllSets, useDeleteIncident,
 } from '@/lib/queries'
 import { BulkActionBar } from '@/components/BulkActionBar'
@@ -37,11 +38,33 @@ import { currentAffiliations, primaryAffiliation } from '@/lib/utils'
 import { useDebounce } from '@/hooks/useDebounce'
 import { EmptyState } from '@/components/EmptyState'
 import { TableRowSkeleton } from '@/components/skeletons'
+import { textParam } from '@/lib/searchParams'
 import type { FuzzyDateValue } from '@/components/FuzzyDate'
 import type { IncidentListItem, IncidentReadDetail, IncidentType, MemberListItem, ParticipantOutcome, ParticipantRole, SetListItem, UUID } from '@/lib/types'
 import { useUniverseStore } from '@/stores/universe'
 
+type SortKey = 'date' | 'added'
+
+interface IncidentsSearch {
+  q?: string
+  type?: IncidentType
+  verified?: 'yes' | 'no'
+  member?: string
+  municipality_id?: string
+  sort?: SortKey
+  order?: 'asc' | 'desc'
+}
+
 export const Route = createFileRoute('/_app/incidents/')({
+  validateSearch: (s: Record<string, unknown>): IncidentsSearch => ({
+    q: textParam(s.q),
+    type: typeof s.type === 'string' && s.type in TYPE_CONFIG ? (s.type as IncidentType) : undefined,
+    verified: s.verified === 'yes' || s.verified === 'no' ? s.verified : undefined,
+    member: typeof s.member === 'string' && s.member ? s.member : undefined,
+    municipality_id: typeof s.municipality_id === 'string' && s.municipality_id ? s.municipality_id : undefined,
+    sort: s.sort === 'added' ? 'added' : s.sort === 'date' ? 'date' : undefined,
+    order: s.order === 'asc' ? 'asc' : s.order === 'desc' ? 'desc' : undefined,
+  }),
   component: IncidentsPage,
 })
 
@@ -125,8 +148,9 @@ function ParticipantsSection({ universeId, participants, onChangeParticipants, s
   const [setRole, setSetRole] = useState<ParticipantRole>('SHOOTER')
   const [setOutcome, setSetOutcome] = useState<ParticipantOutcome>('UNKNOWN')
 
-  const addedMemberIds = new Set(participants.map((p) => p.member_id))
-  const addedSetIds = new Set(setParticipants.map((p) => p.set_id))
+  // Memoised: a fresh Set every render made both memos below recompute on every keystroke.
+  const addedMemberIds = useMemo(() => new Set(participants.map((p) => p.member_id)), [participants])
+  const addedSetIds = useMemo(() => new Set(setParticipants.map((p) => p.set_id)), [setParticipants])
 
   const memberSetNameById = useMemo(() => {
     const out: Record<string, string> = {}
@@ -385,7 +409,7 @@ function IncidentFormSheetInner({ universeId, open, onClose, initial, defaultPar
     return map
   }, [allSetsData])
 
-  const allMunis = munis?.items ?? []
+  const allMunis = useMemo(() => munis?.items ?? [], [munis])
   const topLevelMunis = useMemo(
     () => allMunis.filter((m) => !m.parent_id).sort((a, b) => a.name.localeCompare(b.name)),
     [allMunis],
@@ -396,8 +420,11 @@ function IncidentFormSheetInner({ universeId, open, onClose, initial, defaultPar
   const [locationText, setLocationText] = useState(initial?.location_text ?? '')
   const [lat, setLat] = useState<string>(initial?.lat != null ? String(initial.lat) : '')
   const [lng, setLng] = useState<string>(initial?.lng != null ? String(initial.lng) : '')
-  const [cityId, setCityId] = useState<string>('')
-  const [subDistrictId, setSubDistrictId] = useState<string>('')
+  // City and sub-district: what the user picked, else what the initial
+  // municipality implies. An effect used to copy the initial municipality into
+  // state once the list loaded, a render late; now it is read when needed.
+  const [cityPick, setCityId] = useState<string | null>(null)
+  const [subPick, setSubDistrictId] = useState<string | null>(null)
   const [narrative, setNarrative] = useState(initial?.narrative ?? '')
   const [verified, setVerified] = useState(initial?.verified ?? false)
   const [participants, setParticipants] = useState<ParticipantDraft[]>(() =>
@@ -444,47 +471,39 @@ function IncidentFormSheetInner({ universeId, open, onClose, initial, defaultPar
   }
   const [geoSearchTerm, setGeoSearchTerm] = useState('')
   const debouncedGeo = useDebounce(geoSearchTerm, 300)
-  const [geoResults, setGeoResults] = useState<MapboxFeature[]>([])
   const [showGeoDropdown, setShowGeoDropdown] = useState(false)
-  const [geoSearched, setGeoSearched] = useState(false)
-  const [geoLoading, setGeoLoading] = useState(false)
-  const [geoError, setGeoError] = useState<string | null>(null)
   const mapboxToken = (import.meta.env.VITE_MAPBOX_TOKEN ?? '') as string
 
-  useEffect(() => {
-    if (debouncedGeo.length < 3) {
-      setGeoResults([]); setShowGeoDropdown(false); setGeoSearched(false); setGeoLoading(false); setGeoError(null)
-      return
-    }
-    if (!mapboxToken) {
-      setGeoError('Address autocomplete unavailable (missing VITE_MAPBOX_TOKEN)')
-      setShowGeoDropdown(true); setGeoSearched(true)
-      return
-    }
-    const ctrl = new AbortController()
-    setGeoLoading(true); setGeoError(null)
-
-    fetch(
-      `https://api.mapbox.com/search/geocode/v6/forward?q=${encodeURIComponent(debouncedGeo)}` +
-      `&autocomplete=true&limit=6&country=us&access_token=${mapboxToken}`,
-      { signal: ctrl.signal },
-    )
-      .then(async (r) => {
-        if (!r.ok) throw new Error(`Mapbox ${r.status}`)
-        return r.json()
-      })
-      .then((data: { features?: MapboxFeature[] }) => {
-        setGeoResults(Array.isArray(data.features) ? data.features : [])
-        setShowGeoDropdown(true); setGeoSearched(true)
-      })
-      .catch((err) => {
-        if (err.name === 'AbortError') return
-        setGeoError('Geocoder error. Check console')
-        setGeoResults([]); setShowGeoDropdown(true); setGeoSearched(true)
-      })
-      .finally(() => setGeoLoading(false))
-    return () => ctrl.abort()
-  }, [debouncedGeo, mapboxToken])
+  // Address autocomplete as a query: loading, error and results follow the
+  // debounced term, and a superseded request is cancelled through `signal`.
+  // It replaces an effect that reset six pieces of state by hand. `silent`
+  // keeps the global error toast off; the dropdown shows the error inline.
+  const geoTerm = debouncedGeo.trim()
+  const geoActive = geoTerm.length >= 3
+  const geoQuery = useQuery({
+    queryKey: ['geocode', geoTerm],
+    queryFn: async ({ signal }) => {
+      const r = await fetch(
+        `https://api.mapbox.com/search/geocode/v6/forward?q=${encodeURIComponent(geoTerm)}` +
+        `&autocomplete=true&limit=6&country=us&access_token=${mapboxToken}`,
+        { signal },
+      )
+      if (!r.ok) throw new Error(`Mapbox ${r.status}`)
+      const data: { features?: MapboxFeature[] } = await r.json()
+      return Array.isArray(data.features) ? data.features : []
+    },
+    enabled: geoActive && !!mapboxToken,
+    staleTime: 5 * 60_000,
+    retry: false,
+    meta: { silent: true },
+  })
+  const geoResults = geoActive ? geoQuery.data ?? [] : []
+  const geoLoading = geoActive && !!mapboxToken && geoQuery.isFetching
+  const geoError = !geoActive ? null
+    : !mapboxToken ? 'Address autocomplete unavailable (missing VITE_MAPBOX_TOKEN)'
+    : geoQuery.isError ? 'Geocoder error. Check console'
+    : null
+  const geoSearched = geoActive && (!mapboxToken || geoQuery.isFetched)
 
   function selectGeoResult(f: MapboxFeature) {
     const ctx = f.properties.context ?? {}
@@ -512,7 +531,6 @@ function IncidentFormSheetInner({ universeId, open, onClose, initial, defaultPar
     }
 
     setGeoSearchTerm('')
-    setGeoResults([])
     setShowGeoDropdown(false)
   }
 
@@ -528,45 +546,24 @@ function IncidentFormSheetInner({ universeId, open, onClose, initial, defaultPar
       ?? f.id
   }
 
-  // Re-resolve participant names once member map loads (edit mode only)
-  useEffect(() => {
-    if (!isEdit || Object.keys(memberNameMap).length === 0) return
-    setParticipants((prev) =>
-      prev.map((p) => ({
-        ...p,
-        member_name: memberNameMap[p.member_id] ?? p.member_name,
-      }))
-    )
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [memberNameMap])
+  // Names shown for participants come from the member and set lists, which
+  // load after the form opens in edit mode. They are read at render; effects
+  // used to rewrite the participants state once each list arrived.
+  const displayParticipants = useMemo(
+    () => participants.map((p) => ({ ...p, member_name: memberNameMap[p.member_id] ?? p.member_name })),
+    [participants, memberNameMap],
+  )
+  const displaySetParticipants = useMemo(
+    () => setLevelParticipants.map((p) => ({ ...p, set_name: setNameById[p.set_id] ?? p.set_name })),
+    [setLevelParticipants, setNameById],
+  )
 
-  useEffect(() => {
-    if (!isEdit || Object.keys(setNameById).length === 0) return
-    updateSetLevelParticipants((prev) =>
-      prev.map((p) => ({
-        ...p,
-        set_name: setNameById[p.set_id] ?? p.set_name,
-      }))
-    )
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [setNameById])
-
-  // Resolve municipality_id into city + sub-district once muni list loads
-  useEffect(() => {
-    if (allMunis.length === 0) return
+  const initialMuni = useMemo(() => {
     const initialId = initial?.municipality_id ?? defaultMunicipalityId ?? ''
-    if (!initialId) return
-    const muni = allMunis.find((m) => m.id === initialId)
-    if (!muni) return
-    if (muni.parent_id) {
-      setCityId(muni.parent_id)
-      setSubDistrictId(muni.id)
-    } else {
-      setCityId(muni.id)
-      setSubDistrictId('')
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [allMunis.length])
+    return initialId ? allMunis.find((m) => m.id === initialId) ?? null : null
+  }, [allMunis, initial?.municipality_id, defaultMunicipalityId])
+  const cityId = cityPick ?? (initialMuni ? initialMuni.parent_id ?? initialMuni.id : '')
+  const subDistrictId = subPick ?? (initialMuni?.parent_id ? initialMuni.id : '')
 
   const subDistricts = useMemo(
     () => allMunis.filter((m) => m.parent_id === cityId).sort((a, b) => a.name.localeCompare(b.name)),
@@ -672,6 +669,7 @@ function IncidentFormSheetInner({ universeId, open, onClose, initial, defaultPar
                   onChange={(e) => {
                     setLocationText(e.target.value)
                     setGeoSearchTerm(e.target.value)
+                    setShowGeoDropdown(true)
                   }}
                   onBlur={() => setTimeout(() => setShowGeoDropdown(false), 150)}
                   onFocus={() => (geoResults.length > 0 || geoSearched) && setShowGeoDropdown(true)}
@@ -724,9 +722,9 @@ function IncidentFormSheetInner({ universeId, open, onClose, initial, defaultPar
           </div>
           <ParticipantsSection
             universeId={universeId}
-            participants={participants}
+            participants={displayParticipants}
             onChangeParticipants={setParticipants}
-            setParticipants={setLevelParticipants}
+            setParticipants={displaySetParticipants}
             onChangeSetParticipants={updateSetLevelParticipants}
             allMembers={allMembersList}
             allSets={allSetsData?.items ?? []}
@@ -822,26 +820,40 @@ function FilterTabs<T extends string>({ options, value, onChange }: {
 
 // ─── Filter presets ───────────────────────────────────────────────────────────
 
+/**
+ * A preset is a saved URL search. The filters used to live in component state,
+ * so a preset had to copy each one by hand and a bookmark could not hold any;
+ * now the URL is the filter, and a preset just names one.
+ */
 interface FilterPreset {
   name: string
-  type: TypeFilter
-  verified: VerifiedFilter
-  participantId: UUID | null
-  participantName: string | null
-  municipalityId: UUID | null
-  municipalityName: string | null
+  search: IncidentsSearch
 }
 
 function presetsKey(universeId: string): string {
   return `incidents-presets-${universeId}`
 }
 
+/** Reads presets, converting the pre-URL shape ({type, verified, participantId, municipalityId}). */
 function loadPresets(universeId: string): FilterPreset[] {
   try {
     const raw = localStorage.getItem(presetsKey(universeId))
     if (!raw) return []
-    const parsed = JSON.parse(raw)
-    return Array.isArray(parsed) ? parsed : []
+    const parsed: unknown = JSON.parse(raw)
+    if (!Array.isArray(parsed)) return []
+    return parsed.flatMap((p): FilterPreset[] => {
+      if (!p || typeof p.name !== 'string') return []
+      if (p.search && typeof p.search === 'object') return [{ name: p.name, search: p.search }]
+      return [{
+        name: p.name,
+        search: {
+          type: p.type && p.type !== 'ALL' ? p.type : undefined,
+          verified: p.verified === 'VERIFIED' ? 'yes' : p.verified === 'UNVERIFIED' ? 'no' : undefined,
+          member: p.participantId ?? undefined,
+          municipality_id: p.municipalityId ?? undefined,
+        },
+      }]
+    })
   } catch {
     return []
   }
@@ -855,56 +867,91 @@ function persistPresets(universeId: string, presets: FilterPreset[]) {
   }
 }
 
+// ─── Sorting and search helpers ───────────────────────────────────────────────
+
+/** Sortable number for a fuzzy date; missing parts sort to the start of their period. */
+function dateKey(d: FuzzyDateValue | null): number | null {
+  if (!d || !d.year || d.precision === 'UNKNOWN') return null
+  return d.year * 10_000 + (d.month ?? 0) * 100 + (d.day ?? 0)
+}
+
+const fold = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
+
+function haystack(i: IncidentListItem): string {
+  return fold([
+    TYPE_CONFIG[i.type]?.label ?? i.type,
+    i.location_text ?? '',
+    i.municipality_name ?? '',
+    ...(i.victim_names ?? []),
+    ...(i.shooter_names ?? []),
+  ].join(' '))
+}
+
 // ─── Page ─────────────────────────────────────────────────────────────────────
+
+/* ────────────────────────────────────────────────────────────────────────────
+   The list holds every incident of the universe, not a page of it.
+
+   It used to hold one cursor page of 50, ordered by when a row was *entered*,
+   and run the type and verified filters, the tab counts and the calendar
+   heatmap over that page alone: in Illinois (3345 incidents) every number on
+   the screen described 1.5% of the data. "Load more" swapped the page rather
+   than extending it. Now useAllIncidents follows the cursor to the end, sorting
+   is by when the incident happened, and every filter is in the URL, so Back
+   from an incident lands on the same view and other pages can link to one.
+   Participant and municipality stay server-side scopes (their endpoints return
+   the full set for one member or one zone); everything else narrows in memory.
+   ──────────────────────────────────────────────────────────────────────── */
 
 function IncidentsPage() {
   const universe = useUniverseStore((s) => s.activeUniverse)
-  const navigate = useNavigate()
-  const location = useLocation()
-  const municipalityIdFromUrl = useMemo(() => {
-    const params = new URLSearchParams(location.searchStr ?? '')
-    const v = params.get('municipality_id')
-    return v ? (v as UUID) : null
-  }, [location.searchStr])
-  const [cursor, setCursor] = useState<string | undefined>(undefined)
+  const universeId = universe?.id ?? null
+  const search = Route.useSearch()
+  const navigate = useNavigate({ from: Route.fullPath })
+
+  const typeFilter: TypeFilter = search.type ?? 'ALL'
+  const verifiedFilter: VerifiedFilter = search.verified === 'yes' ? 'VERIFIED' : search.verified === 'no' ? 'UNVERIFIED' : 'ALL'
+  const participantId = (search.member ?? null) as UUID | null
+  // Participant filter wins over municipality filter when both are present.
+  const municipalityId = !participantId && search.municipality_id ? (search.municipality_id as UUID) : null
+  const sortKey: SortKey = search.sort ?? 'date'
+  const sortDir = search.order ?? 'desc'
+
+  const [q, setQ] = useState(search.q ?? '')
+  const debouncedQ = useDebounce(q.trim(), 150)
+  useEffect(() => {
+    if ((search.q ?? '') === debouncedQ) return
+    navigate({ search: (prev) => ({ ...prev, q: debouncedQ || undefined }), replace: true })
+  }, [debouncedQ, search.q, navigate])
+
   const [creating, setCreating] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
-  const [typeFilter, setTypeFilter] = useState<TypeFilter>('ALL')
-  const [verifiedFilter, setVerifiedFilter] = useState<VerifiedFilter>('ALL')
-  const [participantId, setParticipantId] = useState<UUID | null>(null)
-  const [participantName, setParticipantName] = useState<string | null>(null)
   const [participantSearch, setParticipantSearch] = useState('')
   const debouncedParticipantSearch = useDebounce(participantSearch, 200)
 
-  // Participant filter wins over municipality filter when both are present.
-  const municipalityId = !participantId && municipalityIdFromUrl ? municipalityIdFromUrl : null
+  const allQuery = useAllIncidents(participantId || municipalityId ? null : universeId)
+  const participantQuery = useMemberIncidents(participantId, universeId)
+  const muniQuery = useIncidentsByMunicipality(municipalityId, universeId)
+  const scopeQuery = participantId ? participantQuery : municipalityId ? muniQuery : allQuery
+  const isLoading = scopeQuery.isLoading
 
-  const baseQuery = useIncidents(participantId || municipalityId ? null : universe?.id ?? null, cursor)
-  const participantQuery = useMemberIncidents(participantId, universe?.id ?? null)
-  const muniQuery = useIncidentsByMunicipality(municipalityId, universe?.id ?? null)
-  const data = participantId ? participantQuery.data : municipalityId ? muniQuery.data : baseQuery.data
-  const isLoading = participantId
-    ? participantQuery.isLoading
-    : municipalityId
-      ? muniQuery.isLoading
-      : baseQuery.isLoading
-
-  const { data: munis } = useMunicipalities(universe?.id ?? null)
-  const { data: participantResults } = useMemberSearch(universe?.id ?? null, debouncedParticipantSearch)
+  const { data: munis } = useMunicipalities(universeId)
+  const { data: participantResults } = useMemberSearch(universeId, debouncedParticipantSearch)
+  const { data: participant } = useMember(participantId ?? '', participantId ? universeId : null)
+  const participantName = participant?.display_name ?? null
   const municipalityName = municipalityId
     ? (munis?.items ?? []).find((m) => m.id === municipalityId)?.name ?? null
     : null
 
-  function clearMunicipalityFilter() {
-    navigate({ to: '/incidents' })
-    setCursor(undefined)
+  function patch(next: Partial<IncidentsSearch>) {
+    navigate({ search: (prev) => ({ ...prev, ...next }), replace: true })
   }
 
   // ── Bulk delete ───────────────────────────────────────────────────────────
   const [selected, setSelected] = useState<Set<UUID>>(new Set())
   const [confirmingBulkDelete, setConfirmingBulkDelete] = useState(false)
   const [bulkDeleting, setBulkDeleting] = useState(false)
-  const deleteIncident = useDeleteIncident(universe?.id ?? '')
+  const deleteIncident = useDeleteIncident(universeId ?? '')
 
   function toggleSelectIncident(id: UUID) {
     setSelected((prev) => {
@@ -934,124 +981,135 @@ function IncidentsPage() {
   // ── Filter presets ────────────────────────────────────────────────────────
   const [presets, setPresets] = useState<FilterPreset[]>([])
   useEffect(() => {
-    if (universe?.id) setPresets(loadPresets(universe.id))
-  }, [universe?.id])
+    if (universeId) setPresets(loadPresets(universeId))
+  }, [universeId])
 
   const hasActiveFilter =
-    typeFilter !== 'ALL' || verifiedFilter !== 'ALL' || !!participantId || !!municipalityId
+    typeFilter !== 'ALL' || verifiedFilter !== 'ALL' || !!participantId || !!municipalityId || !!debouncedQ
 
   function applyPreset(p: FilterPreset) {
-    setTypeFilter(p.type)
-    setVerifiedFilter(p.verified)
-    setParticipantId(p.participantId)
-    setParticipantName(p.participantName)
+    setQ(p.search.q ?? '')
     setParticipantSearch('')
-    setCursor(undefined)
-    if (p.municipalityId) {
-      navigate({ to: '/incidents', search: { municipality_id: p.municipalityId } })
-    } else if (municipalityIdFromUrl) {
-      navigate({ to: '/incidents' })
-    }
+    navigate({ search: p.search, replace: false })
   }
 
   function saveCurrentAsPreset() {
-    if (!universe?.id || !hasActiveFilter) return
+    if (!universeId || !hasActiveFilter) return
     const name = window.prompt('Name this filter preset:')?.trim()
     if (!name) return
-    const next: FilterPreset = {
-      name,
-      type: typeFilter,
-      verified: verifiedFilter,
-      participantId,
-      participantName,
-      municipalityId,
-      municipalityName,
-    }
-    const updated = [...presets.filter((p) => p.name !== name), next]
+    // A preset is the filters, not the ordering.
+    const filters: IncidentsSearch = { ...search, sort: undefined, order: undefined }
+    const updated = [...presets.filter((p) => p.name !== name), { name, search: filters }]
     setPresets(updated)
-    persistPresets(universe.id, updated)
+    persistPresets(universeId, updated)
   }
 
   function deletePreset(name: string) {
-    if (!universe?.id) return
+    if (!universeId) return
     const updated = presets.filter((p) => p.name !== name)
     setPresets(updated)
-    persistPresets(universe.id, updated)
+    persistPresets(universeId, updated)
   }
 
-  const allItems: IncidentListItem[] = data?.items ?? []
-
-  function clearParticipantFilter() {
-    setParticipantId(null)
-    setParticipantName(null)
+  function clearAll() {
+    setQ('')
     setParticipantSearch('')
-    setCursor(undefined)
+    navigate({ search: {}, replace: true })
   }
 
-  function selectParticipant(id: UUID, name: string) {
-    setParticipantId(id)
-    setParticipantName(name)
-    setParticipantSearch('')
-    setCursor(undefined)
-  }
+  // ── Derivation: scope → search → counts → type/verified → sort ────────────
+  const scoped = useMemo(() => scopeQuery.data?.items ?? [], [scopeQuery.data])
+
+  const searched = useMemo(() => {
+    if (!debouncedQ) return scoped
+    const terms = fold(debouncedQ).split(/\s+/).filter(Boolean)
+    return scoped.filter((i) => {
+      const h = haystack(i)
+      return terms.every((t) => h.includes(t))
+    })
+  }, [scoped, debouncedQ])
+
+  // Faceted counts: each group counts under the other group's filter, so every
+  // number says what clicking it would show.
+  const byVerified = useMemo(
+    () => verifiedFilter === 'ALL' ? searched : searched.filter((i) => i.verified === (verifiedFilter === 'VERIFIED')),
+    [searched, verifiedFilter],
+  )
+  const byType = useMemo(
+    () => typeFilter === 'ALL' ? searched : searched.filter((i) => i.type === typeFilter),
+    [searched, typeFilter],
+  )
+  const typeCounts = useMemo(() => {
+    const counts = Object.fromEntries(TYPE_ORDER.map((t) => [t, 0])) as Record<IncidentType, number>
+    for (const i of byVerified) if (i.type in counts) counts[i.type] += 1
+    return counts
+  }, [byVerified])
+  const verifiedCount = useMemo(() => byType.filter((i) => i.verified).length, [byType])
 
   const items = useMemo(() => {
-    let filtered = allItems
-    if (typeFilter !== 'ALL') filtered = filtered.filter((i) => i.type === typeFilter)
-    if (verifiedFilter === 'VERIFIED') filtered = filtered.filter((i) => i.verified)
-    if (verifiedFilter === 'UNVERIFIED') filtered = filtered.filter((i) => !i.verified)
-    return filtered
-  }, [allItems, typeFilter, verifiedFilter])
+    let list = byType
+    if (verifiedFilter !== 'ALL') list = list.filter((i) => i.verified === (verifiedFilter === 'VERIFIED'))
+    if (sortKey === 'added') {
+      // The API already returns newest-recorded first.
+      return sortDir === 'desc' ? list : [...list].reverse()
+    }
+    const dir = sortDir === 'asc' ? 1 : -1
+    return [...list].sort((a, b) => {
+      const ka = dateKey(a.date)
+      const kb = dateKey(b.date)
+      // Undated incidents sink to the bottom in either direction.
+      if (ka === null || kb === null) return ka === kb ? 0 : ka === null ? 1 : -1
+      return (ka - kb) * dir
+    })
+  }, [byType, verifiedFilter, sortKey, sortDir])
 
-  // Virtualize the table tbody when the list grows past 50 rows.
+  const undatedCount = useMemo(() => scoped.filter((i) => dateKey(i.date) === null).length, [scoped])
+
+  // Drop selections the filters no longer show.
+  useEffect(() => {
+    setSelected((prev) => {
+      if (prev.size === 0) return prev
+      const visible = new Set(items.map((i) => i.id))
+      const next = new Set([...prev].filter((id) => visible.has(id)))
+      return next.size === prev.size ? prev : next
+    })
+  }, [items])
+
   const tableScrollRef = useRef<HTMLDivElement | null>(null)
-  const isVirtualized = items.length > 50
   const rowVirtualizer = useVirtualizer({
     count: items.length,
     getScrollElement: () => tableScrollRef.current,
-    estimateSize: () => 56,
+    estimateSize: () => 64,
     overscan: 8,
   })
-  const virtualRows = isVirtualized ? rowVirtualizer.getVirtualItems() : []
-  const virtualPaddingTop = virtualRows[0]?.start ?? 0
-  const virtualPaddingBottom = isVirtualized
-    ? rowVirtualizer.getTotalSize() - (virtualRows[virtualRows.length - 1]?.end ?? 0)
-    : 0
+  const virtualRows = rowVirtualizer.getVirtualItems()
+  const padTop = virtualRows[0]?.start ?? 0
+  const padBottom = rowVirtualizer.getTotalSize() - (virtualRows[virtualRows.length - 1]?.end ?? 0)
 
   if (!universe) return <NoUniverse />
-
-  const muniMap: Record<string, string> = {}
-  for (const m of munis?.items ?? []) muniMap[m.id] = m.name
-
-  const typeCounts = TYPE_ORDER.reduce((acc, t) => {
-    acc[t] = 0
-    return acc
-  }, {} as Record<IncidentType, number>)
-  for (const i of allItems) if (i.type in typeCounts) typeCounts[i.type] += 1
-  const verifiedCount = allItems.filter((i) => i.verified).length
 
   // Only surface the types this universe actually uses. The enum is global, so
   // Detroit would otherwise grow tabs for bombings and Corsica for shootings.
   // The active filter stays listed even at zero so it can be switched back off.
   const presentTypes = TYPE_ORDER.filter((t) => typeCounts[t] > 0 || typeFilter === t)
 
-  const headerDesc = isLoading ? undefined
-    : allItems.length === 0 ? 'No incidents yet'
+  const headerDesc = isLoading ? 'Loading…'
+    : scoped.length === 0 ? 'No incidents yet'
     : [
-        ...presentTypes
-          .filter((t) => typeCounts[t] > 0)
-          .map((t) => {
-            const label = TYPE_CONFIG[t].label.toLowerCase()
-            return `${typeCounts[t]} ${label}${typeCounts[t] !== 1 ? 's' : ''}`
-          }),
-        verifiedCount > 0 && `${verifiedCount} verified`,
+        items.length === scoped.length
+          ? `${scoped.length.toLocaleString()} incidents`
+          : `${items.length.toLocaleString()} of ${scoped.length.toLocaleString()} incidents`,
+        verifiedFilter === 'ALL' && verifiedCount > 0 && `${verifiedCount} verified`,
+        undatedCount > 0 && `${undatedCount.toLocaleString()} undated`,
       ].filter(Boolean).join(' · ')
+
+  const emptyTitle = hasActiveFilter ? 'No incidents match the current filters' : 'No incidents recorded yet'
 
   return (
     <div>
       <PageHeader
         title="Incidents"
-        description={headerDesc || undefined}
+        description={headerDesc}
         action={
           <div className="flex items-center gap-2">
             <Button variant="outline" size="sm"
@@ -1059,29 +1117,104 @@ function IncidentsPage() {
                 const date = new Date().toISOString().slice(0, 10)
                 downloadCsv(`/incidents/?universe_id=${universe.id}&format=csv`, `incidents-${universe.slug}-${date}.csv`)
               }}>
-              <Download className="mr-1.5 h-3.5 w-3.5" />Export
+              <Download className="mr-1.5 h-3.5 w-3.5" />Export all
             </Button>
             <Button size="sm" onClick={() => setCreating(true)}>
-              <Plus className="mr-1.5 h-4 w-4" />Add Incident
+              <Plus className="mr-1.5 h-4 w-4" />Add incident
             </Button>
           </div>
         }
       />
 
-      {/* Calendar density */}
-      {allItems.length > 0 && (
-        <div className="mb-4">
+      {/* Calendar density, over what the filters show. Not on phones: there it
+          filled the first screen and pushed every incident below the fold. */}
+      {items.length > 0 && (
+        <div className="mb-4 hidden sm:block">
           <Suspense fallback={<div className="h-40 rounded-lg border border-zinc-800 bg-zinc-900/30" />}>
-            <IncidentHeatmap incidents={allItems} />
+            <IncidentHeatmap incidents={items} />
           </Suspense>
         </div>
       )}
 
-      {/* Toolbar */}
-      <div className="mb-4 flex flex-wrap items-center gap-2">
+      {/* Search + scopes */}
+      <div className="mb-2 flex flex-wrap items-center gap-2">
+        <div className="relative min-w-[220px] max-w-md flex-1">
+          <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400" />
+          <Input
+            className="h-9 pl-8 pr-8 text-sm"
+            placeholder="Search victim, shooter, place…"
+            aria-label="Search incidents"
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Escape' && q) { e.stopPropagation(); setQ('') } }}
+          />
+          {q && (
+            <button
+              type="button"
+              aria-label="Clear search"
+              onClick={() => setQ('')}
+              className="absolute right-1.5 top-1/2 inline-flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded text-zinc-400 hover:bg-zinc-800 hover:text-white"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          )}
+        </div>
+
+        {participantId ? (
+          <button
+            type="button"
+            onClick={() => patch({ member: undefined })}
+            className="inline-flex h-9 items-center gap-1.5 rounded-md border border-violet-700/60 bg-violet-950/40 px-2.5 text-xs font-medium text-violet-300 transition-colors hover:bg-violet-900/40"
+          >
+            <User className="h-3 w-3" />
+            <span>Participant: {participantName ?? '…'}</span>
+            <X className="h-3 w-3" />
+          </button>
+        ) : (
+          <div className="relative min-w-[200px]">
+            <User className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-zinc-400" />
+            <Input
+              className="h-9 pl-8 text-sm"
+              placeholder="Filter by participant…"
+              aria-label="Filter by participant"
+              value={participantSearch}
+              onChange={(e) => setParticipantSearch(e.target.value)}
+            />
+            {debouncedParticipantSearch.length >= 2 && participantResults && (
+              <div className="absolute z-20 mt-1 max-h-60 w-full overflow-y-auto rounded-md border border-zinc-800 bg-zinc-950 shadow-lg">
+                {participantResults.length === 0 ? (
+                  <div className="px-3 py-2 text-sm text-zinc-400">No matching members.</div>
+                ) : (
+                  participantResults.map((m) => (
+                    <button
+                      key={m.id}
+                      type="button"
+                      onClick={() => { setParticipantSearch(''); patch({ member: m.id, municipality_id: undefined }) }}
+                      className="w-full px-3 py-2 text-left text-sm text-zinc-300 transition-colors hover:bg-zinc-800"
+                    >
+                      {m.display_name}
+                    </button>
+                  ))
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
+        {municipalityId && (
+          <button
+            type="button"
+            onClick={() => patch({ municipality_id: undefined })}
+            className="inline-flex h-9 items-center gap-1.5 rounded-md border border-violet-700/60 bg-violet-950/40 px-2.5 text-xs font-medium text-violet-300 transition-colors hover:bg-violet-900/40"
+          >
+            <span>Zone: {municipalityName ?? '…'}</span>
+            <X className="h-3 w-3" />
+          </button>
+        )}
+
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="outline" size="sm" className="h-8 gap-1.5">
+            <Button variant="outline" size="sm" className="h-9 gap-1.5">
               <Bookmark className="h-3.5 w-3.5" />
               Presets
               {presets.length > 0 && (
@@ -1133,263 +1266,201 @@ function IncidentsPage() {
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
-        <FilterTabs<TypeFilter>
-          value={typeFilter}
-          onChange={setTypeFilter}
-          options={[
-            { key: 'ALL', label: 'All', count: allItems.length },
-            ...presentTypes.map((t) => ({
-              key: t,
-              label: `${TYPE_CONFIG[t].label}s`,
-              count: typeCounts[t],
-            })),
-          ]}
-        />
-        <FilterTabs<VerifiedFilter>
-          value={verifiedFilter}
-          onChange={setVerifiedFilter}
-          options={[
-            { key: 'ALL', label: 'All' },
-            { key: 'VERIFIED', label: 'Verified' },
-            { key: 'UNVERIFIED', label: 'Unverified' },
-          ]}
-        />
-        {municipalityId && (
-          <button
-            type="button"
-            onClick={clearMunicipalityFilter}
-            className="inline-flex items-center gap-1.5 rounded-md border border-violet-700/60 bg-violet-950/40 px-2.5 py-1 text-xs font-medium text-violet-300 hover:bg-violet-900/40 transition-colors"
-          >
-            <span>Zone: {municipalityName ?? 'unknown'}</span>
-            <X className="h-3 w-3" />
-          </button>
-        )}
-        {participantId ? (
-          <button
-            type="button"
-            onClick={clearParticipantFilter}
-            className="inline-flex items-center gap-1.5 rounded-md border border-violet-700/60 bg-violet-950/40 px-2.5 py-1 text-xs font-medium text-violet-300 hover:bg-violet-900/40 transition-colors"
-          >
-            <User className="h-3 w-3" />
-            <span>Participant: {participantName}</span>
-            <X className="h-3 w-3" />
-          </button>
-        ) : (
-          <div className="relative min-w-[220px]">
-            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-zinc-400" />
-            <Input
-              className="pl-8 h-8 text-sm"
-              placeholder="Filter by participant…"
-              value={participantSearch}
-              onChange={(e) => setParticipantSearch(e.target.value)}
-            />
-            {debouncedParticipantSearch.length >= 2 && participantResults && (
-              <div className="absolute z-20 mt-1 w-full max-h-48 overflow-y-auto rounded-md border border-zinc-800 bg-zinc-950 shadow-lg">
-                {participantResults.length === 0 ? (
-                  <div className="px-3 py-2 text-sm text-zinc-400">No matching members.</div>
-                ) : (
-                  participantResults.map((m) => (
-                    <button
-                      key={m.id}
-                      type="button"
-                      onClick={() => selectParticipant(m.id, m.display_name)}
-                      className="w-full px-3 py-2 text-left text-sm text-zinc-300 hover:bg-zinc-800 transition-colors"
-                    >
-                      {m.display_name}
-                    </button>
-                  ))
-                )}
-              </div>
-            )}
-          </div>
-        )}
       </div>
 
-      {/* Table */}
+      {/* Facets + sort */}
+      <div className="mb-3 flex flex-wrap items-center gap-2">
+        <div className="-mx-1 flex max-w-full overflow-x-auto px-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <FilterTabs<TypeFilter>
+            value={typeFilter}
+            onChange={(v) => patch({ type: v === 'ALL' ? undefined : v })}
+            options={[
+              { key: 'ALL', label: 'All', count: byVerified.length },
+              ...presentTypes.map((t) => ({ key: t, label: `${TYPE_CONFIG[t].label}s`, count: typeCounts[t] })),
+            ]}
+          />
+        </div>
+        <FilterTabs<VerifiedFilter>
+          value={verifiedFilter}
+          onChange={(v) => patch({ verified: v === 'VERIFIED' ? 'yes' : v === 'UNVERIFIED' ? 'no' : undefined })}
+          options={[
+            { key: 'ALL', label: 'All' },
+            { key: 'VERIFIED', label: 'Verified', count: verifiedCount },
+            { key: 'UNVERIFIED', label: 'Unverified', count: byType.length - verifiedCount },
+          ]}
+        />
+        <div className="ml-auto flex items-center gap-2">
+          <Select
+            value={`${sortKey}-${sortDir}`}
+            onValueChange={(v) => {
+              const [k, d] = v.split('-') as [SortKey, 'asc' | 'desc']
+              patch({ sort: k === 'date' ? undefined : k, order: d === 'desc' ? undefined : d })
+            }}
+          >
+            <SelectTrigger aria-label="Sort incidents" className="h-8 w-auto gap-2 text-xs"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="date-desc">Newest first</SelectItem>
+              <SelectItem value="date-asc">Oldest first</SelectItem>
+              <SelectItem value="added-desc">Recently added</SelectItem>
+            </SelectContent>
+          </Select>
+          {hasActiveFilter && (
+            <button onClick={clearAll} className="inline-flex items-center gap-1 text-xs text-zinc-400 transition-colors hover:text-white">
+              <X className="h-3 w-3" /> Clear
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Table, always virtualised: it holds the whole universe */}
       <div
         ref={tableScrollRef}
-        className="overflow-x-auto rounded-lg border border-zinc-800"
-        style={isVirtualized
-          ? { maxHeight: 'calc(100vh - 22rem)', overflowY: 'auto' }
-          : { overflowY: 'hidden' }}
+        className="overflow-y-auto overflow-x-hidden rounded-lg border border-zinc-800"
+        style={{ maxHeight: 'calc(100dvh - 14rem)' }}
       >
-        <table className="w-full text-sm">
-          <thead className="sticky top-0 z-10 bg-zinc-900/90 backdrop-blur">
+        <table className="w-full table-fixed text-sm">
+          <colgroup>
+            <col className="w-10" />
+            <col className="w-12" />
+            <col />
+            <col className="w-10" />
+          </colgroup>
+          <thead className="sticky top-0 z-10 bg-zinc-900/95 backdrop-blur">
             <tr className="border-b border-zinc-800">
-              <th className="w-10 px-3 py-2.5" scope="col">
+              <th className="px-3 py-2.5" scope="col">
                 <input
                   type="checkbox"
-                  aria-label="Select all incidents"
+                  aria-label="Select all shown incidents"
                   checked={items.length > 0 && selected.size === items.length}
                   onChange={() => setSelected(selected.size === items.length ? new Set() : new Set(items.map((i) => i.id)))}
                   className="rounded border-zinc-700 bg-zinc-900 accent-violet-600"
                 />
               </th>
-              <th className="w-12 py-2.5" scope="col" aria-label="Type" />
+              <th className="py-2.5" scope="col" aria-label="Type" />
               <th className="px-4 py-2.5 text-left text-xs font-medium text-zinc-400" scope="col">Incident</th>
-              <th className="w-8" scope="col" aria-label="Actions" />
+              <th scope="col" aria-label="Actions" />
             </tr>
           </thead>
           <tbody className="divide-y divide-zinc-800">
-            {isLoading
-              ? Array.from({ length: 5 }).map((_, i) => <TableRowSkeleton key={i} cols={4} height={64} />)
-              : isVirtualized && virtualPaddingTop > 0
-                ? <tr aria-hidden><td colSpan={4} style={{ height: virtualPaddingTop }} /></tr>
-                : null}
-            {!isLoading && (isVirtualized ? virtualRows.map((vRow) => items[vRow.index]) : items).map((incident, idx) => {
-                  const cfg = TYPE_CONFIG[incident.type]
-                  const Icon = cfg?.icon ?? ShieldAlert
-                  const muniName = incident.municipality_id ? muniMap[incident.municipality_id] : null
-                  const locationLabel = incident.location_text
-                    ? muniName ? `${muniName} · ${incident.location_text}` : incident.location_text
-                    : muniName
-                  const isSelected = selected.has(incident.id)
-                  const measureRef = isVirtualized ? rowVirtualizer.measureElement : undefined
-                  const dataIndex = isVirtualized ? virtualRows[idx]?.index : undefined
-
-                  const victimNames = incident.victim_names ?? []
-                  const shooterNames = incident.shooter_names ?? []
-                  const hasVictims = victimNames.length > 0
-                  const hasShooters = shooterNames.length > 0
-                  const hasParticipants = hasVictims || hasShooters
-
-                  return (
-                    <tr key={incident.id} ref={measureRef} data-index={dataIndex} className={`group hover:bg-zinc-900/50 transition-colors ${isSelected ? 'bg-violet-950/20' : ''}`}>
-                      <td className="px-3">
-                        <input
-                          type="checkbox"
-                          aria-label={`Select ${incident.type} incident`}
-                          checked={isSelected}
-                          onChange={() => toggleSelectIncident(incident.id)}
-                          className="rounded border-zinc-700 bg-zinc-900 accent-violet-600"
-                        />
-                      </td>
-
-                      {/* Type icon */}
-                      <td className="py-3 pl-3 pr-1">
-                        <Link to="/incidents/$id" params={{ id: incident.id }} tabIndex={-1} aria-hidden>
-                          <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-md ${
-                            TYPE_CONFIG[incident.type]?.tile ?? 'bg-zinc-900 text-zinc-400'
-                          }`}>
-                            <Icon className="h-4 w-4" />
-                          </div>
-                        </Link>
-                      </td>
-
-                      {/* Main info */}
-                      <td className="p-0">
-                        <Link to="/incidents/$id" params={{ id: incident.id }}
-                          className="block px-4 py-2.5">
-                          {/* Meta line: type · date · location · verified */}
-                          <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
-                            <TypeChip type={incident.type} />
-                            <span className="text-zinc-500">·</span>
-                            <span className="font-mono text-xs text-zinc-400 tabular-nums">
-                              {incident.date
-                                ? <FuzzyDate value={incident.date} />
-                                : <span className="text-zinc-400">Unknown date</span>}
-                            </span>
-                            {locationLabel && (
-                              <>
-                                <span className="text-zinc-500">·</span>
-                                <span className="text-xs text-zinc-400">{locationLabel}</span>
-                              </>
-                            )}
-                            {incident.verified && (
-                              <>
-                                <span className="text-zinc-500">·</span>
-                                <span className="inline-flex items-center gap-0.5 text-xs font-medium text-emerald-400">
-                                  <CheckCircle2 className="h-3 w-3" />Verified
-                                </span>
-                              </>
-                            )}
-                          </div>
-
-                          {/* Participants line */}
-                          <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 min-h-[1.25rem]">
-                            {hasVictims && (
-                              <span className="flex items-center gap-1.5">
-                                <span className="text-[10px] font-medium uppercase tracking-wider text-zinc-400">
-                                  {victimNames.length === 1 ? 'Victim' : 'Victims'}
-                                </span>
-                                <span className="text-xs text-rose-300">
-                                  {victimNames.slice(0, 3).join(', ')}
-                                  {victimNames.length > 3 && (
-                                    <span className="text-zinc-400"> +{victimNames.length - 3}</span>
-                                  )}
-                                </span>
-                              </span>
-                            )}
-                            {hasShooters && (
-                              <span className="flex items-center gap-1.5">
-                                <span className="text-[10px] font-medium uppercase tracking-wider text-zinc-400">
-                                  {shooterNames.length === 1 ? 'Shooter' : 'Shooters'}
-                                </span>
-                                <span className="text-xs text-amber-300">
-                                  {shooterNames.slice(0, 3).join(', ')}
-                                  {shooterNames.length > 3 && (
-                                    <span className="text-zinc-400"> +{shooterNames.length - 3}</span>
-                                  )}
-                                </span>
-                              </span>
-                            )}
-                            {!hasParticipants && (
-                              <span className="text-xs text-zinc-500">No participants recorded</span>
-                            )}
-                          </div>
-                        </Link>
-                      </td>
-
-                      {/* Quick edit */}
-                      <td className="pr-3">
-                        <button
-                          onClick={() => setEditingId(incident.id)}
-                          aria-label="Edit incident"
-                          className="rounded p-1.5 text-zinc-400 hover:bg-zinc-800 hover:text-zinc-300 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/50 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100"
-                        >
-                          <Pencil className="h-3.5 w-3.5" />
-                        </button>
-                      </td>
-                    </tr>
-                  )
-                })}
-            {!isLoading && isVirtualized && virtualPaddingBottom > 0 && (
-              <tr aria-hidden><td colSpan={4} style={{ height: virtualPaddingBottom }} /></tr>
-            )}
+            {isLoading && Array.from({ length: 6 }).map((_, i) => <TableRowSkeleton key={i} cols={4} height={64} />)}
             {!isLoading && items.length === 0 && (
               <tr>
                 <td colSpan={4}>
                   <EmptyState
                     icon={ShieldAlert}
-                    title={
-                      typeFilter !== 'ALL' || verifiedFilter !== 'ALL' || participantId || municipalityId
-                        ? 'No incidents match the current filters'
-                        : 'No incidents recorded yet'
-                    }
-                    description={typeFilter === 'ALL' && verifiedFilter === 'ALL' && !participantId && !municipalityId ? 'Record a shooting or murder to begin tracking.' : undefined}
+                    title={emptyTitle}
+                    description={hasActiveFilter ? undefined : 'Record a shooting or murder to begin tracking.'}
                     action={
-                      typeFilter === 'ALL' && verifiedFilter === 'ALL' && !participantId && !municipalityId ? (
-                        <Button size="sm" onClick={() => setCreating(true)}>
-                          <Plus className="mr-1.5 h-4 w-4" /> Record the first incident
-                        </Button>
-                      ) : undefined
+                      hasActiveFilter
+                        ? <Button size="sm" variant="outline" onClick={clearAll}>Clear search and filters</Button>
+                        : <Button size="sm" onClick={() => setCreating(true)}><Plus className="mr-1.5 h-4 w-4" /> Record the first incident</Button>
                     }
                   />
                 </td>
               </tr>
             )}
+            {!isLoading && padTop > 0 && <tr aria-hidden><td colSpan={4} style={{ height: padTop }} /></tr>}
+            {!isLoading && virtualRows.map((vRow) => {
+              const incident = items[vRow.index]
+              const cfg = TYPE_CONFIG[incident.type]
+              const Icon = cfg?.icon ?? ShieldAlert
+              const muniName = incident.municipality_name
+              const locationLabel = incident.location_text
+                ? muniName && !incident.location_text.includes(muniName) ? `${muniName} · ${incident.location_text}` : incident.location_text
+                : muniName
+              const isSelected = selected.has(incident.id)
+              const victimNames = incident.victim_names ?? []
+              const shooterNames = incident.shooter_names ?? []
+
+              return (
+                <tr
+                  key={incident.id}
+                  ref={rowVirtualizer.measureElement}
+                  data-index={vRow.index}
+                  className={`group transition-colors hover:bg-zinc-900/50 ${isSelected ? 'bg-violet-950/20' : ''}`}
+                >
+                  <td className="px-3">
+                    <input
+                      type="checkbox"
+                      aria-label={`Select ${incident.type.toLowerCase()} incident`}
+                      checked={isSelected}
+                      onChange={() => toggleSelectIncident(incident.id)}
+                      className="rounded border-zinc-700 bg-zinc-900 accent-violet-600"
+                    />
+                  </td>
+                  <td className="py-3 pl-1 pr-1">
+                    <Link to="/incidents/$id" params={{ id: incident.id }} tabIndex={-1} aria-hidden>
+                      <div className={`flex h-9 w-9 items-center justify-center rounded-md ${cfg?.tile ?? 'bg-zinc-900 text-zinc-400'}`}>
+                        <Icon className="h-4 w-4" />
+                      </div>
+                    </Link>
+                  </td>
+                  <td className="min-w-0 p-0">
+                    <Link
+                      to="/incidents/$id"
+                      params={{ id: incident.id }}
+                      className="block min-w-0 px-3 py-2.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-violet-500 sm:px-4"
+                    >
+                      <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5">
+                        <TypeChip type={incident.type} />
+                        <span className="font-mono text-xs tabular-nums text-zinc-400">
+                          {incident.date ? <FuzzyDate value={incident.date} /> : 'Undated'}
+                        </span>
+                        {incident.verified && (
+                          <span className="inline-flex items-center gap-0.5 text-xs font-medium text-emerald-400">
+                            <CheckCircle2 className="h-3 w-3" />Verified
+                          </span>
+                        )}
+                        {locationLabel && (
+                          <span className="min-w-0 max-w-full truncate text-xs text-zinc-400">{locationLabel}</span>
+                        )}
+                      </div>
+                      <div className="mt-1 flex min-h-[1.25rem] min-w-0 flex-wrap items-center gap-x-3 gap-y-0.5">
+                        {victimNames.length > 0 && (
+                          <span className="flex min-w-0 items-center gap-1.5">
+                            <span className="text-[10px] font-medium uppercase tracking-wider text-zinc-500">
+                              {victimNames.length === 1 ? 'Victim' : 'Victims'}
+                            </span>
+                            <span className="truncate text-xs text-rose-300">
+                              {victimNames.slice(0, 3).join(', ')}
+                              {victimNames.length > 3 && <span className="text-zinc-400"> +{victimNames.length - 3}</span>}
+                            </span>
+                          </span>
+                        )}
+                        {shooterNames.length > 0 && (
+                          <span className="flex min-w-0 items-center gap-1.5">
+                            <span className="text-[10px] font-medium uppercase tracking-wider text-zinc-500">
+                              {shooterNames.length === 1 ? 'Shooter' : 'Shooters'}
+                            </span>
+                            <span className="truncate text-xs text-amber-300">
+                              {shooterNames.slice(0, 3).join(', ')}
+                              {shooterNames.length > 3 && <span className="text-zinc-400"> +{shooterNames.length - 3}</span>}
+                            </span>
+                          </span>
+                        )}
+                        {victimNames.length === 0 && shooterNames.length === 0 && (
+                          <span className="text-xs text-zinc-500">No participants recorded</span>
+                        )}
+                      </div>
+                    </Link>
+                  </td>
+                  <td className="pr-2">
+                    {/* Always visible below lg: a hover-only control does not exist on a touch screen. */}
+                    <button
+                      onClick={() => setEditingId(incident.id)}
+                      aria-label="Edit incident"
+                      className="rounded p-1.5 text-zinc-400 transition-colors hover:bg-zinc-800 hover:text-zinc-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/50 lg:opacity-0 lg:group-hover:opacity-100 lg:group-focus-within:opacity-100"
+                    >
+                      <Pencil className="h-3.5 w-3.5" />
+                    </button>
+                  </td>
+                </tr>
+              )
+            })}
+            {!isLoading && padBottom > 0 && <tr aria-hidden><td colSpan={4} style={{ height: padBottom }} /></tr>}
           </tbody>
         </table>
       </div>
-
-      {/* Load more */}
-      {!participantId && !municipalityId && data?.next_cursor && (
-        <div className="mt-4 flex justify-center">
-          <Button variant="outline" size="sm" onClick={() => setCursor(data.next_cursor ?? undefined)}>
-            Load more incidents
-          </Button>
-        </div>
-      )}
 
       <IncidentFormSheet universeId={universe.id} open={creating} onClose={() => setCreating(false)} />
       {editingId && (

@@ -21,7 +21,10 @@ async def create_municipality(
 async def get_municipality(
     session: AsyncSession, id: uuid.UUID, universe_id: uuid.UUID
 ) -> dict | None:
-    row = (await session.execute(text("""
+    row = (
+        (
+            await session.execute(
+                text("""
         SELECT
             m.id, m.name, m.parent_id, m.universe_id, m.geometry,
             COUNT(DISTINCT i.id)::int AS incident_count,
@@ -31,34 +34,66 @@ async def get_municipality(
         LEFT JOIN municipality c ON c.parent_id = m.id
         WHERE m.id = :id AND m.universe_id = :uid
         GROUP BY m.id
-    """), {"id": str(id), "uid": str(universe_id)})).mappings().one_or_none()
+    """),
+                {"id": str(id), "uid": str(universe_id)},
+            )
+        )
+        .mappings()
+        .one_or_none()
+    )
     return dict(row) if row else None
 
 
 async def list_municipalities(
     session: AsyncSession, universe_id: uuid.UUID, offset: int = 0, limit: int = 100
 ) -> tuple[list, int]:
-    rows = (await session.execute(text("""
+    # Counts come from correlated subqueries rather than one GROUP BY over
+    # joined incidents and children, which multiplied rows between the two.
+    # total_incident_count adds a city's sub-districts to its own: incidents
+    # are usually filed under the district, so the city's own count alone
+    # read Detroit as 23 incidents when it held 42.
+    rows = (
+        (
+            await session.execute(
+                text("""
         SELECT
             m.id,
             m.name,
             m.parent_id,
             m.universe_id,
             (m.geometry IS NOT NULL AND m.geometry != 'null'::jsonb) AS has_geometry,
-            COUNT(DISTINCT i.id)::int AS incident_count,
-            COUNT(DISTINCT c.id)::int AS child_count
+            (SELECT count(*) FROM incident i WHERE i.municipality_id = m.id)::int
+                AS incident_count,
+            (SELECT count(*) FROM incident i
+               WHERE i.municipality_id = m.id
+                  OR i.municipality_id IN (SELECT c.id FROM municipality c WHERE c.parent_id = m.id)
+            )::int AS total_incident_count,
+            (SELECT count(*) FROM municipality c WHERE c.parent_id = m.id)::int AS child_count,
+            -- A set belongs to a city through its anchor column and to a
+            -- district through the territory table.
+            (SELECT count(DISTINCT s.id) FROM sets s
+               LEFT JOIN set_municipality sm ON sm.set_id = s.id
+               WHERE NOT s.is_reserved
+                 AND (s.municipality_id = m.id OR sm.municipality_id = m.id)
+            )::int AS set_count
         FROM municipality m
-        LEFT JOIN incident i ON i.municipality_id = m.id
-        LEFT JOIN municipality c ON c.parent_id = m.id
         WHERE m.universe_id = :uid
-        GROUP BY m.id
-        ORDER BY m.name
+        ORDER BY m.name, m.id
         LIMIT :lim OFFSET :off
-    """), {"uid": str(universe_id), "lim": limit, "off": offset})).mappings().all()
+    """),
+                {"uid": str(universe_id), "lim": limit, "off": offset},
+            )
+        )
+        .mappings()
+        .all()
+    )
 
-    total_row = (await session.execute(text(
-        "SELECT count(*) FROM municipality WHERE universe_id = :uid"
-    ), {"uid": str(universe_id)})).scalar_one()
+    total_row = (
+        await session.execute(
+            text("SELECT count(*) FROM municipality WHERE universe_id = :uid"),
+            {"uid": str(universe_id)},
+        )
+    ).scalar_one()
 
     items = [
         {
@@ -68,7 +103,9 @@ async def list_municipalities(
             "universe_id": r["universe_id"],
             "has_geometry": r["has_geometry"],
             "incident_count": r["incident_count"],
+            "total_incident_count": r["total_incident_count"],
             "child_count": r["child_count"],
+            "set_count": r["set_count"],
         }
         for r in rows
     ]
@@ -209,9 +246,7 @@ async def update_municipality(
     session: AsyncSession, id: uuid.UUID, universe_id: uuid.UUID, data: MunicipalityUpdate
 ) -> dict | None:
     result = await session.execute(
-        select(Municipality).where(
-            Municipality.id == id, Municipality.universe_id == universe_id
-        )
+        select(Municipality).where(Municipality.id == id, Municipality.universe_id == universe_id)
     )
     obj = result.scalar_one_or_none()
     if obj is None:
@@ -223,13 +258,9 @@ async def update_municipality(
     return await get_municipality(session, id, universe_id)
 
 
-async def delete_municipality(
-    session: AsyncSession, id: uuid.UUID, universe_id: uuid.UUID
-) -> bool:
+async def delete_municipality(session: AsyncSession, id: uuid.UUID, universe_id: uuid.UUID) -> bool:
     result = await session.execute(
-        select(Municipality).where(
-            Municipality.id == id, Municipality.universe_id == universe_id
-        )
+        select(Municipality).where(Municipality.id == id, Municipality.universe_id == universe_id)
     )
     obj = result.scalar_one_or_none()
     if obj is None:
@@ -242,7 +273,10 @@ async def delete_municipality(
 async def search_municipalities(
     session: AsyncSession, universe_id: uuid.UUID, q: str
 ) -> list[dict]:
-    rows = (await session.execute(text("""
+    rows = (
+        (
+            await session.execute(
+                text("""
         SELECT
             m.id, m.name, m.parent_id, m.universe_id,
             (m.geometry IS NOT NULL AND m.geometry != 'null'::jsonb) AS has_geometry,
@@ -254,5 +288,11 @@ async def search_municipalities(
         WHERE m.universe_id = :uid AND m.name ILIKE :q
         GROUP BY m.id
         ORDER BY m.name
-    """), {"uid": str(universe_id), "q": f"%{q}%"})).mappings().all()
+    """),
+                {"uid": str(universe_id), "q": f"%{q}%"},
+            )
+        )
+        .mappings()
+        .all()
+    )
     return [dict(r) for r in rows]

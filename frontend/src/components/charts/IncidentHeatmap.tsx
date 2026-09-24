@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import type { IncidentListItem } from '@/lib/types'
 
 const WEEKDAY_LABELS = ['', 'Mon', '', 'Wed', '', 'Fri', '']
@@ -83,7 +83,13 @@ export function IncidentHeatmap({ incidents }: IncidentHeatmapProps) {
     return years
   }, [incidents])
 
-  const [year, setYear] = useState<number>(availableYears[availableYears.length - 1])
+  // The year the user picked, kept only while the incidents still reach it. The
+  // list page feeds this its filtered rows, so the range moves under a search;
+  // a fixed initial year would then sit on an empty grid outside every tab.
+  const [picked, setYear] = useState<number | null>(null)
+  const year = picked !== null && availableYears.includes(picked)
+    ? picked
+    : availableYears[availableYears.length - 1]
 
   const countsByDate = useMemo(() => {
     const map = new Map<string, { count: number; murders: number }>()
@@ -131,21 +137,38 @@ export function IncidentHeatmap({ incidents }: IncidentHeatmapProps) {
     return labels
   }, [weeks])
 
+  // Keep the selected year in view inside the strip. Only the strip's own
+  // scrollLeft moves: scrollIntoView would also scroll the page vertically.
+  const yearStripRef = useRef<HTMLDivElement | null>(null)
+  useEffect(() => {
+    const strip = yearStripRef.current
+    const btn = strip?.querySelector<HTMLElement>(`[data-year="${year}"]`)
+    if (!strip || !btn) return
+    const left = btn.offsetLeft - strip.offsetLeft
+    if (left < strip.scrollLeft || left + btn.offsetWidth > strip.scrollLeft + strip.clientWidth) {
+      strip.scrollLeft = left - strip.clientWidth / 2 + btn.offsetWidth / 2
+    }
+  }, [year])
+
   return (
-    <div className="rounded-lg border border-zinc-800 bg-zinc-900/30 p-4">
-      <div className="mb-3 flex items-center justify-between gap-3">
-        <div>
+    <div className="min-w-0 rounded-lg border border-zinc-800 bg-zinc-900/30 p-4">
+      {/* Wraps, and the year strip scrolls: twenty years of tabs are ~1000px,
+          and unconstrained they widened the card, and the page, on a phone. */}
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+        <div className="min-w-0">
           <h2 className="text-xs font-semibold uppercase tracking-wider text-zinc-400">Calendar density</h2>
           <p className="mt-0.5 text-xs text-zinc-400">
             {yearTotal.total} dated incident{yearTotal.total === 1 ? '' : 's'} in {year}
             {yearTotal.murders > 0 ? ` · ${yearTotal.murders} murder${yearTotal.murders === 1 ? '' : 's'}` : ''}
           </p>
         </div>
-        <div className="flex items-center gap-1 rounded-md border border-zinc-800 bg-zinc-900/60 p-1">
+        <div ref={yearStripRef} className="flex min-w-0 max-w-full items-center gap-1 overflow-x-auto rounded-md border border-zinc-800 bg-zinc-900/60 p-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {availableYears.map((y) => (
             <button
               key={y}
+              data-year={y}
               type="button"
+              aria-pressed={y === year}
               onClick={() => setYear(y)}
               className={`rounded px-2 py-0.5 text-[11px] font-medium tabular-nums transition-colors ${
                 y === year ? 'bg-zinc-700 text-white' : 'text-zinc-400 hover:text-zinc-300'
@@ -157,7 +180,7 @@ export function IncidentHeatmap({ incidents }: IncidentHeatmapProps) {
         </div>
       </div>
 
-      <div className="overflow-x-auto">
+      <div className="max-w-full overflow-x-auto">
         <div className="inline-block min-w-fit">
           {/* Month labels */}
           <div className="ml-7 flex" style={{ height: 12 }}>

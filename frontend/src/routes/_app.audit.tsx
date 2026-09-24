@@ -16,7 +16,7 @@ export const Route = createFileRoute('/_app/audit')({
 
 const ENTITY_TYPES = ['member', 'set', 'alliance', 'incident', 'source', 'municipality', 'universe']
 const ACTIONS: AuditAction[] = ['CREATE', 'UPDATE', 'DELETE']
-const PAGE = 50
+const PAGE = 100
 
 const TZ_LABEL = (() => {
   try {
@@ -157,14 +157,6 @@ function AuditPage() {
   // Load users to map user_id → email. Admin-only page already.
   const { data: usersData } = useUsers(0)
 
-  if (user?.global_role !== 'ADMIN') {
-    return (
-      <div className="py-24 text-center text-sm text-zinc-400">
-        Admin access required to view the audit log.
-      </div>
-    )
-  }
-
   const items = data?.items ?? []
   const total = data?.total ?? 0
 
@@ -173,6 +165,16 @@ function AuditPage() {
     for (const u of usersData?.items ?? []) m[u.id] = u.email
     return m
   }, [usersData])
+
+  // Guard after every hook: returning above one changes the hook count
+  // between renders, and React throws the moment the condition flips.
+  if (user?.global_role !== 'ADMIN') {
+    return (
+      <div className="py-24 text-center text-sm text-zinc-400">
+        Admin access required to view the audit log.
+      </div>
+    )
+  }
 
   return (
     <div>

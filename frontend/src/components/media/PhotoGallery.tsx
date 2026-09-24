@@ -35,12 +35,14 @@ export function PhotoGallery({ entityType, entityId, universeId, hideUpload }: P
   const captionPendingId = pendingVars?.caption !== undefined ? pendingVars.id : null
   const primaryPendingId = pendingVars?.is_primary !== undefined ? pendingVars.id : null
 
+  // Photos first, uploader after: the dropzone is taller than a row of photos,
+  // and above them it pushed the thing people came to see below the fold.
+  const uploader = !hideUpload && (
+    <PhotoUploadDropzone entityType={entityType} entityId={entityId} universeId={universeId} />
+  )
+
   return (
     <div className="space-y-4">
-      {!hideUpload && (
-        <PhotoUploadDropzone entityType={entityType} entityId={entityId} universeId={universeId} />
-      )}
-
       {isLoading ? (
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
           {Array.from({ length: 4 }).map((_, i) => (
@@ -48,10 +50,9 @@ export function PhotoGallery({ entityType, entityId, universeId, hideUpload }: P
           ))}
         </div>
       ) : photos.length === 0 ? (
-        <EmptyState
-          title="No photos yet"
-          description={hideUpload ? 'Upload an image to start the gallery.' : 'Drop, click, or paste an image above to start the gallery.'}
-        />
+        // With an uploader on screen it is the empty state: it already says
+        // what to do, so a second "No photos yet" block only repeats it.
+        hideUpload ? <EmptyState title="No photos yet" description="Upload an image to start the gallery." /> : null
       ) : (
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
           {photos.map((m, i) => (
@@ -69,6 +70,8 @@ export function PhotoGallery({ entityType, entityId, universeId, hideUpload }: P
           ))}
         </div>
       )}
+
+      {uploader}
 
       <PhotoLightbox
         items={photos}

@@ -2,17 +2,16 @@ import uuid
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.dependencies import CurrentUser, require_global_role
+from app.core.csv_export import to_csv_response
 from app.core.database import get_session
 from app.core.enums import GlobalRole
-from app.core.csv_export import to_csv_response
 from app.crud import alliance as crud
+from app.crud import incident as incident_crud
 from app.crud import member as member_crud
 from app.crud.media import attach_primary_photos_alliances
-from app.crud import incident as incident_crud
 from app.schemas.alliance import (
     AllianceCreate,
     AllianceListItem,
@@ -21,8 +20,8 @@ from app.schemas.alliance import (
     AllianceUpdate,
 )
 from app.schemas.common import CursorPage, OffsetPage
-from app.schemas.member import MemberListItem
 from app.schemas.incident import IncidentListItem
+from app.schemas.member import MemberListItem
 
 router = APIRouter(prefix="/alliances", tags=["alliances"])
 
@@ -33,13 +32,14 @@ async def list_alliances(
     _: CurrentUser,
     session: Annotated[AsyncSession, Depends(get_session)],
     offset: int = Query(0, ge=0),
-    limit: int = Query(50, ge=1, le=200),
+    limit: int = Query(50, ge=1, le=1000),
     format: str = Query("json"),
 ):
     if format == "csv":
         items, _ = await crud.list_alliances(session, universe_id, offset=0, limit=1000)
         return to_csv_response(items, "alliances.csv")
     items, total = await crud.list_alliances(session, universe_id, offset=offset, limit=limit)
+    await attach_primary_photos_alliances(session, items)
     return OffsetPage(items=items, total=total)
 
 
@@ -123,7 +123,7 @@ async def list_alliance_members(
     universe_id: uuid.UUID,
     _: CurrentUser,
     session: Annotated[AsyncSession, Depends(get_session)],
-    limit: int = Query(50, ge=1, le=200),
+    limit: int = Query(50, ge=1, le=500),
     cursor: str | None = None,
 ):
     obj = await crud.get_alliance(session, id, universe_id)
@@ -141,10 +141,15 @@ async def list_alliance_incidents(
     universe_id: uuid.UUID,
     _: CurrentUser,
     session: Annotated[AsyncSession, Depends(get_session)],
-    limit: int = Query(50, ge=1, le=200),
+    # No cursor here, so the cap is the whole answer: at 200 (and a default of
+    # 50) the largest Illinois alliance showed 50 of its 652 incidents.
+    limit: int = Query(10_000, ge=1, le=10_000),
 ):
     obj = await crud.get_alliance(session, id, universe_id)
     if obj is None:
         raise HTTPException(404)
     items = await incident_crud.list_incidents_by_alliance(session, id, universe_id, limit=limit)
-    return CursorPage(items=items, next_cursor=None, total=None)
+    # Enriched like every other incident list; returned bare, the victim and
+    # shooter names and the city came back empty.
+    items = await incident_crud.enrich_participant_names(session, items)
+    return CursorPage(items=items, next_cursor=None, total=len(items))

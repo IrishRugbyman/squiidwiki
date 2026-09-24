@@ -46,6 +46,8 @@ frontend/src/
 
 ## Keyboard
 
+`/` and Ctrl+K open the command palette. Its open flag lives in `stores/commandPalette.ts` (`useCommandPalette`), so any page can open it; the dashboard's search field and the mobile top bar's search button do.
+
 `hooks/useKeymap.ts` exports:
 - `useGoToNavigation()` — wired in `_app.tsx`. `GO_TO_SHORTCUTS`: `g d`, `g s`, `g a`, `g m`, `g i`, `g r`, `g p`, `g x`, `g c`, `g n`. Add new routes to that list; the help dialog reads from it.
 - `useEditShortcut(handler)` — call on detail pages with `() => entity && setEditing(true)`. Listens for plain `e`, ignores typing contexts and the 800ms `g`-prefix window.
@@ -54,12 +56,16 @@ frontend/src/
 
 `stores/recents.ts` — `useRecordRecent({type, id, slug, label})`. Detail pages call this once `entity` loads. Adding a new detail-page entity:
 1. Extend `RecentEntityType` in `stores/recents.ts`.
-2. Add the icon + base route in `RECENT_ICON` / `RECENT_ROUTE` maps in `GlobalCommandPalette.tsx`.
+2. Add the icon + base route in `RECENT_ICON` / `RECENT_ROUTE` in `lib/recentRoutes.ts` (shared by the palette and the dashboard's "Jump back in" row).
 3. Call `useRecordRecent(...)` from the detail page when data is loaded.
 
 ## Performance
 
-- Heavy viz components (`SetRelationshipGraph`, `MemberTimeline`, `IncidentsOverTime`, `ReliabilityDonut`, `MunicipalityMap`) are `React.lazy()`-imported with `<Suspense>` skeleton fallbacks. New recharts/reactflow/maplibre components **must** do the same — the main bundle is currently ~165kB gzipped; don't regress it.
+- Heavy viz components (`SetRelationshipGraph`, `MemberTimeline`, `IncidentHeatmap`, `MunicipalityMap`) are `React.lazy()`-imported with `<Suspense>` skeleton fallbacks. New recharts/reactflow/maplibre components **must** do the same — the main chunk measured 55.6 kB gzipped on 2026-09-24; don't regress it.
+- **A list page whose route file exports a shared form sheet lives in the main bundle**, because always-loaded screens import the sheet from it. The Sets and Alliances lists are split out for that reason: `_app.sets.index.tsx` keeps `validateSearch`, the form and the shared set components, and the page component is in `_app.sets.index.lazy.tsx` (`createLazyFileRoute`), its own chunk (the same for `_app.alliances.index.lazy.tsx`, `_app.sources.index.lazy.tsx`, `_app.municipalities.index.lazy.tsx`, the map (`_app.map.lazy.tsx`, which carries turf), the incident and alliance pages (`_app.incidents.$id.lazy.tsx`, `_app.alliances.$id.lazy.tsx`) and the set page, `_app.sets.$id.lazy.tsx`). Every route not split this way ships in the main bundle: there is no automatic route splitting here. Do the same before growing another such page. Set naming and color helpers are in `lib/setDisplay.ts`.
+- **Detail pages share `components/detail/DetailParts.tsx`** (`PanelHeading`, `DetailRow`, `StatStrip`, `IncidentRow`, `RankBadge`) and `components/LinkifiedText.tsx` for free text with URLs. Use them on a new detail page rather than another copy.
+- **Mount form sheets only while open** on detail pages (`{editing && <XFormSheet open … />}`): each sheet loads the universe's members, sets, alliances and gangs for its pickers, so a closed one still cost the page ten requests.
+- **Free-text URL params go through `textParam()`** (`lib/searchParams.ts`): the router parses `?q=4822` as a number, and a string-only validator silently dropped it.
 - `ApiError` (`lib/api.ts`) surfaces `status` and `code` — use `err.code` to differentiate duplicate/not_found/forbidden in forms when a specific message is needed.
 
 ## Type checking

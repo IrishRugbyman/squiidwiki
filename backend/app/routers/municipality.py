@@ -41,10 +41,12 @@ async def list_municipalities(
     session: Annotated[AsyncSession, Depends(get_session)],
     prod_session: Annotated[AsyncSession, Depends(get_prod_session)],
     offset: int = Query(0, ge=0),
-    limit: int = Query(100, ge=1, le=500),
+    limit: int = Query(100, ge=1, le=1000),
 ):
     prod_uid = await _prod_uid(universe_id, session, prod_session)
-    items, total = await crud.list_municipalities(prod_session, prod_uid, offset=offset, limit=limit)
+    items, total = await crud.list_municipalities(
+        prod_session, prod_uid, offset=offset, limit=limit
+    )
     return OffsetPage(items=items, total=total)
 
 

@@ -1,7 +1,7 @@
 import uuid
 from datetime import UTC, datetime
 
-from sqlalchemy import text
+from sqlalchemy import case, text
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select
 
@@ -14,9 +14,12 @@ from app.models.incident import (
     IncidentSource,
 )
 from app.models.member import Member, MemberSet
+from app.models.municipality import Municipality
+from app.models.source import Source
 from app.schemas.common import make_cursor, parse_cursor
 from app.schemas.incident import (
     IncidentCreate,
+    IncidentListItem,
     IncidentUpdate,
     ParticipantCreate,
     SetParticipantCreate,
@@ -331,6 +334,35 @@ async def participant_member_briefs(
     return {m.id: m for m in result.scalars()}
 
 
+async def participant_current_sets(
+    session: AsyncSession, member_ids: list[uuid.UUID]
+) -> dict[uuid.UUID, GangSet]:
+    """Each member's current set, the primary one first; members with none are absent."""
+    if not member_ids:
+        return {}
+    result = await session.execute(
+        select(MemberSet.member_id, GangSet)
+        .join(GangSet, GangSet.id == MemberSet.set_id)
+        .where(MemberSet.member_id.in_(member_ids), MemberSet.until_date.is_(None))
+        .order_by(MemberSet.member_id, MemberSet.is_primary.desc(), GangSet.name)
+    )
+    out: dict[uuid.UUID, GangSet] = {}
+    for member_id, gang_set in result.all():
+        out.setdefault(member_id, gang_set)
+    return out
+
+
+async def incident_source_briefs(
+    session: AsyncSession, source_ids: list[uuid.UUID]
+) -> list[Source]:
+    """The cited sources, in citation order."""
+    if not source_ids:
+        return []
+    result = await session.execute(select(Source).where(Source.id.in_(source_ids)))
+    by_id = {s.id: s for s in result.scalars()}
+    return [by_id[i] for i in source_ids if i in by_id]
+
+
 async def participant_set_briefs(
     session: AsyncSession, set_ids: list[uuid.UUID]
 ) -> dict[uuid.UUID, GangSet]:
@@ -492,3 +524,73 @@ async def get_set_stats(session: AsyncSession, set_id: uuid.UUID) -> dict | None
         "total_assists": 0,
         "total_kills": 0,
     }
+
+
+async def enrich_participant_names(
+    session: AsyncSession, items: list, viewer_id: uuid.UUID | None = None
+) -> list:
+    """Attach victim_names, shooter_names, municipality_name and (for a member's
+    own list) viewer_role/outcome to incident rows, in a few batched queries."""
+    if not items:
+        return items
+    incident_ids = [inc.id for inc in items]
+    ip = IncidentParticipant.__table__
+    m = Member.__table__
+    display_name_expr = case(
+        (m.c.nickname_unknown | m.c.nickname.is_(None), m.c.legal_name),
+        else_=m.c.nickname,
+    )
+    rows = (
+        await session.execute(
+            select(ip.c.incident_id, ip.c.role, display_name_expr.label("display_name"))
+            .join(m, m.c.id == ip.c.member_id)
+            .where(ip.c.incident_id.in_(incident_ids))
+            .where(ip.c.role.in_(("VICTIM", "SHOOTER")))
+        )
+    ).fetchall()
+    victim_map: dict[str, list[str]] = {}
+    shooter_map: dict[str, list[str]] = {}
+    for incident_id, role, name in rows:
+        key = str(incident_id)
+        if role == "VICTIM":
+            victim_map.setdefault(key, []).append(name)
+        else:
+            shooter_map.setdefault(key, []).append(name)
+
+    # What the member being viewed did in each of these incidents. Fetched
+    # separately because the query above keeps only VICTIM and SHOOTER, and an
+    # assist is exactly the case the page was misreporting.
+    viewer_map: dict[str, tuple] = {}
+    if viewer_id is not None:
+        viewer_rows = (
+            await session.execute(
+                select(ip.c.incident_id, ip.c.role, ip.c.outcome)
+                .where(ip.c.incident_id.in_(incident_ids))
+                .where(ip.c.member_id == viewer_id)
+            )
+        ).fetchall()
+        viewer_map = {str(r[0]): (r[1], r[2]) for r in viewer_rows}
+    # Single batched join for municipality names so the frontend doesn't have
+    # to fetch the entire municipalities table just to label rows.
+    muni_ids = {inc.municipality_id for inc in items if inc.municipality_id}
+    muni_names: dict[uuid.UUID, str] = {}
+    if muni_ids:
+        muni_rows = (
+            await session.execute(
+                select(Municipality.id, Municipality.name).where(Municipality.id.in_(muni_ids))
+            )
+        ).all()
+        muni_names = {r[0]: r[1] for r in muni_rows}
+
+    enriched = []
+    for inc in items:
+        d = IncidentListItem.model_validate(inc)
+        key = str(inc.id)
+        d.victim_names = victim_map.get(key, [])
+        d.shooter_names = shooter_map.get(key, [])
+        if key in viewer_map:
+            d.viewer_role, d.viewer_outcome = viewer_map[key]
+        if inc.municipality_id:
+            d.municipality_name = muni_names.get(inc.municipality_id)
+        enriched.append(d)
+    return enriched

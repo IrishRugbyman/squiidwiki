@@ -19,5 +19,10 @@ export default defineConfig([
       ecmaVersion: 2020,
       globals: globals.browser,
     },
+    rules: {
+      // TanStack Router needs every route file to export `Route`; the rule
+      // flagged all 25 of them for it.
+      'react-refresh/only-export-components': ['error', { allowConstantExport: true, allowExportNames: ['Route'] }],
+    },
   },
 ])

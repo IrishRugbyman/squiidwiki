@@ -11,7 +11,8 @@ describe('cn', () => {
   })
 
   it('drops falsy branches', () => {
-    expect(cn('base', false && 'never', undefined, null, 'end')).toBe('base end')
+    const hidden = false as boolean
+    expect(cn('base', hidden && 'never', undefined, null, 'end')).toBe('base end')
   })
 })
 

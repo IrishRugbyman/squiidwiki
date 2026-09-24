@@ -430,3 +430,62 @@ async def test_incident_date_correction_still_propagates_when_untouched(
         f"/api/v1/members/{victim_id}?universe_id={universe_id}", headers=headers
     )
     assert _ymd(resp.json()["date_of_death"]) == _ymd(corrected)
+
+
+async def test_incident_detail_carries_participant_set_status_and_sources(
+    client: AsyncClient, db_session: AsyncSession
+):
+    """The detail payload draws the page alone: each participant's status and
+    current set, and the cited sources, so the page need not load the universe."""
+    token = await _admin_token(client, db_session)
+    universe_id = await _make_universe(client, token)
+    auth = {"Authorization": f"Bearer {token}"}
+
+    async def post(path: str, body: dict) -> str:
+        resp = await client.post(path, json={"universe_id": universe_id, **body}, headers=auth)
+        assert resp.status_code == 201, resp.text
+        return resp.json()["id"]
+
+    set_id = await post("/api/v1/sets/", {"name": f"Set {_uid()}"})
+    shooter = await post(
+        "/api/v1/members/",
+        {
+            "nickname": "Shooter",
+            "status": "LOCKED",
+            "affiliations": [{"set_id": set_id, "is_primary": True}],
+        },
+    )
+    victim = await post("/api/v1/members/", {"nickname": "Victim"})
+    source = await post(
+        "/api/v1/sources/",
+        {
+            "url": "https://example.com/a",
+            "title": "Article",
+            "publication": "Daily",
+            "reliability": "HIGH",
+        },
+    )
+    incident = await post(
+        "/api/v1/incidents/",
+        {
+            "type": "SHOOTING",
+            "participants": [
+                {"member_id": shooter, "role": "SHOOTER", "outcome": "UNHARMED"},
+                {"member_id": victim, "role": "VICTIM", "outcome": "INJURED"},
+            ],
+            "source_ids": [source],
+        },
+    )
+
+    resp = await client.get(
+        f"/api/v1/incidents/{incident}", params={"universe_id": universe_id}, headers=auth
+    )
+    assert resp.status_code == 200
+    body = resp.json()
+    by_member = {p["member_id"]: p for p in body["participants"]}
+    assert by_member[shooter]["member_status"] == "LOCKED"
+    assert by_member[shooter]["set_id"] == set_id
+    assert by_member[victim]["set_id"] is None
+    assert [s["id"] for s in body["sources"]] == [source]
+    assert body["sources"][0]["publication"] == "Daily"
+    assert body["sources"][0]["reliability"] == "HIGH"

@@ -8,7 +8,9 @@ from sqlmodel import func, select
 from app.core.enums import SetRelationshipType
 from app.core.slug import slugify
 from app.models.alliance import Alliance, AllianceMunicipality
+from app.models.gang import Gang
 from app.models.gang_set import GangSet, SetRelationship
+from app.models.member import Member
 from app.schemas.alliance import AllianceCreate, AllianceUpdate
 
 
@@ -138,10 +140,72 @@ async def list_alliances(
         select(func.count()).select_from(Alliance).where(Alliance.universe_id == universe_id)
     )
     total = count_result.scalar_one()
+    # Ordered, with a tiebreak: unordered offset pages can repeat or skip rows.
     result = await session.execute(
-        select(Alliance).where(Alliance.universe_id == universe_id).offset(offset).limit(limit)
+        select(Alliance)
+        .where(Alliance.universe_id == universe_id)
+        .order_by(Alliance.name, Alliance.id)
+        .offset(offset)
+        .limit(limit)
     )
-    return result.scalars().all(), total
+    items = list(result.scalars().all())
+    await attach_alliance_list_stats(session, universe_id, items)
+    return items, total
+
+
+async def attach_alliance_list_stats(
+    session: AsyncSession, universe_id: uuid.UUID, items: list[Alliance]
+) -> None:
+    """Attach set_count, member_count, gang_name and gang_color to each alliance.
+
+    member_count uses the same definition as the alliance's member list (see
+    member CRUD's alliance filter): members tagged straight to the alliance plus
+    the current members of every set in it, each person counted once.
+    """
+    if not items:
+        return
+    ids = [a.id for a in items]
+    set_rows = await session.execute(
+        select(GangSet.alliance_id, func.count())
+        .where(GangSet.alliance_id.in_(ids))
+        .group_by(GangSet.alliance_id)
+    )
+    set_counts = dict(set_rows.all())
+    member_rows = await session.execute(
+        sa.text(
+            """
+            SELECT alliance_id, count(DISTINCT member_id) FROM (
+                SELECT m.alliance_id, m.id AS member_id
+                FROM member m
+                WHERE m.universe_id = :uid AND m.alliance_id IS NOT NULL
+                UNION
+                SELECT s.alliance_id, ms.member_id
+                FROM member_set ms
+                JOIN sets s ON s.id = ms.set_id
+                WHERE s.universe_id = :uid AND s.alliance_id IS NOT NULL
+                  AND ms.until_date IS NULL
+            ) x
+            GROUP BY alliance_id
+            """
+        ),
+        {"uid": universe_id},
+    )
+    member_counts = dict(member_rows.all())
+    gang_ids = {a.gang_id for a in items if a.gang_id}
+    gangs: dict[uuid.UUID, tuple[str, str | None]] = {}
+    if gang_ids:
+        gang_rows = await session.execute(
+            select(Gang.id, Gang.name, Gang.color).where(Gang.id.in_(gang_ids))
+        )
+        gangs = {gid: (name, color) for gid, name, color in gang_rows.all()}
+    for a in items:
+        gang = gangs.get(a.gang_id) if a.gang_id else None
+        # SQLModel rejects unknown attributes through __setattr__; bypass it,
+        # as attach_primary_photos does.
+        object.__setattr__(a, "set_count", int(set_counts.get(a.id, 0)))
+        object.__setattr__(a, "member_count", int(member_counts.get(a.id, 0)))
+        object.__setattr__(a, "gang_name", gang[0] if gang else None)
+        object.__setattr__(a, "gang_color", gang[1] if gang else None)
 
 
 async def update_alliance(
@@ -175,9 +239,15 @@ async def delete_alliance(session: AsyncSession, id: uuid.UUID, universe_id: uui
     obj = await get_alliance(session, id, universe_id)
     if obj is None:
         return False
-    # Detach sets pointing to this alliance to avoid FK constraint violation
+    # Detach what points at it first: neither FK has ON DELETE, so a set or a
+    # member tagged straight to the alliance would otherwise block the delete.
+    # Members were missed until 2026-09-24, and any alliance with a directly
+    # tagged member could not be deleted at all.
     await session.execute(
         GangSet.__table__.update().where(GangSet.alliance_id == id).values(alliance_id=None)
+    )
+    await session.execute(
+        Member.__table__.update().where(Member.alliance_id == id).values(alliance_id=None)
     )
     await session.delete(obj)
     await session.commit()

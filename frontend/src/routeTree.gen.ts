@@ -69,7 +69,7 @@ const AppMapRoute = AppMapRouteImport.update({
   id: '/map',
   path: '/map',
   getParentRoute: () => AppRoute,
-} as any)
+} as any).lazy(() => import('./routes/_app.map.lazy').then((d) => d.Route))
 const AppCalendarRoute = AppCalendarRouteImport.update({
   id: '/calendar',
   path: '/calendar',
@@ -84,12 +84,16 @@ const AppSourcesIndexRoute = AppSourcesIndexRouteImport.update({
   id: '/sources/',
   path: '/sources/',
   getParentRoute: () => AppRoute,
-} as any)
+} as any).lazy(() =>
+  import('./routes/_app.sources.index.lazy').then((d) => d.Route),
+)
 const AppSetsIndexRoute = AppSetsIndexRouteImport.update({
   id: '/sets/',
   path: '/sets/',
   getParentRoute: () => AppRoute,
-} as any)
+} as any).lazy(() =>
+  import('./routes/_app.sets.index.lazy').then((d) => d.Route),
+)
 const AppResearchIndexRoute = AppResearchIndexRouteImport.update({
   id: '/research/',
   path: '/research/',
@@ -99,7 +103,9 @@ const AppMunicipalitiesIndexRoute = AppMunicipalitiesIndexRouteImport.update({
   id: '/municipalities/',
   path: '/municipalities/',
   getParentRoute: () => AppRoute,
-} as any)
+} as any).lazy(() =>
+  import('./routes/_app.municipalities.index.lazy').then((d) => d.Route),
+)
 const AppMembersIndexRoute = AppMembersIndexRouteImport.update({
   id: '/members/',
   path: '/members/',
@@ -114,7 +120,9 @@ const AppAlliancesIndexRoute = AppAlliancesIndexRouteImport.update({
   id: '/alliances/',
   path: '/alliances/',
   getParentRoute: () => AppRoute,
-} as any)
+} as any).lazy(() =>
+  import('./routes/_app.alliances.index.lazy').then((d) => d.Route),
+)
 const AppSourcesIdRoute = AppSourcesIdRouteImport.update({
   id: '/sources/$id',
   path: '/sources/$id',
@@ -124,7 +132,7 @@ const AppSetsIdRoute = AppSetsIdRouteImport.update({
   id: '/sets/$id',
   path: '/sets/$id',
   getParentRoute: () => AppRoute,
-} as any)
+} as any).lazy(() => import('./routes/_app.sets.$id.lazy').then((d) => d.Route))
 const AppResearchIdRoute = AppResearchIdRouteImport.update({
   id: '/research/$id',
   path: '/research/$id',
@@ -149,12 +157,16 @@ const AppIncidentsIdRoute = AppIncidentsIdRouteImport.update({
   id: '/incidents/$id',
   path: '/incidents/$id',
   getParentRoute: () => AppRoute,
-} as any)
+} as any).lazy(() =>
+  import('./routes/_app.incidents.$id.lazy').then((d) => d.Route),
+)
 const AppAlliancesIdRoute = AppAlliancesIdRouteImport.update({
   id: '/alliances/$id',
   path: '/alliances/$id',
   getParentRoute: () => AppRoute,
-} as any)
+} as any).lazy(() =>
+  import('./routes/_app.alliances.$id.lazy').then((d) => d.Route),
+)
 const AppAdminUsersRoute = AppAdminUsersRouteImport.update({
   id: '/admin/users',
   path: '/admin/users',

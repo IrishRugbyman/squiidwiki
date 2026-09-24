@@ -92,7 +92,7 @@ export function LineagePanel({ setId, setName, universeId }: {
             )}
           </p>
         </div>
-        <div className="flex shrink-0 items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+        <div className="flex shrink-0 items-center gap-1 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100 pointer-fine:opacity-0">
           {r.is_current && (
             <button
               type="button"
