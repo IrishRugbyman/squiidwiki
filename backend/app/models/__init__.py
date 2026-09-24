@@ -11,7 +11,14 @@ from app.models.incident import (
     IncidentSource,
 )
 from app.models.media import Media
-from app.models.member import Member, MemberAlias, MemberIncarceration, MemberSet, MemberSource
+from app.models.member import (
+    Member,
+    MemberAlias,
+    MemberCustodyId,
+    MemberIncarceration,
+    MemberSet,
+    MemberSource,
+)
 from app.models.municipality import Municipality
 from app.models.research_note import ResearchNote
 from app.models.source import Source
@@ -39,6 +46,7 @@ __all__ = [
     "SetSource",
     "Member",
     "MemberAlias",
+    "MemberCustodyId",
     "MemberIncarceration",
     "MemberSet",
     "MemberSource",

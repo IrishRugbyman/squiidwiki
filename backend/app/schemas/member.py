@@ -1,11 +1,11 @@
 import re
 import uuid
-from datetime import datetime
+from datetime import date, datetime
 from typing import Annotated, Any, Optional
 
 from pydantic import AfterValidator, BaseModel, computed_field, model_validator
 
-from app.core.enums import MemberStatus, SetRank
+from app.core.enums import CustodySystem, MemberStatus, SetRank
 from app.schemas.common import FuzzyDateField
 
 _BOP_REGISTER_NUMBER = re.compile(r"^(\d{5})-?(\d{3})$")
@@ -188,6 +188,7 @@ class MemberReadDetail(MemberRead):
     alliance_slug: Optional[str] = None
     aliases_detail: list["MemberAliasRead"] = []
     incarcerations: list["MemberIncarcerationRead"] = []
+    custody_ids: list["MemberCustodyIdRead"] = []
     stats: Optional["MemberStats"] = None
     killed_in: Optional[MemberKilledInSummary] = None
 
@@ -255,6 +256,64 @@ class MemberIncarcerationRead(BaseModel):
     life_sentence: bool
     facility: Optional[str]
     case_id: Optional[str]
+    notes: Optional[str]
+    created_at: datetime
+
+
+def normalise_custody_number(system: "CustodySystem", number: str) -> str:
+    """A custody number in the spelling its system uses, or ValueError.
+
+    BOP goes through the register-number normaliser. Everything else is kept as
+    written minus whitespace: GDC IDs and OTNs carry meaningful leading zeros
+    (`0001238843` is a real GDC ID), so nothing here may cast to int.
+
+    Raises:
+        ValueError: If the number is empty, or not a BOP register number for BOP.
+    """
+    if system == CustodySystem.BOP:
+        normalised = normalise_bop_register_number(number)
+        if normalised is None:
+            raise ValueError("a custody number cannot be empty")
+        return normalised
+    compact = re.sub(r"\s+", "", number or "")
+    if not compact:
+        raise ValueError("a custody number cannot be empty")
+    return compact
+
+
+class MemberCustodyIdCreate(BaseModel):
+    system: CustodySystem
+    number: str
+    source_id: Optional[uuid.UUID] = None
+    photo_media_id: Optional[uuid.UUID] = None
+    retrieved_at: Optional[date] = None
+    notes: Optional[str] = None
+
+    @model_validator(mode="after")
+    def _normalise(self) -> "MemberCustodyIdCreate":
+        self.number = normalise_custody_number(self.system, self.number)
+        return self
+
+
+class MemberCustodyIdUpdate(BaseModel):
+    """Everything but the key: to change a number, delete the row and add the right one."""
+
+    source_id: Optional[uuid.UUID] = None
+    photo_media_id: Optional[uuid.UUID] = None
+    retrieved_at: Optional[date] = None
+    notes: Optional[str] = None
+
+
+class MemberCustodyIdRead(BaseModel):
+    model_config = {"from_attributes": True}
+
+    id: uuid.UUID
+    member_id: uuid.UUID
+    system: CustodySystem
+    number: str
+    source_id: Optional[uuid.UUID]
+    photo_media_id: Optional[uuid.UUID]
+    retrieved_at: Optional[date]
     notes: Optional[str]
     created_at: datetime
 

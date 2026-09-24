@@ -6,6 +6,47 @@ here ships, its line comes out of that file.
 
 ---
 
+## 2026-09-23 - Custody numbers get their own table
+
+A Georgia universe brought numbers the schema had nowhere to put: a GDC ID
+(Georgia's MDOC), and the Offender Tracking Number printed on every Georgia
+indictment. Adding a column per system had already happened twice (`mdoc_number`,
+`bop_register_number`) and would have kept happening for Tennessee, Illinois and
+every county jail, each with its own migration and form field, and each holding one
+number when jail bookings and OTNs are issued per arrest.
+
+`member_custody_id` (migration `dca974125ded`): one row per number, `system` as
+VARCHAR validated by the `CustodySystem` enum so a new system is a code change,
+with `source_id`, `photo_media_id` (the mugshot that system served, SET NULL on
+delete), `retrieved_at` and `notes`. Unique on `(universe_id, system, number)` for
+every system but MDOC, whose column was always deliberately non-unique, and on
+`(member_id, system, number)` always. A universe stays its own namespace, as BOP
+already was.
+
+**MDOC and BOP are mirrored, not moved.** Their columns stay the write path, since
+the OTIS importer, the BOP flow and the research CLI all write there; every member
+create or PATCH that touches them syncs the table, and the API refuses a direct
+MDOC/BOP write or delete on the table so the two cannot disagree. Backfilled 54
+MDOC and 56 BOP rows, exactly the non-null columns. Retiring the columns is the
+second step: switch those three writers to the table, then drop them.
+
+`GET/POST/PATCH/DELETE /members/{id}/custody-ids`, `custody_ids` on member detail,
+badges on the member page for systems other than MDOC/BOP (which keep their own
+badges and lookup links). Research side: `wiki member custody-id` (with `--photo`
+to upload a mugshot and link it), a `custody_id` assertion type keyed
+`<member> <SYSTEM>:<number>`, and `wiki check` verifying it.
+
+Autogenerate proposed dropping every trigram index, the partial unique indexes on
+`member_set` and `set_relationships`, two unique constraints on `gang` and the
+CASCADE/SET NULL behaviour of a dozen foreign keys. The migration was written by
+hand with none of that. Tested: 8 new backend tests (the mirror tests fail with the
+mirror disabled), 222/222 backend, 363/363 research.
+
+First rows: a member's GDC ID with his GDC photo linked, and the OTNs of
+four defendants in the Augusta MacArthur Park Apartments indictment.
+
+---
+
 ## 2026-08-29 - Set lineage, and emojis a set is known by
 
 Two additions to sets. One was on the roadmap and needed a different shape than

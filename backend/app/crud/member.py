@@ -8,16 +8,26 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select
 
 from app.core import storage
-from app.core.enums import MediaKind
+from app.core.enums import CustodySystem, MediaKind
 from app.core.slug import slugify
 from app.models.gang_set import GangSet
 from app.models.incident import IncidentParticipant
 from app.models.media import Media
-from app.models.member import Member, MemberAlias, MemberIncarceration, MemberSet, MemberSource
+from app.models.member import (
+    CUSTODY_MIRROR_NOTE,
+    Member,
+    MemberAlias,
+    MemberCustodyId,
+    MemberIncarceration,
+    MemberSet,
+    MemberSource,
+)
 from app.schemas.common import make_cursor, parse_cursor
 from app.schemas.member import (
     MemberAliasCreate,
     MemberCreate,
+    MemberCustodyIdCreate,
+    MemberCustodyIdUpdate,
     MemberIncarcerationCreate,
     MemberIncarcerationUpdate,
     MemberSetAffiliationIn,
@@ -373,6 +383,7 @@ async def create_member(session: AsyncSession, data: MemberCreate, actor_id: uui
     await _sync_member_sets(session, obj.id, data.affiliations)
     if data.family:
         await _sync_bilateral_family(session, obj.id, data.universe_id, None, data.family)
+    await _sync_custody_mirror(session, obj)
     await session.commit()
     await session.refresh(obj)
     return obj
@@ -491,6 +502,8 @@ async def update_member(
         await _sync_member_sets(session, obj.id, data.affiliations)
     if "family" in data.model_fields_set:
         await _sync_bilateral_family(session, obj.id, universe_id, old_family, dump.get("family"))
+    if {"mdoc_number", "bop_register_number"} & data.model_fields_set:
+        await _sync_custody_mirror(session, obj)
     await session.commit()
     await session.refresh(obj)
     return obj
@@ -528,6 +541,8 @@ async def delete_member(session: AsyncSession, id: uuid.UUID, universe_id: uuid.
     await session.execute(MemberSource.__table__.delete().where(MemberSource.member_id == id))
     # Remove aliases (no cascade on member_id FK)
     await session.execute(MemberAlias.__table__.delete().where(MemberAlias.member_id == id))
+    # Remove custody numbers (no cascade on member_id FK)
+    await session.execute(MemberCustodyId.__table__.delete().where(MemberCustodyId.member_id == id))
     # Remove incarceration spells (no cascade on member_id FK)
     await session.execute(
         MemberIncarceration.__table__.delete().where(MemberIncarceration.member_id == id)
@@ -772,6 +787,179 @@ async def delete_member_incarceration(
     obj = result.scalar_one_or_none()
     if obj is None:
         return False
+    await session.delete(obj)
+    await session.commit()
+    return True
+
+
+# --- Custody numbers -------------------------------------------------------
+
+# The two systems whose numbers still live on member columns. Until those are
+# retired, the column is the write path and the table holds a mirror of it.
+_LEGACY_CUSTODY_COLUMNS: tuple[tuple[CustodySystem, str], ...] = (
+    (CustodySystem.MDOC, "mdoc_number"),
+    (CustodySystem.BOP, "bop_register_number"),
+)
+
+
+async def _sync_custody_mirror(session: AsyncSession, member: Member) -> None:
+    """Make the table's MDOC and BOP rows match the member's legacy columns.
+
+    Only rows carrying CUSTODY_MIRROR_NOTE are the mirror's to delete, so a
+    number research recorded by hand is never removed because a column changed.
+    Runs inside the caller's transaction; the caller commits.
+    """
+    for system, column in _LEGACY_CUSTODY_COLUMNS:
+        current = getattr(member, column)
+        rows = (
+            (
+                await session.execute(
+                    select(MemberCustodyId).where(
+                        MemberCustodyId.member_id == member.id,
+                        MemberCustodyId.system == system.value,
+                    )
+                )
+            )
+            .scalars()
+            .all()
+        )
+        for row in rows:
+            if row.notes == CUSTODY_MIRROR_NOTE and row.number != current:
+                await session.delete(row)
+        if current and not any(r.number == current for r in rows):
+            session.add(
+                MemberCustodyId(
+                    universe_id=member.universe_id,
+                    member_id=member.id,
+                    system=system.value,
+                    number=current,
+                    notes=CUSTODY_MIRROR_NOTE,
+                )
+            )
+
+
+async def _assert_custody_number_free(
+    session: AsyncSession, member: Member, system: CustodySystem, number: str
+) -> None:
+    """Refuse a number this member already holds, or another member of the universe holds.
+
+    The unique indexes enforce the same thing; checking first turns an
+    IntegrityError into a 409 that names the holder. MDOC is exempt from the
+    cross-member check, as its column always has been.
+
+    Raises:
+        HTTPException: 409 when the number is already on file.
+    """
+    stmt = select(MemberCustodyId, Member).join(Member, Member.id == MemberCustodyId.member_id)
+    stmt = stmt.where(
+        MemberCustodyId.universe_id == member.universe_id,
+        MemberCustodyId.system == system.value,
+        MemberCustodyId.number == number,
+    )
+    if system == CustodySystem.MDOC:
+        stmt = stmt.where(MemberCustodyId.member_id == member.id)
+    hit = (await session.execute(stmt)).first()
+    if hit is not None:
+        holder = hit[1]
+        who = "this member" if holder.id == member.id else f"{holder.display_name} ({holder.slug})"
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"{system.value} {number} already belongs to {who}; one number is one person",
+        )
+
+
+async def list_member_custody_ids(
+    session: AsyncSession, member_id: uuid.UUID
+) -> list[MemberCustodyId]:
+    result = await session.execute(
+        select(MemberCustodyId)
+        .where(MemberCustodyId.member_id == member_id)
+        .order_by(MemberCustodyId.system, MemberCustodyId.created_at)
+    )
+    return result.scalars().all()
+
+
+async def create_member_custody_id(
+    session: AsyncSession, member: Member, data: MemberCustodyIdCreate
+) -> MemberCustodyId:
+    """Record one custody number on a member.
+
+    Raises:
+        HTTPException: 422 for MDOC or BOP, which are still written through their
+            member columns; 409 when the number is already on file.
+    """
+    column = dict(_LEGACY_CUSTODY_COLUMNS).get(data.system)
+    if column is not None:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail=f"{data.system.value} is still written through member.{column}; "
+            "set it there and it is mirrored here",
+        )
+    await _assert_custody_number_free(session, member, data.system, data.number)
+    obj = MemberCustodyId(
+        universe_id=member.universe_id,
+        member_id=member.id,
+        system=data.system.value,
+        number=data.number,
+        source_id=data.source_id,
+        photo_media_id=data.photo_media_id,
+        retrieved_at=data.retrieved_at,
+        notes=data.notes,
+    )
+    session.add(obj)
+    await session.commit()
+    await session.refresh(obj)
+    return obj
+
+
+async def update_member_custody_id(
+    session: AsyncSession,
+    custody_id: uuid.UUID,
+    member_id: uuid.UUID,
+    data: MemberCustodyIdUpdate,
+) -> MemberCustodyId | None:
+    obj = (
+        await session.execute(
+            select(MemberCustodyId).where(
+                MemberCustodyId.id == custody_id, MemberCustodyId.member_id == member_id
+            )
+        )
+    ).scalar_one_or_none()
+    if obj is None:
+        return None
+    # model_fields_set, so a field left out of the PATCH is left alone and an
+    # explicit null clears it, as update_member_incarceration does.
+    for field in ("source_id", "photo_media_id", "retrieved_at", "notes"):
+        if field in data.model_fields_set:
+            setattr(obj, field, getattr(data, field))
+    session.add(obj)
+    await session.commit()
+    await session.refresh(obj)
+    return obj
+
+
+async def delete_member_custody_id(
+    session: AsyncSession, custody_id: uuid.UUID, member_id: uuid.UUID
+) -> bool:
+    """Delete one number. A mirrored MDOC or BOP row is cleared from its column instead.
+
+    Raises:
+        HTTPException: 422 when the row is a mirror, which would come straight back.
+    """
+    obj = (
+        await session.execute(
+            select(MemberCustodyId).where(
+                MemberCustodyId.id == custody_id, MemberCustodyId.member_id == member_id
+            )
+        )
+    ).scalar_one_or_none()
+    if obj is None:
+        return False
+    if obj.notes == CUSTODY_MIRROR_NOTE:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail=f"{obj.system} {obj.number} is mirrored from the member's column; clear it there",
+        )
     await session.delete(obj)
     await session.commit()
     return True

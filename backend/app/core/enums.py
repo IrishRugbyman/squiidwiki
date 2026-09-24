@@ -133,3 +133,21 @@ class BusinessRole(str, Enum):
 class MediaKind(str, Enum):
     R2 = "R2"
     EXTERNAL_URL = "EXTERNAL_URL"
+
+
+class CustodySystem(str, Enum):
+    """Who issued a custody number, stored as VARCHAR so a new system is a code change.
+
+    One member can hold numbers in several of these, and several in one of them
+    (a jail booking number or an OTN is issued per arrest). MDOC and BOP are
+    mirrored from their member columns until those are retired.
+    """
+
+    MDOC = "MDOC"  # Michigan Department of Corrections
+    BOP = "BOP"  # Federal Bureau of Prisons register number, NNNNN-NNN
+    GDC = "GDC"  # Georgia Department of Corrections ID
+    GA_OTN = "GA_OTN"  # Georgia Offender Tracking Number, per arrest
+    TDOC = "TDOC"  # Tennessee Department of Correction
+    IDOC = "IDOC"  # Illinois Department of Corrections
+    COOK_COUNTY_JAIL = "COOK_COUNTY_JAIL"  # Cook County Sheriff booking number
+    RICHMOND_COUNTY_JAIL = "RICHMOND_COUNTY_JAIL"  # Augusta, Webster Detention Center

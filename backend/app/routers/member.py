@@ -19,6 +19,9 @@ from app.schemas.member import (
     MemberAliasCreate,
     MemberAliasRead,
     MemberCreate,
+    MemberCustodyIdCreate,
+    MemberCustodyIdRead,
+    MemberCustodyIdUpdate,
     MemberIncarcerationCreate,
     MemberIncarcerationRead,
     MemberIncarcerationUpdate,
@@ -48,7 +51,8 @@ async def list_members(
     format: str = Query("json"),
 ):
     if format == "csv":
-        items, _ = await crud.list_members(session, universe_id, limit=1000)
+        # Uncapped: a limit of 1000 silently cut Illinois (4571 members) short.
+        items, _ = await crud.list_members(session, universe_id, limit=1_000_000)
         return to_csv_response(items, "members.csv")
     items, next_cursor = await crud.list_members(
         session,
@@ -59,6 +63,10 @@ async def list_members(
         primary_only=primary_only,
         alliance_id=alliance_id,
     )
+    # The list showed no faces at all: MemberListItem has the photo fields but
+    # nothing filled them. One batched media query; presigning is local HMAC,
+    # cached per key.
+    await crud.attach_primary_photos(session, items)
     return CursorPage(items=items, next_cursor=next_cursor, total=None)
 
 
@@ -127,6 +135,7 @@ async def get_member(
     source_ids = await crud.list_member_source_ids(session, obj.id)
     aliases_detail = await crud.list_member_aliases(session, obj.id)
     incarcerations = await crud.list_member_incarcerations(session, obj.id)
+    custody_ids = await crud.list_member_custody_ids(session, obj.id)
     stats_dict = await crud.get_member_stats(session, obj.id)
 
     aff_map = await crud.load_member_affiliations(session, [obj.id])
@@ -210,6 +219,7 @@ async def get_member(
         alliance_slug=alliance_slug,
         aliases_detail=[MemberAliasRead.model_validate(a) for a in aliases_detail],
         incarcerations=[MemberIncarcerationRead.model_validate(i) for i in incarcerations],
+        custody_ids=[MemberCustodyIdRead.model_validate(c) for c in custody_ids],
         stats=MemberStats(**stats_dict) if stats_dict else None,
         killed_in=killed_in,
     )
@@ -314,6 +324,66 @@ async def end_member_affiliation(
     )
     if not ok:
         raise HTTPException(404, detail="No open affiliation with that id for this member")
+
+
+@router.get("/{id}/custody-ids", response_model=list[MemberCustodyIdRead])
+async def list_member_custody_ids(
+    id: uuid.UUID,
+    universe_id: uuid.UUID,
+    _: CurrentUser,
+    session: Annotated[AsyncSession, Depends(get_session)],
+):
+    obj = await crud.get_member(session, id, universe_id)
+    if obj is None:
+        raise HTTPException(404)
+    return await crud.list_member_custody_ids(session, id)
+
+
+@router.post("/{id}/custody-ids", response_model=MemberCustodyIdRead, status_code=201)
+async def create_member_custody_id(
+    id: uuid.UUID,
+    universe_id: uuid.UUID,
+    data: MemberCustodyIdCreate,
+    _: CurrentUser,
+    session: Annotated[AsyncSession, Depends(get_session)],
+):
+    obj = await crud.get_member(session, id, universe_id)
+    if obj is None:
+        raise HTTPException(404)
+    return await crud.create_member_custody_id(session, obj, data)
+
+
+@router.patch("/{id}/custody-ids/{custody_id}", response_model=MemberCustodyIdRead)
+async def update_member_custody_id(
+    id: uuid.UUID,
+    custody_id: uuid.UUID,
+    universe_id: uuid.UUID,
+    data: MemberCustodyIdUpdate,
+    _: CurrentUser,
+    session: Annotated[AsyncSession, Depends(get_session)],
+):
+    obj = await crud.get_member(session, id, universe_id)
+    if obj is None:
+        raise HTTPException(404)
+    result = await crud.update_member_custody_id(session, custody_id, id, data)
+    if result is None:
+        raise HTTPException(404)
+    return result
+
+
+@router.delete("/{id}/custody-ids/{custody_id}", status_code=204)
+async def delete_member_custody_id(
+    id: uuid.UUID,
+    custody_id: uuid.UUID,
+    universe_id: uuid.UUID,
+    _: Annotated[None, require_global_role(GlobalRole.ADMIN)],
+    session: Annotated[AsyncSession, Depends(get_session)],
+):
+    obj = await crud.get_member(session, id, universe_id)
+    if obj is None:
+        raise HTTPException(404)
+    if not await crud.delete_member_custody_id(session, custody_id, id):
+        raise HTTPException(404)
 
 
 @router.get("/{id}/incarcerations", response_model=list[MemberIncarcerationRead])

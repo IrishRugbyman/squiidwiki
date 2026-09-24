@@ -1,5 +1,5 @@
 import uuid
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 
 import sqlalchemy as sa
 from sqlalchemy import Column, DateTime, ForeignKey, String
@@ -84,6 +84,71 @@ class MemberIncarceration(SQLModel, table=True):
     life_sentence: bool = False
     facility: str | None = None
     case_id: str | None = None
+    notes: str | None = None
+    created_at: datetime = Field(
+        sa_type=DateTime(timezone=True), default_factory=lambda: datetime.now(UTC)
+    )
+
+
+# Written into `notes` on rows mirrored from member.mdoc_number and
+# member.bop_register_number, so the mirror can tell its own rows from ones
+# research added by hand. The migration that backfilled them uses the same text.
+CUSTODY_MIRROR_NOTE = "mirrored from the member's legacy column"
+
+
+class MemberCustodyId(SQLModel, table=True):
+    """A number a custody system issued to a member: MDOC, BOP, GDC, an OTN, a jail booking.
+
+    One row per number, so a member can hold any mix of systems and more than
+    one number in a system that issues them per arrest. `system` is a
+    `CustodySystem` value stored as VARCHAR, so adding a state is a code change
+    and not a migration.
+
+    Unique on (universe_id, system, number) for every system except MDOC, whose
+    member column has always been deliberately non-unique ("OTIS is the
+    authority on collisions"); within one member a number is unique for every
+    system. universe_id is carried because a universe is its own namespace: the
+    same federal prisoner may legitimately be a row in two universes.
+
+    While `member.mdoc_number` and `member.bop_register_number` still exist they
+    are the write path for those two systems, and `app.crud.member` mirrors them
+    into this table; rows it mirrored carry MIRROR_NOTE and no source.
+    """
+
+    __tablename__ = "member_custody_id"
+    __table_args__ = (
+        sa.Index(
+            "uq_member_custody_id_universe_system_number",
+            "universe_id",
+            "system",
+            "number",
+            unique=True,
+            postgresql_where=sa.text("system <> 'MDOC'"),
+        ),
+        sa.Index(
+            "uq_member_custody_id_member_system_number",
+            "member_id",
+            "system",
+            "number",
+            unique=True,
+        ),
+    )
+
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    universe_id: uuid.UUID = Field(foreign_key="universe.id", index=True)
+    member_id: uuid.UUID = Field(foreign_key="member.id", index=True)
+    system: str = Field(sa_column=Column(String, nullable=False))
+    number: str = Field(sa_column=Column(String, nullable=False, index=True))
+    source_id: uuid.UUID | None = Field(default=None, foreign_key="source.id")
+    # The mugshot that system served, when one was pulled. SET NULL so deleting
+    # the photo never takes the number with it.
+    photo_media_id: uuid.UUID | None = Field(
+        default=None,
+        sa_column=Column(
+            PG_UUID(as_uuid=True), ForeignKey("media.id", ondelete="SET NULL"), nullable=True
+        ),
+    )
+    retrieved_at: date | None = None
     notes: str | None = None
     created_at: datetime = Field(
         sa_type=DateTime(timezone=True), default_factory=lambda: datetime.now(UTC)
