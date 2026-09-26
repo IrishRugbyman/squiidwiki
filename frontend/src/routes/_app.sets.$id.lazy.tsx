@@ -5,7 +5,7 @@ import { toast } from 'sonner'
 import {
   useAddSetRelationship, useRemoveSetRelationship,
   useSetDetail, useDeleteSet, useUpdateSet,
-  useSetMembers, useSetIncidents, useAllSets, useSetActivity,
+  useSetMembers, useSetIncidents, useAllSets, useSetActivity, useSetAllianceRelationships,
 } from '@/lib/queries'
 import { useUniverseStore } from '@/stores/universe'
 import { useAuthStore } from '@/stores/auth'
@@ -36,6 +36,7 @@ import { AddMemberToSetDialog } from '@/components/AddMemberToSetDialog'
 import { LineagePanel } from '@/components/sets/LineagePanel'
 import { AffiliationCombobox } from '@/components/members/MemberFormSheet/pickers/AffiliationCombobox'
 import { setPickerItems } from '@/lib/setPicker'
+import { InheritedAllianceRelationships } from '@/components/alliances/AllianceRelationships'
 import { nonPrimaryVariantsText, variantLead } from '@/lib/setDisplay'
 import { MEMBER_STATUS_CHIP_ACTIVE, MEMBER_STATUS_DOT, MEMBER_STATUS_ORDER } from '@/lib/statusColors'
 import { useRecordRecent } from '@/stores/recents'
@@ -542,6 +543,8 @@ function SetDetailPage() {
   const isReserved = !!set?.is_reserved
   const { data: membersData, isLoading: membersLoading } = useSetMembers(realId, universe?.id ?? null, primaryOnly)
   const { data: incidentsData, isLoading: incidentsLoading } = useSetIncidents(realId, universe?.id ?? null)
+  // Links held by its alliance, and alliances that name it; edited on the alliance page.
+  const { data: allianceRels } = useSetAllianceRelationships(realId || null, universe?.id ?? null)
 
   // System sets have no relationships or media, so their tabs, and the number
   // keys that reach them, are left out rather than opening a blank panel.
@@ -1028,15 +1031,18 @@ function SetDetailPage() {
                   </section>
 
                   {!isReserved && (
-                    <RelationshipsPanel
-                      friendIds={set.friend_ids}
-                      enemyIds={set.enemy_ids}
-                      setMap={setMap}
-                      onAdd={() => setAddingRel(true)}
-                      onOpenGraph={() => setTab('relationships')}
-                      onRemove={(sid) => removeRel.mutate(sid)}
-                      removingId={removeRel.isPending ? (removeRel.variables as string | undefined) ?? null : null}
-                    />
+                    <>
+                      <RelationshipsPanel
+                        friendIds={set.friend_ids}
+                        enemyIds={set.enemy_ids}
+                        setMap={setMap}
+                        onAdd={() => setAddingRel(true)}
+                        onOpenGraph={() => setTab('relationships')}
+                        onRemove={(sid) => removeRel.mutate(sid)}
+                        removingId={removeRel.isPending ? (removeRel.variables as string | undefined) ?? null : null}
+                      />
+                      <InheritedAllianceRelationships relationships={allianceRels ?? []} />
+                    </>
                   )}
                   {/* Lineage stands on its own: it used to render only beside a
                       relationship graph, so a set with lineage and no allies or
@@ -1191,6 +1197,7 @@ function SetDetailPage() {
                       onRemove={(sid) => removeRel.mutate(sid)}
                       removingId={removeRel.isPending ? (removeRel.variables as string | undefined) ?? null : null}
                     />
+                    <InheritedAllianceRelationships relationships={allianceRels ?? []} />
                     {universe && <LineagePanel setId={set.id} setName={set.name} universeId={universe.id} />}
                   </div>
                 </div>

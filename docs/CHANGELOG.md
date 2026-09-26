@@ -6,6 +6,42 @@ here ships, its line comes out of that file.
 
 ---
 
+## 2026-09-26 - Alliances get allies and enemies of their own
+
+`set_relationships` has a set at both ends, so a war between two blocs could only
+be written from some stand-in set. That is why one alliance, alone among them,
+carried a core set named after itself: it was the only place the bloc's enemies
+could hang, and its war with a rival bloc had to be split into edges from that set
+to the rival's individual sets.
+
+`alliance_relationship` (migration `eccb7ce3c92a`): a FRIEND/ENEMY spell held by an
+alliance, whose far side is another alliance or one set, never both (CHECK on
+`num_nonnulls`). Alliance pairs are stored once in UUID order, by CHECK rather than
+the trigger `set_relationships` uses. One open row per pair by two partial unique
+indexes, `until_date` to end a spell as with sets, and `ON DELETE CASCADE` at both
+ends. `setrelationshiptype` is reused.
+
+- API: `GET/POST /alliances/{id}/relationships`, `POST .../{rid}/end`,
+  `DELETE .../{rid}`, and `GET /sets/{id}/alliance-relationships`, which returns the
+  links naming the set plus the ones its alliance holds, marked `via_alliance_*`.
+  Refused: the alliance itself, a set inside it, a reserved set, another universe,
+  and an open link of the other type (409).
+- UI: an "Allies and enemies" panel on the alliance page with an add dialog that
+  picks from alliances and sets together, and a read-only "Through alliances" panel
+  on the set page. The alliance graph still draws set-to-set edges only.
+- Fix: deleting a set with any `set_relationships`, `set_lineage`, `set_source`,
+  `set_municipality` or `alliance_set` row failed on a foreign key, because none of
+  those cascade. `delete_gang_set` now clears them first.
+- Research CLI: `wiki alliance relate`, with `check` support.
+
+That alliance was then remodelled like every other: the core set deleted, its
+members left on the alliance directly, its outside edges moved up to the alliance
+(two of them merging into one alliance-to-alliance link), its bio, name variants and
+municipality folded into the alliance. Its territory polygon had nowhere to go,
+since an alliance has none, and survives only in the DELETE row of `audit_log`.
+
+---
+
 ## 2026-09-23 - Custody numbers get their own table
 
 A Georgia universe brought numbers the schema had nowhere to put: a GDC ID

@@ -1,5 +1,5 @@
 import { createLazyFileRoute, Link, useNavigate } from '@tanstack/react-router'
-import { GitFork, MoreHorizontal, Network, Pencil, Plus, Search, Shield, Trash2, UserPlus, Users, X } from 'lucide-react'
+import { GitFork, MoreHorizontal, Network, Pencil, Plus, Search, Shield, Swords, Trash2, UserPlus, Users, X } from 'lucide-react'
 import { lazy, Suspense, useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import { Breadcrumbs } from '@/components/Breadcrumbs'
@@ -12,6 +12,7 @@ import { FuzzyDate } from '@/components/FuzzyDate'
 import { MemberAvatar } from '@/components/members/MemberFormSheet'
 import { AddMemberToAllianceDialog } from '@/components/AddMemberToAllianceDialog'
 import { AddSetToAllianceDialog } from '@/components/AddSetToAllianceDialog'
+import { AddAllianceRelationshipDialog, AllianceRelationshipsPanel } from '@/components/alliances/AllianceRelationships'
 import { DetailHeaderSkeleton } from '@/components/skeletons'
 import { AllianceStatusBadge, MemberStatusBadge, SetStatusBadge } from '@/components/StatusBadge'
 import { Button } from '@/components/ui/button'
@@ -19,7 +20,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useEditShortcut } from '@/hooks/useKeymap'
-import { useAlliance, useAllianceIncidents, useAllianceMembers, useAllSets, useDeleteAlliance, useUpdateSet } from '@/lib/queries'
+import { useAlliance, useAllianceIncidents, useAllianceMembers, useAllianceRelationships, useAllSets, useDeleteAlliance, useUpdateSet } from '@/lib/queries'
 import { nonPrimaryVariantsText } from '@/lib/setDisplay'
 import { MEMBER_STATUS_CHIP_ACTIVE, MEMBER_STATUS_DOT, MEMBER_STATUS_ORDER } from '@/lib/statusColors'
 import type { FuzzyDateValue } from '@/components/FuzzyDate'
@@ -91,6 +92,7 @@ function AllianceDetailPage() {
   // Sub-resources are typed by UUID and 422 on a slug, so they wait for the id.
   const { data: members, isLoading: membersLoading } = useAllianceMembers(alliance?.id ?? '', universeId)
   const { data: incidents, isLoading: incidentsLoading } = useAllianceIncidents(alliance?.id ?? '', universeId)
+  const { data: relationships } = useAllianceRelationships(alliance?.id ?? null, universeId)
   const deleteAlliance = useDeleteAlliance(universe?.id ?? '')
 
   useRecordRecent(alliance ? { type: 'alliance', id: alliance.id, slug: alliance.slug, label: alliance.name } : null)
@@ -98,6 +100,7 @@ function AllianceDetailPage() {
   const [editing, setEditing] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [addingSet, setAddingSet] = useState(false)
+  const [addingRel, setAddingRel] = useState(false)
   const [creatingSet, setCreatingSet] = useState(false)
   const [addingMember, setAddingMember] = useState(false)
   const [creatingMember, setCreatingMember] = useState(false)
@@ -215,6 +218,7 @@ function AllianceDetailPage() {
                 <DropdownMenuContent align="end">
                   <DropdownMenuItem onClick={() => setAddingSet(true)}><Shield className="mr-2 h-3.5 w-3.5" />Add a set</DropdownMenuItem>
                   <DropdownMenuItem onClick={() => setAddingMember(true)}><UserPlus className="mr-2 h-3.5 w-3.5" />Add a member</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setAddingRel(true)}><Swords className="mr-2 h-3.5 w-3.5" />Add an ally or enemy</DropdownMenuItem>
                   {user?.global_role === 'ADMIN' && (
                     <>
                       <DropdownMenuSeparator />
@@ -409,6 +413,16 @@ function AllianceDetailPage() {
               </section>
               {universe && (
                 <section>
+                  <PanelHeading>Allies and enemies</PanelHeading>
+                  {relationships ? (
+                    <AllianceRelationshipsPanel allianceId={alliance.id} universeId={universe.id} relationships={relationships} onAdd={() => setAddingRel(true)} />
+                  ) : (
+                    <Skeleton className="h-20 w-full" />
+                  )}
+                </section>
+              )}
+              {universe && (
+                <section>
                   <PanelHeading>Photos</PanelHeading>
                   <Suspense fallback={<Skeleton className="h-32 w-full" />}>
                     <PhotoGallery entityType="alliance" entityId={alliance.id} universeId={universe.id} />
@@ -430,6 +444,10 @@ function AllianceDetailPage() {
           {universe && addingSet && (
             <AddSetToAllianceDialog allianceId={alliance.id} allianceName={alliance.name} universeId={universe.id} currentSetIds={alliance.set_ids}
               open onClose={() => setAddingSet(false)} onCreateNew={() => { setAddingSet(false); setCreatingSet(true) }} />
+          )}
+          {universe && addingRel && (
+            <AddAllianceRelationshipDialog allianceId={alliance.id} allianceName={alliance.name} universeId={universe.id}
+              existing={relationships ?? []} open onClose={() => setAddingRel(false)} />
           )}
           {universe && creatingSet && (
             <SetFormSheet universeId={universe.id} open onClose={() => setCreatingSet(false)} defaultAllianceId={alliance.id} />

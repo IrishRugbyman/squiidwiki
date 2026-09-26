@@ -3,6 +3,7 @@ import type { QueryClient } from '@tanstack/react-query'
 import { api } from './api'
 import type {
   AllianceListItem,
+  AllianceRelationshipItem,
   AllianceRead,
   AllianceReadDetail,
   AuditLogRead,
@@ -36,6 +37,7 @@ import type {
   SetRead,
   SetReadDetail,
   SetReadDetailFull,
+  SetRelationshipType,
   SetTerritoryPolygon,
   SourceListItem,
   SourceRead,
@@ -521,6 +523,57 @@ export const useDeleteAlliance = (universeId: UUID) => {
       qc.invalidateQueries({ queryKey: ['sets'] })
       qc.invalidateQueries({ queryKey: ['members'] })
     },
+  })
+}
+
+// ─── Alliance relationships ───────────────────────────────────────────────────
+//
+// An alliance's own allies and enemies: other alliances, or single sets. A set
+// reads them too, both those naming it and those its alliance holds, so every
+// write invalidates the set side as well.
+
+export const useAllianceRelationships = (allianceId: UUID | null, universeId: UUID | null) =>
+  useQuery({
+    queryKey: ['alliances', allianceId, 'relationships'],
+    enabled: !!allianceId && !!universeId,
+    queryFn: () =>
+      api.get<AllianceRelationshipItem[]>(`/alliances/${allianceId}/relationships?universe_id=${universeId}`),
+  })
+
+export const useSetAllianceRelationships = (setId: UUID | null, universeId: UUID | null) =>
+  useQuery({
+    queryKey: ['sets', setId, 'alliance-relationships'],
+    enabled: !!setId && !!universeId,
+    queryFn: () =>
+      api.get<AllianceRelationshipItem[]>(`/sets/${setId}/alliance-relationships?universe_id=${universeId}`),
+  })
+
+function invalidateAllianceRelationships(qc: QueryClient) {
+  qc.invalidateQueries({ queryKey: ['alliances'] })
+  qc.invalidateQueries({ queryKey: ['sets'] })
+}
+
+export const useAddAllianceRelationship = (allianceId: UUID, universeId: UUID) => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (body: {
+      target_alliance_id?: UUID
+      target_set_id?: UUID
+      type: SetRelationshipType
+      from_date?: unknown
+    }) => api.post<AllianceRelationshipItem>(`/alliances/${allianceId}/relationships?universe_id=${universeId}`, body),
+    // No optimistic write: the server refuses a set inside this alliance and an
+    // open link of the other type, and a row painted in first would then vanish.
+    onSettled: () => invalidateAllianceRelationships(qc),
+  })
+}
+
+export const useDeleteAllianceRelationship = (allianceId: UUID, universeId: UUID) => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (relationshipId: UUID) =>
+      api.delete(`/alliances/${allianceId}/relationships/${relationshipId}?universe_id=${universeId}`),
+    onSettled: () => invalidateAllianceRelationships(qc),
   })
 }
 

@@ -1,5 +1,10 @@
 # Import order matters: tables must be defined before tables that reference them.
-from app.models.alliance import Alliance, AllianceMunicipality, AllianceSet
+from app.models.alliance import (
+    Alliance,
+    AllianceMunicipality,
+    AllianceRelationship,
+    AllianceSet,
+)
 from app.models.auth import AuditLog, User, UserUniverseAccess
 from app.models.business import Business, BusinessMember, BusinessSet, BusinessSource
 from app.models.gang import Gang
@@ -34,6 +39,7 @@ __all__ = [
     "Gang",
     "Alliance",
     "AllianceMunicipality",
+    "AllianceRelationship",
     "AllianceSet",
     "Business",
     "BusinessMember",

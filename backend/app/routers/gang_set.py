@@ -10,6 +10,7 @@ from app.core.csv_export import to_csv_response
 from app.core.database import get_session
 from app.core.enums import GlobalRole, SetStatus
 from app.core.etag import check_etag, make_etag
+from app.crud import alliance as alliance_crud
 from app.crud import gang_set as crud
 from app.crud.gang_set import get_gang_set_by_slug
 from app.crud.incident import get_set_stats
@@ -18,6 +19,7 @@ from app.models.alliance import Alliance
 from app.models.gang import Gang
 from app.models.member import Member
 from app.models.municipality import Municipality
+from app.schemas.alliance import AllianceRelationshipItem
 from app.schemas.common import OffsetPage
 from app.schemas.gang_set import (
     IncidentsPerYear,
@@ -409,6 +411,27 @@ async def remove_relationship(
     ok = await crud.remove_set_relationship(session, id, target_id, universe_id)
     if not ok:
         raise HTTPException(404)
+
+
+@router.get("/{id}/alliance-relationships", response_model=list[AllianceRelationshipItem])
+async def get_alliance_relationships(
+    id: uuid.UUID,
+    universe_id: uuid.UUID,
+    _: CurrentUser,
+    session: Annotated[AsyncSession, Depends(get_session)],
+    include_ended: bool = False,
+):
+    """Alliance-level links bearing on this set.
+
+    Alliances that name this set as an ally or enemy, and the links its own
+    alliance holds, which the set inherits (`via_alliance_*` says so).
+    """
+    obj = await crud.get_gang_set(session, id, universe_id)
+    if obj is None:
+        raise HTTPException(404)
+    return await alliance_crud.list_set_alliance_relationships(
+        session, id, obj.alliance_id, include_ended=include_ended
+    )
 
 
 @router.get("/{id}/relationships/history", response_model=list[SetRelationshipHistoryItem])

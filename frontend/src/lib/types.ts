@@ -351,6 +351,26 @@ export interface SetRelationshipHistoryItem {
   is_current: boolean
 }
 
+/**
+ * An alliance-level ally or enemy, read from one entity's side. `other_*` is the
+ * far side, an alliance or a single set. `via_alliance_*` is set only on a set's
+ * view of a link its alliance holds.
+ */
+export interface AllianceRelationshipItem {
+  id: UUID
+  type: SetRelationshipType
+  other_kind: 'alliance' | 'set'
+  other_id: UUID
+  other_name: string
+  other_slug: string | null
+  via_alliance_id?: UUID | null
+  via_alliance_name?: string | null
+  via_alliance_slug?: string | null
+  from_date: FuzzyDateValue | null
+  until_date: FuzzyDateValue | null
+  is_current: boolean
+}
+
 export interface MemberListItem {
   id: UUID
   display_name: string

@@ -17,6 +17,9 @@ from app.schemas.alliance import (
     AllianceListItem,
     AllianceRead,
     AllianceReadDetail,
+    AllianceRelationshipCreate,
+    AllianceRelationshipEnd,
+    AllianceRelationshipItem,
     AllianceUpdate,
 )
 from app.schemas.common import CursorPage, OffsetPage
@@ -153,3 +156,69 @@ async def list_alliance_incidents(
     # shooter names and the city came back empty.
     items = await incident_crud.enrich_participant_names(session, items)
     return CursorPage(items=items, next_cursor=None, total=len(items))
+
+
+@router.get("/{id}/relationships", response_model=list[AllianceRelationshipItem])
+async def list_alliance_relationships(
+    id: uuid.UUID,
+    universe_id: uuid.UUID,
+    _: CurrentUser,
+    session: Annotated[AsyncSession, Depends(get_session)],
+    include_ended: bool = False,
+):
+    """The alliance's own allies and enemies: other alliances and single sets."""
+    if await crud.get_alliance(session, id, universe_id) is None:
+        raise HTTPException(404)
+    return await crud.list_alliance_relationships(session, id, include_ended=include_ended)
+
+
+@router.post("/{id}/relationships", response_model=AllianceRelationshipItem, status_code=201)
+async def add_alliance_relationship(
+    id: uuid.UUID,
+    universe_id: uuid.UUID,
+    data: AllianceRelationshipCreate,
+    _: CurrentUser,
+    session: Annotated[AsyncSession, Depends(get_session)],
+):
+    """Record that this alliance is allied with, or at war with, an alliance or a set."""
+    if await crud.get_alliance(session, id, universe_id) is None:
+        raise HTTPException(404)
+    row = await crud.add_alliance_relationship(session, id, universe_id, data)
+    for item in await crud.list_alliance_relationships(session, id, include_ended=False):
+        if item["id"] == row.id:
+            return item
+    raise HTTPException(500, detail="relationship row vanished after write")
+
+
+@router.post("/{id}/relationships/{relationship_id}/end", status_code=204)
+async def end_alliance_relationship(
+    id: uuid.UUID,
+    relationship_id: uuid.UUID,
+    universe_id: uuid.UUID,
+    data: AllianceRelationshipEnd,
+    _: CurrentUser,
+    session: Annotated[AsyncSession, Depends(get_session)],
+):
+    """Record that the link ended, keeping the spell as history."""
+    if await crud.get_alliance(session, id, universe_id) is None:
+        raise HTTPException(404)
+    ok = await crud.end_alliance_relationship(
+        session, id, relationship_id, data.until_date.model_dump() if data.until_date else None
+    )
+    if not ok:
+        raise HTTPException(404, detail="No open relationship with that id for this alliance")
+
+
+@router.delete("/{id}/relationships/{relationship_id}", status_code=204)
+async def delete_alliance_relationship(
+    id: uuid.UUID,
+    relationship_id: uuid.UUID,
+    universe_id: uuid.UUID,
+    _: CurrentUser,
+    session: Annotated[AsyncSession, Depends(get_session)],
+):
+    """Delete a link entered in error. Use /end when the relationship really ended."""
+    if await crud.get_alliance(session, id, universe_id) is None:
+        raise HTTPException(404)
+    if not await crud.delete_alliance_relationship(session, id, relationship_id):
+        raise HTTPException(404)

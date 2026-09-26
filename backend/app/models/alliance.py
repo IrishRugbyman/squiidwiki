@@ -2,11 +2,11 @@ import uuid
 from datetime import UTC, datetime
 
 import sqlalchemy as sa
-from sqlalchemy import Column, DateTime
+from sqlalchemy import CheckConstraint, Column, DateTime
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlmodel import Field, SQLModel
 
-from app.core.enums import AllianceStatus
+from app.core.enums import AllianceStatus, SetRelationshipType
 
 
 # M2M join tables
@@ -44,3 +44,70 @@ class Alliance(SQLModel, table=True):
         sa_type=DateTime(timezone=True), default_factory=lambda: datetime.now(UTC)
     )
     created_by_id: uuid.UUID | None = Field(default=None, foreign_key="users.id")
+
+
+class AllianceRelationship(SQLModel, table=True):
+    """Friend/enemy link held by a whole alliance, over one period of time.
+
+    The far side is either another alliance or a single set, never both. A
+    bloc's wars are rarely clique-by-clique: one bloc against another is one fact
+    about two alliances, and recording it as an edge between every pair of their
+    sets would claim far more than any source says. `set_relationships` cannot
+    hold it, since both its ends are sets.
+
+    Alliance-to-alliance rows are stored once, `alliance_id < other_alliance_id`,
+    as `set_relationships` does for sets; an alliance-to-set row always has the
+    alliance in `alliance_id`. Like a set link, the *current* row is the one with
+    `until_date IS NULL`, one per pair, and ending a link sets `until_date`
+    rather than deleting the row. Unlike `set_relationships`, both ends cascade:
+    a link to a deleted entity has nothing left to say.
+    """
+
+    __tablename__ = "alliance_relationship"
+    __table_args__ = (
+        CheckConstraint(
+            "num_nonnulls(other_alliance_id, other_set_id) = 1",
+            name="ck_alliance_relationship_one_target",
+        ),
+        CheckConstraint(
+            "other_alliance_id IS NULL OR alliance_id < other_alliance_id",
+            name="ck_alliance_relationship_ordering",
+        ),
+        sa.Index(
+            "uq_alliance_relationship_current_alliance",
+            "alliance_id",
+            "other_alliance_id",
+            unique=True,
+            postgresql_where=sa.text("until_date IS NULL AND other_alliance_id IS NOT NULL"),
+        ),
+        sa.Index(
+            "uq_alliance_relationship_current_set",
+            "alliance_id",
+            "other_set_id",
+            unique=True,
+            postgresql_where=sa.text("until_date IS NULL AND other_set_id IS NOT NULL"),
+        ),
+    )
+
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    alliance_id: uuid.UUID = Field(
+        sa_column=Column(
+            sa.Uuid(), sa.ForeignKey("alliance.id", ondelete="CASCADE"), nullable=False, index=True
+        )
+    )
+    other_alliance_id: uuid.UUID | None = Field(
+        default=None,
+        sa_column=Column(
+            sa.Uuid(), sa.ForeignKey("alliance.id", ondelete="CASCADE"), nullable=True, index=True
+        ),
+    )
+    other_set_id: uuid.UUID | None = Field(
+        default=None,
+        sa_column=Column(
+            sa.Uuid(), sa.ForeignKey("sets.id", ondelete="CASCADE"), nullable=True, index=True
+        ),
+    )
+    relationship_type: SetRelationshipType
+    # none_as_null is load-bearing: see the note on MemberSet.until_date.
+    from_date: dict | None = Field(default=None, sa_column=Column(JSONB(none_as_null=True)))
+    until_date: dict | None = Field(default=None, sa_column=Column(JSONB(none_as_null=True)))

@@ -5,16 +5,22 @@ from typing import Literal
 
 import sqlalchemy as sa
 from fastapi import HTTPException, status
-from sqlalchemy import case
+from sqlalchemy import case, delete
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import func, select
 
 from app.core.enums import SetRelationshipType, SetStatus
 from app.core.fuzzy_date import FuzzyDate
 from app.core.slug import slugify
-from app.models.alliance import Alliance
+from app.models.alliance import Alliance, AllianceSet
 from app.models.gang import Gang
-from app.models.gang_set import GangSet, SetLineage, SetMunicipality, SetRelationship
+from app.models.gang_set import (
+    GangSet,
+    SetLineage,
+    SetMunicipality,
+    SetRelationship,
+    SetSource,
+)
 from app.models.member import Member, MemberSet
 from app.models.municipality import Municipality
 from app.schemas.gang_set import SetCreate, SetLineageCreate, SetUpdate
@@ -407,6 +413,20 @@ async def delete_gang_set(session: AsyncSession, id: uuid.UUID, universe_id: uui
             status_code=status.HTTP_409_CONFLICT,
             detail="Reserved sets (Civilian, Police, Unknown) cannot be deleted.",
         )
+    # These join tables reference sets without ON DELETE, so any row in them
+    # blocked the delete with a foreign-key error. The rest (member_set, media,
+    # business_set, incident_set_participant, alliance_relationship) cascade.
+    await session.execute(
+        delete(SetRelationship).where(
+            (SetRelationship.set_a_id == id) | (SetRelationship.set_b_id == id)
+        )
+    )
+    await session.execute(
+        delete(SetLineage).where((SetLineage.parent_id == id) | (SetLineage.child_id == id))
+    )
+    await session.execute(delete(SetSource).where(SetSource.set_id == id))
+    await session.execute(delete(SetMunicipality).where(SetMunicipality.set_id == id))
+    await session.execute(delete(AllianceSet).where(AllianceSet.set_id == id))
     await session.delete(obj)
     await session.commit()
     return True
