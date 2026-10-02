@@ -82,30 +82,19 @@ export function IncidentPeople({ inc }: { inc: IncidentListItem }) {
   )
 }
 
-/** Marks a row that lives in another universe than the one on screen: an Ohio
- *  shooting on a Michigan member's page ("in Ohio"), or a Michigan participant
- *  on an Ohio incident ("from Michigan"). Rows of the current universe carry no
- *  chip, so the chip says where the row is from, with an arrow when following
- *  the row's link switches the whole app to that universe. */
-export function UniverseChip({ slug, relation = 'in', opensThere = true }: {
-  slug: string | null | undefined
-  /** "in" for an incident recorded elsewhere, "from" for a person who lives elsewhere. */
-  relation?: 'in' | 'from'
-  /** False where the chip sits outside a link, as in the incident form. */
-  opensThere?: boolean
-}) {
+/** Marks an incident recorded in another universe than the page's: an Ohio
+ *  shooting on a Michigan set's or member's page reads "in Ohio", with an arrow
+ *  because following the row switches the app to that universe. Incidents of
+ *  the page's own universe carry no chip. */
+export function UniverseChip({ slug }: { slug: string | null | undefined }) {
   const active = useUniverseStore((s) => s.activeUniverse?.slug)
   const { data } = useUniverses()
   if (!slug || slug === active) return null
   const name = (data?.items ?? []).find((u) => u.slug === slug)?.name ?? slug
-  const where = relation === 'in' ? `Recorded in ${name}` : `A member of ${name}`
   return (
-    <span
-      className="inline-flex shrink-0 items-center gap-0.5 rounded-full border border-sky-800/60 bg-sky-950/40 px-1.5 py-0.5 text-[10px] font-medium leading-none text-sky-300"
-      title={opensThere ? `${where}; opens there` : where}
-    >
-      {relation} {name}
-      {opensThere && <ArrowUpRight className="h-2.5 w-2.5" aria-hidden />}
+    <span className="inline-flex shrink-0 items-center gap-0.5 rounded-full border border-sky-800/60 bg-sky-950/40 px-1.5 py-0.5 text-[10px] font-medium leading-none text-sky-300">
+      in {name}
+      <ArrowUpRight className="h-2.5 w-2.5" aria-hidden />
     </span>
   )
 }

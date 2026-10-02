@@ -2,7 +2,7 @@ import { createLazyFileRoute, Link, useNavigate } from '@tanstack/react-router'
 import { CheckCircle2, ExternalLink, FileText, MapPin, MoreHorizontal, Pencil, Plus, Trash2, UserPlus, Users } from 'lucide-react'
 import { lazy, Suspense, useState } from 'react'
 import { Breadcrumbs } from '@/components/Breadcrumbs'
-import { DetailRow, PanelHeading, UniverseChip } from '@/components/detail/DetailParts'
+import { DetailRow, PanelHeading } from '@/components/detail/DetailParts'
 import { paramsIn } from '@/lib/universeRoutes'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { CopyButton } from '@/components/CopyButton'
@@ -84,7 +84,6 @@ function ParticipantRow({ p }: { p: ParticipantRead }) {
           ) : (
             <span className="text-sm font-medium text-zinc-400">{name}</span>
           )}
-          <UniverseChip slug={p.member_universe_slug} relation="from" />
           {p.member_status && (
             <span className="inline-flex items-center gap-1 text-[11px] text-zinc-400" title="Status now">
               <span className={`h-1.5 w-1.5 rounded-full ${MEMBER_STATUS_DOT[p.member_status]}`} aria-hidden />

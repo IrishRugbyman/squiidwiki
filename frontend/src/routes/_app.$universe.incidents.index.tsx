@@ -42,7 +42,6 @@ import { textParam } from '@/lib/searchParams'
 import type { FuzzyDateValue } from '@/components/FuzzyDate'
 import type { IncidentListItem, IncidentReadDetail, IncidentType, MemberListItem, ParticipantOutcome, ParticipantRole, SetListItem, UUID } from '@/lib/types'
 import { useUniverseStore } from '@/stores/universe'
-import { UniverseChip } from '@/components/detail/DetailParts'
 import { participantDrafts, participantPayload, setParticipantDrafts } from '@/lib/incidentDraft'
 import type { ParticipantDraft, SetParticipantDraft } from '@/lib/incidentDraft'
 
@@ -305,7 +304,6 @@ function ParticipantsSection({ universeId, participants, onChangeParticipants, s
             <div key={p.member_id} className="flex items-center justify-between rounded border border-zinc-800 px-2.5 py-1.5 text-sm gap-2">
               <span className="min-w-0 flex items-baseline gap-1.5 truncate">
                 <span className="text-zinc-200 truncate">{p.member_name}</span>
-                <UniverseChip slug={p.universe_slug} relation="from" opensThere={false} />
                 {memberSetNameById[p.member_id] && (
                   <span className="text-[10px] text-zinc-400 truncate">· {memberSetNameById[p.member_id]}</span>
                 )}
