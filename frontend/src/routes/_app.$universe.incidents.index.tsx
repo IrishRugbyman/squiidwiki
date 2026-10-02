@@ -305,7 +305,7 @@ function ParticipantsSection({ universeId, participants, onChangeParticipants, s
             <div key={p.member_id} className="flex items-center justify-between rounded border border-zinc-800 px-2.5 py-1.5 text-sm gap-2">
               <span className="min-w-0 flex items-baseline gap-1.5 truncate">
                 <span className="text-zinc-200 truncate">{p.member_name}</span>
-                <UniverseChip slug={p.universe_slug} />
+                <UniverseChip slug={p.universe_slug} relation="from" opensThere={false} />
                 {memberSetNameById[p.member_id] && (
                   <span className="text-[10px] text-zinc-400 truncate">· {memberSetNameById[p.member_id]}</span>
                 )}

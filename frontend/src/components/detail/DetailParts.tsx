@@ -1,4 +1,5 @@
 import { Link } from '@tanstack/react-router'
+import { ArrowUpRight } from 'lucide-react'
 import { FuzzyDate } from '@/components/FuzzyDate'
 import { INCIDENT_TYPE_ICON, INCIDENT_TYPE_TILE } from '@/lib/incidentColors'
 import { useUniverses } from '@/lib/queries'
@@ -81,17 +82,30 @@ export function IncidentPeople({ inc }: { inc: IncidentListItem }) {
   )
 }
 
-/** Names the universe a linked row lives in, when it is not the one on screen:
- *  an Ohio shooting on a Michigan member's page, or a participant from elsewhere.
- *  Renders nothing for the current universe, which is every row but those. */
-export function UniverseChip({ slug }: { slug: string | null | undefined }) {
+/** Marks a row that lives in another universe than the one on screen: an Ohio
+ *  shooting on a Michigan member's page ("in Ohio"), or a Michigan participant
+ *  on an Ohio incident ("from Michigan"). Rows of the current universe carry no
+ *  chip, so the chip says where the row is from, with an arrow when following
+ *  the row's link switches the whole app to that universe. */
+export function UniverseChip({ slug, relation = 'in', opensThere = true }: {
+  slug: string | null | undefined
+  /** "in" for an incident recorded elsewhere, "from" for a person who lives elsewhere. */
+  relation?: 'in' | 'from'
+  /** False where the chip sits outside a link, as in the incident form. */
+  opensThere?: boolean
+}) {
   const active = useUniverseStore((s) => s.activeUniverse?.slug)
   const { data } = useUniverses()
   if (!slug || slug === active) return null
   const name = (data?.items ?? []).find((u) => u.slug === slug)?.name ?? slug
+  const where = relation === 'in' ? `Recorded in ${name}` : `A member of ${name}`
   return (
-    <span className="inline-flex shrink-0 items-center rounded-full border border-sky-800/60 bg-sky-950/40 px-1.5 py-0.5 text-[10px] font-medium leading-none text-sky-300" title={`Recorded in ${name}`}>
-      {name}
+    <span
+      className="inline-flex shrink-0 items-center gap-0.5 rounded-full border border-sky-800/60 bg-sky-950/40 px-1.5 py-0.5 text-[10px] font-medium leading-none text-sky-300"
+      title={opensThere ? `${where}; opens there` : where}
+    >
+      {relation} {name}
+      {opensThere && <ArrowUpRight className="h-2.5 w-2.5" aria-hidden />}
     </span>
   )
 }

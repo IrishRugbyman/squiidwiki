@@ -84,7 +84,7 @@ function ParticipantRow({ p }: { p: ParticipantRead }) {
           ) : (
             <span className="text-sm font-medium text-zinc-400">{name}</span>
           )}
-          <UniverseChip slug={p.member_universe_slug} />
+          <UniverseChip slug={p.member_universe_slug} relation="from" />
           {p.member_status && (
             <span className="inline-flex items-center gap-1 text-[11px] text-zinc-400" title="Status now">
               <span className={`h-1.5 w-1.5 rounded-full ${MEMBER_STATUS_DOT[p.member_status]}`} aria-hidden />
