@@ -73,7 +73,7 @@ export function MemberTimeline({ incidents, dob, dateOfDeath }: MemberTimelinePr
             <Tooltip key={inc.id}>
               <TooltipTrigger asChild>
                 <Link
-                  to="/incidents/$id"
+                  from="/$universe" to="/$universe/incidents/$id"
                   params={{ id: inc.id }}
                   className="absolute top-1/2 -translate-x-1/2 -translate-y-1/2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/50 rounded-full"
                   style={{ left: `${pct(t)}%` }}

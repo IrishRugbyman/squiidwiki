@@ -1,4 +1,5 @@
 import { useEffect } from 'react'
+import { useUniverseStore } from '@/stores/universe'
 import { useNavigate } from '@tanstack/react-router'
 
 type Handler = (e: KeyboardEvent) => void
@@ -29,17 +30,17 @@ export interface GoToShortcut {
 }
 
 export const GO_TO_SHORTCUTS: GoToShortcut[] = [
-  { keys: 'g d', to: '/', label: 'Dashboard' },
-  { keys: 'g s', to: '/sets', label: 'Sets' },
-  { keys: 'g a', to: '/alliances', label: 'Alliances' },
-  { keys: 'g m', to: '/members', label: 'Members' },
-  { keys: 'g i', to: '/incidents', label: 'Incidents' },
-  { keys: 'g r', to: '/sources', label: 'Sources' },
-  { keys: 'g p', to: '/municipalities', label: 'Municipalities' },
-  { keys: 'g x', to: '/map', label: 'Map' },
-  { keys: 'g c', to: '/calendar', label: 'Calendar' },
-  { keys: 'g t', to: '/timeline', label: 'Timeline' },
-  { keys: 'g n', to: '/research', label: 'Research' },
+  { keys: 'g d', to: '/$universe', label: 'Dashboard' },
+  { keys: 'g s', to: '/$universe/sets', label: 'Sets' },
+  { keys: 'g a', to: '/$universe/alliances', label: 'Alliances' },
+  { keys: 'g m', to: '/$universe/members', label: 'Members' },
+  { keys: 'g i', to: '/$universe/incidents', label: 'Incidents' },
+  { keys: 'g r', to: '/$universe/sources', label: 'Sources' },
+  { keys: 'g p', to: '/$universe/municipalities', label: 'Municipalities' },
+  { keys: 'g x', to: '/$universe/map', label: 'Map' },
+  { keys: 'g c', to: '/$universe/calendar', label: 'Calendar' },
+  { keys: 'g t', to: '/$universe/timeline', label: 'Timeline' },
+  { keys: 'g n', to: '/$universe/research', label: 'Research' },
 ]
 
 // Shared so single-key shortcuts (like `e`) can ignore presses inside the `g`-prefix window.
@@ -60,9 +61,12 @@ export function useGoToNavigation() {
       if (Date.now() - lastGPressed > 800) return
 
       const target = GO_TO_SHORTCUTS.find((s) => s.keys === `g ${e.key}`)
-      if (target) {
+      // Every target is a section of a universe; with none chosen there is
+      // nowhere to go, so the keys fall through.
+      const universe = useUniverseStore.getState().activeUniverse?.slug
+      if (target && universe) {
         e.preventDefault()
-        navigate({ to: target.to })
+        navigate({ to: target.to, params: { universe } })
         lastGPressed = 0
       }
     }

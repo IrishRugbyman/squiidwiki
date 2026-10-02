@@ -23,7 +23,7 @@ import { currentAffiliations } from '@/lib/utils'
 import { normalizeHandle, splitSocial, SOCIAL_BASE, type SocialMap, type SocialPlatform } from '@/lib/social'
 import { memberStatusFromMdoc } from '@/lib/mdoc'
 import { UrlPasteBanner, useUrlPasteBanner } from '@/components/UrlPasteBanner'
-import { SourceFormSheet } from '@/routes/_app.sources.index'
+import { SourceFormSheet } from '@/routes/_app.$universe.sources.index'
 import type { MdocProfile, MdocSpell, MemberListItem, MemberRead, MemberStatus, SetRank } from '@/lib/types'
 import type { FuzzyDateValue } from '@/components/FuzzyDate'
 import { AffiliationCombobox, type ComboboxItem } from './pickers/AffiliationCombobox'
@@ -380,7 +380,7 @@ interface MemberFormProps {
  * Seeded from props at mount and never resynced, so one mounted sheet reused
  * for a second member kept the first's values in any field the second leaves
  * empty - and saving wrote them. Keying on the target forces a fresh instance.
- * See SetFormSheet in routes/_app.sets.index.tsx for the full note.
+ * See SetFormSheet in routes/_app.$universe.sets.index.tsx for the full note.
  */
 export function MemberFormSheet(props: MemberFormProps) {
   return <MemberFormSheetInner key={props.initial?.id ?? props.copyFrom?.id ?? 'new'} {...props} />

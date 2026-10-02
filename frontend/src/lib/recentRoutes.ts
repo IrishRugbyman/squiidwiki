@@ -13,13 +13,13 @@ export const RECENT_ICON: Record<RecentEntityType, LucideIcon> = {
 }
 
 export const RECENT_ROUTE = {
-  member: '/members',
-  set: '/sets',
-  alliance: '/alliances',
-  incident: '/incidents',
-  source: '/sources',
-  municipality: '/municipalities',
-  research: '/research',
+  member: '/$universe/members',
+  set: '/$universe/sets',
+  alliance: '/$universe/alliances',
+  incident: '/$universe/incidents',
+  source: '/$universe/sources',
+  municipality: '/$universe/municipalities',
+  research: '/$universe/research',
 } as const satisfies Record<RecentEntityType, string>
 
 /** The typed detail route for a recent entry, for `<Link to params>`. */

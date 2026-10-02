@@ -9,13 +9,16 @@ import type {
   AuditLogRead,
   CursorPage,
   GangListItem,
+  GangDetail,
   GangRead,
+  GangWrite,
   GlobalRole,
   IncidentListItem,
   IncidentRead,
   IncidentReadDetail,
   MdocProfile,
   MediaEntityType,
+  MunicipalityKind,
   MediaWithUrls,
   MemberAliasRead,
   MemberIncarcerationRead,
@@ -50,12 +53,15 @@ import type {
 
 // ─── Universe ────────────────────────────────────────────────────────────────
 
-export const useUniverses = () =>
-  useQuery({
-    queryKey: ['universes'],
-    queryFn: () => api.get<OffsetPage<{ id: UUID; name: string; slug: string }>>('/universes/'),
-    staleTime: 60_000,
-  })
+// Shared by the hook and by the `$universe` route, which resolves the slug in
+// the URL before any page under it renders.
+export const universesQueryOptions = {
+  queryKey: ['universes'] as const,
+  queryFn: () => api.get<OffsetPage<{ id: UUID; name: string; slug: string }>>('/universes/'),
+  staleTime: 60_000,
+}
+
+export const useUniverses = () => useQuery(universesQueryOptions)
 
 export const useCreateUniverse = () => {
   const qc = useQueryClient()
@@ -590,19 +596,21 @@ export const useGangs = (universeId: UUID | null) =>
 export const useCreateGang = (universeId: UUID) => {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (body: { name: string; aliases?: string[] | null; description?: string | null; color?: string | null }) =>
+    mutationFn: (body: GangWrite & { name: string }) =>
       api.post<GangRead>('/gangs/', { universe_id: universeId, ...body }),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['gangs', universeId] }) },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['gangs'] }) },
   })
 }
 
 export const useUpdateGang = (universeId: UUID) => {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: ({ id, ...body }: { id: UUID; name?: string; aliases?: string[] | null; description?: string | null; color?: string | null }) =>
+    mutationFn: ({ id, ...body }: GangWrite & { id: UUID }) =>
       api.patch<GangRead>(`/gangs/${id}?universe_id=${universeId}`, body),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['gangs', universeId] })
+      // Prefix match: the list and every gang page (a branch's page shows its
+      // parent's name and colours).
+      qc.invalidateQueries({ queryKey: ['gangs'] })
       // Sets carry denormalized gang_color — re-fetch so avatars/map repaint.
       qc.invalidateQueries({ queryKey: ['sets'] })
       qc.invalidateQueries({ queryKey: ['set-territory-polygons'] })
@@ -614,9 +622,20 @@ export const useDeleteGang = (universeId: UUID) => {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: (id: UUID) => api.delete(`/gangs/${id}?universe_id=${universeId}`),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['gangs', universeId] }) },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['gangs'] })
+      // Sets lose the card, or promote their next gang to primary.
+      qc.invalidateQueries({ queryKey: ['sets'] })
+    },
   })
 }
+
+export const useGangDetail = (idOrSlug: string, universeId: UUID | null) =>
+  useQuery({
+    queryKey: ['gangs', 'detail', universeId, idOrSlug],
+    queryFn: () => api.get<GangDetail>(`/gangs/${idOrSlug}/detail?universe_id=${universeId}`),
+    enabled: !!universeId && !!idOrSlug,
+  })
 
 // ─── Members ──────────────────────────────────────────────────────────────────
 
@@ -1192,15 +1211,18 @@ export const useMunicipalities = (universeId: UUID | null) =>
  *     undefined → all municipalities with geometry
  *     'top'     → only top-level (parent_id IS NULL)
  *     UUID      → only children of that municipality
+ *   kind: with a UUID filter, only children of that kind. Districts and
+ *     neighborhoods overlap, so a map asks for one of them at a time.
  */
 export const useMunicipalityGeoJSON = (
   universeId: UUID | null,
   parentFilter?: 'top' | UUID,
+  kind?: Exclude<MunicipalityKind, 'CITY'>,
 ) =>
   useQuery({
-    queryKey: ['municipalities', universeId, 'geojson', parentFilter ?? 'all'],
+    queryKey: ['municipalities', universeId, 'geojson', parentFilter ?? 'all', kind ?? 'any'],
     queryFn: () => {
-      const qp = parentFilter ? `&parent_id=${parentFilter}` : ''
+      const qp = (parentFilter ? `&parent_id=${parentFilter}` : '') + (kind ? `&kind=${kind}` : '')
       return api.get<MunicipalityGeoJSON>(
         `/municipalities/geojson?universe_id=${universeId}${qp}`,
       )
@@ -1425,6 +1447,7 @@ const mediaEntityField = (entityType: MediaEntityType): string => {
   if (entityType === 'incident') return 'incident_id'
   if (entityType === 'source') return 'source_id'
   if (entityType === 'set') return 'set_id'
+  if (entityType === 'municipality') return 'municipality_id'
   return 'alliance_id'
 }
 

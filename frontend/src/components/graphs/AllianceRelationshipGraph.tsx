@@ -161,7 +161,7 @@ export function AllianceRelationshipGraph({
   const onNodeClick = useCallback(
     (_: React.MouseEvent, node: Node<SetNodeData>) => {
       const id = node.data.slug ?? node.id
-      navigate({ to: '/sets/$id', params: { id } })
+      navigate({ from: '/$universe', to: '/$universe/sets/$id', params: { id } })
     },
     [navigate],
   )

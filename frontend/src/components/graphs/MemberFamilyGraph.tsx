@@ -14,7 +14,7 @@ import { useNavigate } from '@tanstack/react-router'
 import { useQueries } from '@tanstack/react-query'
 import { api } from '@/lib/api'
 import { useMembersByIds } from '@/lib/queries'
-import { familyDictToEntries, ROLE_LABEL, type FamilyRole } from '@/routes/_app.members.index'
+import { familyDictToEntries, ROLE_LABEL, type FamilyRole } from '@/routes/_app.$universe.members.index'
 import type { MemberRead, UUID } from '@/lib/types'
 
 const ROLE_TINT: Record<FamilyRole, string> = {
@@ -209,7 +209,7 @@ export function MemberFamilyGraph({ centerMember, universeId }: MemberFamilyGrap
     (_: React.MouseEvent, node: Node<FamilyNodeData>) => {
       if (node.id === centerMember.id) return
       const id = node.data.slug ?? node.id
-      navigate({ to: '/members/$id', params: { id } })
+      navigate({ from: '/$universe', to: '/$universe/members/$id', params: { id } })
     },
     [navigate, centerMember.id],
   )

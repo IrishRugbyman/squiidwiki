@@ -27,12 +27,13 @@ export type IncidentType =
   | 'EXTORTION'
   | 'KIDNAPPING'
   | 'ROBBERY'
+  | 'CRASH'
 export type ParticipantRole = 'SHOOTER' | 'ASSISTED' | 'BYSTANDER' | 'VICTIM'
 export type ParticipantOutcome = 'KILLED' | 'INJURED' | 'UNHARMED' | 'UNKNOWN'
 export type SourceReliability = 'HIGH' | 'MEDIUM' | 'LOW' | 'UNVERIFIED'
 export type SetRelationshipType = 'FRIEND' | 'ENEMY'
 export type MediaKind = 'R2' | 'EXTERNAL_URL'
-export type MediaEntityType = 'member' | 'incident' | 'source' | 'set' | 'alliance'
+export type MediaEntityType = 'member' | 'incident' | 'source' | 'set' | 'alliance' | 'municipality'
 
 // Universe
 export interface UniverseListItem {
@@ -47,11 +48,26 @@ export interface UniverseRead extends UniverseListItem {
 }
 
 // Municipality
+/**
+ * CITY sits at the top level. DISTRICT partitions its city (Detroit's ZIP
+ * codes); NEIGHBORHOOD is a named area whose outline may overlap districts,
+ * so the two are never drawn on one map layer.
+ */
+export type MunicipalityKind = 'CITY' | 'DISTRICT' | 'NEIGHBORHOOD'
+
 export interface MunicipalityListItem {
   id: UUID
   name: string
   parent_id: UUID | null
   universe_id: UUID
+  kind: MunicipalityKind
+  /** Street names for the place: "The Hole", "Zone 6". */
+  aliases: string[]
+  /** The wider area it is spoken of as part of: "Downriver". */
+  region: string | null
+  /** Latest official count and the year it counts; null where no source covers the place. */
+  population: number | null
+  population_year: number | null
   incident_count: number
   /** Own incidents plus its sub-districts'; equal to incident_count for a district. */
   total_incident_count: number
@@ -61,9 +77,36 @@ export interface MunicipalityListItem {
   has_geometry: boolean
 }
 
+export interface MunicipalitySourceBrief {
+  id: UUID
+  title: string
+  url: string
+  publication: string | null
+  reliability: SourceReliability
+}
+
+/**
+ * The other layer of the same city: for a neighborhood, the districts it lies
+ * in; for a district, the neighborhoods inside it. Computed from the outlines.
+ */
+export interface MunicipalityOverlapBrief {
+  id: UUID
+  name: string
+  kind: MunicipalityKind
+  /** Fraction of the neighborhood's area inside the district. */
+  share_of_neighborhood: number
+  /** Fraction of the district's area inside the neighborhood. */
+  share_of_district: number
+}
+
 export interface MunicipalityRead extends MunicipalityListItem {
   // GeoJSON Polygon or MultiPolygon geometry object, null when not set
   geometry: GeoJSONGeometry | null
+  description: string | null
+  /** Whose count: "US Census Bureau, Vintage 2025 estimates". */
+  population_source: string | null
+  sources: MunicipalitySourceBrief[]
+  overlaps: MunicipalityOverlapBrief[]
 }
 
 export interface GeoJSONGeometry {
@@ -79,6 +122,7 @@ export interface MunicipalityGeoJSONFeature {
     id: string
     name: string
     parent_id: string | null
+    kind: MunicipalityKind
     incident_count: number
     set_count: number
   }
@@ -134,7 +178,11 @@ export interface SourceRead extends SourceListItem {
 }
 
 // Gang
-export interface GangListItem {
+/** The Chicago super-alliance a card rides under: FOLK is the six-pointed star
+ *  (Detroit's "6"), PEOPLE the five-pointed star (the "5"). */
+export type GangNation = 'FOLK' | 'PEOPLE'
+
+export interface GangRead {
   id: UUID
   universe_id: UUID
   name: string
@@ -143,11 +191,76 @@ export interface GangListItem {
   description: string | null
   color: string | null
   color_secondary: string | null
-}
-
-export interface GangRead extends GangListItem {
+  /** The card this one is a branch of (Rollin 60s -> Crips). */
+  parent_id: UUID | null
+  nation: GangNation | null
+  origin: string | null
+  founded_at: FuzzyDateValue | null
+  symbols: string[] | null
+  /** The shared card this gang is an instance of, the same in every universe:
+   *  colours, nation, origin, founding, symbols, parent and national history
+   *  live there. `description` and `aliases` above are this universe's own. */
+  card_id: UUID | null
+  card_slug: string | null
+  card_description: string | null
+  card_aliases: string[] | null
   created_at: string
   updated_at: string
+}
+
+export interface GangListItem extends GangRead {
+  /** Sets claiming the card, as primary or secondary gang. */
+  set_count: number
+  alliance_count: number
+  /** Current members of those sets plus members tagged directly, once each. */
+  member_count: number
+}
+
+export interface GangSummaryRef {
+  id: UUID
+  name: string
+  slug: string | null
+  color: string | null
+  color_secondary: string | null
+}
+
+export interface GangSetItem {
+  id: UUID
+  name: string
+  slug: string | null
+  status: SetStatus
+  /** False when the set claims this card as a second gang. */
+  is_primary: boolean
+  member_count: number
+  municipality_name: string | null
+  alliance_name: string | null
+  alliance_slug: string | null
+  primary_photo_thumb_url: string | null
+}
+
+export interface GangDetail extends GangListItem {
+  parent: GangSummaryRef | null
+  /** Every card above this one, nearest first. */
+  ancestors: GangSummaryRef[]
+  branches: GangListItem[]
+  sets: GangSetItem[]
+  alliances: { id: UUID; name: string; slug: string | null; status: AllianceStatus }[]
+}
+
+/** What the gang form writes. */
+export interface GangWrite {
+  name?: string
+  aliases?: string[] | null
+  description?: string | null
+  color?: string | null
+  color_secondary?: string | null
+  parent_id?: UUID | null
+  nation?: GangNation | null
+  origin?: string | null
+  founded_at?: FuzzyDateValue | null
+  symbols?: string[] | null
+  /** The national history on the shared card. */
+  card_description?: string | null
 }
 
 // Alliance
@@ -187,7 +300,27 @@ export interface NameVariant {
   initials: string | null
   number: string | null
   is_primary: boolean
-  lead?: 'name' | 'initials' | 'number' | null
+  /** The slots shown, in order: one slot, or several (`['initials', 'number']`
+   *  shows "CFP 2400"). Null falls back to name, initials, number. */
+  lead?: NameSlot | NameSlot[] | null
+}
+
+export type NameSlot = 'name' | 'initials' | 'number'
+
+/** One gang a set claims. A set can claim several; the first is the primary,
+ *  mirrored in `gang_id` / `gang_name` / `gang_color`. */
+export interface SetGangSummary {
+  id: UUID
+  name: string
+  slug: string | null
+  color: string | null
+}
+
+/** One alliance a set is in. A set can be in several; the first is the primary. */
+export interface SetAllianceSummary {
+  id: UUID
+  name: string
+  slug: string | null
 }
 
 export interface SetListItem {
@@ -202,9 +335,18 @@ export interface SetListItem {
   universe_id: UUID
   alliance_id: UUID | null
   alliance_name: string | null
+  /** Every alliance, primary first; alliance_id/alliance_name are the primary's.
+   *  Filled on list rows and the detail payload. */
+  alliances?: SetAllianceSummary[]
+  /** Every alliance id, primary first. Filled on single reads. */
+  alliance_ids?: UUID[]
   gang_id: UUID | null
   gang_name: string | null
   gang_color: string | null
+  /** Every gang, primary first. Filled on list rows and the detail payload. */
+  gangs?: SetGangSummary[]
+  /** Every gang id, primary first. Filled on single reads. */
+  gang_ids?: UUID[]
   municipality_id: UUID | null
   municipality_name: string | null
   member_count: number
@@ -219,7 +361,7 @@ export interface SetListItem {
 export interface SetRead extends SetListItem {
   bio: string | null
   founder_id: UUID | null
-  territory_polygon: GeoJSON.Polygon | null
+  territory_polygon: GeoJSON.Polygon | GeoJSON.MultiPolygon | null
   territory_point: { type: 'Point'; coordinates: [number, number] } | null
 }
 
@@ -228,6 +370,7 @@ export interface SetReadDetail extends SetRead {
   friend_ids: UUID[]
   enemy_ids: UUID[]
   lineage: SetLineageItem[]
+  source_ids: UUID[]
 }
 
 /** How a child set came out of a parent set. Always reads child KIND parent. */
@@ -257,10 +400,14 @@ export interface SetTerritoryPolygon {
   status: 'ACTIVE' | 'EXTINCT'
   municipality_id: UUID | null
   alliance_id: UUID | null
+  /** Every alliance, primary first. */
+  alliance_ids?: UUID[]
   gang_id: UUID | null
   gang_color: string | null
   gang_color_secondary: string | null
-  territory_polygon: GeoJSON.Polygon | null
+  /** Main colour of every gang the set claims, primary first. */
+  gang_colors?: string[]
+  territory_polygon: GeoJSON.Polygon | GeoJSON.MultiPolygon | null
   territory_point: { type: 'Point'; coordinates: [number, number] } | null
 }
 
@@ -319,6 +466,7 @@ export interface SetReadDetailFull extends SetReadDetail {
   enemies: SetRelatedSummary[]
   stats: SetStats
   incidents_per_year: IncidentsPerYear[]
+  sources: MunicipalitySourceBrief[]
   lede: string
 }
 
@@ -669,6 +817,7 @@ export interface MediaWithUrls {
   source_id: UUID | null
   set_id: UUID | null
   alliance_id: UUID | null
+  municipality_id: UUID | null
   kind: MediaKind
   r2_key: string | null
   thumb_r2_key: string | null

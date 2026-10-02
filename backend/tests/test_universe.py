@@ -68,3 +68,27 @@ async def test_get_universe_not_found(client: AsyncClient, db_session: AsyncSess
         headers={"Authorization": f"Bearer {token}"},
     )
     assert resp.status_code == 404
+
+
+async def test_universe_slug_cannot_name_a_page(client, db_session):
+    """/members/x must stay an old link, never a universe called "members"."""
+    import uuid as _uuid
+
+    from app.auth.crud import create_user
+    from app.core.enums import GlobalRole
+
+    email = f"admin_{_uuid.uuid4().hex[:8]}@example.com"
+    await create_user(db_session, email, "adminpass", GlobalRole.ADMIN)
+    token = (
+        await client.post("/api/v1/auth/login", json={"email": email, "password": "adminpass"})
+    ).json()["access_token"]
+    h = {"Authorization": f"Bearer {token}"}
+    for slug in ("members", "Sets", "universes", "admin"):
+        resp = await client.post(
+            "/api/v1/universes/", json={"name": f"X {slug}", "slug": slug}, headers=h
+        )
+        assert resp.status_code == 422, (slug, resp.text)
+    ok = await client.post(
+        "/api/v1/universes/", json={"name": "Ok", "slug": f"ok-{_uuid.uuid4().hex[:6]}"}, headers=h
+    )
+    assert ok.status_code == 201, ok.text

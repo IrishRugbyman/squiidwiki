@@ -14,7 +14,7 @@ export const Route = createFileRoute('/_app/audit')({
   component: AuditPage,
 })
 
-const ENTITY_TYPES = ['member', 'set', 'alliance', 'incident', 'source', 'municipality', 'universe']
+const ENTITY_TYPES = ['member', 'sets', 'alliance', 'incident', 'source', 'municipality', 'universe']
 const ACTIONS: AuditAction[] = ['CREATE', 'UPDATE', 'DELETE']
 const PAGE = 100
 

@@ -1,4 +1,4 @@
-import { createFileRoute, Link, Outlet, redirect, useNavigate } from '@tanstack/react-router'
+import { createFileRoute, Link, Outlet, redirect, useNavigate, useRouter } from '@tanstack/react-router'
 import {
   AlertTriangle,
   CalendarDays,
@@ -25,6 +25,7 @@ import { UniverseSwitcher } from '@/components/UniverseSwitcher'
 import { GlobalCommandPalette } from '@/components/GlobalCommandPalette'
 import { useAuthStore, type AuthState } from '@/stores/auth'
 import { useUniverseStore } from '@/stores/universe'
+import { universesQueryOptions } from '@/lib/queries'
 import { useCommandPalette } from '@/stores/commandPalette'
 import { useDbMode, useSetDbMode } from '@/lib/queries'
 import { useQueryClient } from '@tanstack/react-query'
@@ -35,32 +36,44 @@ import { Toaster } from '@/components/ui/sonner'
 import { GO_TO_SHORTCUTS, useGoToNavigation } from '@/hooks/useKeymap'
 
 export const Route = createFileRoute('/_app')({
-  beforeLoad: () => {
+  beforeLoad: async ({ context }) => {
     const token = localStorage.getItem('access_token')
     if (!token) throw redirect({ to: '/login' })
+    // The active universe is persisted in the browser, so it can predate a
+    // rename (the slug every link is built from) or name a universe that is
+    // gone. Reconcile it with the server before anything reads it.
+    const { activeUniverse, setActiveUniverse } = useUniverseStore.getState()
+    if (activeUniverse) {
+      const page = await context.queryClient.fetchQuery(universesQueryOptions)
+      const fresh = page.items.find((u) => u.id === activeUniverse.id)
+      if (!fresh) setActiveUniverse(null)
+      else if (fresh.name !== activeUniverse.name || fresh.slug !== activeUniverse.slug) {
+        setActiveUniverse({ id: fresh.id, name: fresh.name, slug: fresh.slug })
+      }
+    }
   },
   component: AppLayout,
 })
 
 const NAV_ITEMS = [
-  { to: '/', icon: Home, label: 'Dashboard', exact: true },
-  { to: '/sets', icon: Shield, label: 'Sets' },
-  { to: '/alliances', icon: Network, label: 'Alliances' },
-  { to: '/members', icon: Users, label: 'Members' },
-  { to: '/incidents', icon: AlertTriangle, label: 'Incidents' },
-  { to: '/sources', icon: FileText, label: 'Sources' },
-  { to: '/municipalities', icon: MapPin, label: 'Municipalities' },
-  { to: '/map', icon: Map, label: 'Map' },
-  { to: '/calendar', icon: CalendarDays, label: 'Calendar' },
-  { to: '/timeline', icon: Clock, label: 'Timeline' },
-  { to: '/research', icon: NotebookText, label: 'Research' },
+  { to: '/$universe', icon: Home, label: 'Dashboard', exact: true },
+  { to: '/$universe/sets', icon: Shield, label: 'Sets' },
+  { to: '/$universe/alliances', icon: Network, label: 'Alliances' },
+  { to: '/$universe/gangs', icon: Flag, label: 'Gangs' },
+  { to: '/$universe/members', icon: Users, label: 'Members' },
+  { to: '/$universe/incidents', icon: AlertTriangle, label: 'Incidents' },
+  { to: '/$universe/sources', icon: FileText, label: 'Sources' },
+  { to: '/$universe/municipalities', icon: MapPin, label: 'Municipalities' },
+  { to: '/$universe/map', icon: Map, label: 'Map' },
+  { to: '/$universe/calendar', icon: CalendarDays, label: 'Calendar' },
+  { to: '/$universe/timeline', icon: Clock, label: 'Timeline' },
+  { to: '/$universe/research', icon: NotebookText, label: 'Research' },
 ] as const
 
 const ADMIN_NAV_ITEMS = [
   { to: '/universes', icon: Globe, label: 'Universes' },
   { to: '/audit', icon: ScrollText, label: 'Audit Log' },
   { to: '/admin/users', icon: UserCog, label: 'Users' },
-  { to: '/admin/gangs', icon: Flag, label: 'Gangs' },
 ] as const
 
 interface ShortcutGroup {
@@ -104,10 +117,17 @@ function renderKey(keys: string) {
 function DbModeToggle() {
   const { data } = useDbMode()
   const { mutate, isPending } = useSetDbMode()
+  const router = useRouter()
   const mode = data?.mode ?? 'prod'
   return (
     <button
-      onClick={() => { useUniverseStore.getState().setActiveUniverse(null); mutate(mode === 'prod' ? 'test' : 'prod') }}
+      onClick={() => {
+        // The other database has its own universe ids. Clearing the store and
+        // re-running the route's beforeLoad resolves the slug in the URL against
+        // the database now active, or shows "no universe called ..." there.
+        useUniverseStore.getState().setActiveUniverse(null)
+        mutate(mode === 'prod' ? 'test' : 'prod', { onSuccess: () => router.invalidate() })
+      }}
       disabled={isPending}
       className={`mt-2 w-full rounded px-2 py-1 text-left text-[11px] font-semibold tracking-widest transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/50 ${
         mode === 'test'
@@ -120,10 +140,13 @@ function DbModeToggle() {
   )
 }
 
-function NavLink({ to, icon: Icon, label, exact, onClick }: { to: string; icon: typeof Home; label: string; exact?: boolean; onClick?: () => void }) {
+function NavLink({ to, icon: Icon, label, exact, onClick, universe }: { to: string; icon: typeof Home; label: string; exact?: boolean; onClick?: () => void; universe?: string }) {
   return (
     <Link
       to={to}
+      // The sidebar also renders on pages outside a universe (/universes,
+      // /profile), so a section link names its universe rather than inheriting it.
+      params={universe ? { universe } : undefined}
       activeOptions={exact ? { exact: true } : undefined}
       className="flex items-center gap-2.5 rounded-md px-2.5 py-2 text-sm text-zinc-400 transition-colors hover:bg-zinc-800 hover:text-white active:bg-zinc-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/50 lg:py-1.5"
       // The active rail reads from --ring rather than a literal hsl() so it
@@ -148,6 +171,7 @@ function AppLayout() {
   const toggleCommand = useCommandPalette((s) => s.toggle)
   const navigate = useNavigate()
   const queryClient = useQueryClient()
+  const universeSlug = useUniverseStore((s) => s.activeUniverse?.slug)
   useGoToNavigation()
 
   const { data: meData, error: meError } = useCurrentUser()
@@ -245,8 +269,8 @@ function AppLayout() {
       </div>
 
       <nav className="flex-1 space-y-0.5 overflow-y-auto p-2">
-        {NAV_ITEMS.map((item) => (
-          <NavLink key={item.to} {...item} onClick={() => setSidebarOpen(false)} />
+        {universeSlug && NAV_ITEMS.map((item) => (
+          <NavLink key={item.to} {...item} universe={universeSlug} onClick={() => setSidebarOpen(false)} />
         ))}
         {user?.global_role === 'ADMIN' && (
           <>

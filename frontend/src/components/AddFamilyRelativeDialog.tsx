@@ -11,7 +11,7 @@ import { useMemberSearch, useUpdateMember } from '@/lib/queries'
 import {
   FAMILY_ROLES, ROLE_LABEL, MAX_PARENTS, familyDictToEntries, familyEntriesToDict,
   type FamilyRole,
-} from '@/routes/_app.members.index'
+} from '@/routes/_app.$universe.members.index'
 import type { MemberRead, UUID } from '@/lib/types'
 
 interface PendingRelative {

@@ -1,4 +1,5 @@
 import { Link } from '@tanstack/react-router'
+import { allianceRefsOf } from '@/lib/setGangs'
 import { Plus, Swords, Users, X } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { FuzzyDate, type FuzzyDateValue } from '@/components/FuzzyDate'
@@ -24,8 +25,8 @@ function OtherLink({ rel }: { rel: AllianceRelationshipItem }) {
   const id = rel.other_slug ?? rel.other_id
   const cls = 'truncate text-sm text-zinc-300 hover:text-violet-400'
   return rel.other_kind === 'alliance'
-    ? <Link to="/alliances/$id" params={{ id }} className={cls}>{rel.other_name}</Link>
-    : <Link to="/sets/$id" params={{ id }} className={cls}>{rel.other_name}</Link>
+    ? <Link from="/$universe" to="/$universe/alliances/$id" params={{ id }} className={cls}>{rel.other_name}</Link>
+    : <Link from="/$universe" to="/$universe/sets/$id" params={{ id }} className={cls}>{rel.other_name}</Link>
 }
 
 function KindTag({ kind }: { kind: AllianceRelationshipItem['other_kind'] }) {
@@ -124,7 +125,7 @@ export function InheritedAllianceRelationships({ relationships }: { relationship
         <OtherLink rel={r} />
         <KindTag kind={r.other_kind} />
         {r.via_alliance_id && (
-          <Link to="/alliances/$id" params={{ id: r.via_alliance_slug ?? r.via_alliance_id }}
+          <Link from="/$universe" to="/$universe/alliances/$id" params={{ id: r.via_alliance_slug ?? r.via_alliance_id }}
             className="ml-auto shrink-0 truncate text-[11px] text-zinc-500 hover:text-violet-400"
             title="Held by this set's alliance, so every set in it shares the link">
             via {r.via_alliance_name ?? 'its alliance'}
@@ -173,7 +174,7 @@ export function AddAllianceRelationshipDialog({ allianceId, allianceName, univer
     }
     for (const s of sets?.items ?? []) {
       // Its own sets are refused by the server; reserved sets hold no links.
-      if (s.is_reserved || s.alliance_id === allianceId || taken.has(`s:${s.id}`)) continue
+      if (s.is_reserved || allianceRefsOf(s).some((a) => a.id === allianceId) || taken.has(`s:${s.id}`)) continue
       out.push({
         id: `s:${s.id}`,
         name: s.name,

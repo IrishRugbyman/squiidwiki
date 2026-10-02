@@ -17,7 +17,8 @@ export function Breadcrumbs({ items, className }: BreadcrumbsProps) {
   return (
     <nav aria-label="Breadcrumb" className={cn('mb-4 flex items-center text-xs text-zinc-400', className)}>
       <Link
-        to="/"
+        from="/$universe"
+        to="/$universe"
         className="flex items-center gap-1 rounded px-1 py-0.5 text-zinc-400 transition-colors hover:text-zinc-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/50"
         aria-label="Dashboard"
       >
@@ -30,6 +31,7 @@ export function Breadcrumbs({ items, className }: BreadcrumbsProps) {
             <ChevronRight className="mx-1 h-3.5 w-3.5 text-zinc-500" />
             {item.to && !isLast ? (
               <Link
+                from="/$universe"
                 to={item.to}
                 className="rounded px-1 py-0.5 text-zinc-400 transition-colors hover:text-zinc-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/50"
               >

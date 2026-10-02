@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select
 
 from app.core.enums import MemberStatus, ParticipantOutcome
+from app.models.alliance import AllianceSet
 from app.models.gang_set import GangSet
 from app.models.incident import (
     Incident,
@@ -110,7 +111,7 @@ async def _unsync_killed_participants(
 async def _sync_killed_participants(
     session: AsyncSession,
     incident: Incident,
-    participants: list[ParticipantCreate],
+    participants: list[ParticipantCreate] | list[IncidentParticipant],
     previous_date: dict | None = None,
 ) -> None:
     """
@@ -126,12 +127,15 @@ async def _sync_killed_participants(
 
     **A date_of_death that disagrees with the incident was entered by hand and
     outranks this sync.** The shooting and the death it causes are separate
-    events: a member was shot 14 Jul 2014 and died in August, and this
+    events: a member shot on 14 Jul 2014 died in August, and this
     function used to overwrite the August date on every single save of that
     incident, so the hand correction never survived the next edit. A date is
-    therefore only written when it is null, or still equal to whatever the
+    therefore only written when it is blank, or still equal to whatever the
     incident said a moment ago - which keeps genuine incident-date corrections
-    propagating to members who never got a manual date.
+    propagating to members who never got a manual date. Blank includes a
+    FuzzyDate with no year: the member form stores ``{"precision": "UNKNOWN"}``
+    for "not known", and reading that as a hand-entered date left Tank (264)
+    undated after his killing was dated.
 
     Never reverts; un-kill is a manual member edit. Audit listeners on `member`
     pick these mutations up automatically.
@@ -154,7 +158,7 @@ async def _sync_killed_participants(
             m.status = MemberStatus.DEAD
         if m.death_incident_id is None:
             m.death_incident_id = incident.id
-        date_is_ours = m.date_of_death is None or (
+        date_is_ours = not (m.date_of_death or {}).get("year") or (
             previous_date is not None and m.date_of_death == previous_date
         )
         if m.death_incident_id == incident.id and incident_has_date and date_is_ours:
@@ -290,6 +294,12 @@ async def update_incident(
         await _unsync_killed_participants(session, obj, data.participants)
         await _sync_participants(session, obj.id, data.participants)
         await _sync_killed_participants(session, obj, data.participants, previous_date)
+    elif "date" in data.model_fields_set:
+        # A date-only edit keeps the participants on file, and its dead are
+        # dated by this incident just as if they had been re-sent.
+        await _sync_killed_participants(
+            session, obj, await list_incident_participants(session, obj.id), previous_date
+        )
     if data.set_participants is not None:
         await _sync_set_participants(session, obj.id, data.set_participants)
     if data.source_ids is not None:
@@ -438,7 +448,7 @@ async def list_incidents_by_alliance(
             | Member.id.in_(
                 select(MemberSet.member_id).where(
                     MemberSet.set_id.in_(
-                        select(GangSet.id).where(GangSet.alliance_id == alliance_id)
+                        select(AllianceSet.set_id).where(AllianceSet.alliance_id == alliance_id)
                     ),
                     MemberSet.until_date.is_(None),
                 )

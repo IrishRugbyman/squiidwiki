@@ -322,7 +322,7 @@ export default function MunicipalityMap({
     if (!e.features || e.features.length === 0) return
     const f = e.features[0]
     if (f.layer?.id === 'incident-points-layer' && f.properties?.id) {
-      navigate({ to: '/incidents/$id', params: { id: f.properties.id as string } })
+      navigate({ from: '/$universe', to: '/$universe/incidents/$id', params: { id: f.properties.id as string } })
       return
     }
     if (f.layer?.id === 'incident-clusters') {
@@ -343,7 +343,7 @@ export default function MunicipalityMap({
       if (onPreview) {
         onPreview(id)
       } else {
-        navigate({ to: '/municipalities/$id', params: { id } })
+        navigate({ from: '/$universe', to: '/$universe/municipalities/$id', params: { id } })
       }
     }
   }, [navigate, onPreview])

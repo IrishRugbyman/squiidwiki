@@ -1,4 +1,5 @@
 import { useNavigate } from '@tanstack/react-router'
+import { useSwitchUniverse } from '@/hooks/useSwitchUniverse'
 import { AlertTriangle, Clock, FileText, Globe, MapPin, Network, Plus, Shield, Users } from 'lucide-react'
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
@@ -10,7 +11,7 @@ import {
 } from '@/lib/queries'
 import { useUniverseStore, type Universe } from '@/stores/universe'
 import { useAuthStore } from '@/stores/auth'
-import { useRecentsStore } from '@/stores/recents'
+import { useUniverseRecents } from '@/stores/recents'
 import { RECENT_ICON, RECENT_ROUTE } from '@/lib/recentRoutes'
 import {
   CommandDialog,
@@ -132,7 +133,8 @@ interface GlobalCommandPaletteProps {
 
 export function GlobalCommandPalette({ open, onClose }: GlobalCommandPaletteProps) {
   const navigate = useNavigate()
-  const { activeUniverse, setActiveUniverse } = useUniverseStore()
+  const switchUniverse = useSwitchUniverse()
+  const activeUniverse = useUniverseStore((s) => s.activeUniverse)
   const user = useAuthStore((s) => s.user)
   const isAdmin = user?.global_role === 'ADMIN'
   const universeId = activeUniverse?.id ?? null
@@ -142,7 +144,7 @@ export function GlobalCommandPalette({ open, onClose }: GlobalCommandPaletteProp
   // endpoints per keystroke. The input stays bound to `q` for instant feedback.
   const dq = useDebounce(q, 200)
   const [creating, setCreating] = useState(false)
-  const recents = useRecentsStore((s) => s.entries)
+  const recents = useUniverseRecents()
 
   const { data: universeData } = useQuery({
     queryKey: ['universes'],
@@ -167,17 +169,20 @@ export function GlobalCommandPalette({ open, onClose }: GlobalCommandPaletteProp
     (municipalityResults?.length ?? 0) > 0
   )
 
-  function go(path: string) {
+  function go(href: string) {
     onClose()
     setQ('')
-    // Paths here are built from data (`/members/<slug>`), so they go by href.
-    navigate({ href: path })
+    // Paths here are built from data (`/michigan/members/<slug>`), so they go by href.
+    navigate({ href })
   }
+
+  // A search result belongs to the universe being searched.
+  const inUniverse = (path: string) => `/${activeUniverse?.slug}${path}`
 
   function handleCreated(u?: Universe) {
     setCreating(false)
     if (u) {
-      setActiveUniverse(u)
+      navigate({ to: '/$universe', params: { universe: u.slug } })
       onClose()
       setQ('')
     }
@@ -204,7 +209,7 @@ export function GlobalCommandPalette({ open, onClose }: GlobalCommandPaletteProp
           {searching && (memberResults?.length ?? 0) > 0 && (
             <CommandGroup heading={groupHeading('Members', memberResults!.length)}>
               {memberResults!.slice(0, GROUP_CAP).map((m) => (
-                <CommandItem key={m.id} value={`member-${m.id}`} onSelect={() => go(`/members/${m.slug ?? m.id}`)}>
+                <CommandItem key={m.id} value={`member-${m.id}`} onSelect={() => go(inUniverse(`/members/${m.slug ?? m.id}`))}>
                   <Users className="mr-2 h-3.5 w-3.5 shrink-0 text-zinc-400" />
                   <span className="flex min-w-0 flex-col">
                     <span className="truncate">{m.display_name}</span>
@@ -232,7 +237,7 @@ export function GlobalCommandPalette({ open, onClose }: GlobalCommandPaletteProp
                   ? [matchedVariant.name, matchedVariant.initials, matchedVariant.number].filter(Boolean).join(' · ')
                   : null
                 return (
-                  <CommandItem key={s.id} value={`set-${s.id}`} onSelect={() => go(`/sets/${s.slug ?? s.id}`)}>
+                  <CommandItem key={s.id} value={`set-${s.id}`} onSelect={() => go(inUniverse(`/sets/${s.slug ?? s.id}`))}>
                     <Shield className="mr-2 h-3.5 w-3.5 shrink-0 text-zinc-400" />
                     <span>{s.name}</span>
                     {matchLabel && (
@@ -248,7 +253,7 @@ export function GlobalCommandPalette({ open, onClose }: GlobalCommandPaletteProp
           {searching && (allianceResults?.length ?? 0) > 0 && (
             <CommandGroup heading={groupHeading('Alliances', allianceResults!.length)}>
               {allianceResults!.slice(0, GROUP_CAP).map((a) => (
-                <CommandItem key={a.id} value={`alliance-${a.id}`} onSelect={() => go(`/alliances/${a.slug ?? a.id}`)}>
+                <CommandItem key={a.id} value={`alliance-${a.id}`} onSelect={() => go(inUniverse(`/alliances/${a.slug ?? a.id}`))}>
                   <Network className="mr-2 h-3.5 w-3.5 shrink-0 text-zinc-400" />
                   <span>{a.name}</span>
                   <span className="ml-auto text-[10px] text-zinc-400">{a.status}</span>
@@ -260,7 +265,7 @@ export function GlobalCommandPalette({ open, onClose }: GlobalCommandPaletteProp
           {searching && (incidentResults?.length ?? 0) > 0 && (
             <CommandGroup heading={groupHeading('Incidents', incidentResults!.length)}>
               {incidentResults!.slice(0, GROUP_CAP).map((inc) => (
-                <CommandItem key={inc.id} value={`incident-${inc.id}`} onSelect={() => go(`/incidents/${inc.id}`)}>
+                <CommandItem key={inc.id} value={`incident-${inc.id}`} onSelect={() => go(inUniverse(`/incidents/${inc.id}`))}>
                   <AlertTriangle className="mr-2 h-3.5 w-3.5 shrink-0 text-zinc-400" />
                   <span>{inc.type}</span>
                   {inc.date && <span className="ml-1.5 text-[10px] text-zinc-400">{fmtDate(inc.date)}</span>}
@@ -273,7 +278,7 @@ export function GlobalCommandPalette({ open, onClose }: GlobalCommandPaletteProp
           {searching && (municipalityResults?.length ?? 0) > 0 && (
             <CommandGroup heading={groupHeading('Municipalities', municipalityResults!.length)}>
               {municipalityResults!.slice(0, GROUP_CAP).map((m) => (
-                <CommandItem key={m.id} value={`municipality-${m.id}`} onSelect={() => go(`/municipalities/${m.id}`)}>
+                <CommandItem key={m.id} value={`municipality-${m.id}`} onSelect={() => go(inUniverse(`/municipalities/${m.id}`))}>
                   <MapPin className="mr-2 h-3.5 w-3.5 shrink-0 text-zinc-400" />
                   <span>{m.name}</span>
                   {m.incident_count > 0 && (
@@ -287,7 +292,7 @@ export function GlobalCommandPalette({ open, onClose }: GlobalCommandPaletteProp
           {searching && (sourceResults?.length ?? 0) > 0 && (
             <CommandGroup heading={groupHeading('Sources', sourceResults!.length)}>
               {sourceResults!.slice(0, GROUP_CAP).map((src) => (
-                <CommandItem key={src.id} value={`source-${src.id}`} onSelect={() => go(`/sources/${src.id}`)}>
+                <CommandItem key={src.id} value={`source-${src.id}`} onSelect={() => go(inUniverse(`/sources/${src.id}`))}>
                   <FileText className="mr-2 h-3.5 w-3.5 shrink-0 text-zinc-400" />
                   <span className="truncate">{src.title}</span>
                   <span className="ml-auto text-[10px] text-zinc-400">{src.reliability}</span>
@@ -305,7 +310,7 @@ export function GlobalCommandPalette({ open, onClose }: GlobalCommandPaletteProp
                   <CommandItem
                     key={u.id}
                     value={`universe-${u.name}`}
-                    onSelect={() => { setActiveUniverse(u); onClose(); setQ('') }}
+                    onSelect={() => { switchUniverse(u); onClose(); setQ('') }}
                   >
                     <Globe className="mr-2 h-3.5 w-3.5 shrink-0 text-zinc-400" />
                     <span>{u.name}</span>
@@ -332,7 +337,7 @@ export function GlobalCommandPalette({ open, onClose }: GlobalCommandPaletteProp
               <CommandGroup heading="Recent">
                 {recents.map((r) => {
                   const Icon = RECENT_ICON[r.type]
-                  const path = `${RECENT_ROUTE[r.type]}/${r.slug ?? r.id}`
+                  const path = `${RECENT_ROUTE[r.type].replace('$universe', r.universe)}/${r.slug ?? r.id}`
                   return (
                     <CommandItem
                       key={`${r.type}-${r.id}`}

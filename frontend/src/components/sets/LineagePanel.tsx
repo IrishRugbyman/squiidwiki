@@ -43,12 +43,22 @@ const LINEAGE_KIND_LABEL: Record<SetLineageKind, string> = {
   YOUNGER_GENERATION_OF: 'younger generation of',
 }
 
-/** Every kind is stored as "child KIND parent", so the parent side reads inverted. */
-const LINEAGE_KIND_INVERSE: Record<SetLineageKind, string> = {
-  SPLINTERED_FROM: 'splintered off',
-  RENAMED_FROM: 'renamed to',
-  MERGED_FROM: 'merged into',
-  YOUNGER_GENERATION_OF: 'older generation of',
+/**
+ * The row as a sentence that names both sets, so it reads the same from either page.
+ * Every kind is stored as "child KIND parent"; `child` and `parent` are rendered nodes
+ * (this set's name in bold, the other as a link).
+ */
+function lineageSentence(kind: SetLineageKind, child: React.ReactNode, parent: React.ReactNode): React.ReactNode {
+  switch (kind) {
+    case 'SPLINTERED_FROM':
+      return <>{child} splintered from {parent}</>
+    case 'RENAMED_FROM':
+      return <>{parent} was renamed {child}</>
+    case 'MERGED_FROM':
+      return <>{parent} merged into {child}</>
+    case 'YOUNGER_GENERATION_OF':
+      return <>{child} is the younger generation of {parent}</>
+  }
 }
 
 export function LineagePanel({ setId, setName, universeId }: {
@@ -66,9 +76,20 @@ export function LineagePanel({ setId, setName, universeId }: {
   const descendants = items.filter((r) => r.direction === 'child')
 
   function renderRow(r: SetLineageItem) {
-    const verb = r.direction === 'parent'
-      ? LINEAGE_KIND_LABEL[r.kind]
-      : LINEAGE_KIND_INVERSE[r.kind]
+    const self = <span className="font-medium text-zinc-200">{setName}</span>
+    const other = (
+      <Link
+        from="/$universe" to="/$universe/sets/$id"
+        params={{ id: r.other_slug ?? r.other_id }}
+        className="font-medium text-zinc-200 hover:text-violet-400 transition-colors"
+      >
+        {r.other_name}
+      </Link>
+    )
+    // direction 'parent': the other set is the parent, this one the child.
+    const sentence = r.direction === 'parent'
+      ? lineageSentence(r.kind, self, other)
+      : lineageSentence(r.kind, other, self)
     return (
       <div
         key={r.id}
@@ -77,15 +98,8 @@ export function LineagePanel({ setId, setName, universeId }: {
         }`}
       >
         <div className="min-w-0">
-          <Link
-            to="/sets/$id"
-            params={{ id: r.other_slug ?? r.other_id }}
-            className="block truncate text-xs text-zinc-200 hover:text-violet-400 transition-colors"
-          >
-            {r.other_name}
-          </Link>
+          <p className="text-xs text-zinc-400">{sentence}</p>
           <p className="truncate text-[10px] text-zinc-500">
-            {verb}
             {r.from_date && <> · from <FuzzyDate value={r.from_date as FuzzyDateValue} /></>}
             {!r.is_current && (
               <> · until {r.until_date ? <FuzzyDate value={r.until_date as FuzzyDateValue} /> : 'unknown'}</>
@@ -190,8 +204,8 @@ function AddLineageDialog({ setId, setName, universeId, open, onClose }: {
   // The sentence the row will read as, shown before saving, because the
   // direction of a descent edge is the easy thing to get backwards.
   const sentence = direction === 'parent'
-    ? `${setName} ${LINEAGE_KIND_LABEL[kind]} ${otherName}`
-    : `${otherName} ${LINEAGE_KIND_LABEL[kind]} ${setName}`
+    ? lineageSentence(kind, setName, otherName)
+    : lineageSentence(kind, otherName, setName)
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()

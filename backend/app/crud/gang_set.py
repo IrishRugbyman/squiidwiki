@@ -16,6 +16,7 @@ from app.models.alliance import Alliance, AllianceSet
 from app.models.gang import Gang
 from app.models.gang_set import (
     GangSet,
+    SetGang,
     SetLineage,
     SetMunicipality,
     SetRelationship,
@@ -23,6 +24,7 @@ from app.models.gang_set import (
 )
 from app.models.member import Member, MemberSet
 from app.models.municipality import Municipality
+from app.models.source import Source
 from app.schemas.gang_set import SetCreate, SetLineageCreate, SetUpdate
 
 SortKey = Literal["name", "status", "member_count", "updated_at", "created_at"]
@@ -177,7 +179,205 @@ async def _sync_alliance_auto_allies(
             )
 
 
+async def _sync_set_gangs(session: AsyncSession, obj: GangSet, gang_ids: list[uuid.UUID]) -> None:
+    """Make `set_gang` hold exactly `gang_ids`, in order, and mirror the first
+    into `sets.gang_id`.
+
+    Every gang must belong to the set's universe: a gang card is per universe,
+    and a foreign one would render on the set page and never on any gang page.
+    """
+    if gang_ids:
+        found = set(
+            (
+                await session.execute(
+                    select(Gang.id).where(
+                        Gang.id.in_(gang_ids), Gang.universe_id == obj.universe_id
+                    )
+                )
+            ).scalars()
+        )
+        missing = [str(g) for g in gang_ids if g not in found]
+        if missing:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+                detail=f"gang_ids not in this universe: {', '.join(missing)}",
+            )
+    await session.execute(delete(SetGang).where(SetGang.set_id == obj.id))
+    await session.flush()
+    for position, gang_id in enumerate(gang_ids):
+        session.add(SetGang(set_id=obj.id, gang_id=gang_id, position=position))
+    primary = gang_ids[0] if gang_ids else None
+    # Assign only on change: an unconditional write is an UPDATE in audit_log
+    # for every create and every unrelated edit.
+    if obj.gang_id != primary:
+        obj.gang_id = primary
+    object.__setattr__(obj, "gang_ids", list(gang_ids))
+
+
+async def _sync_set_alliances(
+    session: AsyncSession, obj: GangSet, alliance_ids: list[uuid.UUID]
+) -> list[uuid.UUID]:
+    """Make `alliance_set` hold exactly `alliance_ids`, in order, and mirror the
+    first into `sets.alliance_id`. Returns the alliances the set newly joined, so
+    the caller can give it its allies there.
+
+    Every alliance must belong to the set's universe, for the reason gangs must.
+    """
+    if alliance_ids:
+        found = set(
+            (
+                await session.execute(
+                    select(Alliance.id).where(
+                        Alliance.id.in_(alliance_ids), Alliance.universe_id == obj.universe_id
+                    )
+                )
+            ).scalars()
+        )
+        missing = [str(a) for a in alliance_ids if a not in found]
+        if missing:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+                detail=f"alliance_ids not in this universe: {', '.join(missing)}",
+            )
+    before = set(await list_set_alliance_ids(session, obj.id))
+    await session.execute(delete(AllianceSet).where(AllianceSet.set_id == obj.id))
+    await session.flush()
+    for position, alliance_id in enumerate(alliance_ids):
+        session.add(AllianceSet(alliance_id=alliance_id, set_id=obj.id, position=position))
+    primary = alliance_ids[0] if alliance_ids else None
+    # Assign only on change, as for gang_id: otherwise every edit is an UPDATE.
+    if obj.alliance_id != primary:
+        obj.alliance_id = primary
+    object.__setattr__(obj, "alliance_ids", list(alliance_ids))
+    return [a for a in alliance_ids if a not in before]
+
+
+async def list_set_alliance_ids(session: AsyncSession, set_id: uuid.UUID) -> list[uuid.UUID]:
+    """The set's alliances, primary first."""
+    rows = await session.execute(
+        select(AllianceSet.alliance_id)
+        .where(AllianceSet.set_id == set_id)
+        .order_by(AllianceSet.position)
+    )
+    return list(rows.scalars())
+
+
+async def list_set_alliances(
+    session: AsyncSession, set_ids: list[uuid.UUID]
+) -> dict[uuid.UUID, list[dict]]:
+    """Every alliance of each set in `set_ids`, primary first, as summary dicts."""
+    if not set_ids:
+        return {}
+    rows = await session.execute(
+        select(AllianceSet.set_id, Alliance.id, Alliance.name, Alliance.slug)
+        .join(Alliance, Alliance.id == AllianceSet.alliance_id)
+        .where(AllianceSet.set_id.in_(set_ids))
+        .order_by(AllianceSet.set_id, AllianceSet.position)
+    )
+    out: dict[uuid.UUID, list[dict]] = {}
+    for set_id, aid, name, slug in rows:
+        out.setdefault(set_id, []).append({"id": aid, "name": name, "slug": slug})
+    return out
+
+
+def _alliance_ids_from(
+    fields_set: set[str], alliance_ids, legacy, current: list[uuid.UUID]
+) -> list[uuid.UUID] | None:
+    """The complete alliance list a create or update asks for, or None to keep.
+
+    `alliance_ids` wins. A legacy single `alliance_id` makes that alliance the
+    primary and keeps the others, and null clears them all, as for gangs.
+    """
+    if "alliance_ids" in fields_set:
+        return list(alliance_ids or [])
+    if "alliance_id" in fields_set:
+        if legacy is None:
+            return []
+        return [legacy] + [a for a in current if a != legacy]
+    return None
+
+
+async def list_set_gang_ids(session: AsyncSession, set_id: uuid.UUID) -> list[uuid.UUID]:
+    """The set's gangs, primary first."""
+    rows = await session.execute(
+        select(SetGang.gang_id).where(SetGang.set_id == set_id).order_by(SetGang.position)
+    )
+    return list(rows.scalars())
+
+
+async def list_set_gangs(
+    session: AsyncSession, set_ids: list[uuid.UUID]
+) -> dict[uuid.UUID, list[dict]]:
+    """Every gang of each set in `set_ids`, primary first, as summary dicts."""
+    if not set_ids:
+        return {}
+    rows = await session.execute(
+        select(SetGang.set_id, Gang.id, Gang.name, Gang.slug, Gang.color)
+        .join(Gang, Gang.id == SetGang.gang_id)
+        .where(SetGang.set_id.in_(set_ids))
+        .order_by(SetGang.set_id, SetGang.position)
+    )
+    out: dict[uuid.UUID, list[dict]] = {}
+    for set_id, gid, name, slug, color in rows:
+        out.setdefault(set_id, []).append({"id": gid, "name": name, "slug": slug, "color": color})
+    return out
+
+
+async def attach_gang_ids(session: AsyncSession, obj: GangSet) -> GangSet:
+    """Put `gang_ids` and `alliance_ids` on a single ORM row for SetRead."""
+    object.__setattr__(obj, "gang_ids", await list_set_gang_ids(session, obj.id))
+    object.__setattr__(obj, "alliance_ids", await list_set_alliance_ids(session, obj.id))
+    return obj
+
+
 _RESERVED_NAMES = {"civilian", "police", "unknown"}
+
+
+async def _sync_set_sources(
+    session: AsyncSession, set_id: uuid.UUID, universe_id: uuid.UUID, source_ids: list[uuid.UUID]
+) -> None:
+    """Replace a set's citations with `source_ids`.
+
+    Each must belong to the set's universe: `set_source` has no universe column,
+    so without this check it would accept a source from another universe.
+    """
+    wanted = list(dict.fromkeys(source_ids))
+    if wanted:
+        found = set(
+            (
+                await session.execute(
+                    select(Source.id).where(
+                        Source.id.in_(wanted), Source.universe_id == universe_id
+                    )
+                )
+            )
+            .scalars()
+            .all()
+        )
+        missing = [str(i) for i in wanted if i not in found]
+        if missing:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail=f"Sources not found in this universe: {', '.join(missing)}",
+            )
+    await session.execute(delete(SetSource).where(SetSource.set_id == set_id))
+    for sid in wanted:
+        session.add(SetSource(set_id=set_id, source_id=sid))
+
+
+async def list_set_source_ids(session: AsyncSession, set_id: uuid.UUID) -> list[uuid.UUID]:
+    rows = await session.execute(select(SetSource.source_id).where(SetSource.set_id == set_id))
+    return list(rows.scalars().all())
+
+
+async def list_set_sources(session: AsyncSession, set_id: uuid.UUID) -> list[Source]:
+    rows = await session.execute(
+        select(Source)
+        .join(SetSource, SetSource.source_id == Source.id)
+        .where(SetSource.set_id == set_id)
+        .order_by(Source.title)
+    )
+    return list(rows.scalars().all())
 
 
 async def create_gang_set(session: AsyncSession, data: SetCreate, actor_id: uuid.UUID) -> GangSet:
@@ -187,18 +387,43 @@ async def create_gang_set(session: AsyncSession, data: SetCreate, actor_id: uuid
             detail=f"'{data.name}' is a reserved system set name and cannot be used.",
         )
     await _validate_territory_ids(session, data.municipality_id, data.territory_ids)
-    dump = data.model_dump(exclude={"territory_ids", "friend_ids", "enemy_ids"})
+    if data.gang_ids is not None:
+        gang_ids = data.gang_ids
+    else:
+        gang_ids = [data.gang_id] if data.gang_id else []
+    # As for gangs: the list when sent, else the legacy single id. SetCreate's
+    # validator touches alliance_ids, so model_fields_set cannot tell them apart.
+    if data.alliance_ids is not None:
+        alliance_ids = data.alliance_ids
+    else:
+        alliance_ids = [data.alliance_id] if data.alliance_id else []
+    dump = data.model_dump(
+        exclude={
+            "territory_ids",
+            "friend_ids",
+            "enemy_ids",
+            "gang_ids",
+            "alliance_ids",
+            "source_ids",
+        }
+    )
+    # The mirrors go in with the INSERT, so a create is one audit row, not two.
+    dump["gang_id"] = gang_ids[0] if gang_ids else None
+    dump["alliance_id"] = alliance_ids[0] if alliance_ids else None
     slug = await _unique_slug(session, data.universe_id, data.name)
     obj = GangSet(**dump, slug=slug, created_by_id=actor_id)
     session.add(obj)
     await session.flush()
+    await _sync_set_gangs(session, obj, gang_ids)
+    joined = await _sync_set_alliances(session, obj, alliance_ids)
     await _sync_set_municipalities(session, obj.id, data.territory_ids)
     await _sync_set_relationships(session, obj.id, data.friend_ids, data.enemy_ids)
-    if obj.alliance_id:
-        await _sync_alliance_auto_allies(session, obj.id, obj.alliance_id)
+    await _sync_set_sources(session, obj.id, obj.universe_id, data.source_ids)
+    for alliance_id in joined:
+        await _sync_alliance_auto_allies(session, obj.id, alliance_id)
     await session.commit()
     await session.refresh(obj)
-    return obj
+    return await attach_gang_ids(session, obj)
 
 
 async def get_gang_set(
@@ -242,13 +467,23 @@ def _apply_set_filters(
     if status_filter is not None:
         stmt = stmt.where(GangSet.status == status_filter)
     if alliance_id == "none":
+        # alliance_id mirrors the primary, so NULL there means no alliance at all.
         stmt = stmt.where(GangSet.alliance_id.is_(None))
     elif alliance_id is not None:
-        stmt = stmt.where(GangSet.alliance_id == alliance_id)
+        # Any of the set's alliances, not only the primary.
+        stmt = stmt.where(
+            sa.exists().where(
+                AllianceSet.set_id == GangSet.id, AllianceSet.alliance_id == alliance_id
+            )
+        )
     if gang_id == "none":
+        # gang_id mirrors the primary, so NULL there means no set_gang row at all.
         stmt = stmt.where(GangSet.gang_id.is_(None))
     elif gang_id is not None:
-        stmt = stmt.where(GangSet.gang_id == gang_id)
+        # Any of the set's gangs, not only the primary.
+        stmt = stmt.where(
+            sa.exists().where(SetGang.set_id == GangSet.id, SetGang.gang_id == gang_id)
+        )
     if municipality_id == "none":
         stmt = stmt.where(GangSet.municipality_id.is_(None))
     elif municipality_id is not None:
@@ -349,6 +584,11 @@ async def list_gang_sets(
         object.__setattr__(obj, "_gang_color", row[4])
         object.__setattr__(obj, "_municipality_name", row[5])
         items.append(obj)
+    gangs = await list_set_gangs(session, [o.id for o in items])
+    alliances = await list_set_alliances(session, [o.id for o in items])
+    for obj in items:
+        object.__setattr__(obj, "_gangs", gangs.get(obj.id, []))
+        object.__setattr__(obj, "_alliances", alliances.get(obj.id, []))
     return items, total
 
 
@@ -373,9 +613,39 @@ async def update_gang_set(
             await session.commit()
             await session.refresh(obj)
         return obj
-    dump = data.model_dump(exclude_unset=True, exclude={"territory_ids", "friend_ids", "enemy_ids"})
+    dump = data.model_dump(
+        exclude_unset=True,
+        exclude={
+            "territory_ids",
+            "friend_ids",
+            "enemy_ids",
+            "gang_ids",
+            "alliance_ids",
+            "source_ids",
+        },
+    )
+    # gang_id and alliance_id are never written directly: each mirrors
+    # position 0 of its join table.
+    legacy_sent = "gang_id" in dump
+    legacy_gang = dump.pop("gang_id", None)
+    dump.pop("alliance_id", None)
+    old_name = obj.name
     for k, v in dump.items():
         setattr(obj, k, v)
+    if "name_variants" in dump:
+        sa.orm.attributes.flag_modified(obj, "name_variants")
+    if "gang_ids" in data.model_fields_set:
+        await _sync_set_gangs(session, obj, data.gang_ids or [])
+    elif legacy_sent:
+        # A caller that knows only the single field: that gang becomes the
+        # primary and the others stay; null clears the lot.
+        if legacy_gang is None:
+            await _sync_set_gangs(session, obj, [])
+        else:
+            current = await list_set_gang_ids(session, obj.id)
+            await _sync_set_gangs(
+                session, obj, [legacy_gang] + [g for g in current if g != legacy_gang]
+            )
     # SQLModel/SQLAlchemy doesn't auto-detect mutations on JSONB dicts assigned
     # via setattr; flag_modified ensures a polygon update actually gets flushed.
     if "emojis" in dump:
@@ -384,7 +654,9 @@ async def update_gang_set(
         sa.orm.attributes.flag_modified(obj, "territory_polygon")
     if "territory_point" in dump:
         sa.orm.attributes.flag_modified(obj, "territory_point")
-    if "name" in dump:
+    # name is re-derived on every variants edit; only a real rename re-slugs,
+    # so a link to the set survives an edit that leaves its name alone.
+    if obj.name != old_name:
         obj.slug = await _unique_slug(session, obj.universe_id, obj.name, exclude_id=obj.id)
     obj.updated_at = datetime.now(UTC)
     session.add(obj)
@@ -397,11 +669,20 @@ async def update_gang_set(
         friend_ids = data.friend_ids if data.friend_ids is not None else []
         enemy_ids = data.enemy_ids if data.enemy_ids is not None else []
         await _sync_set_relationships(session, obj.id, friend_ids, enemy_ids)
-    if "alliance_id" in dump and obj.alliance_id:
-        await _sync_alliance_auto_allies(session, obj.id, obj.alliance_id)
+    if data.source_ids is not None:
+        await _sync_set_sources(session, obj.id, obj.universe_id, data.source_ids)
+    wanted = _alliance_ids_from(
+        data.model_fields_set,
+        data.alliance_ids,
+        data.alliance_id,
+        await list_set_alliance_ids(session, obj.id),
+    )
+    if wanted is not None:
+        for alliance_id in await _sync_set_alliances(session, obj, wanted):
+            await _sync_alliance_auto_allies(session, obj.id, alliance_id)
     await session.commit()
     await session.refresh(obj)
-    return obj
+    return await attach_gang_ids(session, obj)
 
 
 async def delete_gang_set(session: AsyncSession, id: uuid.UUID, universe_id: uuid.UUID) -> bool:
@@ -426,7 +707,7 @@ async def delete_gang_set(session: AsyncSession, id: uuid.UUID, universe_id: uui
     )
     await session.execute(delete(SetSource).where(SetSource.set_id == id))
     await session.execute(delete(SetMunicipality).where(SetMunicipality.set_id == id))
-    await session.execute(delete(AllianceSet).where(AllianceSet.set_id == id))
+    await session.execute(delete(AllianceSet).where(AllianceSet.set_id == id))  # cascades too
     await session.delete(obj)
     await session.commit()
     return True
@@ -480,6 +761,8 @@ async def list_set_polygons(
     if municipality_id is not None:
         stmt = stmt.where(GangSet.municipality_id == municipality_id)
     rows = (await session.execute(stmt)).all()
+    gangs = await list_set_gangs(session, [r[0] for r in rows])
+    alliances = await list_set_alliances(session, [r[0] for r in rows])
     return [
         {
             "id": r[0],
@@ -488,9 +771,15 @@ async def list_set_polygons(
             "status": r[3],
             "municipality_id": r[4],
             "alliance_id": r[5],
+            # Every alliance, primary first: the alliance view draws the set's
+            # zone into each of them.
+            "alliance_ids": [a["id"] for a in alliances.get(r[0], [])],
             "gang_id": r[6],
             "gang_color": r[7],
             "gang_color_secondary": r[8],
+            # Each gang's main colour, primary first, for a set claiming several:
+            # the map stripes those instead of the primary's own two colours.
+            "gang_colors": [g["color"] for g in gangs.get(r[0], []) if g["color"]],
             "territory_polygon": r[9],
             "territory_point": r[10],
         }
@@ -823,7 +1112,9 @@ async def list_set_activity(
         .all()
     )
 
-    cond = (AuditLog.entity_type == "set") & (AuditLog.entity_id == set_id)
+    # audit_log.entity_type is the table name (see app/core/audit.py), so a set's
+    # own rows are "sets"; the feed reports them as "set", its public name.
+    cond = (AuditLog.entity_type == "sets") & (AuditLog.entity_id == set_id)
     if member_ids:
         cond = cond | ((AuditLog.entity_type == "member") & (AuditLog.entity_id.in_(member_ids)))
 
@@ -853,7 +1144,7 @@ async def list_set_activity(
     set_ids_to_label: set[uuid.UUID] = set()
     member_ids_to_label: set[uuid.UUID] = set()
     for r in rows:
-        if r[1] == "set":
+        if r[1] == "sets":
             set_ids_to_label.add(r[2])
         else:
             member_ids_to_label.add(r[2])
@@ -890,7 +1181,8 @@ async def list_set_activity(
     out: list[dict] = []
     for r in rows:
         log_id, ent_type, ent_id, action, diff_json, created_at, email = r
-        if ent_type == "set":
+        if ent_type == "sets":
+            ent_type = "set"
             label, slug = set_labels.get(ent_id, (None, None))
         else:
             label, slug = member_labels.get(ent_id, (None, None))

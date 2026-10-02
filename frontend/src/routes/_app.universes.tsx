@@ -39,7 +39,7 @@ interface UniverseFormProps {
  * Seeded from props at mount and never resynced, so one mounted sheet reused
  * for a second universe kept the first's values in any field the second leaves
  * empty - and saving wrote them. Keying on the target forces a fresh instance.
- * See SetFormSheet in routes/_app.sets.index.tsx for the full note.
+ * See SetFormSheet in routes/_app.$universe.sets.index.tsx for the full note.
  */
 function UniverseFormSheet(props: UniverseFormProps) {
   return <UniverseFormSheetInner key={props.initial?.id ?? 'new'} {...props} />

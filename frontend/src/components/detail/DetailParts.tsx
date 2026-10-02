@@ -81,7 +81,7 @@ export function IncidentPeople({ inc }: { inc: IncidentListItem }) {
 export function IncidentRow({ inc }: { inc: IncidentListItem }) {
   const Icon = INCIDENT_TYPE_ICON[inc.type]
   return (
-    <Link to="/incidents/$id" params={{ id: inc.id }} className="flex items-center gap-3 px-3 py-2.5 transition-colors hover:bg-zinc-900/60">
+    <Link from="/$universe" to="/$universe/incidents/$id" params={{ id: inc.id }} className="flex items-center gap-3 px-3 py-2.5 transition-colors hover:bg-zinc-900/60">
       <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-md ${INCIDENT_TYPE_TILE[inc.type]}`} title={titleCase(inc.type)}>
         <Icon className="h-4 w-4" aria-hidden />
       </span>

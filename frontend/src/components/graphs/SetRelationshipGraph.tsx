@@ -120,7 +120,7 @@ export function SetRelationshipGraph({ input }: { input: SetGraphInput }) {
       if (node.id === input.centerSetId) return
       const s = setMap[node.id]
       const to = s?.slug ?? node.id
-      navigate({ to: '/sets/$id', params: { id: to } })
+      navigate({ from: '/$universe', to: '/$universe/sets/$id', params: { id: to } })
     },
     [navigate, input.centerSetId, setMap],
   )
