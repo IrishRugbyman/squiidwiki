@@ -25,8 +25,9 @@ export function AddSetToAllianceDialog({
   const [selected, setSelected] = useState<Set<string>>(new Set())
 
   const candidates = useMemo(
-    () => (allSets?.items ?? []).filter((s) => s.alliance_id === null),
-    [allSets],
+    // Any real set not already in this alliance: a set can be in several.
+    () => (allSets?.items ?? []).filter((s) => !s.is_reserved && !currentSetIds.includes(s.id)),
+    [allSets, currentSetIds],
   )
 
   function toggle(id: string) {
@@ -63,7 +64,7 @@ export function AddSetToAllianceDialog({
             Add Set to {allianceName}
           </DialogTitle>
           <DialogDescription>
-            Pick from sets not yet in an alliance, or create a new one.
+            Pick any set not yet in it (a set can be in more than one alliance), or create a new one.
           </DialogDescription>
         </DialogHeader>
 

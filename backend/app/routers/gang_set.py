@@ -37,6 +37,7 @@ from app.schemas.gang_set import (
     SetRelationshipCreate,
     SetRelationshipEnd,
     SetRelationshipHistoryItem,
+    SetSourceBrief,
     SetStats,
     SetTerritorySummary,
     SetUpdate,
@@ -70,9 +71,11 @@ def _to_list_item(obj) -> SetListItem:
         universe_id=obj.universe_id,
         alliance_id=obj.alliance_id,
         alliance_name=getattr(obj, "_alliance_name", None),
+        alliances=getattr(obj, "_alliances", []),
         gang_id=obj.gang_id,
         gang_name=getattr(obj, "_gang_name", None),
         gang_color=getattr(obj, "_gang_color", None),
+        gangs=getattr(obj, "_gangs", []),
         municipality_id=obj.municipality_id,
         municipality_name=getattr(obj, "_municipality_name", None),
         member_count=getattr(obj, "_member_count", 0),
@@ -244,6 +247,9 @@ async def get_set_detail(
         ).one_or_none()
         if row:
             gang_name, gang_color = row
+    gangs = (await crud.list_set_gangs(session, [obj.id])).get(obj.id, [])
+    alliances = (await crud.list_set_alliances(session, [obj.id])).get(obj.id, [])
+    await crud.attach_gang_ids(session, obj)
 
     municipality_name = None
     if obj.municipality_id:
@@ -274,6 +280,7 @@ async def get_set_detail(
 
     stats_dict = await get_set_stats(session, obj.id)
     stats = SetStats(**stats_dict)
+    sources = await crud.list_set_sources(session, obj.id)
 
     # Sparkline: last 5 years inclusive of last_incident_year (or current span).
     from datetime import datetime as _dt
@@ -304,17 +311,21 @@ async def get_set_detail(
         enemy_ids=enemy_ids,
         alliance_name=alliance_name,
         alliance_slug=alliance_slug,
+        alliances=alliances,
         municipality_name=municipality_name,
         municipality_slug=None,
         founder_display_name=founder_display_name,
         founder_slug=founder_slug,
         gang_name=gang_name,
         gang_color=gang_color,
+        gangs=gangs,
         territories=[SetTerritorySummary(**t) for t in territories_raw],
         allies=[SetRelatedSummary(**a) for a in allies_raw],
         enemies=[SetRelatedSummary(**e) for e in enemies_raw],
         stats=stats,
         incidents_per_year=[IncidentsPerYear(**y) for y in incidents_per_year],
+        source_ids=[src.id for src in sources],
+        sources=[SetSourceBrief.model_validate(src) for src in sources],
         lede=lede,
     )
 
@@ -336,6 +347,7 @@ async def get_set(
     territory_ids = await crud.list_set_territory_ids(session, obj.id)
     friend_ids, enemy_ids = await crud.list_set_relationships(session, obj.id, universe_id)
     await attach_primary_photos_sets(session, [obj])
+    await crud.attach_gang_ids(session, obj)
     base = SetRead.model_validate(obj).model_dump()
     base["primary_photo_url"] = getattr(obj, "primary_photo_url", None)
     base["primary_photo_thumb_url"] = getattr(obj, "primary_photo_thumb_url", None)
@@ -345,6 +357,7 @@ async def get_set(
         friend_ids=friend_ids,
         enemy_ids=enemy_ids,
         lineage=await crud.list_set_lineage(session, obj.id),
+        source_ids=await crud.list_set_source_ids(session, obj.id),
     )
 
 
@@ -397,6 +410,7 @@ async def add_relationship(
         friend_ids=friend_ids,
         enemy_ids=enemy_ids,
         lineage=await crud.list_set_lineage(session, obj.id),
+        source_ids=await crud.list_set_source_ids(session, obj.id),
     )
 
 
@@ -430,7 +444,7 @@ async def get_alliance_relationships(
     if obj is None:
         raise HTTPException(404)
     return await alliance_crud.list_set_alliance_relationships(
-        session, id, obj.alliance_id, include_ended=include_ended
+        session, id, await crud.list_set_alliance_ids(session, id), include_ended=include_ended
     )
 
 

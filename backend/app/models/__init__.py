@@ -7,8 +7,15 @@ from app.models.alliance import (
 )
 from app.models.auth import AuditLog, User, UserUniverseAccess
 from app.models.business import Business, BusinessMember, BusinessSet, BusinessSource
-from app.models.gang import Gang
-from app.models.gang_set import GangSet, SetLineage, SetMunicipality, SetRelationship, SetSource
+from app.models.gang import Gang, GangCard
+from app.models.gang_set import (
+    GangSet,
+    SetGang,
+    SetLineage,
+    SetMunicipality,
+    SetRelationship,
+    SetSource,
+)
 from app.models.incident import (
     Incident,
     IncidentParticipant,
@@ -24,7 +31,7 @@ from app.models.member import (
     MemberSet,
     MemberSource,
 )
-from app.models.municipality import Municipality
+from app.models.municipality import Municipality, MunicipalityOverlap, MunicipalitySource
 from app.models.research_note import ResearchNote
 from app.models.source import Source
 from app.models.universe import Universe
@@ -35,8 +42,11 @@ __all__ = [
     "AuditLog",
     "Universe",
     "Municipality",
+    "MunicipalitySource",
+    "MunicipalityOverlap",
     "Source",
     "Gang",
+    "GangCard",
     "Alliance",
     "AllianceMunicipality",
     "AllianceRelationship",
@@ -47,6 +57,7 @@ __all__ = [
     "BusinessSource",
     "GangSet",
     "SetLineage",
+    "SetGang",
     "SetMunicipality",
     "SetRelationship",
     "SetSource",

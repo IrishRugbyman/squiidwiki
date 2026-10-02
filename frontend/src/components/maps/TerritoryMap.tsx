@@ -10,8 +10,10 @@ import intersect from '@turf/intersect'
 import { featureCollection, feature } from '@turf/helpers'
 import type { Feature, Polygon, MultiPolygon } from 'geojson'
 import { BRAND } from '@/lib/brand'
+import { INCIDENT_TYPE_LABEL } from '@/lib/incidentColors'
+import { groundKey, groupBySameGround, nextSetOnClick } from '@/lib/sharedGround'
 import { INCIDENT_TYPE_HEX } from '@/lib/statusColors'
-import type { MunicipalityGeoJSON, SetTerritoryPolygon, UUID } from '@/lib/types'
+import type { IncidentType, MunicipalityGeoJSON, SetTerritoryPolygon, UUID } from '@/lib/types'
 import type { IncidentPoint } from './MunicipalityMap'
 
 const TILE_STYLE = 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json'
@@ -56,11 +58,17 @@ function walkRings(coords: number[][][], cb: (lng: number, lat: number) => void)
   for (const ring of coords) for (const [lng, lat] of ring) cb(lng, lat)
 }
 
-function polygonBounds(polys: GeoJSON.Polygon[]): LngLatBounds | null {
+// Every vertex of a territory, whether it is one polygon or several pieces.
+function walkTerritory(t: GeoJSON.Polygon | GeoJSON.MultiPolygon, cb: (lng: number, lat: number) => void) {
+  if (t.type === 'Polygon') walkRings(t.coordinates as number[][][], cb)
+  else for (const piece of t.coordinates) walkRings(piece as number[][][], cb)
+}
+
+function polygonBounds(polys: (GeoJSON.Polygon | GeoJSON.MultiPolygon)[]): LngLatBounds | null {
   let minLng = Infinity, minLat = Infinity, maxLng = -Infinity, maxLat = -Infinity
   let found = false
   for (const p of polys) {
-    walkRings(p.coordinates as number[][][], (lng, lat) => {
+    walkTerritory(p, (lng, lat) => {
       if (lng < minLng) minLng = lng
       if (lat < minLat) minLat = lat
       if (lng > maxLng) maxLng = lng
@@ -93,10 +101,24 @@ function setStrokeOf(s: SetTerritoryPolygon): string {
   return s.gang_color_secondary ?? setColorOf(s)
 }
 
+/** The colours a set's ground is striped in, or null for a solid fill.
+ *
+ *  A set claiming several gangs (NBD: Gangster Disciples and Satan Disciples)
+ *  shows each gang's main colour, so both cards read at a glance. A set with
+ *  one gang shows that gang's own two colours. */
+function stripeColors(s: SetTerritoryPolygon): string[] | null {
+  const distinct = [...new Set((s.gang_colors ?? []).map((c) => c.toLowerCase()))]
+  if (distinct.length >= 2) return distinct.slice(0, 4)
+  if (s.gang_color && s.gang_color_secondary && s.gang_color.toLowerCase() !== s.gang_color_secondary.toLowerCase()) {
+    return [s.gang_color, s.gang_color_secondary]
+  }
+  return null
+}
+
 // Stripe pattern image id for this set (null when only one color available).
 function stripePatternId(s: SetTerritoryPolygon): string | null {
-  if (!s.gang_color || !s.gang_color_secondary) return null
-  return `stripe-${s.gang_color.replace('#', '')}-${s.gang_color_secondary.replace('#', '')}`
+  const colors = stripeColors(s)
+  return colors ? `stripe-${colors.map((c) => c.replace('#', '')).join('-')}` : null
 }
 
 // Build a 16×16 diagonal-stripe tile: primary-color lines over secondary fill.
@@ -127,23 +149,38 @@ function buildPinImage(): ImageData | null {
   return ctx.getImageData(0, 0, w, h)
 }
 
-const STRIPE_ID = /^stripe-([0-9a-fA-F]{3,8})-([0-9a-fA-F]{3,8})$/
+const STRIPE_ID = /^stripe-([0-9a-fA-F]{3,8}(?:-[0-9a-fA-F]{3,8}){1,3})$/
 
-function buildStripeCanvas(primary: string, secondary: string): ImageData {
-  const size = 16
+/** A seamless tile of diagonal bands. Two colours keep the original look (the
+ *  primary as narrow lines over the secondary); three or four, from a set
+ *  claiming several gangs, cycle in equal bands. */
+function buildStripeCanvas(colors: string[]): ImageData {
+  const band = 8
+  const size = colors.length === 2 ? 16 : band * colors.length
   const canvas = document.createElement('canvas')
   canvas.width = size
   canvas.height = size
   const ctx = canvas.getContext('2d')!
-  ctx.fillStyle = secondary
-  ctx.fillRect(0, 0, size, size)
-  ctx.strokeStyle = primary
-  ctx.lineWidth = 5
-  for (let i = -size; i < size * 2; i += 8) {
-    ctx.beginPath()
-    ctx.moveTo(i, 0)
-    ctx.lineTo(i + size, size)
-    ctx.stroke()
+  if (colors.length === 2) {
+    ctx.fillStyle = colors[1]
+    ctx.fillRect(0, 0, size, size)
+    ctx.strokeStyle = colors[0]
+    ctx.lineWidth = 5
+    for (let i = -size; i < size * 2; i += band) {
+      ctx.beginPath()
+      ctx.moveTo(i, 0)
+      ctx.lineTo(i + size, size)
+      ctx.stroke()
+    }
+    return ctx.getImageData(0, 0, size, size)
+  }
+  // Equal bands: pixel (x, y) takes the colour of its diagonal (x + y), which
+  // repeats every `size` pixels in both directions, so the tile is seamless.
+  for (let x = 0; x < size; x++) {
+    for (let y = 0; y < size; y++) {
+      ctx.fillStyle = colors[Math.floor(((x + y) % size) / band)]
+      ctx.fillRect(x, y, 1, 1)
+    }
   }
   return ctx.getImageData(0, 0, size, size)
 }
@@ -176,19 +213,18 @@ export default function TerritoryMap({
   const [mapReady, setMapReady] = useState(false)
 
   // ─── set polygons FeatureCollection ──────────────────────────────────────
-  // In alliance view, union polygons that share an alliance_id; ungrouped sets
-  // (no alliance) keep their individual polygons.
+  // In alliance view, union the polygons of each alliance's sets; a set in two
+  // alliances is drawn into both. Sets in none keep their individual polygons.
   const setsFC = useMemo<GeoJSON.FeatureCollection>(() => {
     if (viewMode === 'alliances') {
       const byAlliance = new Map<string, SetTerritoryPolygon[]>()
       const ungrouped: SetTerritoryPolygon[] = []
       for (const s of setPolygons) {
-        if (s.alliance_id) {
-          const k = s.alliance_id
+        const ids = s.alliance_ids?.length ? s.alliance_ids : s.alliance_id ? [s.alliance_id] : []
+        if (ids.length === 0) ungrouped.push(s)
+        for (const k of ids) {
           if (!byAlliance.has(k)) byAlliance.set(k, [])
           byAlliance.get(k)!.push(s)
-        } else {
-          ungrouped.push(s)
         }
       }
       const features: Feature<Polygon | MultiPolygon>[] = []
@@ -203,7 +239,7 @@ export default function TerritoryMap({
         let geom: Polygon | MultiPolygon = polyMembers[0].territory_polygon!
         if (memberFeatures.length > 1) {
           // @turf/union takes a FeatureCollection in newer versions.
-          const unioned = unionFeatures(featureCollection(memberFeatures as Feature<Polygon>[]))
+          const unioned = unionFeatures(featureCollection(memberFeatures as Feature<Polygon | MultiPolygon>[]))
           if (unioned) geom = unioned.geometry as Polygon | MultiPolygon
         }
         const allianceColor = `hsl(${hashHue(allianceId)} 70% 55%)`
@@ -245,24 +281,34 @@ export default function TerritoryMap({
       }
       return { type: 'FeatureCollection', features }
     }
-    // Sets view: one feature per set, gang-tinted (status fallback).
+    // Sets view: one feature per territory, gang-tinted (status fallback).
+    // Sets that hold the very same ground (264, 752 and YS all carry the
+    // Villages at Parkside outline) are drawn once: three stacked copies
+    // tripled the fill and left only the top one reachable. `setIds` lists
+    // them all so a click can cycle through, and the one selected (or else the
+    // first) lends the shape its colour and its click target.
     return {
       type: 'FeatureCollection',
-      features: setPolygons.filter((s) => s.territory_polygon).map((s) => ({
-        type: 'Feature',
-        id: s.id,
-        properties: {
-          id: s.id,
-          kind: 'set',
-          firstSetId: s.id,
-          name: s.name,
-          color: setColorOf(s),
-          strokeColor: setStrokeOf(s),
-          patternId: stripePatternId(s),
-          isSelected: s.id === selectedSetId,
-        },
-        geometry: s.territory_polygon!,
-      })),
+      features: groupBySameGround(setPolygons).map((group) => {
+        const lead = group.find((s) => s.id === selectedSetId) ?? group[0]
+        const ids = group.map((s) => s.id)
+        return {
+          type: 'Feature',
+          id: ids.join(','),
+          properties: {
+            id: ids.join(','),
+            kind: 'set',
+            firstSetId: lead.id,
+            setIds: ids.join(','),
+            name: group.map((s) => s.name).join(' / '),
+            color: setColorOf(lead),
+            strokeColor: setStrokeOf(lead),
+            patternId: stripePatternId(lead),
+            isSelected: ids.includes(selectedSetId as UUID),
+          },
+          geometry: lead.territory_polygon!,
+        }
+      }),
     }
   }, [setPolygons, viewMode, selectedSetId])
 
@@ -304,6 +350,9 @@ export default function TerritoryMap({
     const intersections: Feature<Polygon | MultiPolygon>[] = []
     for (let i = 0; i < polySets.length; i++) {
       for (let j = i + 1; j < polySets.length; j++) {
+        // Identical ground is already one merged shape (see setsFC); an
+        // overlay over all of it would only hide that shape from clicks.
+        if (groundKey(polySets[i]) === groundKey(polySets[j])) continue
         try {
           const a = feature(polySets[i].territory_polygon)
           const b = feature(polySets[j].territory_polygon)
@@ -474,7 +523,9 @@ export default function TerritoryMap({
       const { label, incidentType } = f.properties as { label?: string; incidentType?: string }
       setHovered({
         id: (f.properties.id ?? '') as UUID,
-        name: label ? `${incidentType === 'MURDER' ? 'Murder' : 'Shooting'}: ${label}` : 'Incident',
+        name: label
+          ? `${INCIDENT_TYPE_LABEL[incidentType as IncidentType] ?? 'Incident'}: ${label}`
+          : 'Incident',
         lng: e.lngLat.lng,
         lat: e.lngLat.lat,
       })
@@ -516,10 +567,14 @@ export default function TerritoryMap({
       onSelectIncident?.(f.properties.id as UUID)
       return
     }
-    if (f?.properties?.firstSetId) {
-      onSelectSet(f.properties.firstSetId as UUID)
-    }
-  }, [drawingFor, pinMode, onPinPlaced, onSelectSet, onSelectIncident])
+    // The shared-territory overlay sits on top and names no set, so a click in
+    // an overlap reaches through it to the first set shape underneath.
+    const setHit = e.features?.find((x) => x.properties?.firstSetId)
+    if (!setHit) return
+    const lead = setHit.properties.firstSetId as UUID
+    const ids = String(setHit.properties.setIds ?? lead).split(',') as UUID[]
+    onSelectSet(nextSetOnClick(ids, selectedSetId, lead))
+  }, [drawingFor, pinMode, onPinPlaced, onSelectSet, onSelectIncident, selectedSetId])
 
   const resetView = useCallback(() => {
     if (mapRef.current && allBounds) {
@@ -551,7 +606,7 @@ export default function TerritoryMap({
           // Stripe patterns are made on demand: a set's two gang colours are in its pattern id.
           map.on('styleimagemissing', (ev: { id: string }) => {
             const m = STRIPE_ID.exec(ev.id)
-            if (m && !map.hasImage(ev.id)) map.addImage(ev.id, buildStripeCanvas(`#${m[1]}`, `#${m[2]}`))
+            if (m && !map.hasImage(ev.id)) map.addImage(ev.id, buildStripeCanvas(m[1].split('-').map((h) => `#${h}`)))
           })
           setMapReady(true)
         }}

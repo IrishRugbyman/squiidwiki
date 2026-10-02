@@ -33,6 +33,30 @@ class SetSource(SQLModel, table=True):
     source_id: uuid.UUID = Field(foreign_key="source.id", primary_key=True)
 
 
+class SetGang(SQLModel, table=True):
+    """Every gang a set claims, in order: position 0 is the primary.
+
+    A set can run under more than one card at once - NBD in southwest Detroit is
+    Gangster Disciples and Satan Disciples, LaayMafia is Bloods and Rollin' 60s -
+    and a single `sets.gang_id` could only hold one of them, so the others ended
+    up as prose in the bio. `sets.gang_id` is kept as a mirror of the position-0
+    row, written by `_sync_set_gangs` and nothing else, because the map colours,
+    the stats and every existing reader key off it.
+    """
+
+    __tablename__ = "set_gang"
+
+    set_id: uuid.UUID = Field(
+        sa_column=Column(sa.Uuid, sa.ForeignKey("sets.id", ondelete="CASCADE"), primary_key=True)
+    )
+    gang_id: uuid.UUID = Field(
+        sa_column=Column(
+            sa.Uuid, sa.ForeignKey("gang.id", ondelete="CASCADE"), primary_key=True, index=True
+        )
+    )
+    position: int = Field(default=0)
+
+
 class SetRelationship(SQLModel, table=True):
     """
     Bilateral friend/enemy link between two sets, over one period of time.

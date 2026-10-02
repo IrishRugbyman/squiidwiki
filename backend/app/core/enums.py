@@ -27,6 +27,19 @@ class SetRank(str, Enum):
     CO_CEO = "CO_CEO"
 
 
+class GangNation(str, Enum):
+    """The Chicago super-alliance a gang rides under.
+
+    FOLK is the six-pointed star (Detroit's "6"), PEOPLE the five-pointed star
+    (the "5"). Los Angeles lineages (Crips, Bloods and their sets), Sureños and
+    MS-13 carry none: where Detroit files them under the 5 or the 6, that is a
+    local alignment and lives on the sets and alliances, not on the card.
+    """
+
+    FOLK = "FOLK"
+    PEOPLE = "PEOPLE"
+
+
 class AllianceStatus(str, Enum):
     ACTIVE = "ACTIVE"
     EXTINCT = "EXTINCT"
@@ -42,6 +55,7 @@ class IncidentType(str, Enum):
     EXTORTION = "EXTORTION"
     KIDNAPPING = "KIDNAPPING"
     ROBBERY = "ROBBERY"
+    CRASH = "CRASH"
 
 
 class ParticipantRole(str, Enum):
@@ -128,6 +142,19 @@ class BusinessRole(str, Enum):
     OWNER = "OWNER"
     FRONT = "FRONT"
     BENEFICIARY = "BENEFICIARY"
+
+
+class MunicipalityKind(str, Enum):
+    """What a municipality row is.
+
+    DISTRICT partitions its city (Detroit's ZIP codes), so districts can be
+    drawn together; NEIGHBORHOOD is a named area whose outline may overlap
+    districts, and is drawn on its own layer.
+    """
+
+    CITY = "CITY"
+    DISTRICT = "DISTRICT"
+    NEIGHBORHOOD = "NEIGHBORHOOD"
 
 
 class MediaKind(str, Enum):

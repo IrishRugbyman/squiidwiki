@@ -11,6 +11,7 @@ from app.crud import gang as crud
 from app.schemas.common import OffsetPage
 from app.schemas.gang import (
     GangCreate,
+    GangDetail,
     GangListItem,
     GangRead,
     GangUpdate,
@@ -38,7 +39,37 @@ async def create_gang(
     session: Annotated[AsyncSession, Depends(get_session)],
     _: Annotated[None, require_global_role(GlobalRole.ADMIN)],
 ):
-    return await crud.create_gang(session, data, current_user.id)
+    obj = await crud.create_gang(session, data, current_user.id)
+    await crud.attach_gang_counts(session, obj.universe_id, [obj])
+    return obj
+
+
+@router.get("/{id_or_slug}/detail", response_model=GangDetail)
+async def get_gang_detail(
+    id_or_slug: str,
+    universe_id: uuid.UUID,
+    _: CurrentUser,
+    session: Annotated[AsyncSession, Depends(get_session)],
+):
+    """The gang page in one round trip: the card, its lineage and branches,
+    the sets claiming it and the alliances tagged with it."""
+    obj = None
+    try:
+        obj = await crud.get_gang(session, uuid.UUID(id_or_slug), universe_id)
+    except ValueError:
+        obj = await crud.get_gang_by_slug(session, id_or_slug, universe_id)
+    if obj is None:
+        raise HTTPException(404)
+    extra = await crud.get_gang_detail(session, obj)
+    base = GangListItem.model_validate(obj).model_dump()
+    return GangDetail(
+        **base,
+        parent=extra["parent"],
+        ancestors=extra["ancestors"],
+        branches=[GangListItem.model_validate(b) for b in extra["branches"]],
+        sets=extra["sets"],
+        alliances=extra["alliances"],
+    )
 
 
 @router.get("/{id_or_slug}", response_model=GangRead)
@@ -55,6 +86,7 @@ async def get_gang(
         obj = await crud.get_gang_by_slug(session, id_or_slug, universe_id)
     if obj is None:
         raise HTTPException(404)
+    await crud.attach_gang_counts(session, universe_id, [obj])
     return obj
 
 
@@ -69,6 +101,7 @@ async def update_gang(
     obj = await crud.update_gang(session, id, universe_id, data)
     if obj is None:
         raise HTTPException(404)
+    await crud.attach_gang_counts(session, universe_id, [obj])
     return obj
 
 

@@ -18,52 +18,33 @@ THUMB_MAX_WIDTH = 400
 THUMB_QUALITY = 85
 
 
-def _ensure_exactly_one(member_id, incident_id, source_id, set_id, alliance_id) -> str:
-    set_count = sum(x is not None for x in (member_id, incident_id, source_id, set_id, alliance_id))
-    if set_count != 1:
-        raise ValueError(
-            "Exactly one of member_id, incident_id, source_id, set_id, alliance_id must be set"
-        )
-    if member_id is not None:
-        return "member"
-    if incident_id is not None:
-        return "incident"
-    if source_id is not None:
-        return "source"
-    if set_id is not None:
-        return "set"
-    return "alliance"
-
-
-def _entity_id(media: Media) -> uuid.UUID:
-    return (
-        media.member_id or media.incident_id or media.source_id or media.set_id or media.alliance_id
-    )  # type: ignore[return-value]
-
-
+# The entity a media row attaches to, as (type name, column). Exactly one of
+# these columns is non-null on every row (CHECK media_attaches_to_exactly_one_entity).
 _ENTITY_COL = {
     "member": Media.member_id,
     "incident": Media.incident_id,
     "source": Media.source_id,
     "set": Media.set_id,
     "alliance": Media.alliance_id,
+    "municipality": Media.municipality_id,
 }
+ENTITY_FIELDS = tuple(f"{t}_id" for t in _ENTITY_COL)
+
+
+def _ensure_exactly_one(**ids: uuid.UUID | None) -> tuple[str, uuid.UUID]:
+    """The (entity type, id) that `ids` names, or ValueError unless exactly one is set."""
+    given = [(f.removesuffix("_id"), v) for f, v in ids.items() if v is not None]
+    if len(given) != 1:
+        raise ValueError(f"Exactly one of {', '.join(ENTITY_FIELDS)} must be set")
+    return given[0]
 
 
 def _entity_filter(entity_type: str, entity_id: uuid.UUID):
     return _ENTITY_COL[entity_type] == entity_id
 
 
-def _entity_type_for(media: Media) -> str:
-    if media.member_id is not None:
-        return "member"
-    if media.incident_id is not None:
-        return "incident"
-    if media.source_id is not None:
-        return "source"
-    if media.set_id is not None:
-        return "set"
-    return "alliance"
+def _entity_of(media: Media) -> tuple[str, uuid.UUID]:
+    return _ensure_exactly_one(**{f: getattr(media, f) for f in ENTITY_FIELDS})
 
 
 def _make_thumb(file_bytes: bytes) -> bytes:
@@ -115,20 +96,28 @@ async def create_media(
     source_id: uuid.UUID | None = None,
     set_id: uuid.UUID | None = None,
     alliance_id: uuid.UUID | None = None,
+    municipality_id: uuid.UUID | None = None,
     file_bytes: bytes,
     original_filename: str | None,
     content_type: str,
     caption: str | None,
     actor_id: uuid.UUID,
 ) -> Media:
-    entity_type = _ensure_exactly_one(member_id, incident_id, source_id, set_id, alliance_id)
-    entity_id = member_id or incident_id or source_id or set_id or alliance_id
+    entity_type, entity_id = _ensure_exactly_one(
+        member_id=member_id,
+        incident_id=incident_id,
+        source_id=source_id,
+        set_id=set_id,
+        alliance_id=alliance_id,
+        municipality_id=municipality_id,
+    )
 
     width, height = _image_dimensions(file_bytes)
     thumb_bytes = _make_thumb(file_bytes)
 
     media_id = uuid.uuid4()
-    env_prefix = get_db_mode()  # "prod" | "test"
+    # Municipalities are prod-only data, so their photos are too, in any mode.
+    env_prefix = "prod" if entity_type == "municipality" else get_db_mode()
     ext = _ext_from_content_type(content_type)
     r2_key = f"{env_prefix}/{entity_type}/{entity_id}/{media_id}.{ext}"
     thumb_r2_key = f"{env_prefix}/{entity_type}/{entity_id}/{media_id}_thumb.jpg"
@@ -141,11 +130,7 @@ async def create_media(
     obj = Media(
         id=media_id,
         universe_id=universe_id,
-        member_id=member_id,
-        incident_id=incident_id,
-        source_id=source_id,
-        set_id=set_id,
-        alliance_id=alliance_id,
+        **{f"{entity_type}_id": entity_id},
         kind=MediaKind.R2,
         r2_key=r2_key,
         thumb_r2_key=thumb_r2_key,
@@ -180,9 +165,16 @@ async def list_media(
     source_id: uuid.UUID | None = None,
     set_id: uuid.UUID | None = None,
     alliance_id: uuid.UUID | None = None,
+    municipality_id: uuid.UUID | None = None,
 ) -> list[Media]:
-    entity_type = _ensure_exactly_one(member_id, incident_id, source_id, set_id, alliance_id)
-    entity_id = member_id or incident_id or source_id or set_id or alliance_id
+    entity_type, entity_id = _ensure_exactly_one(
+        member_id=member_id,
+        incident_id=incident_id,
+        source_id=source_id,
+        set_id=set_id,
+        alliance_id=alliance_id,
+        municipality_id=municipality_id,
+    )
     result = await session.execute(
         select(Media)
         .where(Media.universe_id == universe_id, _entity_filter(entity_type, entity_id))
@@ -204,8 +196,7 @@ async def update_media(
     dump = data.model_dump(exclude_unset=True)
     if dump.get("is_primary") is True and not obj.is_primary:
         # Demote any existing primary on the same entity in the same tx.
-        entity_type = _entity_type_for(obj)
-        entity_id = _entity_id(obj)
+        entity_type, entity_id = _entity_of(obj)
         existing = await _existing_primary(session, entity_type, entity_id)
         if existing is not None and existing.id != obj.id:
             existing.is_primary = False
@@ -225,8 +216,7 @@ async def delete_media(session: AsyncSession, id: uuid.UUID, universe_id: uuid.U
         return False
 
     was_primary = obj.is_primary
-    entity_type = _entity_type_for(obj)
-    entity_id = _entity_id(obj)
+    entity_type, entity_id = _entity_of(obj)
 
     if obj.kind == MediaKind.R2:
         if obj.r2_key:

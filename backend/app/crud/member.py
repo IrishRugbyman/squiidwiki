@@ -10,6 +10,7 @@ from sqlmodel import select
 from app.core import storage
 from app.core.enums import CustodySystem, MediaKind
 from app.core.slug import slugify
+from app.models.alliance import AllianceSet
 from app.models.gang_set import GangSet
 from app.models.incident import IncidentParticipant
 from app.models.media import Media
@@ -431,7 +432,7 @@ async def list_members(
         # reported an alliance of well-populated sets as having no members at
         # all, since tagging members directly is the rare case and populating
         # its sets is the normal one.
-        alliance_sets = select(GangSet.id).where(GangSet.alliance_id == alliance_id)
+        alliance_sets = select(AllianceSet.set_id).where(AllianceSet.alliance_id == alliance_id)
         via_sets = select(MemberSet.member_id).where(
             MemberSet.set_id.in_(alliance_sets), MemberSet.until_date.is_(None)
         )

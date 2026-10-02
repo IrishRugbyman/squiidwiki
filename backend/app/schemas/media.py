@@ -22,6 +22,7 @@ class MediaRead(BaseModel):
     source_id: Optional[uuid.UUID]
     set_id: Optional[uuid.UUID]
     alliance_id: Optional[uuid.UUID]
+    municipality_id: Optional[uuid.UUID] = None
     kind: MediaKind
     r2_key: Optional[str]
     thumb_r2_key: Optional[str]
@@ -40,5 +41,6 @@ class MediaReadWithUrls(MediaRead):
     """List/detail variant that includes signed GET URLs for the original and
     thumbnail. The router fills these in at response time so the frontend
     can render images directly without a per-tile round trip."""
+
     url: Optional[str] = None
     thumb_url: Optional[str] = None

@@ -73,14 +73,23 @@ A **Universe** is a fully isolated research namespace (e.g. "Metro Detroit", "Co
 
 ### Municipality
 
-Geographical areas within a Universe (cities, districts, townships).
+Geographical areas within a Universe (cities, districts, neighborhoods), one level deep.
 
 | Field | Type | Notes |
 |---|---|---|
 | id | UUID | PK |
 | universe_id | UUID → Universe | FK |
 | name | str | e.g. "Ecorse" |
-| parent_id | UUID → Municipality | nullable — for sub-districts |
+| parent_id | UUID → Municipality | nullable; the city a sub-area sits in, itself always top-level |
+| kind | CITY \| DISTRICT \| NEIGHBORHOOD | CITY exactly when `parent_id` is null (CHECK). A DISTRICT partitions its city (Detroit's ZIP codes); a NEIGHBORHOOD may overlap districts, so the two are mapped as separate layers |
+| aliases | JSONB str[] | street names: "The Hole", "Zone 6" |
+| region | str | the wider area it is spoken of as part of: "Downriver" |
+| description | str | history and character, under the biography rules |
+| population, population_year, population_source | int, int, str | latest official count, the year it counts and whose figure it is; written only by `backend/app/scripts/import_populations.py` |
+| geometry | JSONB | GeoJSON (Multi)Polygon |
+| sources | M2M → Source | `municipality_source`; written as a complete `source_ids` list |
+
+Photos attach through `media.municipality_id`. `municipality_overlap` (neighborhood_id, district_id, share_of_neighborhood, share_of_district) links the two sub-area layers of a city; it is computed from the outlines, never written by hand.
 
 ---
 

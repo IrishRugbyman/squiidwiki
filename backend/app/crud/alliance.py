@@ -3,14 +3,17 @@ from datetime import UTC, datetime
 
 import sqlalchemy as sa
 from fastapi import HTTPException, status
+from sqlalchemy import delete
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import func, select
 
 from app.core.enums import SetRelationshipType
 from app.core.slug import slugify
-from app.models.alliance import Alliance, AllianceMunicipality, AllianceRelationship
+from app.crud.media import delete_media
+from app.models.alliance import Alliance, AllianceMunicipality, AllianceRelationship, AllianceSet
 from app.models.gang import Gang
 from app.models.gang_set import GangSet, SetRelationship
+from app.models.media import Media
 from app.models.member import Member
 from app.schemas.alliance import AllianceCreate, AllianceRelationshipCreate, AllianceUpdate
 
@@ -50,33 +53,97 @@ async def _sync_alliance_municipalities(
         session.add(AllianceMunicipality(alliance_id=alliance_id, municipality_id=mid))
 
 
+async def _remirror_set_alliances(session: AsyncSession, set_id: uuid.UUID) -> None:
+    """Renumber a set's `alliance_set` rows from 0 in their current order and copy
+    the first into `sets.alliance_id`, after this alliance added or dropped it."""
+    rows = (
+        (
+            await session.execute(
+                select(AllianceSet)
+                .where(AllianceSet.set_id == set_id)
+                .order_by(AllianceSet.position, AllianceSet.alliance_id)
+            )
+        )
+        .scalars()
+        .all()
+    )
+    for position, row in enumerate(rows):
+        if row.position != position:
+            row.position = position
+            session.add(row)
+    obj = await session.get(GangSet, set_id)
+    primary = rows[0].alliance_id if rows else None
+    if obj is not None and obj.alliance_id != primary:
+        obj.alliance_id = primary
+        session.add(obj)
+
+
 async def _sync_alliance_sets(
     session: AsyncSession, alliance_id: uuid.UUID, set_ids: list[uuid.UUID]
 ) -> None:
-    # Single source of truth: sets.alliance_id (direct FK on the sets table)
-    # 1. Detach any sets currently linked to this alliance but not in the new list
-    detach_q = (
-        GangSet.__table__.update()
-        .where(GangSet.alliance_id == alliance_id)
-        .values(alliance_id=None)
-    )
-    if set_ids:
-        detach_q = detach_q.where(GangSet.id.notin_(set_ids))
-    await session.execute(detach_q)
-    # 2. Attach all sets in the new list to this alliance
-    if set_ids:
-        await session.execute(
-            GangSet.__table__.update()
-            .where(GangSet.id.in_(set_ids))
-            .values(alliance_id=alliance_id)
+    """Make this alliance hold exactly `set_ids`, leaving each set's other
+    alliances alone.
+
+    A set added here joins at the end of its own list, so it becomes primary only
+    when it had no alliance; a set dropped here keeps its other alliances, and the
+    next one takes over as primary.
+    """
+    alliance = await session.get(Alliance, alliance_id)
+    wanted = list(dict.fromkeys(set_ids))
+    if wanted:
+        found = set(
+            (
+                await session.execute(
+                    select(GangSet.id).where(
+                        GangSet.id.in_(wanted), GangSet.universe_id == alliance.universe_id
+                    )
+                )
+            ).scalars()
         )
+        missing = [str(i) for i in wanted if i not in found]
+        if missing:
+            raise HTTPException(422, detail=f"set_ids not in this universe: {', '.join(missing)}")
+    current = set(
+        (
+            await session.execute(
+                select(AllianceSet.set_id).where(AllianceSet.alliance_id == alliance_id)
+            )
+        ).scalars()
+    )
+    dropped = current - set(wanted)
+    if dropped:
+        await session.execute(
+            delete(AllianceSet).where(
+                AllianceSet.alliance_id == alliance_id, AllianceSet.set_id.in_(dropped)
+            )
+        )
+    for set_id in wanted:
+        if set_id in current:
+            continue
+        last = (
+            await session.execute(
+                select(func.max(AllianceSet.position)).where(AllianceSet.set_id == set_id)
+            )
+        ).scalar_one()
+        session.add(
+            AllianceSet(
+                alliance_id=alliance_id,
+                set_id=set_id,
+                position=0 if last is None else last + 1,
+            )
+        )
+    await session.flush()
+    for set_id in dropped | (set(wanted) - current):
+        await _remirror_set_alliances(session, set_id)
 
 
 async def _sync_alliance_friend_relationships(
     session: AsyncSession, alliance_id: uuid.UUID
 ) -> None:
     """Create FRIEND relationships between all sets in alliance_id (pairwise)."""
-    result = await session.execute(select(GangSet.id).where(GangSet.alliance_id == alliance_id))
+    result = await session.execute(
+        select(AllianceSet.set_id).where(AllianceSet.alliance_id == alliance_id)
+    )
     set_ids = result.scalars().all()
     for i, a_id in enumerate(set_ids):
         for b_id in set_ids[i + 1 :]:
@@ -167,9 +234,9 @@ async def attach_alliance_list_stats(
         return
     ids = [a.id for a in items]
     set_rows = await session.execute(
-        select(GangSet.alliance_id, func.count())
-        .where(GangSet.alliance_id.in_(ids))
-        .group_by(GangSet.alliance_id)
+        select(AllianceSet.alliance_id, func.count())
+        .where(AllianceSet.alliance_id.in_(ids))
+        .group_by(AllianceSet.alliance_id)
     )
     set_counts = dict(set_rows.all())
     member_rows = await session.execute(
@@ -180,10 +247,11 @@ async def attach_alliance_list_stats(
                 FROM member m
                 WHERE m.universe_id = :uid AND m.alliance_id IS NOT NULL
                 UNION
-                SELECT s.alliance_id, ms.member_id
+                SELECT als.alliance_id, ms.member_id
                 FROM member_set ms
                 JOIN sets s ON s.id = ms.set_id
-                WHERE s.universe_id = :uid AND s.alliance_id IS NOT NULL
+                JOIN alliance_set als ON als.set_id = s.id
+                WHERE s.universe_id = :uid
                   AND ms.until_date IS NULL
             ) x
             GROUP BY alliance_id
@@ -244,12 +312,29 @@ async def delete_alliance(session: AsyncSession, id: uuid.UUID, universe_id: uui
     # member tagged straight to the alliance would otherwise block the delete.
     # Members were missed until 2026-09-24, and any alliance with a directly
     # tagged member could not be deleted at all.
-    await session.execute(
-        GangSet.__table__.update().where(GangSet.alliance_id == id).values(alliance_id=None)
+    # A set keeps its other alliances; the next one becomes its primary.
+    in_it = (
+        (await session.execute(select(AllianceSet.set_id).where(AllianceSet.alliance_id == id)))
+        .scalars()
+        .all()
     )
+    await session.execute(AllianceSet.__table__.delete().where(AllianceSet.alliance_id == id))
+    await session.flush()
+    for set_id in in_it:
+        await _remirror_set_alliances(session, set_id)
     await session.execute(
         Member.__table__.update().where(Member.alliance_id == id).values(alliance_id=None)
     )
+    # The territory and legacy set links have no ON DELETE either: an alliance
+    # with a city on file could not be deleted until 2026-09-29 (a 500).
+    await session.execute(
+        AllianceMunicipality.__table__.delete().where(AllianceMunicipality.alliance_id == id)
+    )
+    # Photos cascade in the database, but only the media CRUD removes the R2
+    # objects, so they go through it rather than being left orphaned.
+    photos = (await session.execute(select(Media).where(Media.alliance_id == id))).scalars()
+    for photo in photos.all():
+        await delete_media(session, photo.id, photo.universe_id)
     await session.delete(obj)
     await session.commit()
     return True
@@ -267,7 +352,9 @@ async def list_alliance_territory_ids(
 
 
 async def list_alliance_set_ids(session: AsyncSession, alliance_id: uuid.UUID) -> list[uuid.UUID]:
-    result = await session.execute(select(GangSet.id).where(GangSet.alliance_id == alliance_id))
+    result = await session.execute(
+        select(AllianceSet.set_id).where(AllianceSet.alliance_id == alliance_id)
+    )
     return result.scalars().all()
 
 
@@ -330,7 +417,14 @@ async def add_alliance_relationship(
             raise HTTPException(404, detail="Target set not found in this universe")
         if target.is_reserved:
             raise HTTPException(422, detail="Reserved sets cannot hold relationships")
-        if target.alliance_id == alliance_id:
+        member = (
+            await session.execute(
+                select(AllianceSet.set_id).where(
+                    AllianceSet.alliance_id == alliance_id, AllianceSet.set_id == target.id
+                )
+            )
+        ).first()
+        if member is not None:
             raise HTTPException(
                 422, detail=f"{target.name} is in this alliance; membership already says so"
             )
@@ -426,35 +520,41 @@ async def list_alliance_relationships(
 async def list_set_alliance_relationships(
     session: AsyncSession,
     set_id: uuid.UUID,
-    set_alliance_id: uuid.UUID | None,
+    set_alliance_ids: list[uuid.UUID],
     include_ended: bool = False,
 ) -> list[dict]:
     """Alliance-level links that bear on one set, read from the set's side.
 
     Two sources: rows naming the set itself as the far side (an alliance at war
-    with this set), and rows held by the set's own alliance, which the set
-    inherits and which carry `via_alliance_*` so the page can say why.
+    with this set), and rows held by any of the set's alliances, which the set
+    inherits and which carry `via_alliance_*` so the page can say through which.
+    A link between two of the set's own alliances says nothing about the set's
+    outside world and is left out.
     """
+    mine = set(set_alliance_ids)
     cond = AllianceRelationship.other_set_id == set_id
-    if set_alliance_id is not None:
-        cond = cond | _touches_alliance(set_alliance_id)
+    for aid in mine:
+        cond = cond | _touches_alliance(aid)
     q = select(AllianceRelationship).where(cond)
     if not include_ended:
         q = q.where(AllianceRelationship.until_date.is_(None))
-    rows = (await session.execute(q)).scalars().all()
+    rows = [
+        r
+        for r in (await session.execute(q)).scalars().all()
+        if not (r.alliance_id in mine and r.other_alliance_id in mine)
+    ]
 
     def far(r: AllianceRelationship) -> tuple[str, uuid.UUID, uuid.UUID | None]:
         if r.other_set_id == set_id:
             return "alliance", r.alliance_id, None
         if r.other_set_id is not None:
-            return "set", r.other_set_id, set_alliance_id
-        other = r.other_alliance_id if r.alliance_id == set_alliance_id else r.alliance_id
-        return "alliance", other, set_alliance_id
+            return "set", r.other_set_id, r.alliance_id
+        if r.alliance_id in mine:
+            return "alliance", r.other_alliance_id, r.alliance_id
+        return "alliance", r.alliance_id, r.other_alliance_id
 
     fars = [far(r) for r in rows]
-    alliance_ids = {i for k, i, _ in fars if k == "alliance"}
-    if set_alliance_id is not None:
-        alliance_ids.add(set_alliance_id)
+    alliance_ids = {i for k, i, _ in fars if k == "alliance"} | mine
     alliances, sets = await _names(session, alliance_ids, {i for k, i, _ in fars if k == "set"})
     out = []
     for r, (kind, oid, via) in zip(rows, fars, strict=True):

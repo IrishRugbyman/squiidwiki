@@ -18,10 +18,28 @@ class AllianceMunicipality(SQLModel, table=True):
 
 
 class AllianceSet(SQLModel, table=True):
+    """Every alliance a set is in, in order: position 0 is the primary.
+
+    A set can sit in more than one bloc - TMC is in TMCNE and helped form RHN -
+    so membership is this table, as gangs are `set_gang`. `sets.alliance_id` is
+    the mirror of the position-0 row, written by `_sync_set_alliances` in
+    crud/gang_set.py and nothing else, because the list labels, the auto-allies
+    and every older reader key off it. Both ends cascade.
+    """
+
     __tablename__ = "alliance_set"
 
-    alliance_id: uuid.UUID = Field(foreign_key="alliance.id", primary_key=True)
-    set_id: uuid.UUID = Field(foreign_key="sets.id", primary_key=True)
+    alliance_id: uuid.UUID = Field(
+        sa_column=Column(
+            sa.Uuid, sa.ForeignKey("alliance.id", ondelete="CASCADE"), primary_key=True
+        )
+    )
+    set_id: uuid.UUID = Field(
+        sa_column=Column(
+            sa.Uuid, sa.ForeignKey("sets.id", ondelete="CASCADE"), primary_key=True, index=True
+        )
+    )
+    position: int = Field(default=0)
 
 
 class Alliance(SQLModel, table=True):

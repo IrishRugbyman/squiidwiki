@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.dependencies import CurrentUser, require_global_role
 from app.core.database import get_prod_session, get_session, resolve_prod_universe
-from app.core.enums import GlobalRole
+from app.core.enums import GlobalRole, MunicipalityKind
 from app.crud import municipality as crud
 from app.schemas.common import OffsetPage
 from app.schemas.municipality import (
@@ -64,6 +64,9 @@ async def get_municipalities_geojson(
             "A UUID = only children of that municipality."
         ),
     ),
+    kind: MunicipalityKind | None = Query(
+        None, description="With a parent UUID, only children of this kind."
+    ),
 ) -> Any:
     uid = await resolve_prod_universe(session, prod_session, universe_id)
     if uid is None:
@@ -80,7 +83,9 @@ async def get_municipalities_geojson(
         except ValueError:
             raise HTTPException(400, "parent_id must be 'top', a UUID, or omitted")
 
-    return await crud.get_municipality_geojson(prod_session, uid, parent_filter=parent_filter)
+    return await crud.get_municipality_geojson(
+        prod_session, uid, parent_filter=parent_filter, kind=kind
+    )
 
 
 @router.post("/", response_model=MunicipalityRead, status_code=201)
@@ -92,7 +97,10 @@ async def create_municipality(
 ):
     prod_uid = await _prod_uid(data.universe_id, session, prod_session)
     data.universe_id = prod_uid
-    obj = await crud.create_municipality(prod_session, data, current_user.id)
+    try:
+        obj = await crud.create_municipality(prod_session, data, current_user.id)
+    except crud.MunicipalityError as e:
+        raise HTTPException(422, str(e))
     return await crud.get_municipality(prod_session, obj.id, obj.universe_id)
 
 
@@ -135,7 +143,10 @@ async def update_municipality(
     prod_session: Annotated[AsyncSession, Depends(get_prod_session)],
 ):
     prod_uid = await _prod_uid(universe_id, session, prod_session)
-    obj = await crud.update_municipality(prod_session, id, prod_uid, data)
+    try:
+        obj = await crud.update_municipality(prod_session, id, prod_uid, data)
+    except crud.MunicipalityError as e:
+        raise HTTPException(422, str(e))
     if obj is None:
         raise HTTPException(404)
     return obj

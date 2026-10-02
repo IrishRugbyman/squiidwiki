@@ -20,6 +20,7 @@ function photo(over: Partial<MediaWithUrls> = {}): MediaWithUrls {
     source_id: null,
     set_id: null,
     alliance_id: null,
+    municipality_id: null,
     kind: 'R2',
     r2_key: `prod/member/${MEMBER}/${PHOTO}.jpg`,
     thumb_r2_key: `prod/member/${MEMBER}/${PHOTO}_thumb.jpg`,

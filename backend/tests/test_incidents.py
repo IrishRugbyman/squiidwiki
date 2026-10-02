@@ -432,6 +432,95 @@ async def test_incident_date_correction_still_propagates_when_untouched(
     assert _ymd(resp.json()["date_of_death"]) == _ymd(corrected)
 
 
+async def test_dating_an_undated_killing_fills_an_unknown_date_of_death(
+    client: AsyncClient, db_session: AsyncSession
+):
+    """
+    An UNKNOWN date of death is a blank, not a hand-entered date.
+
+    A member killed in an undated incident, whose record carries the member
+    form's placeholder ``{"precision": "UNKNOWN"}``, must take the date the
+    incident is later given. Expected value from the domain rule: the only date
+    anyone has for the death is the incident's. The hand-entered-date test above
+    is the counterweight - a date with a year still wins.
+    """
+    token = await _admin_token(client, db_session)
+    headers = {"Authorization": f"Bearer {token}"}
+    universe_id = await _make_universe(client, token)
+    victim_id = await _make_member(client, token, universe_id, "Undated at first")
+    killed = [{"member_id": victim_id, "role": "VICTIM", "outcome": "KILLED"}]
+
+    resp = await client.patch(
+        f"/api/v1/members/{victim_id}?universe_id={universe_id}",
+        json={"status": "DEAD", "date_of_death": {"precision": "UNKNOWN", "approx": False}},
+        headers=headers,
+    )
+    assert resp.status_code == 200
+    incident = (
+        await client.post(
+            "/api/v1/incidents/",
+            json={"universe_id": universe_id, "type": "MURDER", "participants": killed},
+            headers=headers,
+        )
+    ).json()
+
+    dated = {"year": 2020, "month": 6, "day": 23, "precision": "YMD", "approx": False}
+    resp = await client.patch(
+        f"/api/v1/incidents/{incident['id']}?universe_id={universe_id}",
+        json={"date": dated, "participants": killed},
+        headers=headers,
+    )
+    assert resp.status_code == 200
+
+    member = (
+        await client.get(f"/api/v1/members/{victim_id}?universe_id={universe_id}", headers=headers)
+    ).json()
+    assert _ymd(member["date_of_death"]) == _ymd(dated)
+
+
+async def test_date_only_incident_edit_still_dates_the_death(
+    client: AsyncClient, db_session: AsyncSession
+):
+    """
+    Correcting only an incident's date carries through to its dead.
+
+    A PATCH that sends ``date`` without ``participants`` leaves the participants
+    as they are, and they include a KILLED member whose date of death the sync
+    wrote itself, so the correction must reach that member exactly as it would
+    if the same participants had been re-sent.
+    """
+    token = await _admin_token(client, db_session)
+    headers = {"Authorization": f"Bearer {token}"}
+    universe_id = await _make_universe(client, token)
+    victim_id = await _make_member(client, token, universe_id, "Date only")
+
+    incident = (
+        await client.post(
+            "/api/v1/incidents/",
+            json={
+                "universe_id": universe_id,
+                "type": "MURDER",
+                "date": {"year": 2020, "month": 6, "day": 24, "precision": "YMD", "approx": False},
+                "participants": [{"member_id": victim_id, "role": "VICTIM", "outcome": "KILLED"}],
+            },
+            headers=headers,
+        )
+    ).json()
+
+    corrected = {"year": 2020, "month": 6, "day": 23, "precision": "YMD", "approx": False}
+    resp = await client.patch(
+        f"/api/v1/incidents/{incident['id']}?universe_id={universe_id}",
+        json={"date": corrected},
+        headers=headers,
+    )
+    assert resp.status_code == 200
+
+    member = (
+        await client.get(f"/api/v1/members/{victim_id}?universe_id={universe_id}", headers=headers)
+    ).json()
+    assert _ymd(member["date_of_death"]) == _ymd(corrected)
+
+
 async def test_incident_detail_carries_participant_set_status_and_sources(
     client: AsyncClient, db_session: AsyncSession
 ):

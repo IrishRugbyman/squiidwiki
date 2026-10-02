@@ -37,7 +37,7 @@ Clears the refresh token cookie.
 
 ## Common Patterns
 
-All list endpoints accept `universe_id` (required), `offset` (default 0), and `limit` (default 50).  
+All list endpoints accept `universe_id` (required), `offset` (default 0), and `limit` (default 50).
 Member and incident lists use cursor pagination: pass `cursor` from the previous response's `next_cursor`.
 
 **Authentication header:**
@@ -75,7 +75,8 @@ POST   /api/v1/municipalities/               Create
 GET    /api/v1/municipalities/{id}?universe_id=  Get
 PATCH  /api/v1/municipalities/{id}?universe_id=  Update
 DELETE /api/v1/municipalities/{id}?universe_id=  Delete (Admin)
-GET    /api/v1/municipalities/search?universe_id=&q=  Trigram search
+GET    /api/v1/municipalities/search?universe_id=&q=  Search by name or alias
+GET    /api/v1/municipalities/geojson?universe_id=&parent_id=&kind=  FeatureCollection; `kind` (DISTRICT | NEIGHBORHOOD) narrows a parent's children to one layer
 ```
 
 ---

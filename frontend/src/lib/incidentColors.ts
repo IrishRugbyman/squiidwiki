@@ -1,5 +1,5 @@
 import {
-  Banknote, Bomb, Flame, HandCoins, ShieldAlert, Skull, Swords, UserX, type LucideIcon,
+  Banknote, Bomb, CarFront, Flame, HandCoins, ShieldAlert, Skull, Swords, UserX, type LucideIcon,
 } from 'lucide-react'
 import type { IncidentType, ParticipantOutcome, ParticipantRole } from './types'
 
@@ -13,6 +13,7 @@ export const INCIDENT_TYPE_ICON: Record<IncidentType, LucideIcon> = {
   EXTORTION: HandCoins,
   KIDNAPPING: UserX,
   ROBBERY: Banknote,
+  CRASH: CarFront,
 }
 
 /** Tinted square behind an incident glyph. Literal strings so Tailwind v4 emits them. */
@@ -25,6 +26,7 @@ export const INCIDENT_TYPE_TILE: Record<IncidentType, string> = {
   EXTORTION: 'bg-teal-950/60 text-teal-400',
   KIDNAPPING: 'bg-blue-950/60 text-blue-400',
   ROBBERY: 'bg-emerald-950/60 text-emerald-400',
+  CRASH: 'bg-sky-950/60 text-sky-400',
 }
 
 
@@ -37,6 +39,7 @@ export const INCIDENT_TYPE_CHIP: Record<IncidentType, string> = {
   EXTORTION: 'border-teal-800/70 text-teal-400 bg-teal-950/30',
   KIDNAPPING: 'border-blue-800/70 text-blue-400 bg-blue-950/30',
   ROBBERY: 'border-emerald-800/70 text-emerald-400 bg-emerald-950/30',
+  CRASH: 'border-sky-800/70 text-sky-400 bg-sky-950/30',
 }
 
 /** Foreground-only variant, for glyphs and text that carry no chip background. */
@@ -49,6 +52,7 @@ export const INCIDENT_TYPE_TEXT: Record<IncidentType, string> = {
   EXTORTION: 'text-teal-400',
   KIDNAPPING: 'text-blue-400',
   ROBBERY: 'text-emerald-400',
+  CRASH: 'text-sky-400',
 }
 
 export const INCIDENT_TYPE_LABEL: Record<IncidentType, string> = {
@@ -60,6 +64,7 @@ export const INCIDENT_TYPE_LABEL: Record<IncidentType, string> = {
   EXTORTION: 'Extortion',
   KIDNAPPING: 'Kidnapping',
   ROBBERY: 'Robbery',
+  CRASH: 'Crash',
 }
 
 /**
@@ -75,6 +80,8 @@ export const INCIDENT_VERB: Record<IncidentType, { verb: string; aggressor: stri
   EXTORTION: { verb: 'extorted', aggressor: 'Extortionist' },
   KIDNAPPING: { verb: 'abducted', aggressor: 'Abductor' },
   ROBBERY: { verb: 'robbed', aggressor: 'Robber' },
+  // A crash has no aggressor; the SHOOTER role there is whoever was driving.
+  CRASH: { verb: 'crashed with', aggressor: 'Driver' },
 }
 
 export const ROLE_CHIP: Record<ParticipantRole, string> = {

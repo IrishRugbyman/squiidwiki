@@ -409,3 +409,43 @@ async def test_delete_alliance_with_directly_tagged_member(
     )
     assert member.status_code == 200
     assert member.json()["alliance_id"] is None
+
+
+async def test_delete_alliance_with_territory(client: AsyncClient, db_session: AsyncSession):
+    """An alliance with a city on file must be deletable.
+
+    Regression: alliance_municipality has no ON DELETE and delete_alliance left
+    its rows in place, so the delete failed on the foreign key with a 500.
+    """
+    token = await _admin_token(client, db_session)
+    universe_id = await _make_universe(client, token)
+    auth = {"Authorization": f"Bearer {token}"}
+    city = await client.post(
+        "/api/v1/municipalities/",
+        json={"universe_id": universe_id, "name": f"City {_uid()}"},
+        headers=auth,
+    )
+    assert city.status_code == 201, city.text
+    alliance = await client.post(
+        "/api/v1/alliances/",
+        json={
+            "universe_id": universe_id,
+            "name": f"Coalition {_uid()}",
+            "territory_ids": [city.json()["id"]],
+        },
+        headers=auth,
+    )
+    assert alliance.status_code == 201, alliance.text
+    got = await client.get(
+        f"/api/v1/alliances/{alliance.json()['id']}",
+        params={"universe_id": universe_id},
+        headers=auth,
+    )
+    assert got.json()["territory_ids"] == [city.json()["id"]]
+
+    resp = await client.delete(
+        f"/api/v1/alliances/{alliance.json()['id']}",
+        params={"universe_id": universe_id},
+        headers=auth,
+    )
+    assert resp.status_code == 204, resp.text

@@ -8,7 +8,9 @@ See also `README.md` for the canonical field-level schema. This document focuses
 
 ```
 Universe
-  ├── Municipality (parent_id nullable → sub-districts)
+  ├── Municipality (kind CITY | DISTRICT | NEIGHBORHOOD; parent_id → its city, one level)
+  │     ├── MunicipalitySource (municipality_id → source_id)
+  │     └── Media (municipality_id; always in prod)
   ├── Alliance
   │     └── Set (many-to-many via alliance_id FK)
   ├── Set

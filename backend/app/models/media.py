@@ -62,6 +62,18 @@ class Media(SQLModel, table=True):
         ),
     )
 
+    # Municipalities live in prod whatever the DB mode, so their photos do too:
+    # the media router routes municipality_id to the prod session.
+    municipality_id: uuid.UUID | None = Field(
+        default=None,
+        sa_column=Column(
+            PG_UUID(as_uuid=True),
+            ForeignKey("municipality.id", ondelete="CASCADE"),
+            nullable=True,
+            index=True,
+        ),
+    )
+
     kind: MediaKind = Field(
         default=MediaKind.R2, sa_column=Column(String, nullable=False, server_default="R2")
     )
