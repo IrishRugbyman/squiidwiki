@@ -674,6 +674,8 @@ export interface MemberKilledInSummary {
   date: FuzzyDateValue | null
   municipality_id: UUID | null
   municipality_name: string | null
+  /** The incident's universe: a member can be killed away from home. */
+  universe_slug?: string | null
 }
 
 /** A number one custody system issued to a member: MDOC, BOP, a Georgia GDC ID
@@ -714,6 +716,8 @@ export interface MemberStats {
 export interface ParticipantRead {
   member_name?: string | null
   member_slug?: string | null
+  /** The member's own universe, which need not be the incident's. */
+  member_universe_slug?: string | null
   /** Filled on the incident detail payload, so the page needs no member dump. */
   member_status?: MemberStatus | null
   member_photo_url?: string | null
@@ -749,6 +753,9 @@ export interface IncidentListItem {
   lng: number | null
   verified: boolean
   universe_id: UUID
+  /** Where the incident's page lives: a member's or set's list can hold one from
+   *  another universe. Absent on search results, which are always the current one. */
+  universe_slug?: string | null
   victim_names: string[]
   shooter_names: string[]
   /** Role held by the member the list was filtered on; null on unfiltered lists. */

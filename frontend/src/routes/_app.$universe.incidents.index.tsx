@@ -42,6 +42,9 @@ import { textParam } from '@/lib/searchParams'
 import type { FuzzyDateValue } from '@/components/FuzzyDate'
 import type { IncidentListItem, IncidentReadDetail, IncidentType, MemberListItem, ParticipantOutcome, ParticipantRole, SetListItem, UUID } from '@/lib/types'
 import { useUniverseStore } from '@/stores/universe'
+import { UniverseChip } from '@/components/detail/DetailParts'
+import { participantDrafts, participantPayload, setParticipantDrafts } from '@/lib/incidentDraft'
+import type { ParticipantDraft, SetParticipantDraft } from '@/lib/incidentDraft'
 
 type SortKey = 'date' | 'added'
 
@@ -99,21 +102,7 @@ function TypeChip({ type }: { type: IncidentType }) {
 
 // ─── Participant types ────────────────────────────────────────────────────────
 
-export interface ParticipantDraft {
-  member_id: UUID
-  member_name: string
-  role: ParticipantRole
-  outcome: ParticipantOutcome
-  /** A court cleared them of this role. Excluded from kill/shooting counts. */
-  acquitted: boolean
-}
-
-export interface SetParticipantDraft {
-  set_id: UUID
-  set_name: string
-  role: ParticipantRole
-  outcome: ParticipantOutcome
-}
+export type { ParticipantDraft, SetParticipantDraft } from '@/lib/incidentDraft'
 
 // ─── Unified participants section ─────────────────────────────────────────────
 
@@ -316,6 +305,7 @@ function ParticipantsSection({ universeId, participants, onChangeParticipants, s
             <div key={p.member_id} className="flex items-center justify-between rounded border border-zinc-800 px-2.5 py-1.5 text-sm gap-2">
               <span className="min-w-0 flex items-baseline gap-1.5 truncate">
                 <span className="text-zinc-200 truncate">{p.member_name}</span>
+                <UniverseChip slug={p.universe_slug} />
                 {memberSetNameById[p.member_id] && (
                   <span className="text-[10px] text-zinc-400 truncate">· {memberSetNameById[p.member_id]}</span>
                 )}
@@ -429,21 +419,10 @@ function IncidentFormSheetInner({ universeId, open, onClose, initial, defaultPar
   const [narrative, setNarrative] = useState(initial?.narrative ?? '')
   const [verified, setVerified] = useState(initial?.verified ?? false)
   const [participants, setParticipants] = useState<ParticipantDraft[]>(() =>
-    initial?.participants?.map((p) => ({
-      member_id: p.member_id,
-      member_name: memberNameMap[p.member_id] ?? p.member_id,
-      role: p.role,
-      outcome: p.outcome,
-      acquitted: p.acquitted,
-    })) ?? defaultParticipants ?? []
+    initial ? participantDrafts(initial, memberNameMap) : (defaultParticipants ?? [])
   )
   const [setLevelParticipants, updateSetLevelParticipants] = useState<SetParticipantDraft[]>(() =>
-    initial?.set_participants?.map((p) => ({
-      set_id: p.set_id,
-      set_name: setNameById[p.set_id] ?? p.set_id,
-      role: p.role,
-      outcome: p.outcome,
-    })) ?? []
+    initial ? setParticipantDrafts(initial, setNameById) : []
   )
   const [error, setError] = useState<string | null>(null)
   const urlPaste = useUrlPasteBanner()
@@ -571,7 +550,12 @@ function IncidentFormSheetInner({ universeId, open, onClose, initial, defaultPar
     [allMunis, cityId],
   )
 
-  const effectiveMunicipalityId = subDistrictId || cityId || null
+  // Until a pick is made, the place on file stands even when the list has not
+  // loaded yet: read off the list alone, a Save clicked before it arrived sent
+  // null and unlinked the incident from its city.
+  const untouched = cityPick === null && subPick === null && !initialMuni
+  const effectiveMunicipalityId =
+    subDistrictId || cityId || (untouched ? initial?.municipality_id ?? defaultMunicipalityId ?? null : null)
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -586,10 +570,7 @@ function IncidentFormSheetInner({ universeId, open, onClose, initial, defaultPar
         municipality_id: effectiveMunicipalityId,
         narrative: narrative || null,
         verified,
-        participants: participants.map(({ member_id, role, outcome, acquitted }) => ({
-          member_id, role, outcome, acquitted,
-        })),
-        set_participants: setLevelParticipants.map(({ set_id, role, outcome }) => ({ set_id, role, outcome })),
+        ...participantPayload(participants, setLevelParticipants),
       }
       if (isEdit) {
         await update.mutateAsync(body)
@@ -637,7 +618,11 @@ function IncidentFormSheetInner({ universeId, open, onClose, initial, defaultPar
             <p className="text-xs font-medium uppercase tracking-wider text-zinc-400">Location</p>
             <div className="space-y-1.5">
               <Label className="text-zinc-300">City</Label>
-              <Select value={cityId || 'none'} onValueChange={(v) => { setCityId(v === 'none' ? '' : v); setSubDistrictId('') }}>
+              {/* Radix calls onValueChange('') when the value has no item yet, which
+                  is every edit opened before the municipality list arrives. Read
+                  as a choice, it unlinked the incident from its city on Save. A
+                  real clear is the 'none' item, so '' is never the user. */}
+              <Select value={cityId || 'none'} onValueChange={(v) => { if (!v) return; setCityId(v === 'none' ? '' : v); setSubDistrictId('') }}>
                 <SelectTrigger><SelectValue placeholder="None" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="none">None</SelectItem>
@@ -650,7 +635,7 @@ function IncidentFormSheetInner({ universeId, open, onClose, initial, defaultPar
             {cityId && subDistricts.length > 0 && (
               <div className="space-y-1.5">
                 <Label className="text-zinc-300">Sub-district</Label>
-                <Select value={subDistrictId || 'none'} onValueChange={(v) => setSubDistrictId(v === 'none' ? '' : v)}>
+                <Select value={subDistrictId || 'none'} onValueChange={(v) => { if (v) setSubDistrictId(v === 'none' ? '' : v) }}>
                   <SelectTrigger><SelectValue placeholder="City level" /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="none">City level</SelectItem>

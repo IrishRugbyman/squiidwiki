@@ -406,3 +406,36 @@ shortcuts and palette name the universe explicitly.
 
 A half-migrated frontend was briefly live mid-change: `vite build` writes the
 `dist/` nginx serves. Use `npm run build` only to ship.
+
+---
+
+## 2026-10-02 - Incidents can have participants from another universe
+
+An incident has one `universe_id`, so a member who took part in one elsewhere (a
+Michigan member in a 2012 shooting in Columbus, Ohio) could only be written into a
+biography. With the universe in the URL, a link can now point into another
+universe, so the rule became: **an incident belongs to the universe it happened
+in, and its member participants can come from any.** Its municipality and set
+participants must still be in its own universe, refused with a 422 by
+`_check_universe` (a set is local to its streets, so one from elsewhere is a typo).
+
+Nothing stopped such a row being stored before; reading it was what failed.
+`list_incidents_by_member`, `_by_set` and `_by_alliance` filtered on the incident's
+universe, so the member's page would not have listed it, and the death sync
+filtered the same way, so a member killed away from home stayed alive on his page.
+Both filters are gone. Incident reads carry `universe_slug`, each participant
+`member_universe_slug` and the member's `killed_in` its incident's slug; the
+frontend links through `paramsIn(slug, id)` and marks a foreign row with a
+`UniverseChip`. Michigan's own incident list, map and calendar stay Michigan's.
+
+Also fixed while there:
+- A set's incident list ignored `incident_set_participant`, so an incident whose
+  only participant is the set (a member killed, never named) did not reach its page.
+- The incident form dropped participant `notes` on every save (87 member and 6 set
+  participant notes on file); the drafts now carry them, through
+  `lib/incidentDraft.ts`, which is tested on its own.
+- The incident form unlinked an incident from its city on Save. Radix `Select`
+  calls `onValueChange('')` when its value has no item yet, which is every edit
+  opened before the municipality list arrives, and the form read that as "no city".
+  Both pickers, and the municipality form's parent picker, now ignore `''` (a real
+  clear is the `none` item), and an untouched form keeps the place on file.

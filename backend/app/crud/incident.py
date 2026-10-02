@@ -1,6 +1,7 @@
 import uuid
 from datetime import UTC, datetime
 
+from fastapi import HTTPException
 from sqlalchemy import case, text
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select
@@ -17,6 +18,7 @@ from app.models.incident import (
 from app.models.member import Member, MemberSet
 from app.models.municipality import Municipality
 from app.models.source import Source
+from app.models.universe import Universe
 from app.schemas.common import make_cursor, parse_cursor
 from app.schemas.incident import (
     IncidentCreate,
@@ -31,6 +33,47 @@ def _fuzzy_to_dict(fd) -> dict | None:
     if fd is None:
         return None
     return fd.model_dump()
+
+
+async def _check_universe(
+    session: AsyncSession,
+    universe_id: uuid.UUID,
+    municipality_id: uuid.UUID | None,
+    set_participants: list[SetParticipantCreate] | None,
+) -> None:
+    """An incident belongs to the universe it happened in, and so does its ground.
+
+    The place and any set named as a participant must be in that universe: a set
+    is local to its streets, so a set from elsewhere is a typo. Member
+    participants are deliberately not checked. A Michigan member who shot
+    someone in Columbus takes part in an Ohio incident and stays a Michigan
+    member, and his page lists it under its own universe's URL.
+    """
+    if municipality_id is not None:
+        muni_universe = (
+            await session.execute(
+                select(Municipality.universe_id).where(Municipality.id == municipality_id)
+            )
+        ).scalar_one_or_none()
+        if muni_universe != universe_id:
+            raise HTTPException(422, detail="municipality_id is not in this incident's universe")
+    if set_participants:
+        set_ids = {p.set_id for p in set_participants}
+        found = set(
+            (
+                await session.execute(
+                    select(GangSet.id).where(
+                        GangSet.id.in_(set_ids), GangSet.universe_id == universe_id
+                    )
+                )
+            ).scalars()
+        )
+        if missing := set_ids - found:
+            raise HTTPException(
+                422,
+                detail="set participants not in this incident's universe: "
+                + ", ".join(sorted(str(i) for i in missing)),
+            )
 
 
 async def _sync_participants(
@@ -90,12 +133,9 @@ async def _unsync_killed_participants(
         p.member_id for p in new_participants if p.outcome == ParticipantOutcome.KILLED
     }
 
-    result = await session.execute(
-        select(Member).where(
-            Member.death_incident_id == incident.id,
-            Member.universe_id == incident.universe_id,
-        )
-    )
+    # No universe filter: a participant may come from another universe (see
+    # `_check_universe`), and his death is linked here all the same.
+    result = await session.execute(select(Member).where(Member.death_incident_id == incident.id))
     prev_linked = result.scalars().all()
 
     now = datetime.now(UTC)
@@ -144,9 +184,7 @@ async def _sync_killed_participants(
     if not killed_ids:
         return
 
-    result = await session.execute(
-        select(Member).where(Member.id.in_(killed_ids), Member.universe_id == incident.universe_id)
-    )
+    result = await session.execute(select(Member).where(Member.id.in_(killed_ids)))
     members = result.scalars().all()
 
     incident_date = incident.date
@@ -179,6 +217,7 @@ async def create_incident(
 
             sortable = datetime(sd.year, sd.month, sd.day)
 
+    await _check_universe(session, data.universe_id, data.municipality_id, data.set_participants)
     dump = data.model_dump(exclude={"date", "participants", "set_participants", "source_ids"})
     dump["date"] = _fuzzy_to_dict(fd)
     dump["sortable_date"] = sortable
@@ -269,6 +308,12 @@ async def update_incident(
     obj = await get_incident(session, id, universe_id)
     if obj is None:
         return None
+    await _check_universe(
+        session,
+        obj.universe_id,
+        data.municipality_id if "municipality_id" in data.model_fields_set else None,
+        data.set_participants,
+    )
     # Read before the setattr loop below replaces it: _sync_killed_participants
     # needs to tell a member date it wrote itself from one a human wrote.
     previous_date = obj.date
@@ -334,6 +379,18 @@ async def list_incident_participants(
     return result.scalars().all()
 
 
+async def universe_slugs(
+    session: AsyncSession, universe_ids: set[uuid.UUID]
+) -> dict[uuid.UUID, str]:
+    """Slugs for the given universes, which is what a link into one is built from."""
+    if not universe_ids:
+        return {}
+    rows = await session.execute(
+        select(Universe.id, Universe.slug).where(Universe.id.in_(universe_ids))
+    )
+    return dict(rows.all())
+
+
 async def participant_member_briefs(
     session: AsyncSession, member_ids: list[uuid.UUID]
 ) -> dict[uuid.UUID, Member]:
@@ -392,16 +449,21 @@ async def list_incident_set_participants(
     return result.scalars().all()
 
 
+# The three lists below are scoped by the member, set or alliance alone, never by
+# the incident's universe: an incident sits in the universe it happened in, and a
+# member may take part in one elsewhere (see `_check_universe`). Each row carries
+# its own universe_slug so the page links it there.
+
+
 async def list_incidents_by_member(
     session: AsyncSession,
     member_id: uuid.UUID,
-    universe_id: uuid.UUID,
     limit: int = 50,
 ) -> list[Incident]:
     stmt = (
         select(Incident)
         .join(IncidentParticipant, IncidentParticipant.incident_id == Incident.id)
-        .where(IncidentParticipant.member_id == member_id, Incident.universe_id == universe_id)
+        .where(IncidentParticipant.member_id == member_id)
         .order_by(Incident.sortable_date.desc(), Incident.created_at.desc())
         .limit(limit)
     )
@@ -412,16 +474,24 @@ async def list_incidents_by_member(
 async def list_incidents_by_set(
     session: AsyncSession,
     set_id: uuid.UUID,
-    universe_id: uuid.UUID,
     limit: int = 50,
 ) -> list[Incident]:
+    """Incidents a member of this set took part in, or the set itself did.
+
+    The second half is the incident whose participant is unnamed, recorded
+    against the set (a member of it killed, sources naming nobody): it has no
+    member row to join through, and was missing from the set's page.
+    """
+    via_members = select(IncidentParticipant.incident_id).join(
+        MemberSet,
+        (MemberSet.member_id == IncidentParticipant.member_id) & (MemberSet.set_id == set_id),
+    )
+    via_set = select(IncidentSetParticipant.incident_id).where(
+        IncidentSetParticipant.set_id == set_id
+    )
     stmt = (
         select(Incident)
-        .join(IncidentParticipant, IncidentParticipant.incident_id == Incident.id)
-        .join(Member, Member.id == IncidentParticipant.member_id)
-        .join(MemberSet, (MemberSet.member_id == Member.id) & (MemberSet.set_id == set_id))
-        .where(Incident.universe_id == universe_id)
-        .distinct()
+        .where(Incident.id.in_(via_members.union(via_set)))
         .order_by(Incident.sortable_date.desc(), Incident.created_at.desc())
         .limit(limit)
     )
@@ -432,7 +502,6 @@ async def list_incidents_by_set(
 async def list_incidents_by_alliance(
     session: AsyncSession,
     alliance_id: uuid.UUID,
-    universe_id: uuid.UUID,
     limit: int = 50,
 ) -> list[Incident]:
     stmt = (
@@ -453,7 +522,6 @@ async def list_incidents_by_alliance(
                     MemberSet.until_date.is_(None),
                 )
             ),
-            Incident.universe_id == universe_id,
         )
         .distinct()
         .order_by(Incident.sortable_date.desc(), Incident.created_at.desc())
@@ -591,6 +659,7 @@ async def enrich_participant_names(
             )
         ).all()
         muni_names = {r[0]: r[1] for r in muni_rows}
+    slugs = await universe_slugs(session, {inc.universe_id for inc in items})
 
     enriched = []
     for inc in items:
@@ -602,5 +671,6 @@ async def enrich_participant_names(
             d.viewer_role, d.viewer_outcome = viewer_map[key]
         if inc.municipality_id:
             d.municipality_name = muni_names.get(inc.municipality_id)
+        d.universe_slug = slugs.get(inc.universe_id)
         enriched.append(d)
     return enriched

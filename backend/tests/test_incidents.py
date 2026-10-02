@@ -578,3 +578,177 @@ async def test_incident_detail_carries_participant_set_status_and_sources(
     assert [s["id"] for s in body["sources"]] == [source]
     assert body["sources"][0]["publication"] == "Daily"
     assert body["sources"][0]["reliability"] == "HIGH"
+
+
+async def test_incident_in_another_universe_reaches_its_participants(
+    client: AsyncClient, db_session: AsyncSession
+):
+    """An incident lives in the universe it happened in; its participants need not.
+
+    A Michigan member who shot someone in Columbus is a participant in an Ohio
+    incident. His member list, his set's list and the detail page all show it
+    and link it under Ohio's slug, and Michigan's own incident list does not
+    carry it."""
+    token = await _admin_token(client, db_session)
+    auth = {"Authorization": f"Bearer {token}"}
+    home_slug, away_slug = f"home-{_uid()}", f"away-{_uid()}"
+
+    async def post(path: str, body: dict) -> str:
+        resp = await client.post(path, json=body, headers=auth)
+        assert resp.status_code == 201, resp.text
+        return resp.json()["id"]
+
+    home = await post("/api/v1/universes/", {"name": f"Home {_uid()}", "slug": home_slug})
+    away = await post("/api/v1/universes/", {"name": f"Away {_uid()}", "slug": away_slug})
+    set_id = await post("/api/v1/sets/", {"universe_id": home, "name": f"Set {_uid()}"})
+    shooter = await post(
+        "/api/v1/members/",
+        {
+            "universe_id": home,
+            "nickname": "Traveller",
+            "affiliations": [{"set_id": set_id, "is_primary": True}],
+        },
+    )
+    city = await post("/api/v1/municipalities/", {"universe_id": away, "name": "Away City"})
+    incident = await post(
+        "/api/v1/incidents/",
+        {
+            "universe_id": away,
+            "type": "SHOOTING",
+            "municipality_id": city,
+            "participants": [{"member_id": shooter, "role": "SHOOTER", "outcome": "UNHARMED"}],
+        },
+    )
+
+    async def listed(params: dict) -> list[dict]:
+        resp = await client.get("/api/v1/incidents/", params=params, headers=auth)
+        assert resp.status_code == 200, resp.text
+        return resp.json()["items"]
+
+    by_member = await listed({"universe_id": home, "member_id": shooter})
+    assert [(i["id"], i["universe_slug"]) for i in by_member] == [(incident, away_slug)]
+    assert by_member[0]["viewer_role"] == "SHOOTER"
+    by_set = await listed({"universe_id": home, "set_id": set_id})
+    assert [i["id"] for i in by_set] == [incident]
+    assert incident not in [i["id"] for i in await listed({"universe_id": home})]
+    assert incident in [i["id"] for i in await listed({"universe_id": away})]
+
+    resp = await client.get(
+        f"/api/v1/incidents/{incident}", params={"universe_id": away}, headers=auth
+    )
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["universe_slug"] == away_slug
+    assert body["participants"][0]["member_universe_slug"] == home_slug
+    assert body["participants"][0]["member_slug"] == "traveller"
+
+
+async def test_member_killed_in_another_universe_is_marked_dead(
+    client: AsyncClient, db_session: AsyncSession
+):
+    """The death sync follows the participant rows, not the incident's universe:
+    filtered by it, a member killed away from home stayed alive on his page."""
+    token = await _admin_token(client, db_session)
+    auth = {"Authorization": f"Bearer {token}"}
+    home = await _make_universe(client, token)
+    away_slug = f"away-{_uid()}"
+    resp = await client.post(
+        "/api/v1/universes/", json={"name": f"Away {_uid()}", "slug": away_slug}, headers=auth
+    )
+    away = resp.json()["id"]
+    victim = await _make_member(client, token, home, "Visitor")
+    resp = await client.post(
+        "/api/v1/incidents/",
+        json={
+            "universe_id": away,
+            "type": "MURDER",
+            "date": {"year": 2013, "month": 9, "precision": "YM", "approx": False},
+            "participants": [{"member_id": victim, "role": "VICTIM", "outcome": "KILLED"}],
+        },
+        headers=auth,
+    )
+    assert resp.status_code == 201, resp.text
+    incident = resp.json()["id"]
+
+    member = (
+        await client.get(f"/api/v1/members/{victim}", params={"universe_id": home}, headers=auth)
+    ).json()
+    assert member["status"] == "DEAD"
+    assert member["death_incident_id"] == incident
+    assert (member["date_of_death"]["year"], member["date_of_death"]["month"]) == (2013, 9)
+    assert member["killed_in"]["incident_id"] == incident
+    assert member["killed_in"]["universe_slug"] == away_slug
+
+    # Dropping him from the incident clears the link again, across universes too.
+    resp = await client.patch(
+        f"/api/v1/incidents/{incident}",
+        params={"universe_id": away},
+        json={"participants": []},
+        headers=auth,
+    )
+    assert resp.status_code == 200, resp.text
+    member = (
+        await client.get(f"/api/v1/members/{victim}", params={"universe_id": home}, headers=auth)
+    ).json()
+    assert member["death_incident_id"] is None
+    assert member["status"] == "UNKNOWN"
+
+
+async def test_incident_ground_must_be_in_its_universe(
+    client: AsyncClient, db_session: AsyncSession
+):
+    """A municipality or a set participant from another universe is refused, on
+    create and on edit: a set is local to its streets, so one from elsewhere is a typo."""
+    token = await _admin_token(client, db_session)
+    auth = {"Authorization": f"Bearer {token}"}
+    here = await _make_universe(client, token)
+    there = await _make_universe(client, token)
+
+    async def post(path: str, body: dict) -> str:
+        resp = await client.post(path, json=body, headers=auth)
+        assert resp.status_code == 201, resp.text
+        return resp.json()["id"]
+
+    foreign_city = await post("/api/v1/municipalities/", {"universe_id": there, "name": "Far"})
+    foreign_set = await post("/api/v1/sets/", {"universe_id": there, "name": f"Far {_uid()}"})
+    local_set = await post("/api/v1/sets/", {"universe_id": here, "name": f"Near {_uid()}"})
+
+    bad_muni = await client.post(
+        "/api/v1/incidents/",
+        json={"universe_id": here, "type": "SHOOTING", "municipality_id": foreign_city},
+        headers=auth,
+    )
+    assert bad_muni.status_code == 422
+    bad_set = await client.post(
+        "/api/v1/incidents/",
+        json={
+            "universe_id": here,
+            "type": "SHOOTING",
+            "set_participants": [{"set_id": foreign_set, "role": "VICTIM"}],
+        },
+        headers=auth,
+    )
+    assert bad_set.status_code == 422
+
+    incident = await post(
+        "/api/v1/incidents/",
+        {
+            "universe_id": here,
+            "type": "MURDER",
+            "set_participants": [{"set_id": local_set, "role": "VICTIM", "outcome": "KILLED"}],
+        },
+    )
+    for patch in (
+        {"municipality_id": foreign_city},
+        {"set_participants": [{"set_id": foreign_set, "role": "VICTIM"}]},
+    ):
+        resp = await client.patch(
+            f"/api/v1/incidents/{incident}", params={"universe_id": here}, json=patch, headers=auth
+        )
+        assert resp.status_code == 422, patch
+
+    # The set itself is the only participant: its page still lists the incident.
+    resp = await client.get(
+        "/api/v1/incidents/", params={"universe_id": here, "set_id": local_set}, headers=auth
+    )
+    assert [i["id"] for i in resp.json()["items"]] == [incident]

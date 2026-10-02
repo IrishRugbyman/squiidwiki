@@ -5,6 +5,7 @@ import { INCIDENT_TYPE_HEX } from '@/lib/statusColors'
 import { BRAND } from '@/lib/brand'
 import type { FuzzyDateValue } from '@/components/FuzzyDate'
 import type { IncidentListItem } from '@/lib/types'
+import { paramsIn } from '@/lib/universeRoutes'
 
 interface MemberTimelineProps {
   incidents: IncidentListItem[]
@@ -74,7 +75,7 @@ export function MemberTimeline({ incidents, dob, dateOfDeath }: MemberTimelinePr
               <TooltipTrigger asChild>
                 <Link
                   from="/$universe" to="/$universe/incidents/$id"
-                  params={{ id: inc.id }}
+                  params={paramsIn(inc.universe_slug, inc.id)}
                   className="absolute top-1/2 -translate-x-1/2 -translate-y-1/2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/50 rounded-full"
                   style={{ left: `${pct(t)}%` }}
                 >

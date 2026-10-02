@@ -34,6 +34,9 @@ class ParticipantRead(BaseModel):
     # truncated member dump (4,600+ members; list endpoints cap at 500).
     member_name: Optional[str] = None
     member_slug: Optional[str] = None
+    # The member's own universe, which may not be the incident's: a Michigan
+    # member can take part in an Ohio incident. His page link is built from it.
+    member_universe_slug: Optional[str] = None
     # Also filled by the detail endpoint, so the page draws each participant
     # (photo, status, set) without downloading the whole universe's members.
     member_status: Optional[MemberStatus] = None
@@ -119,6 +122,7 @@ class IncidentRead(BaseModel):
     verified: bool
     created_at: datetime
     updated_at: datetime
+    universe_slug: Optional[str] = None
 
 
 class IncidentReadDetail(IncidentRead):
@@ -141,6 +145,9 @@ class IncidentListItem(BaseModel):
     lng: Optional[float]
     verified: bool
     universe_id: uuid.UUID
+    # Where the incident's page lives. A member's or set's list can hold
+    # incidents from another universe, so a link cannot assume the current one.
+    universe_slug: Optional[str] = None
     victim_names: list[str] = []
     shooter_names: list[str] = []
     # The role held by the member this list was filtered on, when it was. A member's

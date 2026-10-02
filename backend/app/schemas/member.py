@@ -180,6 +180,9 @@ class MemberKilledInSummary(BaseModel):
     date: FuzzyDateField = None
     municipality_id: Optional[uuid.UUID] = None
     municipality_name: Optional[str] = None
+    # The incident's universe, which may not be the member's: he can be killed
+    # away from home. The card links to the incident under this slug.
+    universe_slug: Optional[str] = None
 
 
 class MemberReadDetail(MemberRead):

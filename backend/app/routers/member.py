@@ -13,6 +13,7 @@ from app.crud import member as crud
 from app.models.alliance import Alliance
 from app.models.incident import Incident
 from app.models.municipality import Municipality
+from app.models.universe import Universe
 from app.schemas.common import CursorPage
 from app.schemas.member import (
     AffiliationEnd,
@@ -161,8 +162,10 @@ async def get_member(
                     Incident.date,
                     Incident.municipality_id,
                     Municipality.name,
+                    Universe.slug,
                 )
                 .select_from(Incident)
+                .join(Universe, Universe.id == Incident.universe_id)
                 .outerjoin(Municipality, Municipality.id == Incident.municipality_id)
                 .where(Incident.id == obj.death_incident_id)
             )
@@ -174,6 +177,7 @@ async def get_member(
                 date=row[2],
                 municipality_id=row[3],
                 municipality_name=row[4],
+                universe_slug=row[5],
             )
 
     affiliations: list[MemberSetAffiliationOut] = getattr(obj, "affiliations", [])

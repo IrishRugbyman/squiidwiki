@@ -146,7 +146,7 @@ function MunicipalityFormSheetInner({ universeId, open, onClose, initial, defaul
           {options.length > 0 && (
             <div className="space-y-1.5">
               <Label>Parent municipality</Label>
-              <Select value={parentId || 'none'} onValueChange={(v) => setParentId(v === 'none' ? '' : v)}>
+              <Select value={parentId || 'none'} onValueChange={(v) => { if (v) setParentId(v === 'none' ? '' : v) }}>
                 <SelectTrigger><SelectValue placeholder="None (top-level)" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="none">None</SelectItem>

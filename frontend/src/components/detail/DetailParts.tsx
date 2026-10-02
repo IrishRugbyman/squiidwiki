@@ -1,7 +1,10 @@
 import { Link } from '@tanstack/react-router'
 import { FuzzyDate } from '@/components/FuzzyDate'
 import { INCIDENT_TYPE_ICON, INCIDENT_TYPE_TILE } from '@/lib/incidentColors'
+import { useUniverses } from '@/lib/queries'
 import type { IncidentListItem } from '@/lib/types'
+import { paramsIn } from '@/lib/universeRoutes'
+import { useUniverseStore } from '@/stores/universe'
 
 // Building blocks shared by the detail pages (set, alliance, incident), so the
 // three read as one design and a fix lands on all of them.
@@ -78,10 +81,25 @@ export function IncidentPeople({ inc }: { inc: IncidentListItem }) {
   )
 }
 
+/** Names the universe a linked row lives in, when it is not the one on screen:
+ *  an Ohio shooting on a Michigan member's page, or a participant from elsewhere.
+ *  Renders nothing for the current universe, which is every row but those. */
+export function UniverseChip({ slug }: { slug: string | null | undefined }) {
+  const active = useUniverseStore((s) => s.activeUniverse?.slug)
+  const { data } = useUniverses()
+  if (!slug || slug === active) return null
+  const name = (data?.items ?? []).find((u) => u.slug === slug)?.name ?? slug
+  return (
+    <span className="inline-flex shrink-0 items-center rounded-full border border-sky-800/60 bg-sky-950/40 px-1.5 py-0.5 text-[10px] font-medium leading-none text-sky-300" title={`Recorded in ${name}`}>
+      {name}
+    </span>
+  )
+}
+
 export function IncidentRow({ inc }: { inc: IncidentListItem }) {
   const Icon = INCIDENT_TYPE_ICON[inc.type]
   return (
-    <Link from="/$universe" to="/$universe/incidents/$id" params={{ id: inc.id }} className="flex items-center gap-3 px-3 py-2.5 transition-colors hover:bg-zinc-900/60">
+    <Link from="/$universe" to="/$universe/incidents/$id" params={paramsIn(inc.universe_slug, inc.id)} className="flex items-center gap-3 px-3 py-2.5 transition-colors hover:bg-zinc-900/60">
       <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-md ${INCIDENT_TYPE_TILE[inc.type]}`} title={titleCase(inc.type)}>
         <Icon className="h-4 w-4" aria-hidden />
       </span>
@@ -90,6 +108,7 @@ export function IncidentRow({ inc }: { inc: IncidentListItem }) {
           <span className="font-medium text-zinc-100">{titleCase(inc.type)}</span>
           <span className="font-mono text-xs tabular-nums text-zinc-400">{inc.date ? <FuzzyDate value={inc.date} /> : 'Date unknown'}</span>
           {inc.municipality_name && <span className="hidden truncate text-xs text-zinc-500 sm:inline">{inc.municipality_name}</span>}
+          <UniverseChip slug={inc.universe_slug} />
         </span>
         <IncidentPeople inc={inc} />
       </span>

@@ -53,12 +53,12 @@ async def list_incidents(
         items, _ = await crud.list_incidents(session, universe_id, limit=1_000_000)
         return to_csv_response(items, "incidents.csv")
     if set_id is not None:
-        items = await crud.list_incidents_by_set(session, set_id, universe_id, limit=limit)
+        items = await crud.list_incidents_by_set(session, set_id, limit=limit)
         return CursorPage(
             items=await crud.enrich_participant_names(session, items), next_cursor=None, total=None
         )
     if member_id is not None:
-        items = await crud.list_incidents_by_member(session, member_id, universe_id, limit=limit)
+        items = await crud.list_incidents_by_member(session, member_id, limit=limit)
         return CursorPage(
             items=await crud.enrich_participant_names(session, items, viewer_id=member_id),
             next_cursor=None,
@@ -118,12 +118,16 @@ async def get_incident(
     await member_crud.attach_primary_photos(session, list(members.values()))
     member_sets = await crud.participant_current_sets(session, member_ids)
     sets = await crud.participant_set_briefs(session, [p.set_id for p in set_participants])
+    slugs = await crud.universe_slugs(
+        session, {obj.universe_id} | {m.universe_id for m in members.values()}
+    )
     participant_reads = []
     for p in participants:
         pr = ParticipantRead.model_validate(p)
         if m := members.get(p.member_id):
             pr.member_name = m.display_name
             pr.member_slug = m.slug
+            pr.member_universe_slug = slugs.get(m.universe_id)
             pr.member_status = m.status
             pr.member_photo_url = getattr(m, "primary_photo_thumb_url", None) or getattr(
                 m, "primary_photo_url", None
@@ -139,6 +143,7 @@ async def get_incident(
             sr.set_slug = s.slug
         set_participant_reads.append(sr)
     base = IncidentRead.model_validate(obj)
+    base.universe_slug = slugs.get(obj.universe_id)
     return IncidentReadDetail(
         **base.model_dump(),
         participants=participant_reads,

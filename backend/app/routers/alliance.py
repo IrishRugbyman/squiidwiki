@@ -151,7 +151,7 @@ async def list_alliance_incidents(
     obj = await crud.get_alliance(session, id, universe_id)
     if obj is None:
         raise HTTPException(404)
-    items = await incident_crud.list_incidents_by_alliance(session, id, universe_id, limit=limit)
+    items = await incident_crud.list_incidents_by_alliance(session, id, limit=limit)
     # Enriched like every other incident list; returned bare, the victim and
     # shooter names and the city came back empty.
     items = await incident_crud.enrich_participant_names(session, items)

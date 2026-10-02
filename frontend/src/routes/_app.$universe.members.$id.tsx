@@ -44,6 +44,8 @@ import {
   OUTCOME_LABEL,
 } from '@/lib/incidentColors'
 import { useUniverseStore } from '@/stores/universe'
+import { UniverseChip } from '@/components/detail/DetailParts'
+import { paramsIn } from '@/lib/universeRoutes'
 import { useAuthStore } from '@/stores/auth'
 import { MemberFormSheet, familyDictToEntries, ROLE_LABEL, ROLE_LABEL_PLURAL } from './_app.$universe.members.index'
 import type { FamilyRole } from './_app.$universe.members.index'
@@ -744,7 +746,7 @@ function MemberDetailPage() {
           {member.status === 'DEAD' && member.death_incident_id && (
             <Link
               from="/$universe" to="/$universe/incidents/$id"
-              params={{ id: member.death_incident_id }}
+              params={paramsIn(killedIn?.universe_slug, member.death_incident_id)}
               className="group flex items-center gap-3 rounded-lg border border-rose-900/60 bg-rose-950/30 px-4 py-3 transition-colors hover:border-rose-700 hover:bg-rose-950/50"
             >
               <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-rose-950/80">
@@ -861,7 +863,7 @@ function MemberDetailPage() {
                                   own: it is true for a small minority, so a whole column spent
                                   rendering an em dash costs more width than the flag is worth.
                                   The slot is always reserved so dates stay aligned. */}
-                              <Link from="/$universe" to="/$universe/incidents/$id" params={{ id: inc.id }} className="flex items-center gap-2 px-4 py-3 text-zinc-300 hover:text-violet-400">
+                              <Link from="/$universe" to="/$universe/incidents/$id" params={paramsIn(inc.universe_slug, inc.id)} className="flex items-center gap-2 px-4 py-3 text-zinc-300 hover:text-violet-400">
                                 {inc.verified ? (
                                   <Tooltip>
                                     <TooltipTrigger asChild>
@@ -873,7 +875,7 @@ function MemberDetailPage() {
                                   <span className="h-1.5 w-1.5 shrink-0" aria-hidden />
                                 )}
                                 <span className="min-w-0">
-                                  <span className="block whitespace-nowrap">{inc.date ? <FuzzyDate value={inc.date} /> : 'Undated'}</span>
+                                  <span className="flex items-center gap-1.5 whitespace-nowrap">{inc.date ? <FuzzyDate value={inc.date} /> : 'Undated'}<UniverseChip slug={inc.universe_slug} /></span>
                                   {/* The Type and Victims columns drop on a phone; their
                                       content folds in under the date instead. */}
                                   <span className="block truncate text-[11px] text-zinc-400 md:hidden">

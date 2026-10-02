@@ -2,7 +2,8 @@ import { createLazyFileRoute, Link, useNavigate } from '@tanstack/react-router'
 import { CheckCircle2, ExternalLink, FileText, MapPin, MoreHorizontal, Pencil, Plus, Trash2, UserPlus, Users } from 'lucide-react'
 import { lazy, Suspense, useState } from 'react'
 import { Breadcrumbs } from '@/components/Breadcrumbs'
-import { DetailRow, PanelHeading } from '@/components/detail/DetailParts'
+import { DetailRow, PanelHeading, UniverseChip } from '@/components/detail/DetailParts'
+import { paramsIn } from '@/lib/universeRoutes'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { CopyButton } from '@/components/CopyButton'
 import { ErrorState } from '@/components/ErrorState'
@@ -77,12 +78,13 @@ function ParticipantRow({ p }: { p: ParticipantRead }) {
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
           {p.member_name ? (
-            <Link from="/$universe" to="/$universe/members/$id" params={{ id: p.member_slug ?? p.member_id }} className="text-sm font-medium text-white transition-colors hover:text-violet-300">
+            <Link from="/$universe" to="/$universe/members/$id" params={paramsIn(p.member_universe_slug, p.member_slug ?? p.member_id)} className="text-sm font-medium text-white transition-colors hover:text-violet-300">
               {name}
             </Link>
           ) : (
             <span className="text-sm font-medium text-zinc-400">{name}</span>
           )}
+          <UniverseChip slug={p.member_universe_slug} />
           {p.member_status && (
             <span className="inline-flex items-center gap-1 text-[11px] text-zinc-400" title="Status now">
               <span className={`h-1.5 w-1.5 rounded-full ${MEMBER_STATUS_DOT[p.member_status]}`} aria-hidden />
@@ -90,7 +92,7 @@ function ParticipantRow({ p }: { p: ParticipantRead }) {
             </span>
           )}
           {p.set_name && (
-            <Link from="/$universe" to="/$universe/sets/$id" params={{ id: p.set_slug ?? p.set_id! }} title="Current set"
+            <Link from="/$universe" to="/$universe/sets/$id" params={paramsIn(p.member_universe_slug, p.set_slug ?? p.set_id!)} title="Current set"
               className="rounded-full bg-zinc-800/80 px-2 py-0.5 text-[11px] text-zinc-300 transition-colors hover:text-violet-300">
               {p.set_name}
             </Link>
