@@ -83,7 +83,16 @@ class MemberIncarceration(SQLModel, table=True):
     )
     life_sentence: bool = False
     facility: str | None = None
+    # As the custody record gives it (an OTIS court file number, a docket with
+    # the court in brackets). The case it names, once there is one, is
+    # `court_case_id`; this text stays as reported.
     case_id: str | None = None
+    court_case_id: uuid.UUID | None = Field(
+        default=None,
+        sa_column=Column(
+            sa.Uuid(), ForeignKey("court_case.id", ondelete="SET NULL"), nullable=True, index=True
+        ),
+    )
     notes: str | None = None
     created_at: datetime = Field(
         sa_type=DateTime(timezone=True), default_factory=lambda: datetime.now(UTC)

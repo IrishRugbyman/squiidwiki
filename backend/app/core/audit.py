@@ -23,6 +23,8 @@ _AUDITED_TABLES = {
     "incident",
     "source",
     "media",
+    "court_case",
+    "court_case_defendant",
 }
 
 
@@ -72,6 +74,7 @@ def attach_audit_listeners() -> None:
     from sqlalchemy.orm import mapperlib
 
     import app.models.alliance  # noqa: F401
+    import app.models.court_case  # noqa: F401
     import app.models.gang_set  # noqa: F401
     import app.models.incident  # noqa: F401
     import app.models.media  # noqa: F401

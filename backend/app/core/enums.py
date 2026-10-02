@@ -178,3 +178,43 @@ class CustodySystem(str, Enum):
     IDOC = "IDOC"  # Illinois Department of Corrections
     COOK_COUNTY_JAIL = "COOK_COUNTY_JAIL"  # Cook County Sheriff booking number
     RICHMOND_COUNTY_JAIL = "RICHMOND_COUNTY_JAIL"  # Augusta, Webster Detention Center
+
+
+class CourtJurisdiction(str, Enum):
+    """Which legal system a court case belongs to, stored as VARCHAR.
+
+    It decides how a docket number is normalised and which fields the form
+    offers (a French assize trial has no docket in the US sense), and nothing
+    else: every case is the same row whatever the system.
+    """
+
+    US_FEDERAL = "US_FEDERAL"
+    US_STATE = "US_STATE"
+    FR = "FR"
+    OTHER = "OTHER"
+
+
+class CourtCaseKind(str, Enum):
+    """What sort of proceeding a court case is, stored as VARCHAR."""
+
+    CRIMINAL = "CRIMINAL"
+    CIVIL = "CIVIL"  # habeas petitions, civil-rights suits
+    MAGISTRATE = "MAGISTRATE"  # a complaint or a warrant, before any indictment
+    APPEAL = "APPEAL"
+
+
+class CaseDisposition(str, Enum):
+    """Where one defendant's part of a case stands, stored as VARCHAR.
+
+    The status words the research has always used for defendant tables. A
+    participant whose defendant row reads ACQUITTED, in a case covering that
+    incident, has `incident_participant.acquitted` set by the mirror in
+    `app.crud.court_case`.
+    """
+
+    PENDING = "PENDING"
+    PLEADED = "PLEADED"
+    CONVICTED = "CONVICTED"
+    ACQUITTED = "ACQUITTED"
+    DISMISSED = "DISMISSED"
+    DIED = "DIED"

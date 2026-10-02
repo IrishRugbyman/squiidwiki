@@ -125,6 +125,20 @@ async def _sync_incident_sources(
         session.add(IncidentSource(incident_id=incident_id, source_id=sid))
 
 
+async def _sync_case_verdicts(session: AsyncSession, incident_id: uuid.UUID) -> None:
+    """Re-apply the court cases' verdicts to participant rows just rewritten.
+
+    A participant list is replaced whole, `acquitted` included, so a payload
+    built before a case was entered would undo its acquittal. Where a case
+    covering this incident has the participant as a defendant, its verdict
+    wins; elsewhere the flag stays as sent. See `app.crud.court_case`.
+    """
+    from app.crud.court_case import sync_acquitted
+
+    await session.flush()
+    await sync_acquitted(session, {incident_id})
+
+
 async def _unsync_killed_participants(
     session: AsyncSession, incident: Incident, new_participants: list[ParticipantCreate]
 ) -> None:
@@ -228,6 +242,7 @@ async def create_incident(
     await _sync_set_participants(session, obj.id, data.set_participants)
     await _sync_incident_sources(session, obj.id, data.source_ids)
     await _sync_killed_participants(session, obj, data.participants)
+    await _sync_case_verdicts(session, obj.id)
     await session.commit()
     await session.refresh(obj)
     return obj
@@ -339,6 +354,7 @@ async def update_incident(
         await _unsync_killed_participants(session, obj, data.participants)
         await _sync_participants(session, obj.id, data.participants)
         await _sync_killed_participants(session, obj, data.participants, previous_date)
+        await _sync_case_verdicts(session, obj.id)
     elif "date" in data.model_fields_set:
         # A date-only edit keeps the participants on file, and its dead are
         # dated by this incident just as if they had been re-sent.

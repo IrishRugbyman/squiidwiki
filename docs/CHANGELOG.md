@@ -439,3 +439,36 @@ Also fixed while there:
   opened before the municipality list arrives, and the form read that as "no city".
   Both pickers, and the municipality form's parent picker, now ignore `''` (a real
   clear is the `none` item), and an untouched form keeps the place on file.
+
+---
+
+## 2026-10-02 - Court cases, phase 1: schema and API
+
+The first phase of `docs/2026-10-02-court-case-entity-plan.md`. Migration
+`437b8ac567a8` adds `court_case`, `court_case_defendant`, `court_case_incident`,
+`court_case_set`, `court_case_source` and `member_incarceration.court_case_id`;
+applied to prod (dumped first to `~/backups/`), test and dev, and its downgrade
+run on test. Autogenerate again proposed dropping the trigram and partial unique
+indexes; the file is hand-written.
+
+Jurisdiction, kind and disposition are VARCHAR holding enum values, as custody
+systems are, so a French or a new state court is a code change. The router at
+`/api/v1/court-cases` lists a universe's cases, or every case a member, set or
+incident is in whatever universe it sits in (each row carries `universe_slug`,
+and a member's list his own disposition and sentence); searches name, docket and
+every docket alias; and writes cases and defendants. A duplicate court and docket,
+or a member charged twice in one case, is a 409; it is caught at the first flush,
+since the shared test session showed a commit-time handler alone let it surface as
+a 500 and poison the session.
+
+The participant `acquitted` flag became a mirror of the verdicts (see CLAUDE.md),
+which keeps `member_stats` and `set_stats` untouched. The rules were each tested,
+and the tests checked by breaking the code: an acquittal sets it and a conviction
+clears it; a state acquittal and a federal conviction for the same shooting does
+not clear; a hand-set flag no case speaks to survives; an incident edit that sends
+`acquitted: false` does not undo a court's acquittal; unlinking the incident,
+deleting the defendant or deleting the case releases it. `court_case` and
+`court_case_defendant` are audited; sources gained `court_case_count`.
+
+Nothing is in the tables yet: pages are phase 2, the backfill from the 443 spells
+carrying a case number is phase 3.

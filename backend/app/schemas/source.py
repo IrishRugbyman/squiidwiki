@@ -65,3 +65,4 @@ class SourceListItem(BaseModel):
     business_count: int = 0
     custody_count: int = 0
     alias_count: int = 0
+    court_case_count: int = 0

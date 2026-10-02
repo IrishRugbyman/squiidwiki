@@ -233,6 +233,9 @@ class MemberIncarcerationCreate(BaseModel):
     life_sentence: bool = False
     facility: Optional[str] = None
     case_id: Optional[str] = None
+    # The court case this spell was served for; case_id stays as the custody
+    # record wrote it.
+    court_case_id: Optional[uuid.UUID] = None
     notes: Optional[str] = None
 
 
@@ -244,6 +247,7 @@ class MemberIncarcerationUpdate(BaseModel):
     life_sentence: Optional[bool] = None
     facility: Optional[str] = None
     case_id: Optional[str] = None
+    court_case_id: Optional[uuid.UUID] = None
     notes: Optional[str] = None
 
 
@@ -259,6 +263,7 @@ class MemberIncarcerationRead(BaseModel):
     life_sentence: bool
     facility: Optional[str]
     case_id: Optional[str]
+    court_case_id: Optional[uuid.UUID] = None
     notes: Optional[str]
     created_at: datetime
 

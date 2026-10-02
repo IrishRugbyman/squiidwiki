@@ -532,6 +532,11 @@ async def delete_member(session: AsyncSession, id: uuid.UUID, universe_id: uuid.
     obj = await get_member(session, id, universe_id)
     if obj is None:
         return False
+    # Court defendant rows outlive the member: SET NULL in the schema, with the
+    # name copied into `label` first so the row still says who was charged.
+    from app.crud.court_case import keep_defendants_of_deleted_member
+
+    await keep_defendants_of_deleted_member(session, obj)
     # Remove incident participations (no cascade on member_id FK)
     await session.execute(
         IncidentParticipant.__table__.delete().where(IncidentParticipant.member_id == id)
@@ -658,6 +663,18 @@ async def get_member_stats(session: AsyncSession, member_id: uuid.UUID) -> dict 
     }
 
 
+async def _check_court_case(
+    session: AsyncSession, court_case_id: uuid.UUID | None
+) -> uuid.UUID | None:
+    """A spell may point at a case in any universe: a member can serve a
+    sentence another universe's court passed. It must exist."""
+    from app.models.court_case import CourtCase
+
+    if court_case_id is not None and await session.get(CourtCase, court_case_id) is None:
+        raise HTTPException(422, detail="court_case_id is not a court case")
+    return court_case_id
+
+
 async def list_member_incarcerations(
     session: AsyncSession, member_id: uuid.UUID
 ) -> list[MemberIncarceration]:
@@ -685,6 +702,7 @@ async def create_member_incarceration(
         life_sentence=data.life_sentence,
         facility=data.facility,
         case_id=data.case_id,
+        court_case_id=await _check_court_case(session, data.court_case_id),
         notes=data.notes,
     )
     session.add(obj)
@@ -714,6 +732,8 @@ async def update_member_incarceration(
     for field in ("facility", "case_id", "notes"):
         if field in data.model_fields_set:
             setattr(obj, field, getattr(data, field))
+    if "court_case_id" in data.model_fields_set:
+        obj.court_case_id = await _check_court_case(session, data.court_case_id)
     if data.life_sentence is not None:
         obj.life_sentence = data.life_sentence
     # Only touch a date the caller actually sent: these fields default to None, so

@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import func, select
 
 from app.models.business import BusinessSource
+from app.models.court_case import CourtCaseSource
 from app.models.gang_set import SetSource
 from app.models.incident import IncidentSource
 from app.models.member import MemberAlias, MemberCustodyId, MemberSource
@@ -70,6 +71,7 @@ async def attach_citation_counts(session: AsyncSession, items: list[Source]) -> 
         # Custody numbers and aliases cite a source through a nullable column.
         ("custody_count", MemberCustodyId),
         ("alias_count", MemberAlias),
+        ("court_case_count", CourtCaseSource),
     ):
         rows = await session.execute(
             select(table.source_id, func.count())

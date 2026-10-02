@@ -7,6 +7,13 @@ from app.models.alliance import (
 )
 from app.models.auth import AuditLog, User, UserUniverseAccess
 from app.models.business import Business, BusinessMember, BusinessSet, BusinessSource
+from app.models.court_case import (
+    CourtCase,
+    CourtCaseDefendant,
+    CourtCaseIncident,
+    CourtCaseSet,
+    CourtCaseSource,
+)
 from app.models.gang import Gang, GangCard
 from app.models.gang_set import (
     GangSet,
@@ -73,4 +80,9 @@ __all__ = [
     "IncidentSource",
     "ResearchNote",
     "Media",
+    "CourtCase",
+    "CourtCaseDefendant",
+    "CourtCaseIncident",
+    "CourtCaseSet",
+    "CourtCaseSource",
 ]
