@@ -196,9 +196,15 @@ Nothing here depends on it, but it depends on this, in two different ways:
 
 Start at `~/squiidape/research/README.md`.
 
-**Do not push `refactor` to origin as it stands.** Removing the tree emptied the
-working copy, not the history: 101 of this branch's 174 unpushed commits still
-carry the research files, and pushing the branch would publish every one of them.
-`master` is clean - exactly one research file ever reached it. So land this branch
-with `git merge --squash` (one commit, final tree, no research), or rewrite the
-range first. This note can go once the branch is merged or rewritten.
+**History rewritten 2026-10-02.** The research tree had reached `master` after all
+(478 paths, not the one file this note used to claim), along with the ten
+`seed_corsica*` scripts and members' names in code comments, tests and commit
+messages. `git filter-repo` removed `research/` and the Corsica scripts from every
+commit, replaced every legal name on file with neutral text, and replaced the body of
+16 commit messages that identified people; `master` and `refactor` were then
+force-pushed (both at `db45c84`). The pre-rewrite history is in
+`~/backups/squiidwiki-before-history-rewrite-2026-10-02.bundle` and on the Storage
+Box under `backups/`. GitHub still serves old commits by SHA through merged PRs #1
+and #2 until GitHub Support purges them. **Before every push, nothing here may name
+a person**: no legal name, nickname or custody number in code, tests, docs or commit
+messages.
