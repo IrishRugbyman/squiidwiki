@@ -9,6 +9,7 @@
 export const SCOPED_SECTIONS = [
   'alliances',
   'calendar',
+  'cases',
   'gangs',
   'incidents',
   'map',

@@ -496,3 +496,21 @@ async def test_editing_a_docket_into_another_case_is_a_conflict(api: _Api):
         headers=api.auth,
     )
     assert resp.status_code == 409
+
+
+async def test_an_alliance_lists_the_cases_against_its_sets(api: _Api):
+    uid, _ = await api.universe()
+    member_set = await api.post("/api/v1/sets/", {"universe_id": uid, "name": f"S {_uid()}"})
+    outside = await api.post("/api/v1/sets/", {"universe_id": uid, "name": f"T {_uid()}"})
+    alliance = await api.post(
+        "/api/v1/alliances/",
+        {"universe_id": uid, "name": f"A {_uid()}", "set_ids": [member_set["id"]]},
+    )
+    case = await api.case(uid, set_ids=[member_set["id"]])
+    await api.case(uid, set_ids=[outside["id"]])
+    resp = await api.client.get(
+        "/api/v1/court-cases/",
+        params={"universe_id": uid, "alliance_id": alliance["id"]},
+        headers=api.auth,
+    )
+    assert [c["id"] for c in resp.json()["items"]] == [case["id"]]

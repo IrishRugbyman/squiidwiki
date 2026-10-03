@@ -20,6 +20,7 @@ RESERVED_UNIVERSE_SLUGS = frozenset(
         "universes",
         "alliances",
         "calendar",
+        "cases",
         "gangs",
         "incidents",
         "map",

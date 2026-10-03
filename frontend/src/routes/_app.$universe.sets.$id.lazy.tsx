@@ -35,6 +35,7 @@ import { DetailRow, IncidentRow, None, PanelHeading, RankBadge, StatStrip } from
 import { AddMemberToSetDialog } from '@/components/AddMemberToSetDialog'
 import { LineagePanel } from '@/components/sets/LineagePanel'
 import { SetSourcesPanel } from '@/components/sets/SetSourcesPanel'
+import { CasesPanel } from '@/components/cases/CasesPanel'
 import { AffiliationCombobox } from '@/components/members/MemberFormSheet/pickers/AffiliationCombobox'
 import { setPickerItems } from '@/lib/setPicker'
 import { InheritedAllianceRelationships } from '@/components/alliances/AllianceRelationships'
@@ -1058,6 +1059,7 @@ function SetDetailPage() {
                       enemies showed none of it. */}
                   {!isReserved && universe && <LineagePanel setId={set.id} setName={set.name} universeId={universe.id} />}
                   {!isReserved && universe && <SetSourcesPanel setId={set.id} universeId={universe.id} sources={set.sources ?? []} />}
+                  {!isReserved && universe && <CasesPanel filter="set_id" id={set.id} universeId={universe.id} />}
                 </aside>
               </div>
             </TabsContent>

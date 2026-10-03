@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import type { FuzzyDateValue } from '@/components/FuzzyDate'
@@ -32,21 +32,27 @@ export function FuzzyDateInput({ value, onChange, label, idPrefix, life }: Props
   })
   const [year, setYear] = useState(() => value?.year?.toString() ?? '')
 
-  useEffect(() => {
-    if (life) life.onChange(mode === 'life')
-    if (mode === 'life') {
+  /**
+   * Report a change the user made, and only then. This used to run from an
+   * effect, which also fires on mount: opening a form re-encoded the date on
+   * file through these three modes before anyone touched it, so an unchanged
+   * save turned "June 2022" into "circa 2022" (a month-precision date has no
+   * mode of its own here) and marked every bare year approximate.
+   */
+  function emit(nextMode: Mode, nextExact: string, nextYear: string) {
+    if (life) life.onChange(nextMode === 'life')
+    if (nextMode === 'life') {
       onChange(null)
-    } else if (mode === 'unknown') {
+    } else if (nextMode === 'unknown') {
       onChange({ precision: 'UNKNOWN', approx: false })
-    } else if (mode === 'exact' && exactDate) {
-      const [y, m, d] = exactDate.split('-').map(Number)
+    } else if (nextMode === 'exact' && nextExact) {
+      const [y, m, d] = nextExact.split('-').map(Number)
       if (y && m && d) onChange({ year: y, month: m, day: d, precision: 'YMD', approx: false })
-    } else if (mode === 'year' && year) {
-      const y = parseInt(year, 10)
+    } else if (nextMode === 'year' && nextYear) {
+      const y = parseInt(nextYear, 10)
       if (!isNaN(y)) onChange({ year: y, precision: 'Y', approx: true })
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mode, exactDate, year])
+  }
 
   const modes: Mode[] = life ? ['exact', 'year', 'unknown', 'life'] : ['exact', 'year', 'unknown']
 
@@ -61,7 +67,7 @@ export function FuzzyDateInput({ value, onChange, label, idPrefix, life }: Props
               name={`${idPrefix}-mode`}
               value={m}
               checked={mode === m}
-              onChange={() => setMode(m)}
+              onChange={() => { setMode(m); emit(m, exactDate, year) }}
               className="accent-violet-600"
             />
             <span className="capitalize">{m}</span>
@@ -72,7 +78,7 @@ export function FuzzyDateInput({ value, onChange, label, idPrefix, life }: Props
         <Input
           type="date"
           value={exactDate}
-          onChange={(e) => setExactDate(e.target.value)}
+          onChange={(e) => { setExactDate(e.target.value); emit(mode, e.target.value, year) }}
           className="max-w-xs"
         />
       )}
@@ -83,7 +89,7 @@ export function FuzzyDateInput({ value, onChange, label, idPrefix, life }: Props
           min={1900}
           max={2100}
           value={year}
-          onChange={(e) => setYear(e.target.value)}
+          onChange={(e) => { setYear(e.target.value); emit(mode, exactDate, e.target.value) }}
           className="max-w-xs"
         />
       )}

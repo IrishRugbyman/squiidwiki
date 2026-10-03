@@ -2,6 +2,10 @@ import { keepPreviousData, useMutation, useQueries, useQuery, useQueryClient } f
 import type { QueryClient } from '@tanstack/react-query'
 import { api } from './api'
 import type {
+  CourtCaseListItem,
+  CourtCaseRead,
+  CourtCaseReadDetail,
+  DefendantRead,
   AllianceListItem,
   AllianceRelationshipItem,
   AllianceRead,
@@ -1561,5 +1565,108 @@ export const useDeleteMedia = (
       qc.invalidateQueries({ queryKey: mediaQueryKey(entityType, entityId) })
       qc.invalidateQueries({ queryKey: [`${entityType}s`] })
     },
+  })
+}
+
+// ─── Court cases ──────────────────────────────────────────────────────────────
+
+/** Every key a court case write can make stale: its own, and the incidents
+ *  whose `acquitted` flags follow its verdicts, and the spells it links. */
+function invalidateCourtCases(qc: QueryClient) {
+  qc.invalidateQueries({ queryKey: ['court-cases'] })
+  qc.invalidateQueries({ queryKey: ['incidents'] })
+  qc.invalidateQueries({ queryKey: ['members'] })
+  qc.invalidateQueries({ queryKey: ['sources'] })
+}
+
+export const useCourtCases = (universeId: UUID | null) =>
+  useQuery({
+    queryKey: ['court-cases', 'universe', universeId],
+    queryFn: async () => {
+      const items: CourtCaseListItem[] = []
+      let total = 0
+      do {
+        const page = await api.get<OffsetPage<CourtCaseListItem>>(
+          `/court-cases/?universe_id=${universeId}&limit=1000&offset=${items.length}`,
+        )
+        items.push(...page.items)
+        total = page.total
+        if (page.items.length === 0) break
+      } while (items.length < total)
+      return items
+    },
+    enabled: !!universeId,
+  })
+
+/** The cases a member, set, incident or alliance is in, in whatever universe each sits. */
+export const useCourtCasesFor = (
+  filter: 'member_id' | 'set_id' | 'incident_id' | 'alliance_id',
+  id: UUID | null | undefined,
+  universeId: UUID | null,
+) =>
+  useQuery({
+    queryKey: ['court-cases', filter, id],
+    queryFn: () =>
+      api.get<OffsetPage<CourtCaseListItem>>(`/court-cases/?universe_id=${universeId}&${filter}=${id}`)
+        .then((p) => p.items),
+    enabled: !!universeId && !!id,
+  })
+
+export const useCourtCase = (idOrSlug: string, universeId: UUID | null) =>
+  useQuery({
+    queryKey: ['court-cases', 'detail', universeId, idOrSlug],
+    queryFn: () => api.get<CourtCaseReadDetail>(`/court-cases/${idOrSlug}?universe_id=${universeId}`),
+    enabled: !!universeId && !!idOrSlug,
+  })
+
+export const useCourtCaseSearch = (universeId: UUID | null, q: string) =>
+  useQuery({
+    queryKey: ['court-cases', 'search', universeId, q],
+    queryFn: () => api.get<CourtCaseListItem[]>(`/court-cases/search?universe_id=${universeId}&q=${encodeURIComponent(q)}`),
+    enabled: !!universeId && q.length >= 2,
+    placeholderData: keepPreviousData,
+  })
+
+export const useCreateCourtCase = () => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (body: Record<string, unknown>) => api.post<CourtCaseRead>('/court-cases/', body),
+    onSuccess: () => invalidateCourtCases(qc),
+  })
+}
+
+export const useUpdateCourtCase = (id: UUID, universeId: UUID) => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (body: Record<string, unknown>) =>
+      api.patch<CourtCaseRead>(`/court-cases/${id}?universe_id=${universeId}`, body),
+    onSuccess: () => invalidateCourtCases(qc),
+  })
+}
+
+export const useDeleteCourtCase = (universeId: UUID) => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (id: UUID) => api.delete(`/court-cases/${id}?universe_id=${universeId}`),
+    onSuccess: () => invalidateCourtCases(qc),
+  })
+}
+
+export const useSaveDefendant = (caseId: UUID, universeId: UUID) => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, body }: { id?: UUID; body: Record<string, unknown> }) =>
+      id
+        ? api.patch<DefendantRead>(`/court-cases/${caseId}/defendants/${id}?universe_id=${universeId}`, body)
+        : api.post<DefendantRead>(`/court-cases/${caseId}/defendants?universe_id=${universeId}`, body),
+    onSuccess: () => invalidateCourtCases(qc),
+  })
+}
+
+export const useDeleteDefendant = (caseId: UUID, universeId: UUID) => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (id: UUID) => api.delete(`/court-cases/${caseId}/defendants/${id}?universe_id=${universeId}`),
+    onSuccess: () => invalidateCourtCases(qc),
   })
 }

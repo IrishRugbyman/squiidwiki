@@ -7,6 +7,7 @@ import { Breadcrumbs } from '@/components/Breadcrumbs'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { CopyButton } from '@/components/CopyButton'
 import { DetailRow, IncidentRow, None, PanelHeading, StatStrip } from '@/components/detail/DetailParts'
+import { CasesPanel } from '@/components/cases/CasesPanel'
 import { EmptyState } from '@/components/EmptyState'
 import { ErrorState } from '@/components/ErrorState'
 import { FuzzyDate } from '@/components/FuzzyDate'
@@ -395,6 +396,8 @@ function AllianceDetailPage() {
                   </>
                 )}
               </section>
+
+              {universe && <CasesPanel filter="alliance_id" id={alliance.id} universeId={universe.id} />}
             </div>
 
             <aside className="min-w-0 space-y-5">

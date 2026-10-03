@@ -1,6 +1,7 @@
 import { createFileRoute, Link, Outlet, redirect, useNavigate, useRouter } from '@tanstack/react-router'
 import {
   AlertTriangle,
+  Gavel,
   CalendarDays,
   Clock,
   FileText,
@@ -62,6 +63,7 @@ const NAV_ITEMS = [
   { to: '/$universe/gangs', icon: Flag, label: 'Gangs' },
   { to: '/$universe/members', icon: Users, label: 'Members' },
   { to: '/$universe/incidents', icon: AlertTriangle, label: 'Incidents' },
+  { to: '/$universe/cases', icon: Gavel, label: 'Court cases' },
   { to: '/$universe/sources', icon: FileText, label: 'Sources' },
   { to: '/$universe/municipalities', icon: MapPin, label: 'Municipalities' },
   { to: '/$universe/map', icon: Map, label: 'Map' },

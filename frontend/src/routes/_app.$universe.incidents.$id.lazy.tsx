@@ -3,6 +3,7 @@ import { CheckCircle2, ExternalLink, FileText, MapPin, MoreHorizontal, Pencil, P
 import { lazy, Suspense, useState } from 'react'
 import { Breadcrumbs } from '@/components/Breadcrumbs'
 import { DetailRow, PanelHeading } from '@/components/detail/DetailParts'
+import { CasesPanel } from '@/components/cases/CasesPanel'
 import { paramsIn } from '@/lib/universeRoutes'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { CopyButton } from '@/components/CopyButton'
@@ -284,6 +285,8 @@ function IncidentDetailPage() {
                     </div>
                   )}
                 </section>
+
+                {universe && <CasesPanel filter="incident_id" id={incident.id} universeId={universe.id} />}
 
                 {/* Sources */}
                 <section>

@@ -455,6 +455,18 @@ async def list_court_cases_by_set(
     return await _items(session, _order(_list_query().where(CourtCase.id.in_(ids))))
 
 
+async def list_court_cases_by_alliance(
+    session: AsyncSession, alliance_id: uuid.UUID
+) -> list[CourtCaseListItem]:
+    """Cases about any set in the alliance, through every membership
+    (`alliance_set`), the way the alliance's incident list counts them."""
+    from app.models.alliance import AllianceSet
+
+    sets = select(AllianceSet.set_id).where(AllianceSet.alliance_id == alliance_id)
+    ids = select(CourtCaseSet.court_case_id).where(CourtCaseSet.set_id.in_(sets))
+    return await _items(session, _order(_list_query().where(CourtCase.id.in_(ids))))
+
+
 async def list_court_cases_by_incident(
     session: AsyncSession, incident_id: uuid.UUID
 ) -> list[CourtCaseListItem]:

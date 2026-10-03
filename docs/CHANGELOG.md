@@ -472,3 +472,35 @@ deleting the defendant or deleting the case releases it. `court_case` and
 
 Nothing is in the tables yet: pages are phase 2, the backfill from the 443 spells
 carrying a case number is phase 3.
+
+---
+
+## 2026-10-03 - Court cases, phase 2: pages; and the date input that rewrote dates
+
+**Pages.** A Court cases section (`/$universe/cases`, nav, `g k`, recents, ⌘K by
+name or any spelling of a docket) and a case page: header with court and
+docket, summary, defendants (number, member or label, disposition, counts with
+statutes, sentence and supervised release, cooperation), linked incidents with
+unlink, sources with Cite, and an aside with details, CourtListener links, sets,
+related cases (parent and appeals) and time served. The case form and the
+defendant dialog search members and incidents in any universe, since a case's
+defendants and incidents can come from elsewhere. A Court cases panel shows on
+member, set, incident and alliance pages when there is something in it; the
+alliance's list is the cases about its sets, a new `alliance_id` filter on the
+API. `cases` joined `RESERVED_UNIVERSE_SLUGS` and `SCOPED_SECTIONS`.
+
+Checked in a browser against an API on the test database (port 8091) and a dev
+server pointed at it, so prod stayed untouched: list, page, cross-universe
+member panel and links, palette, creating a case, adding a defendant from
+another universe with a count and a sentence. The test DB holds 9,431
+universes from test runs and `/universes/` returns 50, so the seed went into
+two of those 50; prod has 6.
+
+**`FuzzyDateInput` rewrote the date on file on mount.** It reported its value
+from an effect, which runs on mount, through three modes (exact, year,
+unknown): opening any form with a month-precision date and saving unchanged
+turned "June 2022" into "circa 2022", and every bare year became approximate.
+It now reports only what the user changes; tests mount it with each precision
+and assert silence, and fail on the old component. The audit log shows two
+member dates of death downgraded this way since August; one was later
+corrected by hand, and one still reads circa 2022 where June 2022 was recorded.

@@ -1,6 +1,6 @@
 # Court case entity: plan
 
-Status: phase 1 (schema and API) shipped 2026-10-02; phases 2 to 5 open. Replaces the one-line "Court case entity" item in
+Status: phases 1 (schema and API) and 2 (pages) shipped 2026-10-02/03; phases 3 to 5 open. Replaces the one-line "Court case entity" item in
 `ROADMAP.md` once started.
 
 ## Why

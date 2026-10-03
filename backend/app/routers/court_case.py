@@ -54,6 +54,7 @@ async def list_court_cases(
     member_id: uuid.UUID | None = None,
     set_id: uuid.UUID | None = None,
     incident_id: uuid.UUID | None = None,
+    alliance_id: uuid.UUID | None = None,
     offset: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=1000),
 ):
@@ -65,6 +66,8 @@ async def list_court_cases(
         items = await crud.list_court_cases_by_set(session, set_id)
     elif incident_id is not None:
         items = await crud.list_court_cases_by_incident(session, incident_id)
+    elif alliance_id is not None:
+        items = await crud.list_court_cases_by_alliance(session, alliance_id)
     else:
         items, total = await crud.list_court_cases(session, universe_id, offset=offset, limit=limit)
         return OffsetPage(items=items, total=total)

@@ -49,7 +49,7 @@ frontend/src/
 `/` and Ctrl+K open the command palette. Its open flag lives in `stores/commandPalette.ts` (`useCommandPalette`), so any page can open it; the dashboard's search field and the mobile top bar's search button do.
 
 `hooks/useKeymap.ts` exports:
-- `useGoToNavigation()` — wired in `_app.tsx`. `GO_TO_SHORTCUTS`: `g d`, `g s`, `g a`, `g m`, `g i`, `g r`, `g p`, `g x`, `g c`, `g n`. Add new routes to that list; the help dialog reads from it.
+- `useGoToNavigation()` — wired in `_app.tsx`. `GO_TO_SHORTCUTS`: `g d`, `g s`, `g a`, `g m`, `g i`, `g k` (court cases), `g r`, `g p`, `g x`, `g c`, `g n`. Add new routes to that list; the help dialog reads from it.
 - `useEditShortcut(handler)` — call on detail pages with `() => entity && setEditing(true)`. Listens for plain `e`, ignores typing contexts and the 800ms `g`-prefix window.
 
 ## Recents (⌘K bounce-back)

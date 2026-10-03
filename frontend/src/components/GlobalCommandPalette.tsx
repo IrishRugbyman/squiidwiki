@@ -1,12 +1,12 @@
 import { useNavigate } from '@tanstack/react-router'
 import { useSwitchUniverse } from '@/hooks/useSwitchUniverse'
-import { AlertTriangle, Clock, FileText, Globe, MapPin, Network, Plus, Shield, Users } from 'lucide-react'
+import { AlertTriangle, Clock, FileText, Gavel, Globe, MapPin, Network, Plus, Shield, Users } from 'lucide-react'
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '@/lib/api'
 import { useDebounce } from '@/hooks/useDebounce'
 import {
-  useAllianceSearch, useIncidentSearch, useMemberSearch, useMunicipalitySearch,
+  useAllianceSearch, useCourtCaseSearch, useIncidentSearch, useMemberSearch, useMunicipalitySearch,
   useSetSearch, useSourceSearch, useCreateUniverse,
 } from '@/lib/queries'
 import { useUniverseStore, type Universe } from '@/stores/universe'
@@ -156,6 +156,8 @@ export function GlobalCommandPalette({ open, onClose }: GlobalCommandPaletteProp
   const { data: setResults } = useSetSearch(universeId, dq)
   const { data: allianceResults } = useAllianceSearch(universeId, dq)
   const { data: incidentResults } = useIncidentSearch(universeId, dq)
+  // Name, docket, or any other spelling of the docket on file.
+  const { data: caseResults } = useCourtCaseSearch(universeId, dq)
   const { data: sourceResults } = useSourceSearch(universeId, dq)
   const { data: municipalityResults } = useMunicipalitySearch(universeId, dq)
 
@@ -165,6 +167,7 @@ export function GlobalCommandPalette({ open, onClose }: GlobalCommandPaletteProp
     (setResults?.length ?? 0) > 0 ||
     (allianceResults?.length ?? 0) > 0 ||
     (incidentResults?.length ?? 0) > 0 ||
+    (caseResults?.length ?? 0) > 0 ||
     (sourceResults?.length ?? 0) > 0 ||
     (municipalityResults?.length ?? 0) > 0
   )
@@ -270,6 +273,18 @@ export function GlobalCommandPalette({ open, onClose }: GlobalCommandPaletteProp
                   <span>{inc.type}</span>
                   {inc.date && <span className="ml-1.5 text-[10px] text-zinc-400">{fmtDate(inc.date)}</span>}
                   {inc.verified && <span className="ml-auto text-[10px] text-emerald-600">verified</span>}
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          )}
+
+          {searching && (caseResults?.length ?? 0) > 0 && (
+            <CommandGroup heading={groupHeading('Court cases', caseResults!.length)}>
+              {caseResults!.slice(0, GROUP_CAP).map((c) => (
+                <CommandItem key={c.id} value={`case-${c.id}`} onSelect={() => go(inUniverse(`/cases/${c.slug ?? c.id}`))}>
+                  <Gavel className="mr-2 h-3.5 w-3.5 shrink-0 text-zinc-400" />
+                  <span className="truncate">{c.name}</span>
+                  {c.docket && <span className="ml-auto shrink-0 font-mono text-[10px] text-zinc-400">{c.docket}</span>}
                 </CommandItem>
               ))}
             </CommandGroup>

@@ -150,6 +150,7 @@ export interface SourceListItem {
   /** Custody numbers and member aliases that name it as their source. */
   custody_count: number
   alias_count: number
+  court_case_count: number
 }
 
 // Research notes
@@ -628,6 +629,8 @@ export interface MemberIncarcerationRead {
   life_sentence: boolean
   facility: string | null
   case_id: string | null
+  /** The court case this spell was served for; `case_id` stays as the custody record wrote it. */
+  court_case_id?: UUID | null
   notes: string | null
   created_at: string
 }
@@ -860,4 +863,112 @@ export interface UserUniverseAccessItem {
   name: string
   role: UniverseRole
   granted: boolean
+}
+
+// Court cases
+
+export type CourtJurisdiction = 'US_FEDERAL' | 'US_STATE' | 'FR' | 'OTHER'
+export type CourtCaseKind = 'CRIMINAL' | 'CIVIL' | 'MAGISTRATE' | 'APPEAL'
+export type CaseDisposition = 'PENDING' | 'PLEADED' | 'CONVICTED' | 'ACQUITTED' | 'DISMISSED' | 'DIED'
+
+export interface Charge {
+  count: number | null
+  statute: string | null
+  offense: string | null
+  disposition: CaseDisposition | null
+}
+
+export interface CourtCaseRead {
+  id: UUID
+  universe_id: UUID
+  universe_slug: string | null
+  name: string
+  slug: string | null
+  jurisdiction: CourtJurisdiction
+  kind: CourtCaseKind
+  court: string
+  docket: string | null
+  docket_aliases: string[]
+  parent_case_id: UUID | null
+  filed_at: FuzzyDateValue | null
+  closed_at: FuzzyDateValue | null
+  judge: string | null
+  summary: string | null
+  courtlistener_ids: number[]
+  created_at: string
+  updated_at: string
+}
+
+export interface CourtCaseListItem {
+  id: UUID
+  universe_id: UUID
+  /** A member's or set's list can hold cases from another universe. */
+  universe_slug: string | null
+  name: string
+  slug: string | null
+  jurisdiction: CourtJurisdiction
+  kind: CourtCaseKind
+  court: string
+  docket: string | null
+  filed_at: FuzzyDateValue | null
+  closed_at: FuzzyDateValue | null
+  defendant_count: number
+  incident_count: number
+  /** On a member's own list: what the case did with them. */
+  viewer_disposition: CaseDisposition | null
+  viewer_sentence_months: number | null
+  viewer_life_sentence: boolean
+}
+
+export interface CourtCaseBrief {
+  id: UUID
+  name: string
+  slug: string | null
+  court: string
+  docket: string | null
+  kind: CourtCaseKind
+  universe_slug: string | null
+}
+
+export interface DefendantRead {
+  id: UUID
+  court_case_id: UUID
+  member_id: UUID | null
+  /** For someone the wiki has no member for ("D-7"), or a deleted member's name. */
+  label: string | null
+  defendant_number: string | null
+  disposition: CaseDisposition
+  charges: Charge[]
+  sentence_months: number | null
+  life_sentence: boolean
+  supervised_release_months: number | null
+  sentenced_at: FuzzyDateValue | null
+  cooperated: boolean
+  notes: string | null
+  member_name: string | null
+  member_slug: string | null
+  member_universe_slug: string | null
+  member_status: MemberStatus | null
+}
+
+export interface CourtCaseSpellBrief {
+  id: UUID
+  member_id: UUID
+  member_name: string | null
+  member_slug: string | null
+  member_universe_slug: string | null
+  from_date: FuzzyDateValue | null
+  to_date: FuzzyDateValue | null
+  facility: string | null
+  life_sentence: boolean
+}
+
+export interface CourtCaseReadDetail extends CourtCaseRead {
+  defendants: DefendantRead[]
+  incidents: IncidentListItem[]
+  sets: { id: UUID; name: string; slug: string | null }[]
+  sources: IncidentSourceBrief[]
+  spells: CourtCaseSpellBrief[]
+  parent: CourtCaseBrief | null
+  children: CourtCaseBrief[]
 }

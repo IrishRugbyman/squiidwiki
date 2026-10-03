@@ -45,6 +45,7 @@ import {
 } from '@/lib/incidentColors'
 import { useUniverseStore } from '@/stores/universe'
 import { UniverseChip } from '@/components/detail/DetailParts'
+import { CasesPanel } from '@/components/cases/CasesPanel'
 import { paramsIn } from '@/lib/universeRoutes'
 import { useAuthStore } from '@/stores/auth'
 import { MemberFormSheet, familyDictToEntries, ROLE_LABEL, ROLE_LABEL_PLURAL } from './_app.$universe.members.index'
@@ -1091,6 +1092,8 @@ function MemberDetailPage() {
             {/* Right, second block: incarceration, family, social */}
             {universe && (
               <div className="order-3 min-w-0 space-y-4 lg:col-start-2 lg:row-start-2">
+
+                <CasesPanel filter="member_id" id={memberUuid} universeId={universe.id} />
 
                 {hasIncarcerationPanel && (
                   <div className="rounded-lg border border-zinc-800 bg-zinc-900/30 px-4 py-3 space-y-3">
