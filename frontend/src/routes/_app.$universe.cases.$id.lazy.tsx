@@ -22,7 +22,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useDebounce } from '@/hooks/useDebounce'
 import { useEditShortcut } from '@/hooks/useKeymap'
 import {
-  CASE_KIND_LABEL, courtAndDocket, DISPOSITION_CHIP, DISPOSITION_LABEL, formatSentence, JURISDICTION_LABEL,
+  CASE_KIND_LABEL, courtAndDocket, DISPOSITION_CHIP, DISPOSITION_LABEL, formatSentence, JURISDICTION_LABEL, servedByMember,
 } from '@/lib/courtCases'
 import { INCIDENT_TYPE_LABEL } from '@/lib/incidentColors'
 import { MEMBER_STATUS_DOT } from '@/lib/statusColors'
@@ -379,14 +379,15 @@ function CourtCaseDetailPage() {
                 <section>
                   <PanelHeading>Time served</PanelHeading>
                   <ul className="divide-y divide-zinc-800/70 rounded-lg border border-zinc-800 bg-zinc-900/30">
-                    {c.spells.map((s) => (
-                      <li key={s.id} className="px-3 py-2 text-sm">
-                        <Link from="/$universe" to="/$universe/members/$id" params={paramsIn(s.member_universe_slug, s.member_slug ?? s.member_id)}
-                          className="font-medium text-zinc-100 hover:text-violet-300">{s.member_name ?? 'Member'}</Link>
+                    {servedByMember(c.spells).map((s) => (
+                      <li key={s.memberId} className="px-3 py-2 text-sm">
+                        <Link from="/$universe" to="/$universe/members/$id" params={paramsIn(s.memberUniverseSlug, s.memberSlug ?? s.memberId)}
+                          className="font-medium text-zinc-100 hover:text-violet-300">{s.memberName ?? 'Member'}</Link>
                         <span className="block text-xs text-zinc-400">
                           {s.facility ?? 'Facility unknown'}
-                          {' · '}<FuzzyDate value={s.from_date} fallback="?" />
-                          {' to '}{s.to_date?.year ? <FuzzyDate value={s.to_date} /> : s.life_sentence ? 'life' : 'now'}
+                          {' · '}<FuzzyDate value={s.from} fallback="?" />
+                          {' to '}{s.running ? (s.life ? 'life' : 'now') : <FuzzyDate value={s.to} fallback="?" />}
+                          {s.counts > 1 && <span className="text-zinc-500"> · {s.counts} counts</span>}
                         </span>
                       </li>
                     ))}
