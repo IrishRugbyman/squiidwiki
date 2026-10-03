@@ -44,6 +44,9 @@ class Charge(BaseModel):
     statute: Optional[str] = None
     offense: Optional[str] = None
     disposition: Optional[CaseDisposition] = None
+    # When the act was committed, as OTIS gives it per count. Two files against
+    # one man (two killings pleaded in one deal) differ by little else.
+    offense_date: FuzzyDateField = None
 
 
 class _CaseFields(BaseModel):
@@ -145,6 +148,10 @@ class CourtCaseListItem(BaseModel):
     viewer_disposition: Optional[CaseDisposition] = None
     viewer_sentence_months: Optional[int] = None
     viewer_life_sentence: bool = False
+    # The member's lead count in the case (a homicide first), so two cases with
+    # the same caption and court can be told apart in his list.
+    viewer_lead_charge: Optional[str] = None
+    viewer_offense_date: FuzzyDateField = None
 
 
 class CourtCaseBrief(BaseModel):

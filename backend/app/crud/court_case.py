@@ -7,7 +7,9 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select
 
+from app.core.dockets import lead_charge
 from app.core.enums import CaseDisposition
+from app.core.fuzzy_date import FuzzyDate
 from app.core.slug import slugify
 from app.models.court_case import (
     CourtCase,
@@ -414,6 +416,10 @@ async def _items(
             item.viewer_disposition = CaseDisposition(d.disposition)
             item.viewer_sentence_months = d.sentence_months
             item.viewer_life_sentence = d.life_sentence
+            if lead := lead_charge(d.charges or []):
+                item.viewer_lead_charge = lead.get("offense")
+                if lead.get("offense_date"):
+                    item.viewer_offense_date = FuzzyDate.model_validate(lead["offense_date"])
         out.append(item)
     return out
 

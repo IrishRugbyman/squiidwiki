@@ -87,6 +87,7 @@ function DefendantRow({ d, onEdit, onRemove }: { d: DefendantRead; onEdit: () =>
                 {c.count != null && <span className="text-zinc-500">Count {c.count}: </span>}
                 {c.offense}
                 {c.statute && <span className="ml-1 font-mono text-[11px] text-zinc-500">{c.statute}</span>}
+                {c.offense_date?.year && <span className="ml-1 text-zinc-500">· <FuzzyDate value={c.offense_date} /></span>}
               </li>
             ))}
           </ul>

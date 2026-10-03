@@ -11,6 +11,7 @@ It never guesses. A federal docket with no court in the text or the notes, or a
 court with no docket, comes back as None, and the caller reports it.
 """
 
+import datetime
 import re
 from dataclasses import dataclass, field
 
@@ -214,7 +215,49 @@ def otis_charge(notes: str | None) -> dict | None:
         "statute": f"MCL {mcl.group(1).strip()}" if mcl else None,
         "offense": offense.group(1).strip(),
         "disposition": disposition_from_notes(notes),
+        "offense_date": otis_offense_date(notes),
     }
+
+
+_OTIS_OFFENSE_DATE = re.compile(r"Date of offense:\s*([A-Z][a-z]{2} \d{1,2}, \d{4})")
+
+
+def otis_offense_date(notes: str | None) -> dict | None:
+    """The offence date OTIS gives a count ("Date of offense: Feb 14, 2011"), as
+    a FuzzyDate. Two files against one man often differ only by this."""
+    m = _OTIS_OFFENSE_DATE.search(notes or "")
+    if not m:
+        return None
+    try:
+        d = datetime.datetime.strptime(m.group(1), "%b %d, %Y").date()
+    except ValueError:
+        return None
+    return {
+        "year": d.year,
+        "month": d.month,
+        "day": d.day,
+        "precision": "YMD",
+        "approx": False,
+        "circa_text": None,
+    }
+
+
+_SEVERITY = (
+    re.compile(r"homicide|murder|manslaughter", re.IGNORECASE),
+    re.compile(r"assault|robbery|carjacking|kidnap", re.IGNORECASE),
+)
+
+
+def lead_charge(charges: list[dict]) -> dict | None:
+    """The count that best names a case for one defendant: a homicide over an
+    assault or robbery over anything else, the first listed within a tier."""
+    if not charges:
+        return None
+    for tier in _SEVERITY:
+        for c in charges:
+            if tier.search(c.get("offense") or ""):
+                return c
+    return charges[0]
 
 
 def is_notable_state_offense(notes: str | None) -> bool:

@@ -876,6 +876,8 @@ export interface Charge {
   statute: string | null
   offense: string | null
   disposition: CaseDisposition | null
+  /** When the act was committed, as OTIS gives it per count. */
+  offense_date?: FuzzyDateValue | null
 }
 
 export interface CourtCaseRead {
@@ -918,6 +920,10 @@ export interface CourtCaseListItem {
   viewer_disposition: CaseDisposition | null
   viewer_sentence_months: number | null
   viewer_life_sentence: boolean
+  /** His lead count (a homicide first) and its date: two files with the same
+   *  caption and court are told apart by these. */
+  viewer_lead_charge: string | null
+  viewer_offense_date: FuzzyDateValue | null
 }
 
 export interface CourtCaseBrief {

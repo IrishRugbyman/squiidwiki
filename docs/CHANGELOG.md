@@ -542,3 +542,16 @@ pattern was widened (tests added) and both were corrected through the API.
 
 The case page's defendant actions sat in a column and doubled every row's
 height; they are side by side now.
+
+---
+
+## 2026-10-03 - A member's cases told apart by count and date
+
+Two homicide files against one man, pleaded in one deal, read identically in his
+Court cases panel: same caption, same court, same disposition. A charge now
+carries the `offense_date` OTIS gives each count, and a member's list row shows
+his lead count (`lead_charge`: a homicide over an assault or robbery over
+anything else) and its date. `merge_charge` fills a date a listed count lacked
+instead of adding the count twice, and `link_spells_to_cases --refresh-charges`
+dated the 59 state defendant rows made before (audited as claude-admin;
+idempotent). The case page shows each count's date too.

@@ -7,7 +7,9 @@ from app.core.dockets import (
     disposition_from_notes,
     federal_court,
     is_notable_state_offense,
+    lead_charge,
     otis_charge,
+    otis_offense_date,
     parse_case_ref,
 )
 from app.core.enums import CourtCaseKind, CourtJurisdiction
@@ -156,6 +158,7 @@ def test_otis_charge_and_the_notable_rule():
         "statute": "MCL 750.317",
         "offense": "Homicide - Murder, Second Degree",
         "disposition": "PLEADED",
+        "offense_date": None,
     }
     assert is_notable_state_offense(notes)
     assert is_notable_state_offense("Offense: Assault with Intent to Rob while Armed")
@@ -209,3 +212,28 @@ def test_more_state_file_shapes(case_id, notes, court, docket):
 )
 def test_state_references_it_will_not_place(case_id, notes):
     assert parse_case_ref(case_id, notes) is None
+
+
+def test_the_offense_date_otis_gives_a_count():
+    notes = "Offense: X\nMCL 750.317\nConviction type: Plea\nDate of offense: Feb 14, 2011"
+    assert otis_offense_date(notes) == {
+        "year": 2011,
+        "month": 2,
+        "day": 14,
+        "precision": "YMD",
+        "approx": False,
+        "circa_text": None,
+    }
+    assert otis_charge(notes)["offense_date"]["year"] == 2011
+    assert otis_offense_date("Date of offense: unknown") is None
+    assert otis_offense_date(None) is None
+
+
+def test_the_lead_charge_is_the_gravest():
+    firearm = {"offense": "Weapons - Felony Firearms"}
+    assault = {"offense": "Assault with Intent to Rob while Armed"}
+    murder = {"offense": "Homicide - Murder, Second Degree"}
+    assert lead_charge([firearm, assault, murder]) is murder
+    assert lead_charge([firearm, assault]) is assault
+    assert lead_charge([firearm]) is firearm
+    assert lead_charge([]) is None

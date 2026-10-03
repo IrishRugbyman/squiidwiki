@@ -107,6 +107,21 @@ async def _shared_with_another(
     return rows.scalar_one() > 0
 
 
+def merge_charge(charges: list[dict], charge: dict) -> list[dict]:
+    """`charges` with `charge` folded in: a count already listed under the same
+    offense and statute gains the offence date it lacked; any other is added."""
+    out = [dict(c) for c in charges]
+    for c in out:
+        same = (c.get("offense"), c.get("statute")) == (
+            charge.get("offense"),
+            charge.get("statute"),
+        )
+        if same and c.get("offense_date") in (None, charge.get("offense_date")):
+            c["offense_date"] = charge.get("offense_date")
+            return out
+    return [*out, charge]
+
+
 async def _ensure_defendant(
     session: AsyncSession, case: CourtCase, member: Member, spell: MemberIncarceration
 ) -> None:
@@ -132,9 +147,8 @@ async def _ensure_defendant(
             )
         )
     else:
-        charges = list(row.charges or [])
-        if charge and charge not in charges:
-            row.charges = [*charges, charge]
+        if charge:
+            row.charges = merge_charge(list(row.charges or []), charge)
         if _RANK.get(disposition, 0) > _RANK.get(row.disposition, 0):
             row.disposition = disposition
         if spell.life_sentence:

@@ -14,6 +14,9 @@ Run from backend/:
   $PY -m app.scripts.link_spells_to_cases              # dry run against prod
   $PY -m app.scripts.link_spells_to_cases --db test    # dry run against test
   $PY -m app.scripts.link_spells_to_cases --go         # write
+  $PY -m app.scripts.link_spells_to_cases --refresh-charges [--go]
+      # re-read every linked spell's count into its defendant row, which is how
+      # the offence dates added on 2026-10-03 reached the rows made before them
 """
 
 import argparse
@@ -25,9 +28,11 @@ from sqlmodel import select
 
 from app.core.audit import attach_audit_listeners, current_user_id
 from app.core.database import _session_factories
+from app.core.dockets import otis_charge
 from app.models.auth import User
+from app.models.court_case import CourtCaseDefendant
 from app.models.member import MemberIncarceration
-from app.services.court_case_links import link_spell
+from app.services.court_case_links import link_spell, merge_charge
 
 ACTOR = "claude-admin@squiidwiki.dev"
 
@@ -93,11 +98,54 @@ async def run(db: str, go: bool) -> int:
     return 0
 
 
+async def refresh_charges(db: str, go: bool) -> int:
+    attach_audit_listeners()
+    async with _session_factories[db]() as s:
+        actor = (await s.execute(select(User.id).where(User.email == ACTOR))).scalar_one_or_none()
+        current_user_id.set(actor)
+        rows = (
+            await s.execute(
+                select(CourtCaseDefendant, MemberIncarceration)
+                .join(
+                    MemberIncarceration,
+                    (MemberIncarceration.court_case_id == CourtCaseDefendant.court_case_id)
+                    & (MemberIncarceration.member_id == CourtCaseDefendant.member_id),
+                )
+                .order_by(MemberIncarceration.created_at)
+            )
+        ).all()
+        changed: set = set()
+        for defendant, spell in rows:
+            charge = otis_charge(spell.notes)
+            if charge is None:
+                continue
+            merged = merge_charge(list(defendant.charges or []), charge)
+            if merged != (defendant.charges or []):
+                defendant.charges = merged
+                s.add(defendant)
+                changed.add(defendant.id)
+        print(f"{len(rows)} linked spells read in {db}; {len(changed)} defendant rows to update")
+        if go:
+            await s.commit()
+            print("written")
+        else:
+            await s.rollback()
+            print("dry run, nothing written; pass --go to write")
+    return 0
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description="Link existing spells to their court cases.")
     ap.add_argument("--db", choices=sorted(_session_factories), default="prod")
     ap.add_argument("--go", action="store_true", help="write the changes")
+    ap.add_argument(
+        "--refresh-charges",
+        action="store_true",
+        help="re-read linked spells' counts into their defendant rows instead of linking",
+    )
     args = ap.parse_args()
+    if args.refresh_charges:
+        return asyncio.run(refresh_charges(args.db, args.go))
     return asyncio.run(run(args.db, args.go))
 
 

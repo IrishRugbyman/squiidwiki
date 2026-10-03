@@ -184,3 +184,44 @@ async def test_the_working_caption_skips_a_generational_suffix(ctx):
         ctx, member, case_id=f"{uuid.uuid4().int % 90000000 + 10000000}-FC", notes=OTIS_MURDER
     )
     assert (await _case(ctx, spell["court_case_id"]))["name"] == "People v. Moe"
+
+
+async def test_a_members_list_tells_two_files_apart_by_count_and_date(ctx):
+    """Two homicide files against one man, pleaded in one deal: same caption,
+    same court, same disposition. His list names each by its count and date."""
+    client, auth, uid = ctx
+    member = await _member(ctx, "Twice", "Epsilon Voe")
+    early = OTIS_MURDER + "\nDate of offense: Jun 2, 2005"
+    late = OTIS_MURDER + "\nDate of offense: Feb 14, 2011"
+    firearm = OTIS_FIREARM + "\nDate of offense: Jun 2, 2005"
+    f1 = f"{uuid.uuid4().int % 90000000 + 10000000}-FC"
+    f2 = f"{uuid.uuid4().int % 90000000 + 10000000}-FC"
+    await _spell(ctx, member, case_id=f1, notes=late)
+    await _spell(ctx, member, case_id=f2, notes=firearm)
+    await _spell(ctx, member, case_id=f2, notes=early)
+    resp = await client.get(
+        "/api/v1/court-cases/", params={"universe_id": uid, "member_id": member}, headers=auth
+    )
+    by_docket = {c["docket"]: c for c in resp.json()["items"]}
+    assert by_docket[f1]["viewer_lead_charge"] == "Homicide - Murder, Second Degree"
+    assert by_docket[f1]["viewer_offense_date"]["year"] == 2011
+    # The firearm count came first, the murder is still the lead.
+    assert by_docket[f2]["viewer_lead_charge"] == "Homicide - Murder, Second Degree"
+    assert (
+        by_docket[f2]["viewer_offense_date"]["year"],
+        by_docket[f2]["viewer_offense_date"]["month"],
+    ) == (2005, 6)
+
+
+async def test_merge_charge_fills_a_missing_date_instead_of_repeating_the_count():
+    from app.services.court_case_links import merge_charge
+
+    undated = {"offense": "Robbery", "statute": "MCL 750.530", "offense_date": None}
+    dated = {**undated, "offense_date": {"year": 2013, "precision": "Y", "approx": False}}
+    assert merge_charge([undated], dated) == [dated]
+    other = {
+        "offense": "Robbery",
+        "statute": "MCL 750.530",
+        "offense_date": {"year": 2015, "precision": "Y", "approx": False},
+    }
+    assert merge_charge([dated], other) == [dated, other]

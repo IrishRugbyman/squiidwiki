@@ -25,6 +25,12 @@ export function CourtCaseRow({ c }: { c: CourtCaseListItem }) {
           <span className="truncate font-medium text-zinc-100">{c.name}</span>
           <UniverseChip slug={c.universe_slug} />
         </span>
+        {c.viewer_lead_charge && (
+          <span className="block truncate text-xs text-zinc-300">
+            {c.viewer_lead_charge}
+            {c.viewer_offense_date?.year && <span className="text-zinc-400"> · <FuzzyDate value={c.viewer_offense_date} /></span>}
+          </span>
+        )}
         <span className="block truncate text-xs text-zinc-400">
           {courtAndDocket(c)}
           {c.kind !== 'CRIMINAL' && <> · {CASE_KIND_LABEL[c.kind]}</>}
