@@ -99,7 +99,7 @@ function DefendantRow({ d, onEdit, onRemove }: { d: DefendantRead; onEdit: () =>
         {supervised && <span className="text-[11px] tabular-nums text-zinc-500">+{supervised} supervised</span>}
         {d.sentenced_at?.year && <span className="text-[11px] text-zinc-500"><FuzzyDate value={d.sentenced_at} /></span>}
       </div>
-      <div className="flex shrink-0 flex-col gap-0.5 transition-opacity pointer-fine:opacity-0 group-hover:opacity-100 focus-within:opacity-100">
+      <div className="flex shrink-0 items-center gap-0.5 transition-opacity pointer-fine:opacity-0 group-hover:opacity-100 focus-within:opacity-100">
         <button type="button" onClick={onEdit} aria-label={`Edit ${name}`} className="rounded p-1 text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200"><Pencil className="h-3.5 w-3.5" /></button>
         <button type="button" onClick={onRemove} aria-label={`Remove ${name}`} className="rounded p-1 text-zinc-400 hover:bg-zinc-800 hover:text-red-300"><X className="h-3.5 w-3.5" /></button>
       </div>

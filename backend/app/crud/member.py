@@ -706,6 +706,12 @@ async def create_member_incarceration(
         notes=data.notes,
     )
     session.add(obj)
+    if obj.court_case_id is None:
+        # Find or make the case its court file names (app.services.court_case_links).
+        from app.services.court_case_links import link_spell
+
+        await session.flush()
+        await link_spell(session, obj)
     await session.commit()
     await session.refresh(obj)
     return obj
@@ -734,6 +740,14 @@ async def update_member_incarceration(
             setattr(obj, field, getattr(data, field))
     if "court_case_id" in data.model_fields_set:
         obj.court_case_id = await _check_court_case(session, data.court_case_id)
+    elif "case_id" in data.model_fields_set:
+        # The case text changed and no link was sent: the old link named the old
+        # text, so look the case up again.
+        from app.services.court_case_links import link_spell
+
+        obj.court_case_id = None
+        await session.flush()
+        await link_spell(session, obj)
     if data.life_sentence is not None:
         obj.life_sentence = data.life_sentence
     # Only touch a date the caller actually sent: these fields default to None, so

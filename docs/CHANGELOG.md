@@ -504,3 +504,41 @@ It now reports only what the user changes; tests mount it with each precision
 and assert silence, and fail on the old component. The audit log shows two
 member dates of death downgraded this way since August; one was later
 corrected by hand, and one still reads circa 2022 where June 2022 was recorded.
+
+---
+
+## 2026-10-03 - Court cases, phase 3: every spell finds its case
+
+`app/core/dockets.py` reads a court and a normalised docket out of a spell's
+case text and notes: a federal docket with its court in brackets, in the notes,
+or named in full ("District of North Dakota" becomes D.N.D.), padded the way
+PACER pads (`3:23-cr-180` is `3:23-cr-00180`); a Michigan court file of any
+shape (`09912345-FC`, `150000054321-FH`, `CRW012345-FH`, `912345-02`,
+`Wayne Circuit 11-054321-FC`) placed by the county OTIS or a note names. It
+never guesses: a docket with no court anywhere, a court with no docket, two
+files in one spell, a file with no county, are left alone and reported. It also
+reads a disposition (OTIS "Conviction type", or a plea, verdict, term or
+judgment in a research note, in digits or words) and an OTIS count as a charge.
+
+`app/services/court_case_links.link_spell` runs when a spell is written or its
+case text changes, from the member page, the OTIS import or the `wiki` CLI:
+it finds the case by court and docket or any alias, creates it when the rule
+allows (federal always; a Michigan file only with a homicide or assault count,
+not resisting an officer, or a second defendant), links the spell, and puts the
+member on the case with the spell's count. Working captions are "United States
+v. <surname>" or "People v. <surname>", past any "Jr." or "III"; the research
+replaces them with the court's caption.
+
+`app.scripts.link_spells_to_cases` ran over prod (dumped first): of 443 spells,
+244 now link to 72 new cases, 13 federal (the largest with 13, 11 and 10
+defendants) and 59 state, with 120 defendant rows; 191 spells are ordinary
+state files and stay as they are; 8 could not be placed (a federal docket and
+three court-only entries whose numbers nothing on file states, two files with
+no county, one spell holding two files). The run did not attach the audit
+listeners, so its 192 creations were written to `audit_log` afterwards as
+claude-admin, and the script now attaches them. Two federal defendants read
+PENDING because their notes spell the term in words or say "judgment"; the
+pattern was widened (tests added) and both were corrected through the API.
+
+The case page's defendant actions sat in a column and doubled every row's
+height; they are side by side now.
