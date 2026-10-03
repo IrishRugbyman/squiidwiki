@@ -1,6 +1,6 @@
 # Court case entity: plan
 
-Status: phases 1 to 4 shipped 2026-10-02/03 (schema and API, pages, backfill and spell linking, the research CLI and the import of the case folders); phase 5 (moving court prose out of biographies and narratives) open. Replaces the one-line "Court case entity" item in
+Status: complete 2026-10-03 (all five phases). What remains is research, not code: court facts in the 52 biographies and 60 narratives whose members and incidents are on no case yet (Corsica's assize trials, Illinois, and 11 Michigan members) move once those cases are written.
 `ROADMAP.md` once started.
 
 ## Why

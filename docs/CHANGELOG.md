@@ -570,3 +570,30 @@ A rerun linked them. With the research CLI's `wiki case` verbs and the import of
 the case folders (research CHANGELOG), the wiki holds 93 cases and 245 defendant
 rows, and 294 of 455 spells with a case text link to their case; the rest are
 ordinary state files and seven texts that name no docket.
+
+---
+
+## 2026-10-03 - Court cases, phase 5: court facts leave the prose; sentencings dated
+
+**Prose.** Where a member or an incident is on a court case, the biography or
+narrative sentences that only restated a charge, plea, verdict or sentence were
+removed, after each fact was put on the defendant row if it was not there
+(statute left empty where the source names none; plea dates, credited time and
+similar detail went to the row's notes). Of 56 Michigan biographies, 27 were
+trimmed, 3 emptied and 26 left alone, because what they say (an acquittal on
+another count, a hung jury, an earlier conviction, an age) is on no row. All 14
+narratives on covered incidents were trimmed; outcomes for people on no case
+stayed. The writes went through the research CLI (dry run, then `--go`) and are
+in its case files. Biographies and narratives of members and incidents on no
+case (Corsica 31, Illinois 10, Michigan 11 biographies; 60 narratives) were not
+touched: their facts would have nowhere to go.
+
+**Sentencings on the timeline and calendar.** `GET /court-cases/sentencings`
+lists every dated sentencing in a universe's cases; the timeline and calendar
+show each as "<defendant>, sentenced to <term> · <case>", linking to the case.
+A set page's stat strip counts its court cases and jumps to the panel.
+
+The phase surfaced two research-CLI defects, fixed there: a Grand Rapids case
+file written with `--universe michigan` became a stray copy under
+`detroit/seeds/` (now found in its sibling directory), and `case defendant
+--notes` was not recorded in the case file.

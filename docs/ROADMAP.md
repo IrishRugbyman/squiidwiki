@@ -11,7 +11,7 @@ goes in `CHANGELOG.md`.
 *Schema changes that unlock multiple downstream features.*
 
 - [ ] **Conflict / beef entity** — a `Conflict` row (set_a, set_b, started_on, ended_on?, summary) that incidents can link to. Lets you tell the story rather than scroll an incident list.
-- [ ] **Court case entity** - planned in `docs/2026-10-02-court-case-entity-plan.md` (five phases: schema and API, pages, federal and OTIS backfill, research CLI, prose migration).
+- Court case entity [COMPLETE 2026-10-03]
 - [ ] **Funeral / memorial events** — sub-type of incident. Frequent retaliation triggers and often the only public photo of a network in one place at one time.
 - [ ] **Member-to-member direct links (non-family)** — generic `MemberRelationship` (e.g., "co-defendants", "childhood friends", "direct rivals") that the reactflow graph can render independent of set boundaries.
 

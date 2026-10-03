@@ -110,3 +110,9 @@ export function servedByMember(spells: CourtCaseSpellBrief[]): ServedForCase[] {
   }
   return [...out.values()]
 }
+
+/** "sentenced to 35 years", "sentenced to life", or "sentenced" when no term is on file. */
+export function sentencedPhrase(months: number | null | undefined, life: boolean): string {
+  const term = formatSentence(months, life)
+  return term ? `sentenced to ${term.toLowerCase()}` : 'sentenced'
+}

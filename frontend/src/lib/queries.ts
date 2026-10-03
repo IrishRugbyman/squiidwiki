@@ -3,6 +3,7 @@ import type { QueryClient } from '@tanstack/react-query'
 import { api } from './api'
 import type {
   CourtCaseListItem,
+  SentencingEvent,
   CourtCaseRead,
   CourtCaseReadDetail,
   DefendantRead,
@@ -1670,3 +1671,11 @@ export const useDeleteDefendant = (caseId: UUID, universeId: UUID) => {
     onSuccess: () => invalidateCourtCases(qc),
   })
 }
+
+/** Dated sentencings in a universe's cases, for the timeline and calendar. */
+export const useSentencings = (universeId: UUID | null) =>
+  useQuery({
+    queryKey: ['court-cases', 'sentencings', universeId],
+    queryFn: () => api.get<SentencingEvent[]>(`/court-cases/sentencings?universe_id=${universeId}`),
+    enabled: !!universeId,
+  })

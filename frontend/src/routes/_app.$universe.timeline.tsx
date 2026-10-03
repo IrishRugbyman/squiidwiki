@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
-import { Banknote, Bomb, CarFront, Flame, HandCoins, ShieldAlert, Skull, Swords, Unlock, UserX } from 'lucide-react'
+import { Banknote, Bomb, CarFront, Flame, Gavel, HandCoins, ShieldAlert, Skull, Swords, Unlock, UserX } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { useMemo } from 'react'
 import { FuzzyDate } from '@/components/FuzzyDate'
@@ -7,7 +7,8 @@ import { NoUniverse } from '@/components/NoUniverse'
 import { PageHeader } from '@/components/PageHeader'
 import { Skeleton } from '@/components/ui/skeleton'
 import { INCIDENT_VERB } from '@/lib/incidentColors'
-import { useDatedIncidents, useAllMembers } from '@/lib/queries'
+import { useDatedIncidents, useAllMembers, useSentencings } from '@/lib/queries'
+import { sentencedPhrase } from '@/lib/courtCases'
 import { useUniverseStore } from '@/stores/universe'
 import type { FuzzyDateValue } from '@/components/FuzzyDate'
 import type { IncidentType, UUID } from '@/lib/types'
@@ -16,7 +17,7 @@ export const Route = createFileRoute('/_app/$universe/timeline')({
   component: TimelinePage,
 })
 
-type EventKind = IncidentType | 'DEATH' | 'RELEASE'
+type EventKind = IncidentType | 'DEATH' | 'RELEASE' | 'SENTENCED'
 
 interface TimelineEvent {
   kind: EventKind
@@ -50,12 +51,14 @@ const KIND_CONFIG: Record<EventKind, { icon: LucideIcon; tint: string; label: st
   CRASH: { icon: CarFront, tint: 'text-sky-400 bg-sky-950/40 border-sky-800/60', label: 'Crash', route: '/$universe/incidents/$id' },
   DEATH: { icon: Skull, tint: 'text-rose-300 bg-rose-950/30 border-rose-900/60', label: 'Member died', route: '/$universe/members/$id' },
   RELEASE: { icon: Unlock, tint: 'text-emerald-400 bg-emerald-950/30 border-emerald-800/60', label: 'Released', route: '/$universe/members/$id' },
+  SENTENCED: { icon: Gavel, tint: 'text-indigo-400 bg-indigo-950/30 border-indigo-800/60', label: 'Sentenced', route: '/$universe/cases/$id' },
 }
 
 function TimelinePage() {
   const universeId = useUniverseStore((s) => s.activeUniverse?.id ?? null)
   const { data: incidentsData, isLoading: incidentsLoading } = useDatedIncidents(universeId)
   const { data: membersData, isLoading: membersLoading } = useAllMembers(universeId)
+  const { data: sentencings } = useSentencings(universeId)
 
   const events = useMemo<TimelineEvent[]>(() => {
     const out: TimelineEvent[] = []
@@ -104,9 +107,20 @@ function TimelinePage() {
       })
     }
 
+    for (const s of sentencings ?? []) {
+      out.push({
+        kind: 'SENTENCED',
+        date: s.sentenced_at,
+        id: s.court_case_id,
+        slug: s.case_slug ?? s.court_case_id,
+        primary: s.defendant,
+        secondary: `${sentencedPhrase(s.sentence_months, s.life_sentence)} · ${s.case_name}`,
+      })
+    }
+
     out.sort((x, y) => sortableKey(y.date) - sortableKey(x.date))
     return out
-  }, [incidentsData, membersData])
+  }, [incidentsData, membersData, sentencings])
 
   const grouped = useMemo(() => {
     const map = new Map<number, TimelineEvent[]>()
@@ -166,7 +180,7 @@ function TimelinePage() {
                       </span>
                       <Link
                         from="/$universe"
-                        to={cfg.route as '/$universe/incidents/$id' | '/$universe/members/$id'}
+                        to={cfg.route as '/$universe/incidents/$id' | '/$universe/members/$id' | '/$universe/cases/$id'}
                         params={{ id: e.slug }}
                         className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-lg border border-zinc-800 bg-zinc-900/30 px-3 py-2 text-sm transition-colors hover:border-zinc-700 hover:bg-zinc-900/60"
                       >

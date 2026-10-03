@@ -514,3 +514,35 @@ async def test_an_alliance_lists_the_cases_against_its_sets(api: _Api):
         headers=api.auth,
     )
     assert [c["id"] for c in resp.json()["items"]] == [case["id"]]
+
+
+async def test_sentencings_list_the_dated_ones_newest_first(api: _Api):
+    uid, _ = await api.universe()
+    case = await api.case(uid)
+    older = await api.member(uid, "Older")
+    newer = await api.member(uid, "Newer")
+    await api.defendant(
+        case,
+        member_id=older,
+        disposition="PLEADED",
+        sentence_months=60,
+        sentenced_at={"year": 2018, "month": 3, "precision": "YM", "approx": False},
+    )
+    await api.defendant(
+        case,
+        member_id=newer,
+        disposition="CONVICTED",
+        life_sentence=True,
+        sentenced_at={"year": 2020, "precision": "Y", "approx": False},
+    )
+    await api.defendant(case, label="Undated", disposition="PENDING")
+    resp = await api.client.get(
+        "/api/v1/court-cases/sentencings", params={"universe_id": uid}, headers=api.auth
+    )
+    assert resp.status_code == 200, resp.text
+    rows = resp.json()
+    assert [(r["defendant"], r["life_sentence"], r["sentence_months"]) for r in rows] == [
+        ("Newer", True, None),
+        ("Older", False, 60),
+    ]
+    assert rows[0]["case_slug"] == case["slug"]

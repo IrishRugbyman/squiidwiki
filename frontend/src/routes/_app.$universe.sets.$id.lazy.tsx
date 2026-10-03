@@ -6,6 +6,7 @@ import {
   useAddSetRelationship, useRemoveSetRelationship,
   useSetDetail, useDeleteSet, useUpdateSet,
   useSetMembers, useSetIncidents, useAllSets, useSetActivity, useSetAllianceRelationships,
+  useCourtCasesFor,
 } from '@/lib/queries'
 import { useUniverseStore } from '@/stores/universe'
 import { useAuthStore } from '@/stores/auth'
@@ -703,6 +704,9 @@ function SetDetailPage() {
     }
   }
 
+  // Shared with the Court cases panel (same query key), so it costs no extra request.
+  const { data: courtCases = [] } = useCourtCasesFor('set_id', set?.id, universe?.id ?? null)
+
   if (isError) return <ErrorState title="Set not found" onRetry={() => refetch()} />
 
   const stats = set?.stats
@@ -868,6 +872,8 @@ function SetDetailPage() {
             { label: 'Incidents', value: incidentItems.length, accent: 'text-sky-400', onClick: () => setTab('incidents'), title: 'Incidents involving its current members' },
             { label: 'Shootings', value: stats?.total_shootings ?? 0, accent: 'text-amber-400', title: 'Shootings its members are recorded as shooters in, acquittals excluded' },
             { label: 'Kills', value: stats?.total_kills ?? 0, accent: 'text-rose-400', title: 'Killings its members are recorded as shooters in, acquittals excluded' },
+            { label: 'Court cases', value: courtCases.length, accent: 'text-indigo-400', title: 'Prosecutions about this set',
+              onClick: courtCases.length ? () => { setTab('overview'); requestAnimationFrame(() => document.getElementById('set-court-cases')?.scrollIntoView({ behavior: 'smooth', block: 'start' })) } : undefined },
           ]} />
 
           <Tabs value={tab} onValueChange={(v) => setTab(v as TabKey)} className="w-full">
@@ -1059,7 +1065,7 @@ function SetDetailPage() {
                       enemies showed none of it. */}
                   {!isReserved && universe && <LineagePanel setId={set.id} setName={set.name} universeId={universe.id} />}
                   {!isReserved && universe && <SetSourcesPanel setId={set.id} universeId={universe.id} sources={set.sources ?? []} />}
-                  {!isReserved && universe && <CasesPanel filter="set_id" id={set.id} universeId={universe.id} />}
+                  {!isReserved && universe && <div id="set-court-cases" className="scroll-mt-4"><CasesPanel filter="set_id" id={set.id} universeId={universe.id} /></div>}
                 </aside>
               </div>
             </TabsContent>

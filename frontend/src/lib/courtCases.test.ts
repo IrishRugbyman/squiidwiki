@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { courtAndDocket, formatSentence, servedByMember } from './courtCases'
+import { courtAndDocket, formatSentence, sentencedPhrase, servedByMember } from './courtCases'
 import type { CourtCaseSpellBrief } from './types'
 
 describe('formatSentence', () => {
@@ -70,5 +70,13 @@ describe('servedByMember', () => {
   it('keeps members apart, in the order they first appear', () => {
     const rows = servedByMember([spell({}), spell({ member_id: 'm2', member_name: 'Two' }), spell({})])
     expect(rows.map((r) => [r.memberId, r.counts])).toEqual([['m1', 2], ['m2', 1]])
+  })
+})
+
+describe('sentencedPhrase', () => {
+  it('names the term, life, or nothing', () => {
+    expect(sentencedPhrase(210, false)).toBe('sentenced to 17 years 6 months')
+    expect(sentencedPhrase(null, true)).toBe('sentenced to life')
+    expect(sentencedPhrase(null, false)).toBe('sentenced')
   })
 })

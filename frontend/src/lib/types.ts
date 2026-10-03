@@ -978,3 +978,17 @@ export interface CourtCaseReadDetail extends CourtCaseRead {
   parent: CourtCaseBrief | null
   children: CourtCaseBrief[]
 }
+
+/** A dated sentencing in one of a universe's cases. */
+export interface SentencingEvent {
+  court_case_id: UUID
+  case_name: string
+  case_slug: string | null
+  universe_slug: string | null
+  defendant: string
+  member_id: UUID | null
+  sentenced_at: FuzzyDateValue
+  disposition: CaseDisposition
+  sentence_months: number | null
+  life_sentence: boolean
+}

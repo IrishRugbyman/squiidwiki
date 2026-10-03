@@ -236,6 +236,21 @@ class DefendantRead(BaseModel):
     member_status: Optional[MemberStatus] = None
 
 
+class SentencingEvent(BaseModel):
+    """A dated sentencing, for the timeline and the calendar."""
+
+    court_case_id: uuid.UUID
+    case_name: str
+    case_slug: Optional[str]
+    universe_slug: Optional[str] = None
+    defendant: str
+    member_id: Optional[uuid.UUID] = None
+    sentenced_at: FuzzyDateField
+    disposition: CaseDisposition
+    sentence_months: Optional[int]
+    life_sentence: bool
+
+
 class CourtCaseSetBrief(BaseModel):
     id: uuid.UUID
     name: str

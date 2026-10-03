@@ -482,6 +482,51 @@ async def list_court_cases_by_incident(
     return await _items(session, _order(_list_query().where(CourtCase.id.in_(ids))))
 
 
+async def list_sentencings(session: AsyncSession, universe_id: uuid.UUID) -> list[dict]:
+    """Every dated sentencing in a universe's cases, newest first."""
+    from app.crud.incident import universe_slugs
+
+    rows = (
+        await session.execute(
+            select(CourtCaseDefendant, CourtCase, Member)
+            .join(CourtCase, CourtCase.id == CourtCaseDefendant.court_case_id)
+            .outerjoin(Member, Member.id == CourtCaseDefendant.member_id)
+            .where(
+                CourtCase.universe_id == universe_id,
+                CourtCaseDefendant.sentenced_at.is_not(None),
+            )
+        )
+    ).all()
+    slugs = await universe_slugs(session, {universe_id})
+    out = []
+    for d, c, m in rows:
+        if not (d.sentenced_at or {}).get("year"):
+            continue
+        out.append(
+            {
+                "court_case_id": c.id,
+                "case_name": c.name,
+                "case_slug": c.slug,
+                "universe_slug": slugs.get(c.universe_id),
+                "defendant": m.display_name if m else (d.label or "Unnamed defendant"),
+                "member_id": d.member_id,
+                "sentenced_at": d.sentenced_at,
+                "disposition": d.disposition,
+                "sentence_months": d.sentence_months,
+                "life_sentence": d.life_sentence,
+            }
+        )
+    out.sort(
+        key=lambda e: (
+            e["sentenced_at"].get("year") or 0,
+            e["sentenced_at"].get("month") or 0,
+            e["sentenced_at"].get("day") or 0,
+        ),
+        reverse=True,
+    )
+    return out
+
+
 async def search_court_cases(
     session: AsyncSession, universe_id: uuid.UUID, q: str, limit: int = 20
 ) -> list[CourtCaseListItem]:

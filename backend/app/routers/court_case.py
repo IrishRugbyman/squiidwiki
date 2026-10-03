@@ -23,6 +23,7 @@ from app.schemas.court_case import (
     DefendantCreate,
     DefendantRead,
     DefendantUpdate,
+    SentencingEvent,
 )
 
 router = APIRouter(prefix="/court-cases", tags=["court-cases"])
@@ -72,6 +73,16 @@ async def list_court_cases(
         items, total = await crud.list_court_cases(session, universe_id, offset=offset, limit=limit)
         return OffsetPage(items=items, total=total)
     return OffsetPage(items=items, total=len(items))
+
+
+@router.get("/sentencings", response_model=list[SentencingEvent])
+async def list_sentencings(
+    universe_id: uuid.UUID,
+    _: CurrentUser,
+    session: Annotated[AsyncSession, Depends(get_session)],
+):
+    """Dated sentencings in a universe's cases, for the timeline and calendar."""
+    return await crud.list_sentencings(session, universe_id)
 
 
 @router.get("/search", response_model=list[CourtCaseListItem])
