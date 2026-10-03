@@ -217,4 +217,44 @@ async def link_spell(
     spell.court_case_id = case.id
     session.add(spell)
     await _ensure_defendant(session, case, member, spell)
+    await _link_siblings(session, case, ref, spell)
     return LinkResult(outcome, case=case)
+
+
+async def _link_siblings(
+    session: AsyncSession, case: CourtCase, ref: CaseRef, spell: MemberIncarceration
+) -> None:
+    """Link the other unlinked spells that name the same court file.
+
+    OTIS records a spell per count and the import writes them one at a time, so
+    a felony-firearm count written before the murder count of the same file
+    was left alone ("not notable") and nothing came back for it once the murder
+    made the case. Whichever count makes or finds the case now takes the rest
+    with it, and their counts go on the defendant rows.
+    """
+    spellings = {s.upper() for s in [ref.docket, *ref.aliases]}
+    others = (
+        (
+            await session.execute(
+                select(MemberIncarceration).where(
+                    func.upper(MemberIncarceration.case_id).in_(spellings),
+                    MemberIncarceration.court_case_id.is_(None),
+                    MemberIncarceration.id != spell.id,
+                )
+            )
+        )
+        .scalars()
+        .all()
+    )
+    for other in others:
+        # Same text is not always the same court: a file number is unique only
+        # within a county, so the sibling must place in this case's court.
+        sibling_ref = parse_case_ref(other.case_id, other.notes)
+        if sibling_ref is None or sibling_ref.court != case.court:
+            continue
+        member = await session.get(Member, other.member_id)
+        if member is None:
+            continue
+        other.court_case_id = case.id
+        session.add(other)
+        await _ensure_defendant(session, case, member, other)

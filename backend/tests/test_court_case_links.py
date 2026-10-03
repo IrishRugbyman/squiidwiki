@@ -225,3 +225,17 @@ async def test_merge_charge_fills_a_missing_date_instead_of_repeating_the_count(
         "offense_date": {"year": 2015, "precision": "Y", "approx": False},
     }
     assert merge_charge([dated], other) == [dated, other]
+
+
+async def test_a_lesser_count_written_first_joins_the_case_its_file_makes_later(ctx):
+    """The OTIS import writes counts one at a time: the felony-firearm count of
+    a murder file used to be skipped when it came first, and stayed unlinked."""
+    member = await _member(ctx, "Order", "Zeta Koe")
+    file_no = f"{uuid.uuid4().int % 90000000 + 10000000}-FC"
+    firearm = await _spell(ctx, member, case_id=file_no, notes=OTIS_FIREARM)
+    assert firearm["court_case_id"] is None
+    murder = await _spell(ctx, member, case_id=file_no, notes=OTIS_MURDER)
+    case = await _case(ctx, murder["court_case_id"])
+    assert {s["id"] for s in case["spells"]} == {firearm["id"], murder["id"]}
+    (d,) = case["defendants"]
+    assert {c["statute"] for c in d["charges"]} == {"MCL 750.317", "MCL 750.227BA"}

@@ -555,3 +555,18 @@ anything else) and its date. `merge_charge` fills a date a listed count lacked
 instead of adding the count twice, and `link_spells_to_cases --refresh-charges`
 dated the 59 state defendant rows made before (audited as claude-admin;
 idempotent). The case page shows each count's date too.
+
+---
+
+## 2026-10-03 - Court cases, phase 4: a lesser count joins its file's case
+
+The phase-3 backfill walked spells oldest first, so a file's felony-firearm count
+written before its murder count was skipped ("not notable") and nothing returned
+for it once the murder made the case: 41 spells on 23 cases sat unlinked, their
+counts missing from the defendant rows. `link_spell` now takes the other unlinked
+spells naming the same file in the same court with it, which the OTIS import
+needs too since it writes counts one at a time; the test fails without the fix.
+A rerun linked them. With the research CLI's `wiki case` verbs and the import of
+the case folders (research CHANGELOG), the wiki holds 93 cases and 245 defendant
+rows, and 294 of 455 spells with a case text link to their case; the rest are
+ordinary state files and seven texts that name no docket.
