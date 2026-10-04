@@ -49,6 +49,7 @@ US_STATES = {
     "tennessee": "Tennessee",
     "louisiana": "Louisiana",
     "texas": "Texas",
+    "minnesota": "Minnesota",
 }
 # A municipality named "Town, KY" sits in a universe named for another state
 # (the Clarksville scene straddles the line); the suffix names its real state.
