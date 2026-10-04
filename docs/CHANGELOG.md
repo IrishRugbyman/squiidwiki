@@ -6,6 +6,27 @@ here ships, its line comes out of that file.
 
 ---
 
+## 2026-10-04 - Incidents can move to another universe
+
+An incident belongs to the universe it happened in, and a state that gets its own
+universe after the fact (Louisiana and Texas, 2026-10-04) leaves incidents filed
+elsewhere for want of one. The API cannot move them: every write is scoped to the
+incident's universe, and its citations, photos and municipality are tied to it.
+
+`$PY -m app.scripts.move_incident <id>... --to <slug> [--municipality <name>] [--go]`
+moves them through the ORM, audited as claude-admin, dry run by default:
+
+- each citation is pointed at the target universe's source with the same normalised
+  URL, or at a copy of its source made there; two old sources that share a URL become
+  one, and the second citation is folded into the first (locator, quote and note
+  joined), since a record cites a source once;
+- photos take the target universe; their R2 objects stay where they are;
+- the municipality is set to the named one in the target universe, or cleared;
+- participants and court-case links are left alone, as both may cross universes; an
+  incident with set participants is refused, since those must share its universe.
+
+`import_populations` covers Louisiana and Texas.
+
 ## 2026-09-29 - Sets cite their sources; alliances delete cleanly
 
 `set_source` existed since `3aed746` with no write path: no schema field, no CRUD,
