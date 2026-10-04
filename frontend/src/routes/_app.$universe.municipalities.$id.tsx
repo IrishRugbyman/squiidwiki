@@ -25,7 +25,7 @@ import { MunicipalityFormSheet } from './_app.$universe.municipalities.index'
 import { SetFormSheet } from './_app.$universe.sets.index'
 import { IncidentFormSheet } from './_app.$universe.incidents.index'
 import { INCIDENT_TYPE_LABEL, INCIDENT_TYPE_TEXT } from '@/lib/incidentColors'
-import type { MunicipalityKind, MunicipalityListItem } from '@/lib/types'
+import { OVERLAY_KINDS, type MunicipalityKind, type MunicipalityListItem } from '@/lib/types'
 import { useRecordRecent } from '@/stores/recents'
 import { useEditShortcut } from '@/hooks/useKeymap'
 
@@ -38,7 +38,9 @@ const pct = (x: number) => `${Math.round(x * 100)}%`
 const CHILD_KIND_LABEL: Record<ChildKind, { one: string; many: string; of: string }> = {
   DISTRICT: { one: 'District', many: 'Districts', of: 'District of' },
   NEIGHBORHOOD: { one: 'Neighborhood', many: 'Neighborhoods', of: 'Neighborhood in' },
+  HOUSING_PROJECT: { one: 'Housing project', many: 'Housing projects', of: 'Housing project in' },
 }
+const CHILD_KINDS: ChildKind[] = ['DISTRICT', 'NEIGHBORHOOD', 'HOUSING_PROJECT']
 
 export const Route = createFileRoute('/_app/$universe/municipalities/$id')({
   component: MunicipalityDetailPage,
@@ -70,8 +72,9 @@ function MunicipalityDetailPage() {
   const childrenByKind: Record<ChildKind, MunicipalityListItem[]> = {
     DISTRICT: children.filter((c) => c.kind === 'DISTRICT'),
     NEIGHBORHOOD: children.filter((c) => c.kind === 'NEIGHBORHOOD'),
+    HOUSING_PROJECT: children.filter((c) => c.kind === 'HOUSING_PROJECT'),
   }
-  const mappableKinds = (['DISTRICT', 'NEIGHBORHOOD'] as ChildKind[]).filter((k) =>
+  const mappableKinds = CHILD_KINDS.filter((k) =>
     childrenByKind[k].some((c) => c.has_geometry),
   )
   const incidents = incidentData?.items ?? []
@@ -146,7 +149,7 @@ function MunicipalityDetailPage() {
                       </Link>
                     </span>
                   )}
-                  {municipality.kind === 'NEIGHBORHOOD' && municipality.overlaps.length > 0 && (
+                  {OVERLAY_KINDS.includes(municipality.kind) && municipality.overlaps.length > 0 && (
                     <span>
                       · in{' '}
                       {municipality.overlaps.map((o, i) => (
@@ -223,7 +226,7 @@ function MunicipalityDetailPage() {
             <div className={`rounded-lg border border-zinc-800 bg-zinc-900/30 p-4 text-center ${municipality.population === null ? 'col-span-2 sm:col-span-1' : ''}`}>
               <div className="text-2xl font-bold tabular-nums text-white">{children.length}</div>
               <div className="mt-0.5 text-xs text-zinc-400">
-                {(['DISTRICT', 'NEIGHBORHOOD'] as ChildKind[])
+                {CHILD_KINDS
                   .filter((k) => childrenByKind[k].length > 0)
                   .map((k) => CHILD_KIND_LABEL[k].many).join(' & ')}
               </div>
@@ -259,7 +262,7 @@ function MunicipalityDetailPage() {
           <aside className="min-w-0 space-y-6">
             {municipality.kind === 'DISTRICT' && municipality.overlaps.length > 0 && (
               <section>
-                <PanelHeading>Neighborhoods ({municipality.overlaps.length})</PanelHeading>
+                <PanelHeading>Neighborhoods & projects ({municipality.overlaps.length})</PanelHeading>
                 <ul className="divide-y divide-zinc-800/70 rounded-lg border border-zinc-800 bg-zinc-900/30">
                   {municipality.overlaps.map((o) => (
                     <li key={o.id}>
@@ -371,7 +374,7 @@ function MunicipalityDetailPage() {
       )}
 
       {/* Sub-areas, one panel per kind */}
-      {(['DISTRICT', 'NEIGHBORHOOD'] as ChildKind[]).filter((k) => childrenByKind[k].length > 0).map((k) => (
+      {CHILD_KINDS.filter((k) => childrenByKind[k].length > 0).map((k) => (
         <div key={k} className="rounded-lg border border-zinc-800 bg-zinc-900/30">
           <div className="border-b border-zinc-800 px-4 py-3">
             <h2 className="text-xs font-semibold uppercase tracking-wider text-zinc-400">{CHILD_KIND_LABEL[k].many} ({childrenByKind[k].length})</h2>

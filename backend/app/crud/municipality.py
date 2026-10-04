@@ -6,7 +6,7 @@ from sqlalchemy import delete, or_, text
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select
 
-from app.core.enums import MunicipalityKind
+from app.core.enums import OVERLAY_KINDS, MunicipalityKind
 from app.crud import citation as citation_crud
 from app.crud.media import delete_media
 from app.models.media import Media
@@ -31,7 +31,8 @@ def _polygon(geometry):
 
 
 async def sync_overlaps(session: AsyncSession, parent_id: uuid.UUID | None) -> None:
-    """Recompute which districts each neighborhood of one city lies in.
+    """Recompute which districts each overlay (neighborhood or housing project)
+    of one city lies in.
 
     The whole city at once rather than one row: a city holds a few dozen
     sub-areas, and recomputing all of them is what keeps a moved district from
@@ -58,7 +59,7 @@ async def sync_overlaps(session: AsyncSession, parent_id: uuid.UUID | None) -> N
     districts = [c for c in children if c.kind == MunicipalityKind.DISTRICT and shapes[c.id]]
     for hood in children:
         hg = shapes[hood.id]
-        if hood.kind != MunicipalityKind.NEIGHBORHOOD or hg is None:
+        if hood.kind not in OVERLAY_KINDS or hg is None:
             continue
         for d in districts:
             dg = shapes[d.id]
@@ -170,7 +171,7 @@ async def get_municipality(
     if row is None:
         return None
     citations = await citation_crud.list_citations(session, "municipality", id)
-    if row["kind"] == MunicipalityKind.NEIGHBORHOOD.value:
+    if row["kind"] in {k.value for k in OVERLAY_KINDS}:
         mine, theirs = MunicipalityOverlap.neighborhood_id, MunicipalityOverlap.district_id
     else:
         mine, theirs = MunicipalityOverlap.district_id, MunicipalityOverlap.neighborhood_id

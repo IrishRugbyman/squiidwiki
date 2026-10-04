@@ -149,12 +149,20 @@ class MunicipalityKind(str, Enum):
 
     DISTRICT partitions its city (Detroit's ZIP codes), so districts can be
     drawn together; NEIGHBORHOOD is a named area whose outline may overlap
-    districts, and is drawn on its own layer.
+    districts, and is drawn on its own layer. HOUSING_PROJECT is a public
+    housing estate (the Brewster Homes, the Jeffries): an overlay like a
+    neighborhood, kept apart because a project is not a neighborhood.
     """
 
     CITY = "CITY"
     DISTRICT = "DISTRICT"
     NEIGHBORHOOD = "NEIGHBORHOOD"
+    HOUSING_PROJECT = "HOUSING_PROJECT"
+
+
+# Sub-areas drawn over the districts rather than partitioning the city: each
+# one records which districts it lies in (municipality_overlap).
+OVERLAY_KINDS = frozenset({MunicipalityKind.NEIGHBORHOOD, MunicipalityKind.HOUSING_PROJECT})
 
 
 class MediaKind(str, Enum):

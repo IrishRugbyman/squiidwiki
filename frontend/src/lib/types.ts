@@ -51,9 +51,13 @@ export interface UniverseRead extends UniverseListItem {
 /**
  * CITY sits at the top level. DISTRICT partitions its city (Detroit's ZIP
  * codes); NEIGHBORHOOD is a named area whose outline may overlap districts,
- * so the two are never drawn on one map layer.
+ * so the two are never drawn on one map layer. HOUSING_PROJECT is a public
+ * housing estate, drawn over the districts the way a neighborhood is.
  */
-export type MunicipalityKind = 'CITY' | 'DISTRICT' | 'NEIGHBORHOOD'
+export type MunicipalityKind = 'CITY' | 'DISTRICT' | 'NEIGHBORHOOD' | 'HOUSING_PROJECT'
+
+/** Sub-areas laid over the districts, each knowing which districts it lies in. */
+export const OVERLAY_KINDS: readonly MunicipalityKind[] = ['NEIGHBORHOOD', 'HOUSING_PROJECT']
 
 export interface MunicipalityListItem {
   id: UUID

@@ -479,3 +479,46 @@ async def test_neighborhood_overlaps_follow_the_outlines(
     await client.patch(url(west), json={"geometry": _square(1, 0, 2, 1)}, headers=h)
     got = (await client.get(url(hood), headers=h)).json()["overlaps"]
     assert sorted(o["name"] for o in got) == ["48206", "48238"]
+
+
+async def test_housing_project_is_an_overlay(client: AsyncClient, db_session: AsyncSession):
+    token = await _admin_token(client, db_session)
+    uni = await _make_universe(client, token)
+    h = {"Authorization": f"Bearer {token}"}
+    city = await _post_muni(client, token, universe_id=uni, name="Detroit")
+    await _post_muni(
+        client,
+        token,
+        universe_id=uni,
+        name="48201",
+        parent_id=city["id"],
+        geometry=_square(0, 0, 1, 1),
+    )
+    project = await _post_muni(
+        client,
+        token,
+        universe_id=uni,
+        name="Brewster Homes",
+        parent_id=city["id"],
+        kind="HOUSING_PROJECT",
+        geometry=_square(0.2, 0.2, 0.4, 0.4),
+    )
+    assert project["kind"] == "HOUSING_PROJECT"
+
+    got = (
+        await client.get(f"/api/v1/municipalities/{project['id']}?universe_id={uni}", headers=h)
+    ).json()
+    assert [(o["name"], round(o["share_of_neighborhood"], 2)) for o in got["overlaps"]] == [
+        ("48201", 1.0)
+    ]
+
+    base = f"/api/v1/municipalities/geojson?universe_id={uni}&parent_id={city['id']}"
+    feats = (await client.get(base + "&kind=HOUSING_PROJECT", headers=h)).json()["features"]
+    assert [f["properties"]["name"] for f in feats] == ["Brewster Homes"]
+    # A housing project needs a parent, like any sub-area.
+    r = await client.post(
+        "/api/v1/municipalities/",
+        json={"universe_id": uni, "name": "Jeffries", "kind": "HOUSING_PROJECT"},
+        headers=h,
+    )
+    assert r.status_code in (400, 422)
