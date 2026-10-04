@@ -39,9 +39,13 @@ Alembic config (`alembic.ini`) targets the prod DB by default. After autogenerat
 
 4. **Pick a fresh random revision ID** — `python -c "import secrets; print(secrets.token_hex(6))"`. The existing IDs in `alembic/versions/` follow obvious sequential hex patterns and any "next in sequence" guess has a real chance of colliding (`alembic` will refuse with `CycleDetected`).
 
+## Errors the client acts on
+
+Raise `app.core.errors.ApiError(status, code, detail, **extra)` when the frontend needs to tell one failure from another: the response is `{"detail", "code", **extra}` (`duplicate_url` with `existing_id`, `lookup_source`, `citation_exists`, `source_in_use` with `counts`). Plain `HTTPException` carries only `detail`.
+
 ## Audit log & death sync
 
-- All write operations on tracked entities are captured by SQLAlchemy event listeners (see `app/core/audit.py`). The `member` listener captures changes for free, including those triggered by `_sync_killed_participants`.
+- All write operations on tracked entities are captured by SQLAlchemy event listeners (see `app/core/audit.py`). They are mapper events, so a bulk `delete(...)` or `__table__.delete()` writes no audit row: citations go through `session.add` / `session.delete` for that reason, and a deleted citation is logged with its whole row. `attach_audit_listeners()` is idempotent; the ASGI test client skips the lifespan, so a test that reads `audit_log` calls it itself. The `member` listener captures changes for free, including those triggered by `_sync_killed_participants`.
 - **Incident-driven death sync** is implemented in `app/crud/incident.py`: `_sync_killed_participants` runs after `_sync_participants` on both create and update. For semantics (when it fires, what it does, irreversibility, FK behavior on incident delete), see the root `CLAUDE.md` → "Incident-driven death sync".
 
 ## Media / SQLModel quirks

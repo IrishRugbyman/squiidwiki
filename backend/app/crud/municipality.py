@@ -7,10 +7,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select
 
 from app.core.enums import MunicipalityKind
+from app.crud import citation as citation_crud
 from app.crud.media import delete_media
 from app.models.media import Media
-from app.models.municipality import Municipality, MunicipalityOverlap, MunicipalitySource
-from app.models.source import Source
+from app.models.municipality import Municipality, MunicipalityOverlap
 from app.schemas.municipality import MunicipalityCreate, MunicipalityUpdate
 
 # A neighborhood share below this is where the city's neighborhood map and the
@@ -126,46 +126,15 @@ async def _check_parent(
         raise MunicipalityError(f"{parent.name} is itself inside a city; pick the city")
 
 
-async def _set_sources(
-    session: AsyncSession,
-    municipality_id: uuid.UUID,
-    universe_id: uuid.UUID,
-    source_ids: list[uuid.UUID],
-) -> None:
-    wanted = list(dict.fromkeys(source_ids))
-    if wanted:
-        found = set(
-            (
-                await session.execute(
-                    select(Source.id).where(
-                        Source.id.in_(wanted), Source.universe_id == universe_id
-                    )
-                )
-            )
-            .scalars()
-            .all()
-        )
-        missing = [str(s) for s in wanted if s not in found]
-        if missing:
-            raise MunicipalityError(f"Sources not found in this universe: {', '.join(missing)}")
-    await session.execute(
-        delete(MunicipalitySource).where(MunicipalitySource.municipality_id == municipality_id)
-    )
-    for sid in wanted:
-        session.add(MunicipalitySource(municipality_id=municipality_id, source_id=sid))
-
-
 async def create_municipality(
     session: AsyncSession, data: MunicipalityCreate, actor_id: uuid.UUID
 ) -> Municipality:
-    fields = data.model_dump(exclude={"source_ids", "kind"})
+    fields = data.model_dump(exclude={"kind"})
     if data.parent_id is not None:
         await _check_parent(session, data.universe_id, None, data.parent_id)
     obj = Municipality(**fields, kind=_resolve_kind(data.parent_id, data.kind))
     session.add(obj)
     await session.flush()
-    if data.source_ids:
-        await _set_sources(session, obj.id, obj.universe_id, data.source_ids)
     await sync_overlaps(session, obj.parent_id)
     await session.commit()
     await session.refresh(obj)
@@ -200,18 +169,7 @@ async def get_municipality(
     )
     if row is None:
         return None
-    sources = (
-        (
-            await session.execute(
-                select(Source)
-                .join(MunicipalitySource, MunicipalitySource.source_id == Source.id)
-                .where(MunicipalitySource.municipality_id == id)
-                .order_by(Source.title)
-            )
-        )
-        .scalars()
-        .all()
-    )
+    citations = await citation_crud.list_citations(session, "municipality", id)
     if row["kind"] == MunicipalityKind.NEIGHBORHOOD.value:
         mine, theirs = MunicipalityOverlap.neighborhood_id, MunicipalityOverlap.district_id
     else:
@@ -233,7 +191,11 @@ async def get_municipality(
             )
         ).all()
     ]
-    return {**row, "sources": sources, "overlaps": overlaps}
+    return {
+        **row,
+        "citations": citations,
+        "overlaps": overlaps,
+    }
 
 
 async def list_municipalities(
@@ -465,7 +427,6 @@ async def update_municipality(
     if obj is None:
         return None
     dump = data.model_dump(exclude_unset=True)
-    source_ids = dump.pop("source_ids", None)
     requested_kind = dump.pop("kind", None)
     if "parent_id" in dump or requested_kind is not None:
         parent_id = dump.get("parent_id", obj.parent_id)
@@ -484,8 +445,6 @@ async def update_municipality(
     for k, v in dump.items():
         setattr(obj, k, v)
     session.add(obj)
-    if source_ids is not None:
-        await _set_sources(session, obj.id, universe_id, source_ids)
     if (obj.parent_id, obj.kind, obj.geometry) != (old_parent, old_kind, old_geometry):
         await session.flush()
         for parent in {old_parent, obj.parent_id}:

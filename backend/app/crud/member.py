@@ -21,7 +21,6 @@ from app.models.member import (
     MemberCustodyId,
     MemberIncarceration,
     MemberSet,
-    MemberSource,
 )
 from app.schemas.common import make_cursor, parse_cursor
 from app.schemas.member import (
@@ -195,16 +194,6 @@ async def attach_primary_photos(session: AsyncSession, members: list[Member]) ->
         object.__setattr__(m, "primary_photo_thumb_url", thumb)
 
 
-async def _sync_member_sources(
-    session: AsyncSession, member_id: uuid.UUID, source_ids: list[uuid.UUID]
-) -> None:
-    await session.execute(
-        MemberSource.__table__.delete().where(MemberSource.member_id == member_id)
-    )
-    for sid in source_ids:
-        session.add(MemberSource(member_id=member_id, source_id=sid))
-
-
 async def _sync_member_sets(
     session: AsyncSession, member_id: uuid.UUID, affiliations: list[MemberSetAffiliationIn]
 ) -> None:
@@ -370,7 +359,7 @@ async def _assert_bop_register_number_free(
 
 async def create_member(session: AsyncSession, data: MemberCreate, actor_id: uuid.UUID) -> Member:
     await _assert_bop_register_number_free(session, data.universe_id, data.bop_register_number)
-    dump = data.model_dump(exclude={"source_ids", "affiliations", "dob", "date_of_death"})
+    dump = data.model_dump(exclude={"affiliations", "dob", "date_of_death"})
     dump["dob"] = _fuzzy_to_dict(data.dob)
     dump["date_of_death"] = _fuzzy_to_dict(data.date_of_death)
     display = data.nickname if not data.nickname_unknown and data.nickname else data.legal_name
@@ -380,7 +369,6 @@ async def create_member(session: AsyncSession, data: MemberCreate, actor_id: uui
     obj = Member(**dump, created_by_id=actor_id)
     session.add(obj)
     await session.flush()
-    await _sync_member_sources(session, obj.id, data.source_ids)
     await _sync_member_sets(session, obj.id, data.affiliations)
     if data.family:
         await _sync_bilateral_family(session, obj.id, data.universe_id, None, data.family)
@@ -467,9 +455,7 @@ async def update_member(
     obj = await get_member(session, id, universe_id)
     if obj is None:
         return None
-    dump = data.model_dump(
-        exclude_unset=True, exclude={"source_ids", "affiliations", "dob", "date_of_death"}
-    )
+    dump = data.model_dump(exclude_unset=True, exclude={"affiliations", "dob", "date_of_death"})
     if "dob" in data.model_fields_set:
         dump["dob"] = _fuzzy_to_dict(data.dob)
     if "date_of_death" in data.model_fields_set:
@@ -497,8 +483,6 @@ async def update_member(
     for k, v in dump.items():
         setattr(obj, k, v)
     session.add(obj)
-    if data.source_ids is not None:
-        await _sync_member_sources(session, obj.id, data.source_ids)
     if data.affiliations is not None:
         await _sync_member_sets(session, obj.id, data.affiliations)
     if "family" in data.model_fields_set:
@@ -543,8 +527,6 @@ async def delete_member(session: AsyncSession, id: uuid.UUID, universe_id: uuid.
     )
     # Remove set affiliations
     await session.execute(MemberSet.__table__.delete().where(MemberSet.member_id == id))
-    # Remove source citations (no cascade on member_id FK)
-    await session.execute(MemberSource.__table__.delete().where(MemberSource.member_id == id))
     # Remove aliases (no cascade on member_id FK)
     await session.execute(MemberAlias.__table__.delete().where(MemberAlias.member_id == id))
     # Remove custody numbers (no cascade on member_id FK)
@@ -562,26 +544,6 @@ async def delete_member(session: AsyncSession, id: uuid.UUID, universe_id: uuid.
     await session.delete(obj)
     await session.commit()
     return True
-
-
-async def list_member_source_ids(session: AsyncSession, member_id: uuid.UUID) -> list[uuid.UUID]:
-    result = await session.execute(
-        select(MemberSource.source_id).where(MemberSource.member_id == member_id)
-    )
-    return result.scalars().all()
-
-
-async def list_members_by_source(
-    session: AsyncSession, source_id: uuid.UUID, universe_id: uuid.UUID, limit: int = 100
-) -> list[Member]:
-    stmt = (
-        select(Member)
-        .join(MemberSource, MemberSource.member_id == Member.id)
-        .where(MemberSource.source_id == source_id, Member.universe_id == universe_id)
-        .limit(limit)
-    )
-    result = await session.execute(stmt)
-    return await _attach_affiliations_bulk(session, list(result.scalars().all()))
 
 
 async def search_members(session: AsyncSession, universe_id: uuid.UUID, q: str) -> list[Member]:

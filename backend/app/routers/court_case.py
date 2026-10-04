@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.auth.dependencies import CurrentUser, require_global_role
 from app.core.database import get_session
 from app.core.enums import GlobalRole
+from app.crud import citation as citation_crud
 from app.crud import court_case as crud
 from app.crud import incident as incident_crud
 from app.schemas.common import OffsetPage
@@ -17,7 +18,6 @@ from app.schemas.court_case import (
     CourtCaseRead,
     CourtCaseReadDetail,
     CourtCaseSetBrief,
-    CourtCaseSourceBrief,
     CourtCaseSpellBrief,
     CourtCaseUpdate,
     DefendantCreate,
@@ -149,6 +149,7 @@ async def get_court_case(
             dr.member_status = m.status
         defendant_reads.append(dr)
     incidents = await crud.list_case_incidents(session, obj.id)
+    citations = await citation_crud.list_citations(session, "court_case", obj.id)
     base = CourtCaseRead.model_validate(obj)
     base.universe_slug = slugs.get(obj.universe_id)
     return CourtCaseReadDetail(
@@ -159,10 +160,7 @@ async def get_court_case(
             CourtCaseSetBrief(id=s.id, name=s.name, slug=s.slug)
             for s in await crud.list_case_sets(session, obj.id)
         ],
-        sources=[
-            CourtCaseSourceBrief.model_validate(s)
-            for s in await crud.list_case_sources(session, obj.id)
-        ],
+        citations=citations,
         spells=[
             CourtCaseSpellBrief(
                 id=s.id,

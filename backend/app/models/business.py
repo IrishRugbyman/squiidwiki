@@ -40,13 +40,6 @@ class BusinessSet(SQLModel, table=True):
     set_id: uuid.UUID = Field(sa_column=_fk_cascade("sets.id"))
 
 
-class BusinessSource(SQLModel, table=True):
-    __tablename__ = "business_source"
-
-    business_id: uuid.UUID = Field(sa_column=_fk_cascade("business.id"))
-    source_id: uuid.UUID = Field(sa_column=_fk_cascade("source.id"))
-
-
 class Business(SQLModel, table=True):
     """A legitimate or front business: gaming, construction, ports, waste
     management, and the like. Economic capture is a first-class part of some

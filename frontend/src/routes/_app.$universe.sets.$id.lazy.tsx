@@ -35,7 +35,7 @@ import { MemberAvatar } from '@/components/members/MemberFormSheet'
 import { DetailRow, IncidentRow, None, PanelHeading, RankBadge, StatStrip } from '@/components/detail/DetailParts'
 import { AddMemberToSetDialog } from '@/components/AddMemberToSetDialog'
 import { LineagePanel } from '@/components/sets/LineagePanel'
-import { SetSourcesPanel } from '@/components/sets/SetSourcesPanel'
+import { CitationsPanel } from '@/components/sources/CitationsPanel'
 import { CasesPanel } from '@/components/cases/CasesPanel'
 import { AffiliationCombobox } from '@/components/members/MemberFormSheet/pickers/AffiliationCombobox'
 import { setPickerItems } from '@/lib/setPicker'
@@ -1064,7 +1064,9 @@ function SetDetailPage() {
                       relationship graph, so a set with lineage and no allies or
                       enemies showed none of it. */}
                   {!isReserved && universe && <LineagePanel setId={set.id} setName={set.name} universeId={universe.id} />}
-                  {!isReserved && universe && <SetSourcesPanel setId={set.id} universeId={universe.id} sources={set.sources ?? []} />}
+                  {!isReserved && universe && (
+                    <CitationsPanel universeId={universe.id} entityType="set" entityId={set.id} citations={set.citations ?? []} />
+                  )}
                   {!isReserved && universe && <div id="set-court-cases" className="scroll-mt-4"><CasesPanel filter="set_id" id={set.id} universeId={universe.id} /></div>}
                 </aside>
               </div>

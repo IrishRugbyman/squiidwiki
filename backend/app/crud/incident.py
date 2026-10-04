@@ -13,11 +13,9 @@ from app.models.incident import (
     Incident,
     IncidentParticipant,
     IncidentSetParticipant,
-    IncidentSource,
 )
 from app.models.member import Member, MemberSet
 from app.models.municipality import Municipality
-from app.models.source import Source
 from app.models.universe import Universe
 from app.schemas.common import make_cursor, parse_cursor
 from app.schemas.incident import (
@@ -113,16 +111,6 @@ async def _sync_set_participants(
                 notes=p.notes,
             )
         )
-
-
-async def _sync_incident_sources(
-    session: AsyncSession, incident_id: uuid.UUID, source_ids: list[uuid.UUID]
-) -> None:
-    await session.execute(
-        IncidentSource.__table__.delete().where(IncidentSource.incident_id == incident_id)
-    )
-    for sid in source_ids:
-        session.add(IncidentSource(incident_id=incident_id, source_id=sid))
 
 
 async def _sync_case_verdicts(session: AsyncSession, incident_id: uuid.UUID) -> None:
@@ -232,7 +220,7 @@ async def create_incident(
             sortable = datetime(sd.year, sd.month, sd.day)
 
     await _check_universe(session, data.universe_id, data.municipality_id, data.set_participants)
-    dump = data.model_dump(exclude={"date", "participants", "set_participants", "source_ids"})
+    dump = data.model_dump(exclude={"date", "participants", "set_participants"})
     dump["date"] = _fuzzy_to_dict(fd)
     dump["sortable_date"] = sortable
     obj = Incident(**dump, created_by_id=actor_id)
@@ -240,7 +228,6 @@ async def create_incident(
     await session.flush()
     await _sync_participants(session, obj.id, data.participants)
     await _sync_set_participants(session, obj.id, data.set_participants)
-    await _sync_incident_sources(session, obj.id, data.source_ids)
     await _sync_killed_participants(session, obj, data.participants)
     await _sync_case_verdicts(session, obj.id)
     await session.commit()
@@ -332,9 +319,7 @@ async def update_incident(
     # Read before the setattr loop below replaces it: _sync_killed_participants
     # needs to tell a member date it wrote itself from one a human wrote.
     previous_date = obj.date
-    dump = data.model_dump(
-        exclude_unset=True, exclude={"date", "participants", "set_participants", "source_ids"}
-    )
+    dump = data.model_dump(exclude_unset=True, exclude={"date", "participants", "set_participants"})
     if "date" in data.model_fields_set:
         fd = data.date
         dump["date"] = _fuzzy_to_dict(fd)
@@ -363,8 +348,6 @@ async def update_incident(
         )
     if data.set_participants is not None:
         await _sync_set_participants(session, obj.id, data.set_participants)
-    if data.source_ids is not None:
-        await _sync_incident_sources(session, obj.id, data.source_ids)
     await session.commit()
     await session.refresh(obj)
     return obj
@@ -374,13 +357,12 @@ async def delete_incident(session: AsyncSession, id: uuid.UUID, universe_id: uui
     obj = await get_incident(session, id, universe_id)
     if obj is None:
         return False
-    # incident_participant and incident_source have NO ACTION FKs - clear them
-    # first or the delete raises. Set participants and media cascade, and
+    # incident_participant has a NO ACTION FK - clear it first or the delete
+    # raises. Citations, set participants and media cascade, and
     # member.death_incident_id is ON DELETE SET NULL.
     await session.execute(
         IncidentParticipant.__table__.delete().where(IncidentParticipant.incident_id == id)
     )
-    await session.execute(IncidentSource.__table__.delete().where(IncidentSource.incident_id == id))
     await session.delete(obj)
     await session.commit()
     return True
@@ -433,17 +415,6 @@ async def participant_current_sets(
     for member_id, gang_set in result.all():
         out.setdefault(member_id, gang_set)
     return out
-
-
-async def incident_source_briefs(
-    session: AsyncSession, source_ids: list[uuid.UUID]
-) -> list[Source]:
-    """The cited sources, in citation order."""
-    if not source_ids:
-        return []
-    result = await session.execute(select(Source).where(Source.id.in_(source_ids)))
-    by_id = {s.id: s for s in result.scalars()}
-    return [by_id[i] for i in source_ids if i in by_id]
 
 
 async def participant_set_briefs(
@@ -560,32 +531,6 @@ async def list_incidents_by_municipality(
         .limit(limit)
     )
     result = await session.execute(stmt)
-    return result.scalars().all()
-
-
-async def list_incidents_by_source(
-    session: AsyncSession,
-    source_id: uuid.UUID,
-    universe_id: uuid.UUID,
-    limit: int = 100,
-) -> list[Incident]:
-    stmt = (
-        select(Incident)
-        .join(IncidentSource, IncidentSource.incident_id == Incident.id)
-        .where(IncidentSource.source_id == source_id, Incident.universe_id == universe_id)
-        .order_by(Incident.sortable_date.desc(), Incident.created_at.desc())
-        .limit(limit)
-    )
-    result = await session.execute(stmt)
-    return result.scalars().all()
-
-
-async def list_incident_source_ids(
-    session: AsyncSession, incident_id: uuid.UUID
-) -> list[uuid.UUID]:
-    result = await session.execute(
-        select(IncidentSource.source_id).where(IncidentSource.incident_id == incident_id)
-    )
     return result.scalars().all()
 
 

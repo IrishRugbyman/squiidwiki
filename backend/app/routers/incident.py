@@ -8,6 +8,7 @@ from app.auth.dependencies import CurrentUser, require_global_role
 from app.core.csv_export import to_csv_response
 from app.core.database import get_session
 from app.core.enums import GlobalRole
+from app.crud import citation as citation_crud
 from app.crud import incident as crud
 from app.crud import member as member_crud
 from app.schemas.common import CursorPage
@@ -16,7 +17,6 @@ from app.schemas.incident import (
     IncidentListItem,
     IncidentRead,
     IncidentReadDetail,
-    IncidentSourceBrief,
     IncidentUpdate,
     ParticipantRead,
     SetParticipantRead,
@@ -112,7 +112,7 @@ async def get_incident(
         raise HTTPException(404)
     participants = await crud.list_incident_participants(session, id)
     set_participants = await crud.list_incident_set_participants(session, id)
-    source_ids = await crud.list_incident_source_ids(session, id)
+    citations = await citation_crud.list_citations(session, "incident", id)
     member_ids = [p.member_id for p in participants]
     members = await crud.participant_member_briefs(session, member_ids)
     await member_crud.attach_primary_photos(session, list(members.values()))
@@ -148,11 +148,7 @@ async def get_incident(
         **base.model_dump(),
         participants=participant_reads,
         set_participants=set_participant_reads,
-        source_ids=source_ids,
-        sources=[
-            IncidentSourceBrief.model_validate(src)
-            for src in await crud.incident_source_briefs(session, source_ids)
-        ],
+        citations=citations,
     )
 
 

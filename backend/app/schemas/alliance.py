@@ -5,6 +5,7 @@ from typing import Any, Literal, Optional
 from pydantic import BaseModel, model_validator
 
 from app.core.enums import AllianceStatus, SetRelationshipType
+from app.schemas.citation import CitationRead
 from app.schemas.common import FuzzyDateField
 
 
@@ -52,6 +53,7 @@ class AllianceRead(BaseModel):
 class AllianceReadDetail(AllianceRead):
     territory_ids: list[uuid.UUID]
     set_ids: list[uuid.UUID]
+    citations: list[CitationRead] = []
 
 
 class AllianceListItem(BaseModel):

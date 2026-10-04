@@ -42,6 +42,7 @@ frontend/src/
   - `copyFrom` — duplicate mode (calls create, seeded from existing entity)
   - `defaultSetId` / `defaultAllianceId` / `defaultParticipants` — prefill seeds for create mode
   - When opening dynamically, key the sheet by entity id (`key={`dup-${id}`}`) so re-opens re-seed.
+- **Sources and citations** live in `components/sources/`: `CitationsPanel` (a record's sources on any detail page: grouped by kind, cite / edit / reorder / detach), `SourceCard` (one source, its citation's locator, quote and note on expand), `SourcePicker` (search, paste a URL, create inline, then cite), `SourceForm` (every source field, live duplicate and custody-lookup warning), `EntityCitePicker` (one source on many records, one batch call), `CitationEditDialog`, `ReliabilityDot`. Kind labels and icons, `domainOf`, `isValidUrl` and `lookupDeepLink` are in `lib/sourceMeta.ts`; reliability colours and labels only in `lib/statusColors.ts`. Never re-render a source list by hand on a page.
 - **Brand glyphs** — Facebook / Instagram / Twitter live in `components/icons/SocialIcons.tsx` (lucide v1.x removed brand icons).
 
 ## Keyboard
@@ -66,7 +67,7 @@ frontend/src/
 - **Detail pages share `components/detail/DetailParts.tsx`** (`PanelHeading`, `DetailRow`, `StatStrip`, `IncidentRow`, `RankBadge`) and `components/LinkifiedText.tsx` for free text with URLs. Use them on a new detail page rather than another copy.
 - **Mount form sheets only while open** on detail pages (`{editing && <XFormSheet open … />}`): each sheet loads the universe's members, sets, alliances and gangs for its pickers, so a closed one still cost the page ten requests.
 - **Free-text URL params go through `textParam()`** (`lib/searchParams.ts`): the router parses `?q=4822` as a number, and a string-only validator silently dropped it.
-- `ApiError` (`lib/api.ts`) surfaces `status` and `code` — use `err.code` to differentiate duplicate/not_found/forbidden in forms when a specific message is needed.
+- `ApiError` (`lib/api.ts`) surfaces `status`, `code` and the whole error `body`: use `err.code` to tell failures apart and `err.body` for the extras the backend sends (`existing_id` on a duplicate source).
 
 ## Type checking
 

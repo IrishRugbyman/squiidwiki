@@ -207,7 +207,7 @@ async def test_delete_incident_forbidden_for_user(client: AsyncClient, db_sessio
     assert resp.status_code == 403
 
 
-async def test_incident_source_ids_in_detail(client: AsyncClient, db_session: AsyncSession):
+async def test_incident_citations_in_detail(client: AsyncClient, db_session: AsyncSession):
     token = await _admin_token(client, db_session)
     universe_id = await _make_universe(client, token)
     created = (
@@ -222,7 +222,7 @@ async def test_incident_source_ids_in_detail(client: AsyncClient, db_session: As
         headers={"Authorization": f"Bearer {token}"},
     )
     assert resp.status_code == 200
-    assert "source_ids" in resp.json()
+    assert resp.json()["citations"] == []
 
 
 async def test_acquitted_participant_excluded_from_offender_stats(
@@ -562,9 +562,15 @@ async def test_incident_detail_carries_participant_set_status_and_sources(
                 {"member_id": shooter, "role": "SHOOTER", "outcome": "UNHARMED"},
                 {"member_id": victim, "role": "VICTIM", "outcome": "INJURED"},
             ],
-            "source_ids": [source],
         },
     )
+    cited = await client.post(
+        "/api/v1/citations/",
+        params={"universe_id": universe_id},
+        json={"source_id": source, "entity_type": "incident", "entity_id": incident},
+        headers=auth,
+    )
+    assert cited.status_code == 201, cited.text
 
     resp = await client.get(
         f"/api/v1/incidents/{incident}", params={"universe_id": universe_id}, headers=auth
@@ -575,9 +581,10 @@ async def test_incident_detail_carries_participant_set_status_and_sources(
     assert by_member[shooter]["member_status"] == "LOCKED"
     assert by_member[shooter]["set_id"] == set_id
     assert by_member[victim]["set_id"] is None
-    assert [s["id"] for s in body["sources"]] == [source]
-    assert body["sources"][0]["publication"] == "Daily"
-    assert body["sources"][0]["reliability"] == "HIGH"
+    assert [c["source"]["id"] for c in body["citations"]] == [source]
+    assert body["citations"][0]["source"]["publication"] == "Daily"
+    assert body["citations"][0]["source"]["reliability"] == "HIGH"
+    assert body["citations"][0]["source"]["domain"] == "example.com"
 
 
 async def test_incident_in_another_universe_reaches_its_participants(

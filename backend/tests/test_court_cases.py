@@ -148,15 +148,11 @@ async def test_court_and_docket_are_unique_together(api: _Api):
     await api.case(uid, jurisdiction="FR", court="Cour d'assises de Haute-Corse")
 
 
-async def test_sets_and_sources_must_be_in_the_case_universe(api: _Api):
+async def test_sets_must_be_in_the_case_universe(api: _Api):
     here, _ = await api.universe()
     there, _ = await api.universe()
     foreign_set = await api.post("/api/v1/sets/", {"universe_id": there, "name": f"S {_uid()}"})
-    foreign_source = await api.post(
-        "/api/v1/sources/",
-        {"universe_id": there, "url": "https://example.com/x", "title": "X", "reliability": "HIGH"},
-    )
-    for links in ({"set_ids": [foreign_set["id"]]}, {"source_ids": [foreign_source["id"]]}):
+    for links in ({"set_ids": [foreign_set["id"]]},):
         resp = await api.client.post(
             "/api/v1/court-cases/",
             json={
@@ -472,7 +468,11 @@ async def test_set_list_and_source_citation_count(api: _Api):
             "reliability": "HIGH",
         },
     )
-    case = await api.case(uid, set_ids=[gang_set["id"]], source_ids=[source["id"]])
+    case = await api.case(uid, set_ids=[gang_set["id"]])
+    await api.post(
+        f"/api/v1/citations/?universe_id={uid}",
+        {"source_id": source["id"], "entity_type": "court_case", "entity_id": case["id"]},
+    )
     resp = await api.client.get(
         "/api/v1/court-cases/",
         params={"universe_id": uid, "set_id": gang_set["id"]},
@@ -481,7 +481,7 @@ async def test_set_list_and_source_citation_count(api: _Api):
     assert [c["id"] for c in resp.json()["items"]] == [case["id"]]
     resp = await api.client.get("/api/v1/sources/", params={"universe_id": uid}, headers=api.auth)
     (row,) = [s for s in resp.json()["items"] if s["id"] == source["id"]]
-    assert row["court_case_count"] == 1
+    assert row["counts"]["court_case"] == 1
 
 
 async def test_editing_a_docket_into_another_case_is_a_conflict(api: _Api):

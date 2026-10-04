@@ -16,12 +16,10 @@ from app.models.court_case import (
     CourtCaseDefendant,
     CourtCaseIncident,
     CourtCaseSet,
-    CourtCaseSource,
 )
 from app.models.gang_set import GangSet
 from app.models.incident import Incident, IncidentParticipant
 from app.models.member import Member, MemberIncarceration
-from app.models.source import Source
 from app.schemas.court_case import (
     CourtCaseCreate,
     CourtCaseListItem,
@@ -59,20 +57,18 @@ async def _check_links(
     *,
     case_id: uuid.UUID | None = None,
     set_ids: list[uuid.UUID] | None = None,
-    source_ids: list[uuid.UUID] | None = None,
     incident_ids: list[uuid.UUID] | None = None,
     parent_case_id: uuid.UUID | None = None,
 ) -> None:
     """Refuse links a case cannot hold, with a 422 naming them.
 
-    Sets and sources must be in the case's universe: a set is local to its
-    streets, and sources are scoped per universe. Incidents and a parent case
+    Sets must be in the case's universe: a set is local to its streets.
+    Incidents and a parent case
     may be in any universe, as a case's defendants may: a Michigan case can
     cover an Ohio shooting.
     """
     for ids, model, label, scoped in (
         (set_ids, GangSet, "sets", True),
-        (source_ids, Source, "sources", True),
         (incident_ids, Incident, "incidents", False),
     ):
         if not ids:
@@ -256,13 +252,10 @@ async def create_court_case(
         session,
         data.universe_id,
         set_ids=data.set_ids,
-        source_ids=data.source_ids,
         incident_ids=data.incident_ids,
         parent_case_id=data.parent_case_id,
     )
-    dump = data.model_dump(
-        exclude={"filed_at", "closed_at", "incident_ids", "set_ids", "source_ids"}
-    )
+    dump = data.model_dump(exclude={"filed_at", "closed_at", "incident_ids", "set_ids"})
     dump["filed_at"] = _fuzzy(data.filed_at)
     dump["closed_at"] = _fuzzy(data.closed_at)
     dump["jurisdiction"] = data.jurisdiction.value
@@ -273,7 +266,6 @@ async def create_court_case(
     await _write(session, commit=False)
     await _replace(session, CourtCaseIncident, obj.id, "incident_id", data.incident_ids)
     await _replace(session, CourtCaseSet, obj.id, "set_id", data.set_ids)
-    await _replace(session, CourtCaseSource, obj.id, "source_id", data.source_ids)
     await _write(session, commit=True)
     await session.refresh(obj)
     return obj
@@ -291,7 +283,6 @@ async def update_court_case(
         obj.universe_id,
         case_id=obj.id,
         set_ids=data.set_ids,
-        source_ids=data.source_ids,
         incident_ids=data.incident_ids,
         parent_case_id=data.parent_case_id if "parent_case_id" in sent else None,
     )
@@ -340,8 +331,6 @@ async def update_court_case(
         await sync_acquitted(session, before | after, released)
     if data.set_ids is not None:
         await _replace(session, CourtCaseSet, obj.id, "set_id", data.set_ids)
-    if data.source_ids is not None:
-        await _replace(session, CourtCaseSource, obj.id, "source_id", data.source_ids)
     await _write(session, commit=True)
     await session.refresh(obj)
     return obj
@@ -576,16 +565,6 @@ async def list_case_sets(session: AsyncSession, case_id: uuid.UUID) -> list[Gang
         .join(CourtCaseSet, CourtCaseSet.set_id == GangSet.id)
         .where(CourtCaseSet.court_case_id == case_id)
         .order_by(GangSet.name)
-    )
-    return list(rows.scalars())
-
-
-async def list_case_sources(session: AsyncSession, case_id: uuid.UUID) -> list[Source]:
-    rows = await session.execute(
-        select(Source)
-        .join(CourtCaseSource, CourtCaseSource.source_id == Source.id)
-        .where(CourtCaseSource.court_case_id == case_id)
-        .order_by(Source.title)
     )
     return list(rows.scalars())
 

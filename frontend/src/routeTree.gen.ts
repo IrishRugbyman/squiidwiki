@@ -175,7 +175,9 @@ const AppUniverseSourcesIdRoute = AppUniverseSourcesIdRouteImport.update({
   id: '/sources/$id',
   path: '/sources/$id',
   getParentRoute: () => AppUniverseRoute,
-} as any)
+} as any).lazy(() =>
+  import('./routes/_app.$universe.sources.$id.lazy').then((d) => d.Route),
+)
 const AppUniverseSetsIdRoute = AppUniverseSetsIdRouteImport.update({
   id: '/sets/$id',
   path: '/sets/$id',

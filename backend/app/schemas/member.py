@@ -6,6 +6,7 @@ from typing import Annotated, Any, Optional
 from pydantic import AfterValidator, BaseModel, computed_field, model_validator
 
 from app.core.enums import CustodySystem, MemberStatus, SetRank
+from app.schemas.citation import CitationRead
 from app.schemas.common import FuzzyDateField
 
 _BOP_REGISTER_NUMBER = re.compile(r"^(\d{5})-?(\d{3})$")
@@ -89,7 +90,6 @@ class MemberCreate(BaseModel):
     family: Optional[dict[str, Any]] = None
     social_media: Optional[dict[str, Any]] = None
     death_incident_id: Optional[uuid.UUID] = None
-    source_ids: list[uuid.UUID] = []
 
     @model_validator(mode="after")
     def _fix_primary(self) -> "MemberCreate":
@@ -116,7 +116,6 @@ class MemberUpdate(BaseModel):
     family: Optional[dict[str, Any]] = None
     social_media: Optional[dict[str, Any]] = None
     death_incident_id: Optional[uuid.UUID] = None
-    source_ids: Optional[list[uuid.UUID]] = None
 
     @model_validator(mode="after")
     def _fix_primary(self) -> "MemberUpdate":
@@ -186,7 +185,7 @@ class MemberKilledInSummary(BaseModel):
 
 
 class MemberReadDetail(MemberRead):
-    source_ids: list[uuid.UUID]
+    citations: list[CitationRead] = []
     alliance_name: Optional[str] = None
     alliance_slug: Optional[str] = None
     aliases_detail: list["MemberAliasRead"] = []

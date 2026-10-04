@@ -27,7 +27,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Skeleton } from '@/components/ui/skeleton'
 import { Textarea } from '@/components/ui/textarea'
 import {
-  useCreateIncident, useUpdateIncident, useIncident,
+  useCreateIncident, useUpdateIncident, useIncident, useBatchCitations,
   useAllIncidents, useIncidentsByMunicipality, useMember, useMemberIncidents, useMemberSearch,
   useMunicipalities, useAllMembers, useAllSets, useDeleteIncident,
 } from '@/lib/queries'
@@ -425,6 +425,9 @@ function IncidentFormSheetInner({ universeId, open, onClose, initial, defaultPar
   const [error, setError] = useState<string | null>(null)
   const urlPaste = useUrlPasteBanner()
   const [creatingSourceFromUrl, setCreatingSourceFromUrl] = useState<string | null>(null)
+  // Sources saved from a pasted link before the incident exists: cited once it does.
+  const [queuedSourceIds, setQueuedSourceIds] = useState<string[]>([])
+  const batchCite = useBatchCitations(universeId)
 
   // Address geocode autocomplete (Mapbox v6 forward geocoding)
   type MapboxFeature = {
@@ -574,8 +577,14 @@ function IncidentFormSheetInner({ universeId, open, onClose, initial, defaultPar
         await update.mutateAsync(body)
         toast.success(`Updated ${type.toLowerCase()} incident`)
       } else {
-        await create.mutateAsync(body)
+        const created = await create.mutateAsync(body)
         toast.success(`Recorded ${type.toLowerCase()} incident`)
+        if (queuedSourceIds.length > 0) {
+          await batchCite.mutateAsync({
+            items: queuedSourceIds.map((source_id) => ({ source_id, entity_type: 'incident', entity_id: created.id })),
+          })
+          setQueuedSourceIds([])
+        }
         setType('SHOOTING'); setDate(null); setLocationText(''); setLat(''); setLng(''); setCityId(''); setSubDistrictId('')
         setNarrative(''); setVerified(false); setParticipants([]); updateSetLevelParticipants([])
       }
@@ -749,6 +758,13 @@ function IncidentFormSheetInner({ universeId, open, onClose, initial, defaultPar
           open
           onClose={() => setCreatingSourceFromUrl(null)}
           defaultUrl={creatingSourceFromUrl}
+          onSaved={(s) => {
+            if (initial) {
+              batchCite.mutate({ items: [{ source_id: s.id, entity_type: 'incident', entity_id: initial.id }] })
+            } else {
+              setQueuedSourceIds((q) => [...q, s.id])
+            }
+          }}
         />
       )}
     </Sheet>

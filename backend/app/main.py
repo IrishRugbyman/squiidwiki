@@ -53,6 +53,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+from app.core.errors import ApiError, api_error_handler  # noqa: E402
+
+app.add_exception_handler(ApiError, api_error_handler)  # type: ignore[arg-type]
+
 Instrumentator().instrument(app).expose(app, endpoint="/metrics", include_in_schema=False)
 
 
@@ -77,6 +81,7 @@ from app.routers.admin import router as admin_router  # noqa: E402
 from app.routers.alliance import router as alliance_router  # noqa: E402
 from app.routers.audit import router as audit_router  # noqa: E402
 from app.routers.business import router as business_router  # noqa: E402
+from app.routers.citation import router as citation_router  # noqa: E402
 from app.routers.court_case import router as court_case_router  # noqa: E402
 from app.routers.gang import router as gang_router  # noqa: E402
 from app.routers.gang_set import router as gang_set_router  # noqa: E402
@@ -93,6 +98,7 @@ app.include_router(auth_router, prefix="/api/v1")
 app.include_router(universe_router, prefix="/api/v1")
 app.include_router(municipality_router, prefix="/api/v1")
 app.include_router(source_router, prefix="/api/v1")
+app.include_router(citation_router, prefix="/api/v1")
 app.include_router(alliance_router, prefix="/api/v1")
 app.include_router(business_router, prefix="/api/v1")
 app.include_router(gang_router, prefix="/api/v1")

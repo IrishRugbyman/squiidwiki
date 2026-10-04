@@ -20,11 +20,9 @@ from app.models.gang_set import (
     SetLineage,
     SetMunicipality,
     SetRelationship,
-    SetSource,
 )
 from app.models.member import Member, MemberSet
 from app.models.municipality import Municipality
-from app.models.source import Source
 from app.schemas.gang_set import SetCreate, SetLineageCreate, SetUpdate
 
 SortKey = Literal["name", "status", "member_count", "updated_at", "created_at"]
@@ -333,53 +331,6 @@ async def attach_gang_ids(session: AsyncSession, obj: GangSet) -> GangSet:
 _RESERVED_NAMES = {"civilian", "police", "unknown"}
 
 
-async def _sync_set_sources(
-    session: AsyncSession, set_id: uuid.UUID, universe_id: uuid.UUID, source_ids: list[uuid.UUID]
-) -> None:
-    """Replace a set's citations with `source_ids`.
-
-    Each must belong to the set's universe: `set_source` has no universe column,
-    so without this check it would accept a source from another universe.
-    """
-    wanted = list(dict.fromkeys(source_ids))
-    if wanted:
-        found = set(
-            (
-                await session.execute(
-                    select(Source.id).where(
-                        Source.id.in_(wanted), Source.universe_id == universe_id
-                    )
-                )
-            )
-            .scalars()
-            .all()
-        )
-        missing = [str(i) for i in wanted if i not in found]
-        if missing:
-            raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                detail=f"Sources not found in this universe: {', '.join(missing)}",
-            )
-    await session.execute(delete(SetSource).where(SetSource.set_id == set_id))
-    for sid in wanted:
-        session.add(SetSource(set_id=set_id, source_id=sid))
-
-
-async def list_set_source_ids(session: AsyncSession, set_id: uuid.UUID) -> list[uuid.UUID]:
-    rows = await session.execute(select(SetSource.source_id).where(SetSource.set_id == set_id))
-    return list(rows.scalars().all())
-
-
-async def list_set_sources(session: AsyncSession, set_id: uuid.UUID) -> list[Source]:
-    rows = await session.execute(
-        select(Source)
-        .join(SetSource, SetSource.source_id == Source.id)
-        .where(SetSource.set_id == set_id)
-        .order_by(Source.title)
-    )
-    return list(rows.scalars().all())
-
-
 async def create_gang_set(session: AsyncSession, data: SetCreate, actor_id: uuid.UUID) -> GangSet:
     if data.name.strip().lower() in _RESERVED_NAMES:
         raise HTTPException(
@@ -404,7 +355,6 @@ async def create_gang_set(session: AsyncSession, data: SetCreate, actor_id: uuid
             "enemy_ids",
             "gang_ids",
             "alliance_ids",
-            "source_ids",
         }
     )
     # The mirrors go in with the INSERT, so a create is one audit row, not two.
@@ -418,7 +368,6 @@ async def create_gang_set(session: AsyncSession, data: SetCreate, actor_id: uuid
     joined = await _sync_set_alliances(session, obj, alliance_ids)
     await _sync_set_municipalities(session, obj.id, data.territory_ids)
     await _sync_set_relationships(session, obj.id, data.friend_ids, data.enemy_ids)
-    await _sync_set_sources(session, obj.id, obj.universe_id, data.source_ids)
     for alliance_id in joined:
         await _sync_alliance_auto_allies(session, obj.id, alliance_id)
     await session.commit()
@@ -621,7 +570,6 @@ async def update_gang_set(
             "enemy_ids",
             "gang_ids",
             "alliance_ids",
-            "source_ids",
         },
     )
     # gang_id and alliance_id are never written directly: each mirrors
@@ -669,8 +617,6 @@ async def update_gang_set(
         friend_ids = data.friend_ids if data.friend_ids is not None else []
         enemy_ids = data.enemy_ids if data.enemy_ids is not None else []
         await _sync_set_relationships(session, obj.id, friend_ids, enemy_ids)
-    if data.source_ids is not None:
-        await _sync_set_sources(session, obj.id, obj.universe_id, data.source_ids)
     wanted = _alliance_ids_from(
         data.model_fields_set,
         data.alliance_ids,
@@ -696,7 +642,8 @@ async def delete_gang_set(session: AsyncSession, id: uuid.UUID, universe_id: uui
         )
     # These join tables reference sets without ON DELETE, so any row in them
     # blocked the delete with a foreign-key error. The rest (member_set, media,
-    # business_set, incident_set_participant, alliance_relationship) cascade.
+    # business_set, incident_set_participant, alliance_relationship, citation)
+    # cascade.
     await session.execute(
         delete(SetRelationship).where(
             (SetRelationship.set_a_id == id) | (SetRelationship.set_b_id == id)
@@ -705,7 +652,6 @@ async def delete_gang_set(session: AsyncSession, id: uuid.UUID, universe_id: uui
     await session.execute(
         delete(SetLineage).where((SetLineage.parent_id == id) | (SetLineage.child_id == id))
     )
-    await session.execute(delete(SetSource).where(SetSource.set_id == id))
     await session.execute(delete(SetMunicipality).where(SetMunicipality.set_id == id))
     await session.execute(delete(AllianceSet).where(AllianceSet.set_id == id))  # cascades too
     await session.delete(obj)

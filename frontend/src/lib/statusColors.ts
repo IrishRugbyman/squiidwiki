@@ -43,6 +43,24 @@ export const RELIABILITY_HEX: Record<SourceReliability, string> = {
   UNVERIFIED: '#71717a',
 }
 
+/** The one reliability palette as Tailwind classes, matching RELIABILITY_HEX. */
+export const RELIABILITY_DOT: Record<SourceReliability, string> = {
+  HIGH: 'bg-emerald-500',
+  MEDIUM: 'bg-amber-500',
+  LOW: 'bg-red-500',
+  UNVERIFIED: 'bg-zinc-500',
+}
+
+export const RELIABILITY_LABEL: Record<SourceReliability, string> = {
+  HIGH: 'High',
+  MEDIUM: 'Medium',
+  LOW: 'Low',
+  UNVERIFIED: 'Unverified',
+}
+
+/** Most reliable first: the order filters and pickers list them in. */
+export const RELIABILITY_ORDER: SourceReliability[] = ['HIGH', 'MEDIUM', 'LOW', 'UNVERIFIED']
+
 export const INCIDENT_TYPE_HEX: Record<IncidentType, string> = {
   SHOOTING: '#f97316',
   MURDER: '#ef4444',

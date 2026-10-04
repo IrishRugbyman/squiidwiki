@@ -331,32 +331,32 @@ async def test_search_matches_alias(client: AsyncClient, db_session: AsyncSessio
     assert [m["id"] for m in resp.json()] == [city["id"]]
 
 
-async def test_sources_link_and_replace(client: AsyncClient, db_session: AsyncSession):
+async def test_municipality_citations(client: AsyncClient, db_session: AsyncSession):
     token = await _admin_token(client, db_session)
     uni = await _make_universe(client, token)
     h = {"Authorization": f"Bearer {token}"}
-    src = []
-    for title in ("Map placemark", "City history"):
-        r = await client.post(
-            "/api/v1/sources/",
-            json={"universe_id": uni, "title": title, "url": f"https://e.x/{_uid()}"},
-            headers=h,
-        )
-        assert r.status_code == 201, r.text
-        src.append(r.json()["id"])
-    city = await _post_muni(client, token, universe_id=uni, name="Ecorse", source_ids=[src[0]])
+    r = await client.post(
+        "/api/v1/sources/",
+        json={"universe_id": uni, "title": "City history", "url": f"https://e.x/{_uid()}"},
+        headers=h,
+    )
+    assert r.status_code == 201, r.text
+    source_id = r.json()["id"]
+    city = await _post_muni(client, token, universe_id=uni, name="Ecorse")
+    cited = await client.post(
+        f"/api/v1/citations/?universe_id={uni}",
+        json={
+            "source_id": source_id,
+            "entity_type": "municipality",
+            "entity_id": city["id"],
+            "locator": "p. 4",
+        },
+        headers=h,
+    )
+    assert cited.status_code == 201, cited.text
     url = f"/api/v1/municipalities/{city['id']}?universe_id={uni}"
-    assert [s["id"] for s in (await client.get(url, headers=h)).json()["sources"]] == [src[0]]
-
-    resp = await client.patch(url, json={"source_ids": [src[1]]}, headers=h)
-    assert [s["title"] for s in resp.json()["sources"]] == ["City history"]
-    # A PATCH without source_ids leaves the links alone.
-    resp = await client.patch(url, json={"region": "Downriver"}, headers=h)
-    assert [s["id"] for s in resp.json()["sources"]] == [src[1]]
-
-    bad = await client.patch(url, json={"source_ids": [str(uuid.uuid4())]}, headers=h)
-    assert bad.status_code == 422
-    assert [s["id"] for s in (await client.get(url, headers=h)).json()["sources"]] == [src[1]]
+    got = (await client.get(url, headers=h)).json()["citations"]
+    assert [(c["source_id"], c["locator"]) for c in got] == [(source_id, "p. 4")]
 
 
 async def test_geojson_kind_filter(client: AsyncClient, db_session: AsyncSession):

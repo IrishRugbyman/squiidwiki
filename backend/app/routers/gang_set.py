@@ -11,6 +11,7 @@ from app.core.database import get_session
 from app.core.enums import GlobalRole, SetStatus
 from app.core.etag import check_etag, make_etag
 from app.crud import alliance as alliance_crud
+from app.crud import citation as citation_crud
 from app.crud import gang_set as crud
 from app.crud.gang_set import get_gang_set_by_slug
 from app.crud.incident import get_set_stats
@@ -37,7 +38,6 @@ from app.schemas.gang_set import (
     SetRelationshipCreate,
     SetRelationshipEnd,
     SetRelationshipHistoryItem,
-    SetSourceBrief,
     SetStats,
     SetTerritorySummary,
     SetUpdate,
@@ -280,7 +280,7 @@ async def get_set_detail(
 
     stats_dict = await get_set_stats(session, obj.id)
     stats = SetStats(**stats_dict)
-    sources = await crud.list_set_sources(session, obj.id)
+    citations = await citation_crud.list_citations(session, "set", obj.id)
 
     # Sparkline: last 5 years inclusive of last_incident_year (or current span).
     from datetime import datetime as _dt
@@ -324,8 +324,7 @@ async def get_set_detail(
         enemies=[SetRelatedSummary(**e) for e in enemies_raw],
         stats=stats,
         incidents_per_year=[IncidentsPerYear(**y) for y in incidents_per_year],
-        source_ids=[src.id for src in sources],
-        sources=[SetSourceBrief.model_validate(src) for src in sources],
+        citations=citations,
         lede=lede,
     )
 
@@ -357,7 +356,6 @@ async def get_set(
         friend_ids=friend_ids,
         enemy_ids=enemy_ids,
         lineage=await crud.list_set_lineage(session, obj.id),
-        source_ids=await crud.list_set_source_ids(session, obj.id),
     )
 
 
@@ -410,7 +408,6 @@ async def add_relationship(
         friend_ids=friend_ids,
         enemy_ids=enemy_ids,
         lineage=await crud.list_set_lineage(session, obj.id),
-        source_ids=await crud.list_set_source_ids(session, obj.id),
     )
 
 

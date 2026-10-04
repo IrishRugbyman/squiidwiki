@@ -9,8 +9,8 @@ from app.core.enums import (
     CourtCaseKind,
     CourtJurisdiction,
     MemberStatus,
-    SourceReliability,
 )
+from app.schemas.citation import CitationRead
 from app.schemas.common import FuzzyDateField
 from app.schemas.incident import IncidentListItem
 
@@ -75,11 +75,10 @@ class CourtCaseCreate(_CaseFields):
     judge: Optional[str] = None
     summary: Optional[str] = None
     courtlistener_ids: list[int] = []
-    # The complete lists. Incidents may be in any universe; sets and sources
-    # must be in the case's own (422 otherwise).
+    # The complete lists. Incidents may be in any universe; sets must be in
+    # the case's own (422 otherwise). Sources are cited through /citations.
     incident_ids: list[uuid.UUID] = []
     set_ids: list[uuid.UUID] = []
-    source_ids: list[uuid.UUID] = []
 
 
 class CourtCaseUpdate(_CaseFields):
@@ -100,7 +99,6 @@ class CourtCaseUpdate(_CaseFields):
     courtlistener_ids: Optional[list[int]] = None
     incident_ids: Optional[list[uuid.UUID]] = None
     set_ids: Optional[list[uuid.UUID]] = None
-    source_ids: Optional[list[uuid.UUID]] = None
 
 
 class CourtCaseRead(BaseModel):
@@ -257,16 +255,6 @@ class CourtCaseSetBrief(BaseModel):
     slug: Optional[str]
 
 
-class CourtCaseSourceBrief(BaseModel):
-    model_config = {"from_attributes": True}
-
-    id: uuid.UUID
-    title: str
-    url: str
-    publication: Optional[str] = None
-    reliability: SourceReliability
-
-
 class CourtCaseSpellBrief(BaseModel):
     """A prison spell served for this case."""
 
@@ -285,7 +273,7 @@ class CourtCaseReadDetail(CourtCaseRead):
     defendants: list[DefendantRead]
     incidents: list[IncidentListItem]
     sets: list[CourtCaseSetBrief]
-    sources: list[CourtCaseSourceBrief]
+    citations: list[CitationRead] = []
     spells: list[CourtCaseSpellBrief]
     parent: Optional[CourtCaseBrief] = None
     # Appeals of this case, indictments a complaint became, and so on.

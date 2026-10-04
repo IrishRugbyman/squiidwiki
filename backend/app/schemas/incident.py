@@ -9,8 +9,8 @@ from app.core.enums import (
     MemberStatus,
     ParticipantOutcome,
     ParticipantRole,
-    SourceReliability,
 )
+from app.schemas.citation import CitationRead
 from app.schemas.common import FuzzyDateField
 
 
@@ -48,18 +48,6 @@ class ParticipantRead(BaseModel):
     set_slug: Optional[str] = None
 
 
-class IncidentSourceBrief(BaseModel):
-    """A cited source as the incident page shows it."""
-
-    model_config = {"from_attributes": True}
-
-    id: uuid.UUID
-    title: str
-    url: str
-    publication: Optional[str] = None
-    reliability: SourceReliability
-
-
 class SetParticipantCreate(BaseModel):
     set_id: uuid.UUID
     role: ParticipantRole
@@ -90,7 +78,6 @@ class IncidentCreate(BaseModel):
     verified: bool = False
     participants: list[ParticipantCreate] = []
     set_participants: list[SetParticipantCreate] = []
-    source_ids: list[uuid.UUID] = []
 
 
 class IncidentUpdate(BaseModel):
@@ -104,7 +91,6 @@ class IncidentUpdate(BaseModel):
     verified: Optional[bool] = None
     participants: Optional[list[ParticipantCreate]] = None
     set_participants: Optional[list[SetParticipantCreate]] = None
-    source_ids: Optional[list[uuid.UUID]] = None
 
 
 class IncidentRead(BaseModel):
@@ -128,8 +114,7 @@ class IncidentRead(BaseModel):
 class IncidentReadDetail(IncidentRead):
     participants: list[ParticipantRead]
     set_participants: list[SetParticipantRead]
-    source_ids: list[uuid.UUID]
-    sources: list[IncidentSourceBrief] = []
+    citations: list[CitationRead] = []
 
 
 class IncidentListItem(BaseModel):

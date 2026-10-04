@@ -597,3 +597,51 @@ The phase surfaced two research-CLI defects, fixed there: a Grand Rapids case
 file written with `--universe michigan` became a stray copy under
 `detroit/seeds/` (now found in its sibling directory), and `case defendant
 --notes` was not recorded in the case file.
+
+## 2026-10-04 - Sources rebuilt around citations
+
+**What prompted it.** Sources were heavy at every layer. Citations lived in six
+link tables that said only "this record cites this source", with no order and no
+way to say what a source supports. Member, incident and business writes accepted
+duplicate ids (a 500) and sources from another universe (silently). 384
+`published_at` values were JSON `'null'`, which `IS NULL` does not see. The member
+page downloaded every source in the universe to show a handful; five copies of the
+same source-list markup existed; no page could remove a citation; "create source"
+in a cite dialog never cited it; the reverse-attach dialogs did a GET and a PATCH
+per record. And 106 of the sources were the same three custody lookup pages (BOP,
+MDOC OTIS, GDC), told apart only by a person's name in the title.
+
+**What was built.**
+
+- `citation` (migration `4a89130f7a88`): one row per source per record, with
+  `locator`, `quote`, `note`, `position` and `accessed_at`; one nullable FK per
+  record type (member, incident, set, alliance, court case, municipality,
+  business) under a CHECK that exactly one is set, CASCADE from the record,
+  RESTRICT from the source. The 6,111 link rows were copied with a per-table count
+  check that aborts the migration on any mismatch, and the six tables dropped. No
+  compatibility layer: `source_ids` is gone from every read and write, and every
+  client moved in the same change.
+- `source.kind` (COURT, PRESS, CUSTODY, SOCIAL, VIDEO, WIKI, MAP, INTERNAL,
+  OTHER), derived from the URL by `app/core/sources.py` and overridable;
+  `url_norm` for the duplicate check; `lookup_system`. JSON `'null'` dates became
+  SQL NULL and the column now stores None as NULL.
+- One source per custody lookup system per universe
+  (`app/scripts/merge_lookup_sources.py`, then unique index in `d8690312003c`): 99
+  rows folded into 7, 335 citations carrying the person's register or MDOC number
+  as their locator, collisions combined.
+- API: `/citations` (create, batch all-or-nothing, edit, reorder, delete), a
+  server-filtered `/sources` list with kind and reliability facets, ranked search
+  over title, publication and URL, `/sources/lookup` for a pasted URL, paged
+  `/sources/{id}/citations`, bulk edit, merge, and a delete that refuses while
+  cited unless forced. `ApiError` gives the frontend a stable `code`.
+- Frontend: `CitationsPanel` on every record page (members, incidents, sets,
+  alliances, cases, places): grouped by kind, a compact `SourceCard` per source
+  with its locator, quote and note, cite / edit / reorder / detach in place.
+  `SourcePicker` finds a source, resolves a pasted link (already on file, a custody
+  lookup with the number filled in, or create it) and cites in one flow. The
+  source list and page are rebuilt server-driven, with paging through the 3,335
+  incidents one source carries.
+
+**Decision.** Citations, not link rows, so a record can say where in a document
+its claim sits and what the document supports; and no backward compatibility,
+per the project's rule that a refactor updates every caller in the same change.

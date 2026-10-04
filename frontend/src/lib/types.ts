@@ -77,13 +77,6 @@ export interface MunicipalityListItem {
   has_geometry: boolean
 }
 
-export interface MunicipalitySourceBrief {
-  id: UUID
-  title: string
-  url: string
-  publication: string | null
-  reliability: SourceReliability
-}
 
 /**
  * The other layer of the same city: for a neighborhood, the districts it lies
@@ -105,7 +98,7 @@ export interface MunicipalityRead extends MunicipalityListItem {
   description: string | null
   /** Whose count: "US Census Bureau, Vintage 2025 estimates". */
   population_source: string | null
-  sources: MunicipalitySourceBrief[]
+  citations: CitationRead[]
   overlaps: MunicipalityOverlapBrief[]
 }
 
@@ -133,24 +126,139 @@ export interface MunicipalityGeoJSON {
   features: MunicipalityGeoJSONFeature[]
 }
 
-// Source
+// Sources and citations
+/** What a source is, derived from its URL unless set by hand. */
+export type SourceKind =
+  | 'COURT' | 'PRESS' | 'CUSTODY' | 'SOCIAL' | 'VIDEO' | 'WIKI' | 'MAP' | 'INTERNAL' | 'OTHER'
+
+/** A custody lookup: one source per system per universe, the record number on the citation. */
+export type LookupSystem = 'BOP' | 'MDOC_OTIS' | 'GDC'
+
+/** The one shape a source takes inside any record. */
+export interface SourceSummary {
+  id: UUID
+  title: string
+  url: string
+  domain: string | null
+  kind: SourceKind
+  publication: string | null
+  published_at: FuzzyDateValue | null
+  accessed_at: string | null
+  reliability: SourceReliability
+  archive_url: string | null
+  lookup_system: LookupSystem | null
+}
+
+/** One source backing one record, and what it supports there. */
+export interface CitationRead {
+  id: UUID
+  source_id: UUID
+  position: number
+  locator: string | null
+  quote: string | null
+  note: string | null
+  accessed_at: string | null
+  created_at: string
+  source: SourceSummary
+}
+
+export type CitableType =
+  | 'member' | 'incident' | 'set' | 'alliance' | 'court_case' | 'municipality' | 'business'
+
+export interface SourceCounts {
+  member: number
+  incident: number
+  set: number
+  alliance: number
+  court_case: number
+  municipality: number
+  business: number
+  custody_id: number
+  alias: number
+  media: number
+  total: number
+}
+
 export interface SourceListItem {
   id: UUID
   title: string
   url: string
+  domain: string | null
+  kind: SourceKind
+  lookup_system: LookupSystem | null
   reliability: SourceReliability
   publication: string | null
   published_at: FuzzyDateValue | null
+  archive_url: string | null
   created_at: string
-  /** How many records cite it. Filled on list rows only; 0 elsewhere. */
-  incident_count: number
-  member_count: number
-  set_count: number
-  business_count: number
-  /** Custody numbers and member aliases that name it as their source. */
-  custody_count: number
-  alias_count: number
-  court_case_count: number
+  counts: SourceCounts
+}
+
+export interface SourceListPage {
+  items: SourceListItem[]
+  total: number
+  facets: { kind: Partial<Record<SourceKind, number>>; reliability: Partial<Record<SourceReliability, number>> }
+}
+
+export interface SourceRead {
+  id: UUID
+  universe_id: UUID
+  title: string
+  url: string
+  domain: string | null
+  kind: SourceKind
+  lookup_system: LookupSystem | null
+  reliability: SourceReliability
+  publication: string | null
+  published_at: FuzzyDateValue | null
+  accessed_at: string | null
+  notes: string | null
+  archive_url: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface SourceReadDetail extends SourceRead {
+  counts: SourceCounts
+}
+
+export interface SourceLookup {
+  exact: SourceListItem | null
+  lookup: { source: SourceListItem; suggested_locator: string | null } | null
+  same_host: SourceListItem[]
+}
+
+/** Any record, as the source page lists it. */
+export interface EntityRef {
+  type: CitableType
+  id: UUID
+  slug: string | null
+  label: string
+  detail: string | null
+  date: FuzzyDateValue | null
+  universe_slug: string | null
+}
+
+export interface SourceCitationRow {
+  id: UUID
+  source_id: UUID
+  position: number
+  locator: string | null
+  quote: string | null
+  note: string | null
+  accessed_at: string | null
+  created_at: string
+  entity: EntityRef
+}
+
+export interface SourceCustodyRow {
+  id: UUID
+  system: string
+  number: string
+  retrieved_at: string | null
+  member_id: UUID
+  member_slug: string | null
+  member_label: string
 }
 
 // Research notes
@@ -293,6 +401,7 @@ export interface AllianceRead extends AllianceListItem {
 export interface AllianceReadDetail extends AllianceRead {
   territory_ids: UUID[]
   set_ids: UUID[]
+  citations: CitationRead[]
 }
 
 // Set
@@ -371,7 +480,6 @@ export interface SetReadDetail extends SetRead {
   friend_ids: UUID[]
   enemy_ids: UUID[]
   lineage: SetLineageItem[]
-  source_ids: UUID[]
 }
 
 /** How a child set came out of a parent set. Always reads child KIND parent. */
@@ -467,7 +575,7 @@ export interface SetReadDetailFull extends SetReadDetail {
   enemies: SetRelatedSummary[]
   stats: SetStats
   incidents_per_year: IncidentsPerYear[]
-  sources: MunicipalitySourceBrief[]
+  citations: CitationRead[]
   lede: string
 }
 
@@ -697,7 +805,7 @@ export interface MemberCustodyIdRead {
 }
 
 export interface MemberReadDetail extends MemberRead {
-  source_ids: UUID[]
+  citations: CitationRead[]
   alliance_name: string | null
   alliance_slug: string | null
   aliases_detail: MemberAliasRead[]
@@ -773,20 +881,11 @@ export interface IncidentRead extends IncidentListItem {
   updated_at: string
 }
 
-export interface IncidentSourceBrief {
-  id: UUID
-  title: string
-  url: string
-  publication: string | null
-  reliability: SourceReliability
-}
 
 export interface IncidentReadDetail extends IncidentRead {
   participants: ParticipantRead[]
   set_participants: SetParticipantRead[]
-  source_ids: UUID[]
-  /** The cited sources, in citation order. */
-  sources: IncidentSourceBrief[]
+  citations: CitationRead[]
 }
 
 // Audit
@@ -973,7 +1072,7 @@ export interface CourtCaseReadDetail extends CourtCaseRead {
   defendants: DefendantRead[]
   incidents: IncidentListItem[]
   sets: { id: UUID; name: string; slug: string | null }[]
-  sources: IncidentSourceBrief[]
+  citations: CitationRead[]
   spells: CourtCaseSpellBrief[]
   parent: CourtCaseBrief | null
   children: CourtCaseBrief[]

@@ -9,6 +9,7 @@ from app.auth.dependencies import CurrentUser, require_global_role
 from app.core.csv_export import to_csv_response
 from app.core.database import get_session
 from app.core.enums import GlobalRole, MemberStatus
+from app.crud import citation as citation_crud
 from app.crud import member as crud
 from app.models.alliance import Alliance
 from app.models.incident import Incident
@@ -133,7 +134,7 @@ async def get_member(
 
     await crud.attach_primary_photos(session, [obj])
 
-    source_ids = await crud.list_member_source_ids(session, obj.id)
+    citations = await citation_crud.list_citations(session, "member", obj.id)
     aliases_detail = await crud.list_member_aliases(session, obj.id)
     incarcerations = await crud.list_member_incarcerations(session, obj.id)
     custody_ids = await crud.list_member_custody_ids(session, obj.id)
@@ -218,7 +219,7 @@ async def get_member(
     )
     return MemberReadDetail(
         **base.model_dump(),
-        source_ids=source_ids,
+        citations=citations,
         alliance_name=alliance_name,
         alliance_slug=alliance_slug,
         aliases_detail=[MemberAliasRead.model_validate(a) for a in aliases_detail],

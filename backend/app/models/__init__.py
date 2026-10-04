@@ -6,13 +6,13 @@ from app.models.alliance import (
     AllianceSet,
 )
 from app.models.auth import AuditLog, User, UserUniverseAccess
-from app.models.business import Business, BusinessMember, BusinessSet, BusinessSource
+from app.models.business import Business, BusinessMember, BusinessSet
+from app.models.citation import Citation
 from app.models.court_case import (
     CourtCase,
     CourtCaseDefendant,
     CourtCaseIncident,
     CourtCaseSet,
-    CourtCaseSource,
 )
 from app.models.gang import Gang, GangCard
 from app.models.gang_set import (
@@ -21,13 +21,11 @@ from app.models.gang_set import (
     SetLineage,
     SetMunicipality,
     SetRelationship,
-    SetSource,
 )
 from app.models.incident import (
     Incident,
     IncidentParticipant,
     IncidentSetParticipant,
-    IncidentSource,
 )
 from app.models.media import Media
 from app.models.member import (
@@ -36,9 +34,8 @@ from app.models.member import (
     MemberCustodyId,
     MemberIncarceration,
     MemberSet,
-    MemberSource,
 )
-from app.models.municipality import Municipality, MunicipalityOverlap, MunicipalitySource
+from app.models.municipality import Municipality, MunicipalityOverlap
 from app.models.research_note import ResearchNote
 from app.models.source import Source
 from app.models.universe import Universe
@@ -49,9 +46,9 @@ __all__ = [
     "AuditLog",
     "Universe",
     "Municipality",
-    "MunicipalitySource",
     "MunicipalityOverlap",
     "Source",
+    "Citation",
     "Gang",
     "GangCard",
     "Alliance",
@@ -61,28 +58,23 @@ __all__ = [
     "Business",
     "BusinessMember",
     "BusinessSet",
-    "BusinessSource",
     "GangSet",
     "SetLineage",
     "SetGang",
     "SetMunicipality",
     "SetRelationship",
-    "SetSource",
     "Member",
     "MemberAlias",
     "MemberCustodyId",
     "MemberIncarceration",
     "MemberSet",
-    "MemberSource",
     "Incident",
     "IncidentParticipant",
     "IncidentSetParticipant",
-    "IncidentSource",
     "ResearchNote",
     "Media",
     "CourtCase",
     "CourtCaseDefendant",
     "CourtCaseIncident",
     "CourtCaseSet",
-    "CourtCaseSource",
 ]

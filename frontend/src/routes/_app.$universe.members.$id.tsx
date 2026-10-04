@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
 import {
-  AlertTriangle, ChevronRight, Copy, Download, ExternalLink, FileText, GitFork,
+  AlertTriangle, ChevronRight, Copy, Download, ExternalLink, GitFork,
   Mic, MoreHorizontal, Pencil, Plus, Rat, Skull, Trash2, X,
 } from 'lucide-react'
 import { FacebookIcon, InstagramIcon, TwitterIcon } from '@/components/icons/SocialIcons'
@@ -8,7 +8,8 @@ import { lazy, Suspense, useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import { FuzzyDate } from '@/components/FuzzyDate'
 import { FuzzyDateInput } from '@/components/FuzzyDateInput'
-import { MemberStatusBadge, ReliabilityBadge } from '@/components/StatusBadge'
+import { MemberStatusBadge } from '@/components/StatusBadge'
+import { CitationsPanel } from '@/components/sources/CitationsPanel'
 import { ErrorState } from '@/components/ErrorState'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { Breadcrumbs } from '@/components/Breadcrumbs'
@@ -26,7 +27,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import {
-  useMember, useAllSources,
+  useMember,
   useDeleteMember, useMemberIncidents, useMembersByIds, useUpdateMember,
   useCreateMemberIncarceration, useUpdateMemberIncarceration, useDeleteMemberIncarceration,
 } from '@/lib/queries'
@@ -531,16 +532,6 @@ function MemberDetailPage() {
   const [editingSpellId, setEditingSpellId] = useState<string | null>(null)
   const [expandedCaseKey, setExpandedCaseKey] = useState<string | null>(null)
   const killedIn = member?.killed_in ?? null
-  // Sources were linked (source_ids) but never shown: a member could cite five
-  // documents and the page named none of them. Shares the ⌘K/incident cache.
-  const { data: allSources } = useAllSources(universe?.id ?? null)
-  const memberSources = useMemo(() => {
-    const byId = new Map((allSources?.items ?? []).map((src) => [src.id, src]))
-    return (member?.source_ids ?? []).flatMap((sid) => {
-      const src = byId.get(sid)
-      return src ? [src] : []
-    })
-  }, [allSources, member?.source_ids])
 
   useRecordRecent(member ? { type: 'member', id: member.id, slug: member.slug, label: member.display_name } : null)
 
@@ -918,45 +909,14 @@ function MemberDetailPage() {
               </section>
 
               {/* Sources */}
-              <section>
-                <PanelHeading>
-                  <span className="inline-flex items-center gap-2">
-                    Sources
-                    {memberSources.length > 0 && <Badge variant="secondary" className="px-1.5 py-0 text-xs">{memberSources.length}</Badge>}
-                  </span>
-                </PanelHeading>
-                {memberSources.length === 0 ? (
-                  <p className="py-2 text-sm text-zinc-400">No sources linked. Attach them from a source page.</p>
-                ) : (
-                  <ul className="divide-y divide-zinc-800 overflow-hidden rounded-lg border border-zinc-800">
-                    {memberSources.map((src) => (
-                      <li key={src.id} className="group flex items-center gap-3 px-3 py-2.5 transition-colors hover:bg-zinc-900/50">
-                        <FileText className="h-3.5 w-3.5 shrink-0 text-zinc-500" />
-                        <Link
-                          from="/$universe" to="/$universe/sources/$id"
-                          params={{ id: src.id }}
-                          className="min-w-0 flex-1 truncate text-sm text-zinc-200 hover:text-violet-400"
-                          title={src.title}
-                        >
-                          {src.title}
-                        </Link>
-                        <ReliabilityBadge reliability={src.reliability} />
-                        {isValidUrl(src.url) && (
-                          <a
-                            href={src.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            aria-label={`Open ${src.title} in a new tab`}
-                            className="shrink-0 rounded p-1 text-zinc-500 transition-colors hover:bg-zinc-800 hover:text-zinc-200"
-                          >
-                            <ExternalLink className="h-3.5 w-3.5" />
-                          </a>
-                        )}
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </section>
+              {universe && (
+                <CitationsPanel
+                  universeId={universe.id}
+                  entityType="member"
+                  entityId={member.id}
+                  citations={member.citations}
+                />
+              )}
 
               {/* Photos: in the record column, not after everything. */}
               {universe && (

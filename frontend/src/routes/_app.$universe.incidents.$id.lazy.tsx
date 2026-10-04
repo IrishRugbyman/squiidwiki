@@ -1,5 +1,5 @@
 import { createLazyFileRoute, Link, useNavigate } from '@tanstack/react-router'
-import { CheckCircle2, ExternalLink, FileText, MapPin, MoreHorizontal, Pencil, Plus, Trash2, UserPlus, Users } from 'lucide-react'
+import { CheckCircle2, FileText, MapPin, MoreHorizontal, Pencil, Plus, Trash2, UserPlus, Users } from 'lucide-react'
 import { lazy, Suspense, useState } from 'react'
 import { Breadcrumbs } from '@/components/Breadcrumbs'
 import { DetailRow, PanelHeading } from '@/components/detail/DetailParts'
@@ -10,9 +10,9 @@ import { CopyButton } from '@/components/CopyButton'
 import { ErrorState } from '@/components/ErrorState'
 import { FuzzyDate } from '@/components/FuzzyDate'
 import { DetailHeaderSkeleton } from '@/components/skeletons'
-import { ReliabilityBadge } from '@/components/StatusBadge'
 import { AddParticipantToIncidentDialog } from '@/components/AddParticipantToIncidentDialog'
-import { AddSourceToIncidentDialog } from '@/components/AddSourceToIncidentDialog'
+import { CitationsPanel } from '@/components/sources/CitationsPanel'
+import { SourcePicker } from '@/components/sources/SourcePicker'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
@@ -29,7 +29,6 @@ import { useRecordRecent } from '@/stores/recents'
 import { useUniverseStore } from '@/stores/universe'
 import { IncidentFormSheet } from './_app.$universe.incidents.index'
 import { MemberFormSheet } from './_app.$universe.members.index'
-import { SourceFormSheet } from './_app.$universe.sources.index'
 import { LinkifiedText } from '@/components/LinkifiedText'
 
 // The incident page, in its own chunk (the route file only declares it).
@@ -131,7 +130,6 @@ function IncidentDetailPage() {
   const [addingParticipant, setAddingParticipant] = useState(false)
   const [creatingMember, setCreatingMember] = useState(false)
   const [addingSource, setAddingSource] = useState(false)
-  const [creatingSource, setCreatingSource] = useState(false)
 
   useEditShortcut(() => incident && setEditing(true))
 
@@ -289,32 +287,14 @@ function IncidentDetailPage() {
                 {universe && <CasesPanel filter="incident_id" id={incident.id} universeId={universe.id} />}
 
                 {/* Sources */}
-                <section>
-                  <PanelHeading action={
-                    <button type="button" onClick={() => setAddingSource(true)} className="inline-flex items-center gap-1 text-xs text-zinc-400 transition-colors hover:text-violet-400">
-                      <Plus className="h-3 w-3" />Cite
-                    </button>
-                  }>Sources{incident.sources.length > 0 ? ` (${incident.sources.length})` : ''}</PanelHeading>
-                  {incident.sources.length === 0 ? (
-                    <p className="rounded-lg border border-zinc-800 bg-zinc-900/30 px-4 py-3 text-xs text-zinc-400">No sources cited.</p>
-                  ) : (
-                    <ul className="divide-y divide-zinc-800/70 rounded-lg border border-zinc-800 bg-zinc-900/30">
-                      {incident.sources.map((s) => (
-                        <li key={s.id} className="flex items-center gap-3 px-3 py-2.5">
-                          <Link from="/$universe" to="/$universe/sources/$id" params={{ id: s.id }} className="group min-w-0 flex-1">
-                            <span className="block truncate text-sm font-medium text-white transition-colors group-hover:text-violet-300">{s.title}</span>
-                            {s.publication && <span className="block truncate text-[11px] text-zinc-500">{s.publication}</span>}
-                          </Link>
-                          <ReliabilityBadge reliability={s.reliability} />
-                          <a href={s.url} target="_blank" rel="noopener noreferrer" aria-label={`Open ${s.title} in a new tab`}
-                            className="rounded p-1.5 text-zinc-400 transition-colors hover:bg-zinc-800 hover:text-violet-300">
-                            <ExternalLink className="h-3.5 w-3.5" />
-                          </a>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </section>
+                {universe && (
+                  <CitationsPanel
+                    universeId={universe.id}
+                    entityType="incident"
+                    entityId={incident.id}
+                    citations={incident.citations}
+                  />
+                )}
 
                 {universe && (
                   <section>
@@ -375,10 +355,10 @@ function IncidentDetailPage() {
               <MemberFormSheet universeId={universe.id} open onClose={() => setCreatingMember(false)} defaultSetId={defaultSetId} />
             )}
             {universe && addingSource && (
-              <AddSourceToIncidentDialog incident={incident} universeId={universe.id} open
-                onClose={() => setAddingSource(false)} onCreateNew={() => { setAddingSource(false); setCreatingSource(true) }} />
+              <SourcePicker universeId={universe.id} entityType="incident" entityId={incident.id}
+                citedSourceIds={incident.citations.map((c) => c.source_id)} open
+                onClose={() => setAddingSource(false)} />
             )}
-            {universe && creatingSource && <SourceFormSheet universeId={universe.id} open onClose={() => setCreatingSource(false)} />}
 
             <ConfirmDialog
               open={deleting}

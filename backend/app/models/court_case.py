@@ -184,18 +184,3 @@ class CourtCaseSet(SQLModel, table=True):
             sa.Uuid(), sa.ForeignKey("sets.id", ondelete="CASCADE"), primary_key=True, index=True
         )
     )
-
-
-class CourtCaseSource(SQLModel, table=True):
-    __tablename__ = "court_case_source"
-
-    court_case_id: uuid.UUID = Field(
-        sa_column=Column(
-            sa.Uuid(), sa.ForeignKey("court_case.id", ondelete="CASCADE"), primary_key=True
-        )
-    )
-    source_id: uuid.UUID = Field(
-        sa_column=Column(
-            sa.Uuid(), sa.ForeignKey("source.id", ondelete="CASCADE"), primary_key=True, index=True
-        )
-    )

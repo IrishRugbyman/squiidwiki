@@ -1,8 +1,9 @@
 import { createLazyFileRoute, Link, useNavigate } from '@tanstack/react-router'
-import { ExternalLink, FileText, Gavel, Link2, MoreHorizontal, Pencil, Plus, Trash2, UserPlus, X } from 'lucide-react'
+import { FileText, Gavel, Link2, MoreHorizontal, Pencil, Plus, Trash2, UserPlus, X } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
-import { AttachSourcesDialog } from '@/components/AttachSourcesDialog'
+import { CitationsPanel } from '@/components/sources/CitationsPanel'
+import { SourcePicker } from '@/components/sources/SourcePicker'
 import { Breadcrumbs } from '@/components/Breadcrumbs'
 import { DefendantDialog } from '@/components/cases/DefendantDialog'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
@@ -12,7 +13,6 @@ import { ErrorState } from '@/components/ErrorState'
 import { FuzzyDate } from '@/components/FuzzyDate'
 import { LinkifiedText } from '@/components/LinkifiedText'
 import { DetailHeaderSkeleton } from '@/components/skeletons'
-import { ReliabilityBadge } from '@/components/StatusBadge'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
@@ -34,7 +34,6 @@ import { paramsIn } from '@/lib/universeRoutes'
 import { useAuthStore } from '@/stores/auth'
 import { useRecordRecent } from '@/stores/recents'
 import { useUniverseStore } from '@/stores/universe'
-import { SourceFormSheet } from './_app.$universe.sources.index'
 import { CourtCaseFormSheet } from './_app.$universe.cases.index'
 
 // The court case page, in its own chunk (the route file only declares it).
@@ -178,7 +177,6 @@ function CourtCaseDetailPage() {
   const [removing, setRemoving] = useState<DefendantRead | null>(null)
   const [linking, setLinking] = useState(false)
   const [citing, setCiting] = useState(false)
-  const [creatingSource, setCreatingSource] = useState(false)
 
   useEditShortcut(() => c && setEditing(true))
 
@@ -300,30 +298,12 @@ function CourtCaseDetailPage() {
                 )}
               </section>
 
-              <section>
-                <PanelHeading action={plus(() => setCiting(true), 'Cite')}>
-                  Sources{c.sources.length > 0 ? ` (${c.sources.length})` : ''}
-                </PanelHeading>
-                {c.sources.length === 0 ? (
-                  <p className="rounded-lg border border-zinc-800 bg-zinc-900/30 px-4 py-3 text-xs text-zinc-400">No sources cited.</p>
-                ) : (
-                  <ul className="divide-y divide-zinc-800/70 rounded-lg border border-zinc-800 bg-zinc-900/30">
-                    {c.sources.map((s) => (
-                      <li key={s.id} className="flex items-center gap-3 px-3 py-2.5">
-                        <Link from="/$universe" to="/$universe/sources/$id" params={paramsIn(c.universe_slug, s.id)} className="group min-w-0 flex-1">
-                          <span className="block truncate text-sm font-medium text-white transition-colors group-hover:text-violet-300">{s.title}</span>
-                          {s.publication && <span className="block truncate text-[11px] text-zinc-500">{s.publication}</span>}
-                        </Link>
-                        <ReliabilityBadge reliability={s.reliability} />
-                        <a href={s.url} target="_blank" rel="noopener noreferrer" aria-label={`Open ${s.title} in a new tab`}
-                          className="rounded p-1.5 text-zinc-400 transition-colors hover:bg-zinc-800 hover:text-violet-300">
-                          <ExternalLink className="h-3.5 w-3.5" />
-                        </a>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </section>
+              <CitationsPanel
+                universeId={c.universe_id}
+                entityType="court_case"
+                entityId={c.id}
+                citations={c.citations}
+              />
             </div>
 
             <aside className="min-w-0 space-y-5">
@@ -405,17 +385,9 @@ function CourtCaseDetailPage() {
           )}
           {linking && <LinkIncidentsDialog c={c} open onClose={() => setLinking(false)} />}
           {citing && (
-            <AttachSourcesDialog
-              universeId={c.universe_id}
-              existingIds={c.sources.map((s) => s.id)}
-              open
-              onClose={() => setCiting(false)}
-              onCreateNew={() => { setCiting(false); setCreatingSource(true) }}
-              onAttach={(ids) => update.mutateAsync({ source_ids: ids })}
-              attaching={update.isPending}
-            />
+            <SourcePicker universeId={c.universe_id} entityType="court_case" entityId={c.id}
+              citedSourceIds={c.citations.map((x) => x.source_id)} open onClose={() => setCiting(false)} />
           )}
-          {creatingSource && <SourceFormSheet universeId={c.universe_id} open onClose={() => setCreatingSource(false)} />}
           <ConfirmDialog
             open={!!removing}
             onCancel={() => setRemoving(null)}

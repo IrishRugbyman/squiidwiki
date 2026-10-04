@@ -22,6 +22,7 @@ _AUDITED_TABLES = {
     "member",
     "incident",
     "source",
+    "citation",
     "media",
     "court_case",
     "court_case_defendant",
@@ -40,7 +41,10 @@ def _json_safe(v):
 
 def _get_diff(target, state: str) -> dict:
     if state == "deleted":
-        return {"deleted": True}
+        # A deleted citation is only meaningful with what it linked: record the
+        # whole row, as a create does.
+        if getattr(target.__class__, "__tablename__", None) != "citation":
+            return {"deleted": True}
     mapper = target.__class__.__mapper__  # type: ignore[attr-defined]
     return {
         col.key: _json_safe(getattr(target, col.key, None))
@@ -69,11 +73,20 @@ def _write_audit(session: Session, action: str, target) -> None:
     session.add(entry)
 
 
+_attached = False
+
+
 def attach_audit_listeners() -> None:
+    """Attach once per process: a second call would write every audit row twice."""
+    global _attached
+    if _attached:
+        return
+    _attached = True
     # Import all models so their mappers are registered
     from sqlalchemy.orm import mapperlib
 
     import app.models.alliance  # noqa: F401
+    import app.models.citation  # noqa: F401
     import app.models.court_case  # noqa: F401
     import app.models.gang_set  # noqa: F401
     import app.models.incident  # noqa: F401

@@ -25,9 +25,9 @@ goes in `CHANGELOG.md`.
 - [ ] **Co-offending analysis** — flag members who repeatedly appear together in incidents, with frequency heatmaps.
 - [ ] **Survival curves by set** — Kaplan-Meier-style curves for time-to-incarceration and time-to-death per set. Visually striking with the stats infra already in place.
 - [ ] **Source contradiction detector** — when two sources cite the same fact (e.g., shooter identity) with conflicting claims, flag it on the incident page. Requires per-fact citations (see Content section).
-- [ ] **Animated incident heatmap over time** — scrub a year slider to redraw the choropleth. Map page already has the choropleth pieces; adding lat/lng to incidents (above) makes this trivial.
+- [ ] **Animated incident heatmap over time** — scrub a year slider to redraw the choropleth. Map page already has the choropleth pieces. Incidents carry `lat`/`lng`, but only 143 of 3,553 have them (2026-10-03).
 - [ ] **Temporal hotspot detection** — auto-identify time windows (e.g., "Fridays 2–4 AM") with abnormally high incident rates.
-- [ ] **Location clustering** — group incidents by proximity (DBSCAN or grid-based) to reveal territorial boundaries; depends on lat/lng on incidents.
+- [ ] **Location clustering** — group incidents by proximity (DBSCAN or grid-based) to reveal territorial boundaries; limited by coordinate coverage (143 of 3,553 incidents).
 - [ ] **Member risk assessment** — composite score from incident participation, associations, and recent activity.
 - [ ] **Community detection** — auto-group sets into larger coalitions using modularity optimization over the alliance/rivalry graph.
 - [ ] **Incident correlation matrix** — heatmap table showing which sets/members co-occur in incidents most often.
@@ -37,16 +37,15 @@ goes in `CHANGELOG.md`.
 
 ## Content & editing
 
-- [ ] **Video links as first-class media**: a member's YouTube link currently survives only as a bare URL pasted into their biography, because `media` is images-only and sources do not render on member pages. Give members (and sets) a video section: store the URL on `media` with a `kind` for it, show a thumbnail grid that opens the video, and let a track carry a title and a channel. Once it exists, the bare URLs can come out of the biographies, where they break the rule that a biography says only what no column holds.
-- [ ] **Show a member's sources on their page**: `MemberReadDetail` returns `source_ids` and the member page renders none of them, so a citation attached to a member is invisible in the UI and only reachable through the sources list. Set and incident pages have the same gap. Blocks any cleanup that moves a URL out of prose into a source row.
+- [ ] **Video links as first-class media**: a member's YouTube link currently survives only as a bare URL pasted into their biography, because `media` holds only images (`kind` is `R2` or `EXTERNAL_URL`, both rendered as pictures). Give members (and sets) a video section: store the URL on `media` with a `kind` for it, show a thumbnail grid that opens the video, and let a track carry a title and a channel. Once it exists, the bare URLs can come out of the biographies, where they break the rule that a biography says only what no column holds.
 
-- [ ] **Per-fact citations** — let a sentence in a biography or incident narrative reference a specific source. Inline `[[source:123]]` markers rendered as superscript footnotes. Entity-scoped citations are fine for "this member exists" but useless for "this member fired the gun."
+- [ ] **Inline citation markers**: since 2026-10-04 a citation carries a locator, a quote and a note, so a record can say what each source supports. Remaining: `[[cite:<citation id>]]` markers in a biography or narrative rendered as numbered footnotes pointing at those citations.
 - [ ] **Member merge** — when duplicate records exist, a merge dialog picks the canonical record and migrates all incident participations, family links, and source citations.
-- [ ] **Web Archive snapshot on source create** — when a `Source` URL is saved, fire a request to `web.archive.org/save/<url>` and store the resulting archived URL alongside. News links rot fast.
+- [ ] **Archive every source on create**: `source.archive_url` exists and is almost never filled, 15 of 976 sources on prod (2026-10-03), while 421 point at Instagram, Facebook, X, TikTok, YouTube or Reddit, where posts disappear fastest. Two paths, because the Wayback Machine cannot get past the Instagram and Facebook login walls: news, court and government URLs get a `web.archive.org/save/<url>` request and the snapshot URL in `archive_url`; social posts get a local capture (screenshot, caption text, every image) stored in R2 as `media` rows on the source (`media.source_id` already exists and has no UI), the way the research tree's Instagram fetcher already captures posts. Run it from the background job queue, never inline on the save, and backfill the 961 sources without a copy once it works.
 - [ ] **Auto-fetch source metadata** — when a URL is pasted into the source form, fetch title / byline / publish date / og-image and prefill the fields. Removes the most tedious part of citing.
 - [ ] **Version history / diff view on biographies** — audit log on writes is already captured; expose it on the entity page as a "History" tab with red/green diffs.
 - [ ] **"Stale data" indicators** — `last_verified_at` timestamp on Members and Sets with a subtle UI indicator if a profile hasn't been updated or involved in a new incident in over 18 months.
-- [ ] **Data anomaly dashboard** — admin view flagging logical impossibilities: member linked to an incident before their birth year, member `outcome=KILLED` in 2021 but attached to a later incident in 2023, set `EXTINCT` but has recent incidents, etc.
+- [ ] **Data anomaly dashboard**: an admin view (or a `wiki lint` command in the research CLI, whose `check` only compares case files against the database) flagging logical impossibilities: member linked to an incident before their birth year, member `outcome=KILLED` in 2021 but attached to a later incident in 2023, set `EXTINCT` but has recent incidents, incidents with no participant of either kind (4 on prod, 2026-10-03), incidents citing no source (45). Test a FuzzyDate by its `year`, never by SQL `NULL`: an unknown date is stored as `{"precision": "UNKNOWN", "year": null}`, so `date IS NOT NULL` counts it as dated.
 - [ ] **Wiki-style internal links in bios** — `[[member:slug]]` / `[[set:slug]]` syntax expanded by the markdown renderer into typed links. Pairs with the inline bio editor.
 - [ ] **AI-assisted bio draft from source URL** — paste a news article, get a structured proposal: name, DOB, sets, incidents to link, draft bio. User reviews before insert. Admin-only endpoint to control token spend.
 - [ ] **Inline biography markdown split-pane** *(partial)* — plain-text inline edit shipped. Remaining: live markdown preview split-pane (GitHub issue-editor style); requires installing `react-markdown`.
@@ -56,7 +55,7 @@ goes in `CHANGELOG.md`.
 ## Search & discovery
 
 - [ ] **Full-text search across biographies and source narratives** — Postgres `tsvector` + GIN index. ⌘K only matches names today; this lets you find "the kid mentioned in that 2022 article."
-- [ ] **Fuzzy nickname matching (`pg_trgm`)** — trigram similarity search on `display_name` and aliases so ⌘K and participant search capture misspellings and phonetic variations ("Lil Tony" vs. "Lil Tone").
+- [ ] **Fuzzy nickname matching (`pg_trgm`)**: the extension and GIN trigram indexes on member nickname and legal name, set and alliance names and source titles exist (migration `9065522d726a`), but search still matches `ILIKE` substrings (`crud/member.py`), so the indexes only speed up exact substrings. Rank by `similarity()` / `word_similarity()` over nickname, legal name and `member_alias` so ⌘K and participant search catch misspellings and variants ("Lil Tony" vs. "Lil Tone").
 - [ ] **Radial geographic filtering** — "drop pin + radius" filter on the incidents list. Instead of hard municipality boundaries, filter by "everything within 2 miles of [coordinates/intersection]."
 - [ ] **Saved search alerts** — saved filter presets already exist; add a "notify me when a new entity matches this filter" toggle, surfaced as a feed badge. SSE or polled.
 - [ ] **Favorites / star entities** — quick access to frequently used entities via a sidebar section or ⌘K, separate from the recents list.
@@ -65,12 +64,9 @@ goes in `CHANGELOG.md`.
 
 ## Map & geo
 
-- [ ] **Cluster markers** — when zoomed out, collapse nearby incident dots into cluster bubbles. Current "every incident as its own dot" doesn't scale past a few hundred points.
 - [ ] **Geospatial incident playback** — time-slider on the map that animates incidents over a selected date range, showing how conflicts migrate geographically over months or years.
-- [ ] **Territory mapping** — draw polygons on the map to define gang territories with overlap detection; complement or replace the set territory polygon derived from incident clustering.
-- [ ] **Pinned route between linked incidents** — when an incident links to a retaliation, draw the directional path between them on the map. Visual storytelling once lat/lng exists.
+- [ ] **Pinned route between linked incidents** — when an incident links to a retaliation, draw the directional path between them on the map. Visual storytelling for incidents that carry coordinates.
 - [ ] **Geofenced alerts** — notify when new incidents or members are added within a custom geographic boundary.
-- [ ] **Municipality boundary overlay** — shapefile import of official city/district borders displayed on the map.
 
 ## Admin & governance
 
@@ -157,12 +153,12 @@ goes in `CHANGELOG.md`.
 
 *Investigated 2026-05-05. Lists are the slowest pages; thumbnails already use pre-resized variants + `loading="lazy"`, so they're not the bottleneck. The two real culprits:*
 
-- [ ] **Cache R2 signed URLs in Redis** — `attach_primary_photos` (`backend/app/crud/media.py:262-289`) batches the Media query but then calls `storage.signed_get_url()` serially per row × 2 (full + thumb). A 50-row list = ~100 sequential R2 presign round trips, every request, no cache. Fix: cache signed URLs in Redis (key `r2:signed:{key}`, ~15min TTL — under the 1h presign expiry) and `asyncio.gather()` the misses. Estimated 5–10× speedup on this step.
+- [ ] **Presign cache misses concurrently**: signed URLs are now cached in-process for nearly their lifetime (`app/core/storage.py`), so warm list renders skip signing. Cold ones still sign serially: `_attach_photos_generic` in `crud/media.py` awaits `signed_get_url()` per row, twice (full and thumb). `asyncio.gather()` the misses. Only worth it if first loads after a restart are noticeably slow.
 - [ ] **Composite `(universe_id, created_at DESC)` indexes** — list queries (`crud/member.py:216`, `crud/gang_set.py:174`, `crud/incident.py:186`, alliance crud) order by `created_at DESC, id DESC` scoped to a universe, but only single-column indexes exist. Postgres scans the whole universe partition and sorts before paginating. Add `ix_<table>_universe_created_at` on member, sets, alliance, incident via Alembic. Painful once a universe has >5k rows — defer until data volume justifies it.
 
 ---
 
 ## Partial — open tails
 
-- [ ] **Bulk link / bulk tag** — bulk-delete shipped on all entity types. Remaining: bulk-link a source to multiple entities and bulk-tag (e.g., bulk-assign gang affiliation once that field exists).
+- [ ] **Bulk link / bulk tag** — bulk-delete shipped on all entity types. Remaining: bulk-link a source to multiple entities and bulk-tag (e.g., bulk-assign a gang or a set to many members).
 - [ ] **Universe statistics: last-activity / active-users / storage** — listed above under Admin & governance.

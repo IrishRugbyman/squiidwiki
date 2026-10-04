@@ -9,6 +9,7 @@ from app.core.csv_export import to_csv_response
 from app.core.database import get_session
 from app.core.enums import GlobalRole
 from app.crud import alliance as crud
+from app.crud import citation as citation_crud
 from app.crud import incident as incident_crud
 from app.crud import member as member_crud
 from app.crud.media import attach_primary_photos_alliances
@@ -91,6 +92,7 @@ async def get_alliance(
         **base,
         territory_ids=territory_ids,
         set_ids=set_ids,
+        citations=await citation_crud.list_citations(session, "alliance", obj.id),
     )
 
 

@@ -2,6 +2,15 @@ import { keepPreviousData, useMutation, useQueries, useQuery, useQueryClient } f
 import type { QueryClient } from '@tanstack/react-query'
 import { api } from './api'
 import type {
+  CitableType,
+  CitationRead,
+  SourceCitationRow,
+  SourceCustodyRow,
+  SourceKind,
+  SourceListPage,
+  SourceLookup,
+  SourceReadDetail,
+  SourceReliability,
   CourtCaseListItem,
   SentencingEvent,
   CourtCaseRead,
@@ -1110,52 +1119,84 @@ export const useDeleteIncident = (universeId: UUID) => {
  * of 50 while its page stepped by 100, so half of Michigan's 400 sources never
  * appeared on the list.
  */
-export const useAllSources = (universeId: UUID | null) =>
+// ─── Sources and citations ─────────────────────────────────────────────────────
+
+export interface SourceListParams {
+  q?: string
+  kind?: SourceKind
+  reliability?: SourceReliability
+  publication?: string
+  uncited?: boolean
+  sort?: 'added' | 'title' | 'published' | 'cited' | 'reliability' | 'relevance'
+  order?: 'asc' | 'desc'
+  offset?: number
+  limit?: number
+}
+
+function sourceListQuery(universeId: UUID, p: SourceListParams): string {
+  const qs = new URLSearchParams({ universe_id: universeId })
+  for (const [k, v] of Object.entries(p)) {
+    if (v !== undefined && v !== null && v !== '' && v !== false) qs.set(k, String(v))
+  }
+  return qs.toString()
+}
+
+export const useSources = (universeId: UUID | null, params: SourceListParams) =>
   useQuery({
-    queryKey: ['sources', 'all', universeId],
-    queryFn: async () => {
-      const items: SourceListItem[] = []
-      let total = 0
-      do {
-        const page = await api.get<OffsetPage<SourceListItem>>(
-          `/sources/?universe_id=${universeId}&limit=1000&offset=${items.length}`,
-        )
-        items.push(...page.items)
-        total = page.total
-        if (page.items.length === 0) break
-      } while (items.length < total)
-      return { items, total: items.length } satisfies OffsetPage<SourceListItem>
-    },
+    queryKey: ['sources', 'list', universeId, params],
+    queryFn: () => api.get<SourceListPage>(`/sources/?${sourceListQuery(universeId!, params)}`),
     enabled: !!universeId,
-    staleTime: 30_000,
+    placeholderData: keepPreviousData,
+  })
+
+/** The CSV of the list as filtered, every row. */
+export const sourcesCsvUrl = (universeId: UUID, params: SourceListParams) =>
+  `/sources/?${sourceListQuery(universeId, { ...params, offset: undefined, limit: undefined })}&format=csv`
+
+/** What the universe already holds for a pasted URL. */
+export const useSourceLookup = (universeId: UUID | null, url: string) =>
+  useQuery({
+    queryKey: ['sources', 'lookup', universeId, url],
+    queryFn: () =>
+      api.get<SourceLookup>(`/sources/lookup?universe_id=${universeId}&url=${encodeURIComponent(url)}`),
+    enabled: !!universeId && /^https?:\/\/\S+\.\S+/.test(url),
+    staleTime: 10_000,
   })
 
 export const useSource = (id: UUID, universeId: UUID | null) =>
   useQuery({
-    queryKey: ['sources', id],
-    queryFn: () => api.get<SourceRead>(`/sources/${id}?universe_id=${universeId}`),
+    queryKey: ['sources', 'detail', id],
+    queryFn: () => api.get<SourceReadDetail>(`/sources/${id}?universe_id=${universeId}`),
     enabled: !!universeId,
   })
 
-export const useSourceIncidents = (id: UUID, universeId: UUID | null) =>
+export const useSourceCitations = (
+  id: UUID, universeId: UUID | null, entityType: CitableType, offset: number, limit = 50,
+) =>
   useQuery({
-    queryKey: ['incidents', 'source', id],
-    queryFn: () => api.get<CursorPage<IncidentListItem>>(`/sources/${id}/incidents?universe_id=${universeId}`),
+    queryKey: ['sources', 'citations', id, entityType, offset, limit],
+    queryFn: () =>
+      api.get<OffsetPage<SourceCitationRow>>(
+        `/sources/${id}/citations?universe_id=${universeId}&entity_type=${entityType}&offset=${offset}&limit=${limit}`,
+      ),
     enabled: !!universeId && !!id,
+    placeholderData: keepPreviousData,
   })
 
-export const useSourceMembers = (id: UUID, universeId: UUID | null) =>
+export const useSourceCustodyIds = (id: UUID, universeId: UUID | null, enabled = true) =>
   useQuery({
-    queryKey: ['members', 'source', id],
-    queryFn: () => api.get<CursorPage<MemberListItem>>(`/sources/${id}/members?universe_id=${universeId}`),
-    enabled: !!universeId && !!id,
+    queryKey: ['sources', 'custody', id],
+    queryFn: () => api.get<SourceCustodyRow[]>(`/sources/${id}/custody-ids?universe_id=${universeId}`),
+    enabled: !!universeId && !!id && enabled,
   })
 
 export const useCreateSource = () => {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: (body: Record<string, unknown>) => api.post<SourceRead>('/sources/', body),
-    onSuccess: (data) => { qc.invalidateQueries({ queryKey: ['sources', data.universe_id] }) },
+    // A 409 (duplicate_url, lookup_source) is shown by the form itself.
+    meta: { silent: true },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['sources'] }) },
   })
 }
 
@@ -1164,23 +1205,114 @@ export const useUpdateSource = (id: UUID, universeId: UUID) => {
   return useMutation({
     mutationFn: (body: Record<string, unknown>) =>
       api.patch<SourceRead>(`/sources/${id}?universe_id=${universeId}`, body),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['sources'] })
-    },
+    onSuccess: () => { invalidateCited(qc) },
+  })
+}
+
+export const useBulkUpdateSources = (universeId: UUID) => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (body: { ids: UUID[]; reliability?: SourceReliability; kind?: SourceKind }) =>
+      api.patch<{ updated: number }>(`/sources/bulk?universe_id=${universeId}`, body),
+    onSuccess: () => { invalidateCited(qc) },
+  })
+}
+
+export const useMergeSource = (universeId: UUID) => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, intoId }: { id: UUID; intoId: UUID }) =>
+      api.post<{ moved: number; combined: number; into_id: UUID }>(
+        `/sources/${id}/merge?universe_id=${universeId}`, { into_id: intoId },
+      ),
+    onSuccess: () => { invalidateCited(qc) },
   })
 }
 
 export const useDeleteSource = (universeId: UUID) => {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (id: UUID) => api.delete(`/sources/${id}?universe_id=${universeId}`),
-    // Its citations go with it, so the records that cited it are stale too.
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['sources'] })
-      qc.invalidateQueries({ queryKey: ['incidents'] })
-      qc.invalidateQueries({ queryKey: ['members'] })
-      qc.invalidateQueries({ queryKey: ['sets'] })
-    },
+    mutationFn: ({ id, force = false }: { id: UUID; force?: boolean }) =>
+      api.delete(`/sources/${id}?universe_id=${universeId}${force ? '&force=true' : ''}`),
+    onSuccess: () => { invalidateCited(qc) },
+  })
+}
+
+/** The query roots a citation change can stale: the sources, and every kind of
+ *  record that renders citations. Invalidated by root because detail pages key
+ *  by slug or UUID depending on how they were reached. */
+const CITED_ROOTS = [
+  'sources', 'members', 'incidents', 'sets', 'alliances', 'court-cases', 'municipalities', 'businesses',
+]
+const ROOT_OF: Record<CitableType, string> = {
+  member: 'members', incident: 'incidents', set: 'sets', alliance: 'alliances',
+  court_case: 'court-cases', municipality: 'municipalities', business: 'businesses',
+}
+
+function invalidateCited(qc: ReturnType<typeof useQueryClient>, only?: CitableType) {
+  if (only) {
+    qc.invalidateQueries({ queryKey: ['sources'] })
+    qc.invalidateQueries({ queryKey: [ROOT_OF[only]] })
+    return
+  }
+  for (const root of CITED_ROOTS) qc.invalidateQueries({ queryKey: [root] })
+}
+
+export interface CitationInput {
+  source_id: UUID
+  entity_type: CitableType
+  entity_id: UUID
+  locator?: string | null
+  quote?: string | null
+  note?: string | null
+  accessed_at?: string | null
+}
+
+export const useCreateCitation = (universeId: UUID) => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (body: CitationInput) =>
+      api.post<CitationRead>(`/citations/?universe_id=${universeId}`, body),
+    onSuccess: (_d, v) => { invalidateCited(qc, v.entity_type) },
+  })
+}
+
+export const useBatchCitations = (universeId: UUID) => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (body: { items: CitationInput[]; on_conflict?: 'skip' | 'update' }) =>
+      api.post<{ created: UUID[]; updated: UUID[]; skipped: UUID[] }>(
+        `/citations/batch?universe_id=${universeId}`, body,
+      ),
+    onSuccess: () => { invalidateCited(qc) },
+  })
+}
+
+export const useUpdateCitation = (universeId: UUID, entityType: CitableType) => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, ...body }: { id: UUID; locator?: string | null; quote?: string | null; note?: string | null; accessed_at?: string | null; source_id?: UUID }) =>
+      api.patch<CitationRead>(`/citations/${id}?universe_id=${universeId}`, body),
+    onSuccess: () => { invalidateCited(qc, entityType) },
+  })
+}
+
+export const useDeleteCitation = (universeId: UUID, entityType: CitableType) => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (id: UUID) => api.delete(`/citations/${id}?universe_id=${universeId}`),
+    onSuccess: () => { invalidateCited(qc, entityType) },
+  })
+}
+
+export const useReorderCitations = (universeId: UUID, entityType: CitableType, entityId: UUID) => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (ids: UUID[]) =>
+      api.put<CitationRead[]>(`/citations/order?universe_id=${universeId}`, {
+        entity_type: entityType, entity_id: entityId, ids,
+      }),
+    onSuccess: () => { invalidateCited(qc, entityType) },
   })
 }
 

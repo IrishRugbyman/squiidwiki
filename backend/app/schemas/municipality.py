@@ -3,7 +3,8 @@ from typing import Any, Optional
 
 from pydantic import BaseModel, field_validator
 
-from app.core.enums import MunicipalityKind, SourceReliability
+from app.core.enums import MunicipalityKind
+from app.schemas.citation import CitationRead
 
 
 def _clean_aliases(v: Optional[list[str]]) -> Optional[list[str]]:
@@ -30,7 +31,6 @@ class MunicipalityCreate(BaseModel):
     aliases: Optional[list[str]] = None
     region: Optional[str] = None
     description: Optional[str] = None
-    source_ids: list[uuid.UUID] = []
 
     @field_validator("aliases")
     @classmethod
@@ -47,22 +47,11 @@ class MunicipalityUpdate(BaseModel):
     region: Optional[str] = None
     description: Optional[str] = None
     # The complete list when present; omitted leaves the links alone.
-    source_ids: Optional[list[uuid.UUID]] = None
 
     @field_validator("aliases")
     @classmethod
     def _aliases(cls, v: Optional[list[str]]) -> Optional[list[str]]:
         return _clean_aliases(v)
-
-
-class MunicipalitySourceBrief(BaseModel):
-    model_config = {"from_attributes": True}
-
-    id: uuid.UUID
-    title: str
-    url: str
-    publication: Optional[str] = None
-    reliability: SourceReliability
 
 
 class _AliasesOut(BaseModel):
@@ -100,7 +89,7 @@ class MunicipalityRead(_AliasesOut):
     population: Optional[int] = None
     population_year: Optional[int] = None
     population_source: Optional[str] = None
-    sources: list[MunicipalitySourceBrief] = []
+    citations: list[CitationRead] = []
     overlaps: list[MunicipalityOverlapBrief] = []
     has_geometry: bool = False
     incident_count: int = 0

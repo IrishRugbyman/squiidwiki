@@ -4,8 +4,9 @@ from typing import Any, Literal, Optional
 
 from pydantic import BaseModel, model_validator
 
-from app.core.enums import SetLineageKind, SetRelationshipType, SetStatus, SourceReliability
+from app.core.enums import SetLineageKind, SetRelationshipType, SetStatus
 from app.core.set_names import display_name, normalize_lead
+from app.schemas.citation import CitationRead
 from app.schemas.common import FuzzyDateField
 
 Slot = Literal["name", "initials", "number"]
@@ -210,8 +211,6 @@ class SetCreate(BaseModel):
     territory_ids: list[uuid.UUID] = []
     friend_ids: list[uuid.UUID] = []
     enemy_ids: list[uuid.UUID] = []
-    # Citations for the set itself (set_source).
-    source_ids: list[uuid.UUID] = []
 
     @model_validator(mode="after")
     def _normalize(self):
@@ -223,7 +222,6 @@ class SetCreate(BaseModel):
             variants = [NameVariant(name=name, is_primary=True)]
         self.name_variants = variants
         self.name = _derived_name(self.name, variants)
-        self.source_ids = _dedupe_ids(self.source_ids) or []
         self.emojis = _normalize_emojis(self.emojis)
         self.gang_ids = _dedupe_ids(self.gang_ids)
         self.alliance_ids = _dedupe_ids(self.alliance_ids)
@@ -257,7 +255,6 @@ class SetUpdate(BaseModel):
     territory_polygon: Optional[dict] = None
     territory_point: Optional[dict] = None
     # The complete citation list for the set itself; [] clears. Omit to keep.
-    source_ids: Optional[list[uuid.UUID]] = None
 
     @model_validator(mode="after")
     def _normalize(self):
@@ -283,8 +280,6 @@ class SetUpdate(BaseModel):
             self.gang_ids = _dedupe_ids(self.gang_ids)
         if "alliance_ids" in fields_set:
             self.alliance_ids = _dedupe_ids(self.alliance_ids)
-        if "source_ids" in fields_set:
-            self.source_ids = _dedupe_ids(self.source_ids)
         if "territory_polygon" in fields_set:
             self.territory_polygon = _validate_polygon(self.territory_polygon)
         if "territory_point" in fields_set:
@@ -321,22 +316,11 @@ class SetRead(BaseModel):
     territory_point: Optional[dict] = None
 
 
-class SetSourceBrief(BaseModel):
-    model_config = {"from_attributes": True}
-
-    id: uuid.UUID
-    title: str
-    url: str
-    publication: Optional[str] = None
-    reliability: SourceReliability
-
-
 class SetReadDetail(SetRead):
     territory_ids: list[uuid.UUID]
     friend_ids: list[uuid.UUID]
     enemy_ids: list[uuid.UUID]
     lineage: list["SetLineageItem"] = []
-    source_ids: list[uuid.UUID] = []
 
 
 class SetPolygonItem(BaseModel):
@@ -520,5 +504,5 @@ class SetReadDetailFull(SetReadDetail):
     enemies: list[SetRelatedSummary] = []
     stats: SetStats
     incidents_per_year: list[IncidentsPerYear] = []
-    sources: list[SetSourceBrief] = []
+    citations: list[CitationRead] = []
     lede: str
