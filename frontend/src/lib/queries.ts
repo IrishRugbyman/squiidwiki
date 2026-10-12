@@ -2,6 +2,8 @@ import { keepPreviousData, useMutation, useQueries, useQuery, useQueryClient } f
 import type { QueryClient } from '@tanstack/react-query'
 import { api } from './api'
 import type {
+  AllianceActivityEntry,
+  AllianceLineageItem,
   CitableType,
   CitationRead,
   SourceCitationRow,
@@ -45,6 +47,9 @@ import type {
   MunicipalityListItem,
   MunicipalityRead,
   OffsetPage,
+  NoteKind,
+  PinKind,
+  PinRef,
   ResearchNoteListItem,
   ResearchNoteRead,
   SetActivityEntry,
@@ -515,6 +520,44 @@ export const useAllianceIncidents = (id: UUID, universeId: UUID | null) =>
     enabled: !!universeId && !!id,
   })
 
+// Descent between blocs, the alliance counterpart of set lineage. The rows come
+// back in the detail payload (`lineage`), so these only write and invalidate it.
+export const useAddAllianceLineage = (allianceId: UUID, universeId: UUID) => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (body: { other_id: UUID; kind: SetLineageKind; direction: 'parent' | 'child'; from_date?: unknown }) =>
+      api.post<AllianceLineageItem>(`/alliances/${allianceId}/lineage?universe_id=${universeId}`, body),
+    onSettled: () => { qc.invalidateQueries({ queryKey: ['alliances'] }) },
+  })
+}
+
+export const useEndAllianceLineage = (allianceId: UUID, universeId: UUID) => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ lineageId, until_date }: { lineageId: UUID; until_date?: unknown }) =>
+      api.post(`/alliances/${allianceId}/lineage/${lineageId}/end?universe_id=${universeId}`, { until_date }),
+    onSettled: () => { qc.invalidateQueries({ queryKey: ['alliances'] }) },
+  })
+}
+
+export const useDeleteAllianceLineage = (allianceId: UUID, universeId: UUID) => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (lineageId: UUID) =>
+      api.delete(`/alliances/${allianceId}/lineage/${lineageId}?universe_id=${universeId}`),
+    onSettled: () => { qc.invalidateQueries({ queryKey: ['alliances'] }) },
+  })
+}
+
+/** Audit feed for the alliance, its sets and the members tagged to it; fetched when shown. */
+export const useAllianceActivity = (allianceId: UUID | null, universeId: UUID | null, enabled: boolean) =>
+  useQuery({
+    queryKey: ['alliances', allianceId, 'activity'],
+    queryFn: () => api.get<AllianceActivityEntry[]>(`/alliances/${allianceId}/activity?universe_id=${universeId}&limit=40`),
+    enabled: enabled && !!universeId && !!allianceId,
+    staleTime: 30_000,
+  })
+
 export const useCreateAlliance = () => {
   const qc = useQueryClient()
   return useMutation({
@@ -816,10 +859,9 @@ export const useReassignSetsToAlliance = (allianceId: UUID, universeId: UUID) =>
   return useMutation({
     mutationFn: async ({ currentSetIds, newSetIds }: { currentSetIds: UUID[]; newSetIds: UUID[] }) => {
       const merged = Array.from(new Set([...currentSetIds, ...newSetIds]))
-      await api.patch(`/alliances/${allianceId}?universe_id=${universeId}`, {
-        universe_id: universeId,
-        set_ids: merged,
-      })
+      // The universe goes in the query string: the alliance PATCH refuses
+      // fields it does not know, universe_id in the body among them.
+      await api.patch(`/alliances/${allianceId}?universe_id=${universeId}`, { set_ids: merged })
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['sets'] })
@@ -1418,7 +1460,7 @@ export const useResearchNotes = (universeId: UUID | null, offset = 0) =>
   useQuery({
     queryKey: ['research', universeId, offset],
     queryFn: () =>
-      api.get<OffsetPage<ResearchNoteListItem>>(`/research/?universe_id=${universeId}&offset=${offset}`),
+      api.get<OffsetPage<ResearchNoteListItem>>(`/research/?universe_id=${universeId}&offset=${offset}&limit=200`),
     enabled: !!universeId,
   })
 
@@ -1436,10 +1478,19 @@ export const useResearchSearch = (universeId: UUID | null, q: string) =>
     enabled: !!universeId && q.length >= 2,
   })
 
+/** The notes pinned to one entity, newest first. */
+export const usePinnedNotes = (universeId: UUID | null, kind: PinKind, entityId: UUID | null) =>
+  useQuery({
+    queryKey: ['research', 'pinned', universeId, kind, entityId],
+    queryFn: () =>
+      api.get<ResearchNoteListItem[]>(`/research/pinned?universe_id=${universeId}&${kind}_id=${entityId}`),
+    enabled: !!universeId && !!entityId,
+  })
+
 export const useCreateResearchNote = () => {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (body: { universe_id: UUID; title: string; content: string }) =>
+    mutationFn: (body: { universe_id: UUID; title: string; content: string; kind?: NoteKind; pins?: PinRef[] }) =>
       api.post<ResearchNoteRead>('/research/', body),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['research'] })
@@ -1450,7 +1501,8 @@ export const useCreateResearchNote = () => {
 export const useUpdateResearchNote = (id: UUID, universeId: UUID) => {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (body: { title?: string; content?: string }) =>
+    // `pins`, when present, replaces the note's whole list of pins.
+    mutationFn: (body: { title?: string; content?: string; kind?: NoteKind; pins?: PinRef[] }) =>
       api.patch<ResearchNoteRead>(`/research/${id}?universe_id=${universeId}`, body),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['research'] })

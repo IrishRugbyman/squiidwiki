@@ -10,12 +10,25 @@ from sqlmodel import func, select
 from app.core.enums import SetRelationshipType
 from app.core.slug import slugify
 from app.crud.media import delete_media
-from app.models.alliance import Alliance, AllianceMunicipality, AllianceRelationship, AllianceSet
+from app.models.alliance import (
+    Alliance,
+    AllianceGang,
+    AllianceLineage,
+    AllianceMunicipality,
+    AllianceRelationship,
+    AllianceSet,
+)
 from app.models.gang import Gang
 from app.models.gang_set import GangSet, SetRelationship
 from app.models.media import Media
 from app.models.member import Member
-from app.schemas.alliance import AllianceCreate, AllianceRelationshipCreate, AllianceUpdate
+from app.models.municipality import Municipality
+from app.schemas.alliance import (
+    AllianceCreate,
+    AllianceLineageCreate,
+    AllianceRelationshipCreate,
+    AllianceUpdate,
+)
 
 
 def _fuzzy_to_dict(fd) -> dict | None:
@@ -164,23 +177,83 @@ async def _sync_alliance_friend_relationships(
                 )
 
 
+async def _sync_alliance_gangs(
+    session: AsyncSession, obj: Alliance, gang_ids: list[uuid.UUID]
+) -> None:
+    """Make `alliance_gang` hold exactly `gang_ids`, in order, and mirror the
+    first into `alliance.gang_id`. Every gang must be in the alliance's universe."""
+    if gang_ids:
+        found = set(
+            (
+                await session.execute(
+                    select(Gang.id).where(
+                        Gang.id.in_(gang_ids), Gang.universe_id == obj.universe_id
+                    )
+                )
+            ).scalars()
+        )
+        missing = [str(g) for g in gang_ids if g not in found]
+        if missing:
+            raise HTTPException(422, detail=f"gang_ids not in this universe: {', '.join(missing)}")
+    await session.execute(delete(AllianceGang).where(AllianceGang.alliance_id == obj.id))
+    await session.flush()
+    for position, gang_id in enumerate(gang_ids):
+        session.add(AllianceGang(alliance_id=obj.id, gang_id=gang_id, position=position))
+    primary = gang_ids[0] if gang_ids else None
+    # Assign only on change, so an unrelated edit writes no audit row for it.
+    if obj.gang_id != primary:
+        obj.gang_id = primary
+    object.__setattr__(obj, "gang_ids", list(gang_ids))
+
+
+async def list_alliance_gang_ids(session: AsyncSession, alliance_id: uuid.UUID) -> list[uuid.UUID]:
+    rows = await session.execute(
+        select(AllianceGang.gang_id)
+        .where(AllianceGang.alliance_id == alliance_id)
+        .order_by(AllianceGang.position)
+    )
+    return list(rows.scalars())
+
+
+async def attach_gang_ids(session: AsyncSession, obj: Alliance) -> Alliance:
+    object.__setattr__(obj, "gang_ids", await list_alliance_gang_ids(session, obj.id))
+    return obj
+
+
+async def _check_founder(
+    session: AsyncSession, founder_id: uuid.UUID | None, universe_id: uuid.UUID
+) -> None:
+    if founder_id is None:
+        return
+    found = (
+        await session.execute(
+            select(Member.id).where(Member.id == founder_id, Member.universe_id == universe_id)
+        )
+    ).first()
+    if found is None:
+        raise HTTPException(422, detail="founder_id is not a member of this universe")
+
+
 async def create_alliance(
     session: AsyncSession, data: AllianceCreate, actor_id: uuid.UUID
 ) -> Alliance:
-    dump = data.model_dump(exclude={"territory_ids", "set_ids"})
+    await _check_founder(session, data.founder_id, data.universe_id)
+    dump = data.model_dump(exclude={"territory_ids", "set_ids", "gang_ids"})
     dump["founded_at"] = _fuzzy_to_dict(data.founded_at)
-    base = _slugify(data.name)
-    dump["slug"] = await _unique_slug(session, data.universe_id, base)
+    # The mirror goes in with the INSERT, so a create is one audit row.
+    dump["gang_id"] = data.gang_ids[0] if data.gang_ids else None
+    dump["slug"] = await _unique_slug(session, data.universe_id, _slugify(data.name))
     obj = Alliance(**dump, created_by_id=actor_id)
     session.add(obj)
     await session.flush()
+    await _sync_alliance_gangs(session, obj, data.gang_ids)
     await _sync_alliance_municipalities(session, obj.id, data.territory_ids)
     await _sync_alliance_sets(session, obj.id, data.set_ids)
     if data.set_ids:
         await _sync_alliance_friend_relationships(session, obj.id)
     await session.commit()
     await session.refresh(obj)
-    return obj
+    return await attach_gang_ids(session, obj)
 
 
 async def get_alliance(
@@ -260,21 +333,34 @@ async def attach_alliance_list_stats(
         {"uid": universe_id},
     )
     member_counts = dict(member_rows.all())
-    gang_ids = {a.gang_id for a in items if a.gang_id}
-    gangs: dict[uuid.UUID, tuple[str, str | None]] = {}
-    if gang_ids:
-        gang_rows = await session.execute(
-            select(Gang.id, Gang.name, Gang.color).where(Gang.id.in_(gang_ids))
-        )
-        gangs = {gid: (name, color) for gid, name, color in gang_rows.all()}
+    gangs_by_alliance = await _gang_summaries(session, ids)
     for a in items:
-        gang = gangs.get(a.gang_id) if a.gang_id else None
+        gangs = gangs_by_alliance.get(a.id, [])
         # SQLModel rejects unknown attributes through __setattr__; bypass it,
         # as attach_primary_photos does.
         object.__setattr__(a, "set_count", int(set_counts.get(a.id, 0)))
         object.__setattr__(a, "member_count", int(member_counts.get(a.id, 0)))
-        object.__setattr__(a, "gang_name", gang[0] if gang else None)
-        object.__setattr__(a, "gang_color", gang[1] if gang else None)
+        object.__setattr__(a, "gangs", gangs)
+        object.__setattr__(a, "gang_name", gangs[0]["name"] if gangs else None)
+        object.__setattr__(a, "gang_color", gangs[0]["color"] if gangs else None)
+
+
+async def _gang_summaries(
+    session: AsyncSession, alliance_ids: list[uuid.UUID]
+) -> dict[uuid.UUID, list[dict]]:
+    """Every gang of each alliance as {id, name, slug, color}, primary first."""
+    rows = await session.execute(
+        select(AllianceGang.alliance_id, Gang.id, Gang.name, Gang.slug, Gang.color)
+        .join(Gang, Gang.id == AllianceGang.gang_id)
+        .where(AllianceGang.alliance_id.in_(alliance_ids))
+        .order_by(AllianceGang.alliance_id, AllianceGang.position)
+    )
+    out: dict[uuid.UUID, list[dict]] = {}
+    for alliance_id, gid, name, slug, color in rows.all():
+        out.setdefault(alliance_id, []).append(
+            {"id": gid, "name": name, "slug": slug, "color": color}
+        )
+    return out
 
 
 async def update_alliance(
@@ -283,14 +369,24 @@ async def update_alliance(
     obj = await get_alliance(session, id, universe_id)
     if obj is None:
         return None
-    dump = data.model_dump(exclude_unset=True, exclude={"territory_ids", "set_ids"})
+    dump = data.model_dump(exclude_unset=True, exclude={"territory_ids", "set_ids", "gang_ids"})
+    if "founder_id" in dump:
+        await _check_founder(session, dump["founder_id"], universe_id)
     if "founded_at" in dump:
         dump["founded_at"] = _fuzzy_to_dict(data.founded_at)
-    if "name" in dump:
-        base = _slugify(dump["name"])
-        dump["slug"] = await _unique_slug(session, universe_id, base, exclude_id=id)
+    old_name = obj.name
     for k, v in dump.items():
         setattr(obj, k, v)
+    # JSONB lists assigned through setattr are not seen as changed without this.
+    for column in ("name_variants", "emojis", "founded_at"):
+        if column in dump:
+            sa.orm.attributes.flag_modified(obj, column)
+    # name is re-derived on every variants edit; only a real rename re-slugs,
+    # so a link to the alliance survives an edit that leaves its name alone.
+    if obj.name != old_name:
+        obj.slug = await _unique_slug(session, universe_id, _slugify(obj.name), exclude_id=id)
+    if "gang_ids" in data.model_fields_set:
+        await _sync_alliance_gangs(session, obj, data.gang_ids or [])
     obj.updated_at = datetime.now(UTC)
     session.add(obj)
     if data.territory_ids is not None:
@@ -301,7 +397,7 @@ async def update_alliance(
             await _sync_alliance_friend_relationships(session, obj.id)
     await session.commit()
     await session.refresh(obj)
-    return obj
+    return await attach_gang_ids(session, obj)
 
 
 async def delete_alliance(session: AsyncSession, id: uuid.UUID, universe_id: uuid.UUID) -> bool:
@@ -359,14 +455,19 @@ async def list_alliance_set_ids(session: AsyncSession, alliance_id: uuid.UUID) -
 
 
 async def search_alliances(session: AsyncSession, universe_id: uuid.UUID, q: str) -> list[Alliance]:
+    """Match any slot of any name variant, or an emoji, as sets are searched."""
     pattern = f"%{q}%"
     result = await session.execute(
-        select(Alliance).where(
+        select(Alliance)
+        .where(
             Alliance.universe_id == universe_id,
-            Alliance.name.ilike(pattern) | sa.cast(Alliance.aliases, sa.Text).ilike(pattern),
+            Alliance.name.ilike(pattern)
+            | sa.cast(Alliance.name_variants, sa.Text).ilike(pattern)
+            | sa.cast(Alliance.emojis, sa.Text).ilike(pattern),
         )
+        .order_by(Alliance.name)
     )
-    return result.scalars().all()
+    return list(result.scalars().all())
 
 
 # ─── Alliance relationships ───────────────────────────────────────────────────
@@ -616,3 +717,367 @@ async def delete_alliance_relationship(
     await session.delete(row)
     await session.commit()
     return True
+
+
+# ─── Detail payload ───────────────────────────────────────────────────────────
+#
+# An alliance's people are those tagged straight to it plus the current members
+# of every set in it, each counted once: the definition the member list, the
+# incident list and the list-page counts already use.
+
+_PEOPLE = """
+    SELECT m.id FROM member m WHERE m.alliance_id = :aid
+    UNION
+    SELECT ms.member_id FROM member_set ms
+      JOIN alliance_set als ON als.set_id = ms.set_id
+     WHERE als.alliance_id = :aid AND ms.until_date IS NULL
+"""
+
+
+async def alliance_stats(session: AsyncSession, alliance_id: uuid.UUID) -> dict:
+    """Member counts by status and shootings, assists and kills summed from
+    `member_stats`, the way `set_stats` sums them; plus the span of years its
+    people's incidents cover."""
+    row = (
+        await session.execute(
+            sa.text(f"""
+                WITH people AS ({_PEOPLE})
+                SELECT
+                    count(*),
+                    count(*) FILTER (WHERE m.status IN ('FREE', 'LOCKED', 'ESCAPEE', 'ABSCONDER')),
+                    count(*) FILTER (WHERE m.status = 'LOCKED'),
+                    count(*) FILTER (WHERE m.status = 'DEAD'),
+                    COALESCE(sum(st.shootings), 0),
+                    COALESCE(sum(st.assists), 0),
+                    COALESCE(sum(st.kills), 0)
+                FROM people p
+                JOIN member m ON m.id = p.id
+                LEFT JOIN member_stats st ON st.member_id = m.id
+            """),
+            {"aid": alliance_id},
+        )
+    ).one()
+    years = (
+        await session.execute(
+            sa.text(f"""
+                WITH people AS ({_PEOPLE})
+                SELECT min((i.date->>'year')::int), max((i.date->>'year')::int)
+                FROM incident i
+                JOIN incident_participant ip ON ip.incident_id = i.id
+                WHERE ip.member_id IN (SELECT id FROM people)
+                  AND i.date->>'year' ~ '^[0-9]+$'
+            """),
+            {"aid": alliance_id},
+        )
+    ).one()
+    return {
+        "member_count": int(row[0]),
+        "active_member_count": int(row[1]),
+        "locked_members": int(row[2]),
+        "dead_members": int(row[3]),
+        "total_shootings": int(row[4]),
+        "total_assists": int(row[5]),
+        "total_kills": int(row[6]),
+        "first_incident_year": years[0],
+        "last_incident_year": years[1],
+    }
+
+
+async def alliance_incidents_per_year(session: AsyncSession, alliance_id: uuid.UUID) -> list[dict]:
+    """Distinct incidents involving the alliance's people, counted by year."""
+    rows = await session.execute(
+        sa.text(f"""
+            WITH people AS ({_PEOPLE})
+            SELECT y, count(*) FROM (
+                SELECT DISTINCT i.id, (i.date->>'year')::int AS y
+                FROM incident i
+                JOIN incident_participant ip ON ip.incident_id = i.id
+                WHERE ip.member_id IN (SELECT id FROM people)
+                  AND i.date->>'year' ~ '^[0-9]+$'
+            ) x
+            GROUP BY y ORDER BY y
+        """),
+        {"aid": alliance_id},
+    )
+    return [{"year": int(y), "count": int(c)} for y, c in rows.all()]
+
+
+async def alliance_detail_extras(session: AsyncSession, obj: Alliance) -> dict:
+    """The fields of AllianceReadDetail the row does not hold."""
+    territories = (
+        await session.execute(
+            select(Municipality.id, Municipality.name)
+            .join(AllianceMunicipality, AllianceMunicipality.municipality_id == Municipality.id)
+            .where(AllianceMunicipality.alliance_id == obj.id)
+            .order_by(Municipality.name)
+        )
+    ).all()
+    founder = None
+    if obj.founder_id:
+        founder = (
+            await session.execute(select(Member).where(Member.id == obj.founder_id))
+        ).scalar_one_or_none()
+    return {
+        "gangs": (await _gang_summaries(session, [obj.id])).get(obj.id, []),
+        # Municipality has no slug column; its routes use the UUID.
+        "territories": [{"id": i, "name": n, "slug": None} for i, n in territories],
+        "founder_display_name": founder.display_name if founder else None,
+        "founder_slug": founder.slug if founder else None,
+        "stats": await alliance_stats(session, obj.id),
+        "incidents_per_year": await alliance_incidents_per_year(session, obj.id),
+        "lineage": await list_alliance_lineage(session, obj.id),
+    }
+
+
+# ─── Lineage ──────────────────────────────────────────────────────────────────
+#
+# Directional descent between blocs, the alliance counterpart of set lineage.
+# Rows read child KIND parent; until_date closes a spell, never a delete.
+
+
+async def _alliance_lineage_would_cycle(
+    session: AsyncSession, parent_id: uuid.UUID, child_id: uuid.UUID
+) -> bool:
+    """True if making `parent_id` the parent of `child_id` closes a loop."""
+    if parent_id == child_id:
+        return True
+    rows = await session.execute(
+        sa.text("""
+            WITH RECURSIVE ancestors(id) AS (
+                SELECT parent_id FROM alliance_lineage
+                 WHERE child_id = :parent_id AND until_date IS NULL
+                UNION
+                SELECT l.parent_id FROM alliance_lineage l
+                  JOIN ancestors a ON l.child_id = a.id
+                 WHERE l.until_date IS NULL
+            )
+            SELECT 1 FROM ancestors WHERE id = :child_id LIMIT 1
+        """),
+        {"parent_id": str(parent_id), "child_id": str(child_id)},
+    )
+    return rows.first() is not None
+
+
+async def add_alliance_lineage(
+    session: AsyncSession,
+    alliance_id: uuid.UUID,
+    data: AllianceLineageCreate,
+    universe_id: uuid.UUID,
+) -> AllianceLineage:
+    """Open a descent spell. Idempotent for the same open link; a different
+    kind on the same pair, or a loop, is a 409."""
+    if await get_alliance(session, data.other_id, universe_id) is None:
+        raise HTTPException(404, detail="Other alliance not found in this universe")
+    if data.direction == "parent":
+        parent_id, child_id = data.other_id, alliance_id
+    else:
+        parent_id, child_id = alliance_id, data.other_id
+    if await _alliance_lineage_would_cycle(session, parent_id, child_id):
+        raise HTTPException(409, detail="That would make an alliance its own ancestor")
+    existing = (
+        await session.execute(
+            select(AllianceLineage).where(
+                AllianceLineage.parent_id == parent_id,
+                AllianceLineage.child_id == child_id,
+                AllianceLineage.until_date.is_(None),
+            )
+        )
+    ).scalar_one_or_none()
+    if existing is not None:
+        if existing.kind != data.kind:
+            raise HTTPException(
+                409, detail="These alliances already have an open lineage link of a different kind"
+            )
+        return existing
+    row = AllianceLineage(
+        parent_id=parent_id,
+        child_id=child_id,
+        kind=data.kind,
+        from_date=data.from_date.model_dump() if data.from_date else None,
+    )
+    session.add(row)
+    await session.commit()
+    await session.refresh(row)
+    return row
+
+
+async def list_alliance_lineage(
+    session: AsyncSession, alliance_id: uuid.UUID, include_ended: bool = True
+) -> list[dict]:
+    """Every descent edge touching this alliance, current first, read from its side."""
+    parent_side = sa.orm.aliased(Alliance)
+    child_side = sa.orm.aliased(Alliance)
+    stmt = (
+        select(
+            AllianceLineage.id,
+            AllianceLineage.parent_id,
+            AllianceLineage.child_id,
+            AllianceLineage.kind,
+            AllianceLineage.from_date,
+            AllianceLineage.until_date,
+            parent_side.name.label("parent_name"),
+            parent_side.slug.label("parent_slug"),
+            child_side.name.label("child_name"),
+            child_side.slug.label("child_slug"),
+        )
+        .join(parent_side, parent_side.id == AllianceLineage.parent_id)
+        .join(child_side, child_side.id == AllianceLineage.child_id)
+        .where(
+            (AllianceLineage.parent_id == alliance_id) | (AllianceLineage.child_id == alliance_id)
+        )
+        .order_by(AllianceLineage.until_date.is_(None).desc(), AllianceLineage.id)
+    )
+    if not include_ended:
+        stmt = stmt.where(AllianceLineage.until_date.is_(None))
+    out = []
+    for r in (await session.execute(stmt)).all():
+        other_is_parent = r.child_id == alliance_id
+        out.append(
+            {
+                "id": r.id,
+                "kind": r.kind,
+                "direction": "parent" if other_is_parent else "child",
+                "other_id": r.parent_id if other_is_parent else r.child_id,
+                "other_name": r.parent_name if other_is_parent else r.child_name,
+                "other_slug": r.parent_slug if other_is_parent else r.child_slug,
+                "from_date": r.from_date,
+                "until_date": r.until_date,
+                "is_current": r.until_date is None,
+            }
+        )
+    return out
+
+
+async def _get_alliance_lineage(
+    session: AsyncSession, alliance_id: uuid.UUID, lineage_id: uuid.UUID
+) -> AllianceLineage | None:
+    return (
+        await session.execute(
+            select(AllianceLineage).where(
+                AllianceLineage.id == lineage_id,
+                (AllianceLineage.parent_id == alliance_id)
+                | (AllianceLineage.child_id == alliance_id),
+            )
+        )
+    ).scalar_one_or_none()
+
+
+async def end_alliance_lineage(
+    session: AsyncSession, alliance_id: uuid.UUID, lineage_id: uuid.UUID, until_date: dict | None
+) -> bool:
+    """Close an open descent spell, keeping it as history."""
+    row = await _get_alliance_lineage(session, alliance_id, lineage_id)
+    if row is None or row.until_date is not None:
+        return False
+    row.until_date = until_date
+    await session.commit()
+    return True
+
+
+async def delete_alliance_lineage(
+    session: AsyncSession, alliance_id: uuid.UUID, lineage_id: uuid.UUID
+) -> bool:
+    """Remove a descent row entered in error. Use end for a real ending."""
+    row = await _get_alliance_lineage(session, alliance_id, lineage_id)
+    if row is None:
+        return False
+    await session.delete(row)
+    await session.commit()
+    return True
+
+
+# ─── Activity ─────────────────────────────────────────────────────────────────
+
+
+async def list_alliance_activity(
+    session: AsyncSession, alliance_id: uuid.UUID, *, limit: int = 30
+) -> list[dict]:
+    """Audit-log feed for the alliance itself, the sets in it and the members
+    tagged straight to it. Set members are left out: a bloc of twenty sets would
+    drown its own edits in theirs, and each set page has its own feed."""
+    from app.models.auth import AuditLog, User
+
+    set_ids = list(
+        (
+            await session.execute(
+                select(AllianceSet.set_id).where(AllianceSet.alliance_id == alliance_id)
+            )
+        ).scalars()
+    )
+    member_ids = list(
+        (
+            await session.execute(select(Member.id).where(Member.alliance_id == alliance_id))
+        ).scalars()
+    )
+    # audit_log.entity_type is the table name (app/core/audit.py).
+    cond = (AuditLog.entity_type == "alliance") & (AuditLog.entity_id == alliance_id)
+    if set_ids:
+        cond = cond | ((AuditLog.entity_type == "sets") & AuditLog.entity_id.in_(set_ids))
+    if member_ids:
+        cond = cond | ((AuditLog.entity_type == "member") & AuditLog.entity_id.in_(member_ids))
+    rows = (
+        await session.execute(
+            select(
+                AuditLog.id,
+                AuditLog.entity_type,
+                AuditLog.entity_id,
+                AuditLog.action,
+                AuditLog.diff_json,
+                AuditLog.created_at,
+                User.email,
+            )
+            .outerjoin(User, User.id == AuditLog.user_id)
+            .where(cond)
+            .order_by(AuditLog.created_at.desc())
+            .limit(limit)
+        )
+    ).all()
+    if not rows:
+        return []
+
+    labels: dict[tuple[str, uuid.UUID], tuple[str | None, str | None]] = {}
+    wanted: dict[str, set[uuid.UUID]] = {}
+    for r in rows:
+        wanted.setdefault(r[1], set()).add(r[2])
+    if wanted.get("alliance"):
+        for i, n, sl in (
+            await session.execute(
+                select(Alliance.id, Alliance.name, Alliance.slug).where(
+                    Alliance.id.in_(wanted["alliance"])
+                )
+            )
+        ).all():
+            labels[("alliance", i)] = (n, sl)
+    if wanted.get("sets"):
+        for i, n, sl in (
+            await session.execute(
+                select(GangSet.id, GangSet.name, GangSet.slug).where(GangSet.id.in_(wanted["sets"]))
+            )
+        ).all():
+            labels[("sets", i)] = (n, sl)
+    if wanted.get("member"):
+        for m in (
+            (await session.execute(select(Member).where(Member.id.in_(wanted["member"]))))
+            .scalars()
+            .all()
+        ):
+            labels[("member", m.id)] = (m.display_name, m.slug)
+
+    public = {"alliance": "alliance", "sets": "set", "member": "member"}
+    out: list[dict] = []
+    for log_id, ent_type, ent_id, action, diff_json, created_at, email in rows:
+        label, slug = labels.get((ent_type, ent_id), (None, None))
+        out.append(
+            {
+                "id": log_id,
+                "entity_type": public.get(ent_type, ent_type),
+                "entity_id": ent_id,
+                "action": action.value if hasattr(action, "value") else str(action),
+                "actor_email": email,
+                "target_label": label,
+                "target_slug": slug,
+                "diff_keys": sorted(diff_json.keys()) if isinstance(diff_json, dict) else [],
+                "created_at": created_at,
+            }
+        )
+    return out

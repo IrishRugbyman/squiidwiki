@@ -1,3 +1,4 @@
+import { matchedVariantLabel } from '@/lib/setDisplay'
 import { useNavigate } from '@tanstack/react-router'
 import { useSwitchUniverse } from '@/hooks/useSwitchUniverse'
 import { AlertTriangle, Clock, FileText, Gavel, Globe, MapPin, Network, Plus, Shield, Users } from 'lucide-react'
@@ -229,16 +230,7 @@ export function GlobalCommandPalette({ open, onClose }: GlobalCommandPaletteProp
           {searching && (setResults?.length ?? 0) > 0 && (
             <CommandGroup heading={groupHeading('Sets', setResults!.length)}>
               {setResults!.slice(0, GROUP_CAP).map((s) => {
-                const ql = q.toLowerCase()
-                const matchedVariant = (s.name_variants ?? []).find((v) => {
-                  if (!v || v.is_primary) return false
-                  return [v.name, v.initials, v.number]
-                    .filter(Boolean)
-                    .some((x) => x!.toLowerCase().includes(ql))
-                })
-                const matchLabel = matchedVariant
-                  ? [matchedVariant.name, matchedVariant.initials, matchedVariant.number].filter(Boolean).join(' · ')
-                  : null
+                const matchLabel = matchedVariantLabel(s.name_variants, q)
                 return (
                   <CommandItem key={s.id} value={`set-${s.id}`} onSelect={() => go(inUniverse(`/sets/${s.slug ?? s.id}`))}>
                     <Shield className="mr-2 h-3.5 w-3.5 shrink-0 text-zinc-400" />
@@ -255,13 +247,18 @@ export function GlobalCommandPalette({ open, onClose }: GlobalCommandPaletteProp
 
           {searching && (allianceResults?.length ?? 0) > 0 && (
             <CommandGroup heading={groupHeading('Alliances', allianceResults!.length)}>
-              {allianceResults!.slice(0, GROUP_CAP).map((a) => (
-                <CommandItem key={a.id} value={`alliance-${a.id}`} onSelect={() => go(inUniverse(`/alliances/${a.slug ?? a.id}`))}>
-                  <Network className="mr-2 h-3.5 w-3.5 shrink-0 text-zinc-400" />
-                  <span>{a.name}</span>
-                  <span className="ml-auto text-[10px] text-zinc-400">{a.status}</span>
-                </CommandItem>
-              ))}
+              {allianceResults!.slice(0, GROUP_CAP).map((a) => {
+                const matchLabel = matchedVariantLabel(a.name_variants, q)
+                return (
+                  <CommandItem key={a.id} value={`alliance-${a.id}`} onSelect={() => go(inUniverse(`/alliances/${a.slug ?? a.id}`))}>
+                    <Network className="mr-2 h-3.5 w-3.5 shrink-0 text-zinc-400" />
+                    {a.emojis?.[0] && <span className="mr-1.5 text-sm leading-none" aria-hidden>{a.emojis[0]}</span>}
+                    <span>{a.name}</span>
+                    {matchLabel && <span className="ml-2 text-[10px] text-zinc-400">a/k/a {matchLabel}</span>}
+                    <span className="ml-auto text-[10px] text-zinc-400">{a.status}</span>
+                  </CommandItem>
+                )
+              })}
             </CommandGroup>
           )}
 

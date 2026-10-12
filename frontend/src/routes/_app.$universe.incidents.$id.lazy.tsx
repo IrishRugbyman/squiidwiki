@@ -11,6 +11,7 @@ import { ErrorState } from '@/components/ErrorState'
 import { FuzzyDate } from '@/components/FuzzyDate'
 import { DetailHeaderSkeleton } from '@/components/skeletons'
 import { AddParticipantToIncidentDialog } from '@/components/AddParticipantToIncidentDialog'
+import { PinnedNotesPanel } from '@/components/research/PinnedNotesPanel'
 import { CitationsPanel } from '@/components/sources/CitationsPanel'
 import { SourcePicker } from '@/components/sources/SourcePicker'
 import { Badge } from '@/components/ui/badge'
@@ -286,6 +287,7 @@ function IncidentDetailPage() {
 
                 {universe && <CasesPanel filter="incident_id" id={incident.id} universeId={universe.id} />}
 
+{universe && <PinnedNotesPanel universeId={universe.id} kind="incident" entityId={incident.id} />}
                 {/* Sources */}
                 {universe && (
                   <CitationsPanel

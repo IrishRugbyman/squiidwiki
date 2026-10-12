@@ -1,6 +1,8 @@
 # Import order matters: tables must be defined before tables that reference them.
 from app.models.alliance import (
     Alliance,
+    AllianceGang,
+    AllianceLineage,
     AllianceMunicipality,
     AllianceRelationship,
     AllianceSet,
@@ -36,7 +38,7 @@ from app.models.member import (
     MemberSet,
 )
 from app.models.municipality import Municipality, MunicipalityOverlap
-from app.models.research_note import ResearchNote
+from app.models.research_note import ResearchNote, ResearchNotePin
 from app.models.source import Source
 from app.models.universe import Universe
 
@@ -52,6 +54,8 @@ __all__ = [
     "Gang",
     "GangCard",
     "Alliance",
+    "AllianceGang",
+    "AllianceLineage",
     "AllianceMunicipality",
     "AllianceRelationship",
     "AllianceSet",
@@ -72,6 +76,7 @@ __all__ = [
     "IncidentParticipant",
     "IncidentSetParticipant",
     "ResearchNote",
+    "ResearchNotePin",
     "Media",
     "CourtCase",
     "CourtCaseDefendant",

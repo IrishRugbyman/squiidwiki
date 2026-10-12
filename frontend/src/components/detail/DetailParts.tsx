@@ -40,7 +40,12 @@ export const None = () => <span className="text-zinc-500">-</span>
  */
 export function StatStrip({ cells }: { cells: { label: string; value: number; accent: string; onClick?: () => void; title?: string }[] }) {
   return (
-    <div className="grid grid-cols-3 divide-x divide-y divide-zinc-800 overflow-hidden rounded-lg border border-zinc-800 bg-zinc-900/30 sm:grid-cols-6 sm:divide-y-0">
+    // One row from sm up, however many cells: a fixed six columns wrapped the
+    // set page's seventh cell onto a row of its own.
+    <div
+      style={{ '--cells': cells.length } as React.CSSProperties}
+      className="grid grid-cols-3 divide-x divide-y divide-zinc-800 overflow-hidden rounded-lg border border-zinc-800 bg-zinc-900/30 sm:grid-cols-[repeat(var(--cells),minmax(0,1fr))] sm:divide-y-0"
+    >
       {cells.map((c) => {
         const body = (
           <>
@@ -116,5 +121,43 @@ export function IncidentRow({ inc }: { inc: IncidentListItem }) {
         <IncidentPeople inc={inc} />
       </span>
     </Link>
+  )
+}
+
+/**
+ * Tiny year-bucketed activity strip — pure SVG, no recharts.
+ * Renders one bar per year between min..max, filling gaps with zero so the
+ * timeline is uniform. Designed to fit in ~64px height above an incidents table.
+ */
+export function IncidentsYearStrip({ data }: { data: Array<{ year: number; count: number }> }) {
+  if (!data.length) return null
+  const minYear = data[0].year
+  const maxYear = data[data.length - 1].year
+  const span = maxYear - minYear + 1
+  // Densify: include every year between min and max so years aren't squished.
+  const counts = new Map(data.map((d) => [d.year, d.count]))
+  const years = Array.from({ length: span }, (_, i) => minYear + i)
+  const max = Math.max(...data.map((d) => d.count), 1)
+  return (
+    <div className="rounded-lg border border-zinc-800 bg-zinc-950 p-3">
+      <div className="mb-1.5 flex items-baseline justify-between text-[10px] uppercase tracking-wider text-zinc-400">
+        <span>Incidents per year</span>
+        <span className="font-mono tabular-nums">{minYear}–{maxYear}</span>
+      </div>
+      <div className="flex items-end gap-0.5" style={{ height: 48 }}>
+        {years.map((y) => {
+          const c = counts.get(y) ?? 0
+          const h = c === 0 ? 2 : Math.max(4, (c / max) * 48)
+          return (
+            <div
+              key={y}
+              title={`${y}: ${c} incident${c === 1 ? '' : 's'}`}
+              className={`flex-1 rounded-md transition-colors ${c === 0 ? 'bg-zinc-800/40' : 'bg-violet-500/70 hover:bg-violet-400'}`}
+              style={{ height: h }}
+            />
+          )
+        })}
+      </div>
+    </div>
   )
 }

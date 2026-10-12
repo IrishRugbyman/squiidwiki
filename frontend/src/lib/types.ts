@@ -266,11 +266,41 @@ export interface SourceCustodyRow {
 }
 
 // Research notes
+export type NoteKind = 'INBOX' | 'FOR_YOU' | 'PARKED' | 'REFERENCE'
+
+/** Triage order, which is also the order of the sections on the research index. */
+export const NOTE_KINDS: NoteKind[] = ['INBOX', 'FOR_YOU', 'PARKED', 'REFERENCE']
+
+export const NOTE_KIND_LABEL: Record<NoteKind, string> = {
+  INBOX: 'Inbox',
+  FOR_YOU: 'For you',
+  PARKED: 'Parked',
+  REFERENCE: 'Reference',
+}
+
+export type PinKind = 'member' | 'set' | 'incident' | 'alliance'
+
+/** What a pin is sent as. */
+export interface PinRef {
+  kind: PinKind
+  id: UUID
+}
+
+/** What a pin comes back as: enough to label and link it. */
+export interface NotePin extends PinRef {
+  /** Null for incidents, which have no slug. */
+  slug: string | null
+  /** Display name; an incident's is its date and location. */
+  name: string
+}
+
 export interface ResearchNoteRead {
   id: UUID
   universe_id: UUID
   title: string
   content: string
+  kind: NoteKind
+  pins: NotePin[]
   created_at: string
   updated_at: string
 }
@@ -279,6 +309,8 @@ export interface ResearchNoteListItem {
   id: UUID
   title: string
   content: string
+  kind: NoteKind
+  pins: NotePin[]
   updated_at: string
 }
 
@@ -377,11 +409,23 @@ export interface GangWrite {
 }
 
 // Alliance
-export interface AllianceListItem {
+/** One gang an alliance claims, primary first. */
+export interface AllianceGangSummary {
   id: UUID
   name: string
-  aliases: string[] | null
+  slug: string | null
+  color: string | null
+}
+
+export interface AllianceListItem {
+  id: UUID
+  /** Derived: the display of the primary name variant, as for sets. */
+  name: string
+  name_variants: NameVariant[] | null
+  /** Glyphs the bloc is known by; the first is the badge. */
+  emojis: string[] | null
   status: AllianceStatus
+  /** Mirror of the first gang. */
   gang_id: UUID | null
   universe_id: UUID
   slug: string | null
@@ -393,19 +437,69 @@ export interface AllianceListItem {
   member_count: number
   gang_name: string | null
   gang_color: string | null
+  /** Every gang, primary first. Filled on list rows. */
+  gangs?: AllianceGangSummary[]
 }
 
 export interface AllianceRead extends AllianceListItem {
   description: string | null
+  /** Every gang id, primary first. */
+  gang_ids: UUID[]
+  founder_id: UUID | null
   founded_at: FuzzyDateValue | null
   created_at: string
   updated_at: string
+}
+
+/** Counts over the alliance's people (tagged to it, plus current members of its sets). */
+export interface AllianceStats {
+  member_count: number
+  active_member_count: number
+  locked_members: number
+  dead_members: number
+  total_shootings: number
+  total_assists: number
+  total_kills: number
+  first_incident_year: number | null
+  last_incident_year: number | null
+}
+
+export interface AllianceLineageItem {
+  id: UUID
+  kind: SetLineageKind
+  /** Where the *other* alliance sits relative to this one. */
+  direction: 'parent' | 'child'
+  other_id: UUID
+  other_name: string
+  other_slug: string | null
+  from_date: FuzzyDateValue | null
+  until_date: FuzzyDateValue | null
+  is_current: boolean
 }
 
 export interface AllianceReadDetail extends AllianceRead {
   territory_ids: UUID[]
   set_ids: UUID[]
   citations: CitationRead[]
+  gangs: AllianceGangSummary[]
+  territories: { id: UUID; name: string; slug: string | null }[]
+  founder_display_name: string | null
+  founder_slug: string | null
+  stats: AllianceStats
+  incidents_per_year: IncidentsPerYear[]
+  lineage: AllianceLineageItem[]
+}
+
+export interface AllianceActivityEntry {
+  id: UUID
+  entity_type: 'alliance' | 'set' | 'member'
+  entity_id: UUID
+  action: 'CREATE' | 'UPDATE' | 'DELETE'
+  actor_email: string | null
+  target_label: string | null
+  target_slug: string | null
+  diff_keys: string[]
+  created_at: string
 }
 
 // Set

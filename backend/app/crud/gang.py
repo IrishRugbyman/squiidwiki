@@ -9,7 +9,7 @@ from sqlmodel import func, select
 
 from app.core.slug import slugify
 from app.crud.media import attach_primary_photos_sets
-from app.models.alliance import Alliance
+from app.models.alliance import Alliance, AllianceGang
 from app.models.gang import Gang, GangCard
 from app.models.gang_set import GangSet, SetGang
 from app.models.member import Member, MemberSet
@@ -400,7 +400,10 @@ async def get_gang_detail(session: AsyncSession, gang: Gang) -> dict:
         {"id": a.id, "name": a.name, "slug": a.slug, "status": a.status}
         for a in (
             await session.execute(
-                select(Alliance).where(Alliance.gang_id == gang.id).order_by(Alliance.name)
+                select(Alliance)
+                .join(AllianceGang, AllianceGang.alliance_id == Alliance.id)
+                .where(AllianceGang.gang_id == gang.id)
+                .order_by(Alliance.name)
             )
         ).scalars()
     ]
@@ -488,6 +491,27 @@ async def delete_gang(session: AsyncSession, id: uuid.UUID, universe_id: uuid.UU
     await session.execute(
         GangSet.__table__.update().where(GangSet.gang_id == id).values(gang_id=None)
     )
+    # Alliances the same way: the next gang in line becomes the primary.
+    affected_alliances = list(
+        (
+            await session.execute(
+                select(AllianceGang.alliance_id).where(AllianceGang.gang_id == id)
+            )
+        ).scalars()
+    )
+    await session.execute(delete(AllianceGang).where(AllianceGang.gang_id == id))
+    for alliance_id in affected_alliances:
+        next_gang = (
+            await session.execute(
+                select(AllianceGang.gang_id)
+                .where(AllianceGang.alliance_id == alliance_id)
+                .order_by(AllianceGang.position)
+                .limit(1)
+            )
+        ).scalar_one_or_none()
+        await session.execute(
+            Alliance.__table__.update().where(Alliance.id == alliance_id).values(gang_id=next_gang)
+        )
     await session.execute(
         Alliance.__table__.update().where(Alliance.gang_id == id).values(gang_id=None)
     )
@@ -507,7 +531,7 @@ async def gang_usage_counts(session: AsyncSession, id: uuid.UUID) -> dict[str, i
     ).scalar_one()
     alliances_count = (
         await session.execute(
-            select(func.count()).select_from(Alliance).where(Alliance.gang_id == id)
+            select(func.count()).select_from(AllianceGang).where(AllianceGang.gang_id == id)
         )
     ).scalar_one()
     members_count = (

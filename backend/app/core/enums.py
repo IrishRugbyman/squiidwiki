@@ -226,3 +226,12 @@ class CaseDisposition(str, Enum):
     ACQUITTED = "ACQUITTED"
     DISMISSED = "DISMISSED"
     DIED = "DIED"
+
+
+class NoteKind(str, Enum):
+    """What a research note is for: where it sits in the research triage."""
+
+    INBOX = "INBOX"
+    FOR_YOU = "FOR_YOU"
+    PARKED = "PARKED"
+    REFERENCE = "REFERENCE"

@@ -138,7 +138,7 @@ async def test_detail_lineage_branches_sets_and_counts(
     alliance = (
         await client.post(
             "/api/v1/alliances/",
-            json={"universe_id": uni, "name": "Red Bloc", "gang_id": pirus["id"]},
+            json={"universe_id": uni, "name": "Red Bloc", "gang_ids": [pirus["id"]]},
             headers=h,
         )
     ).json()

@@ -9,11 +9,13 @@ import { toast } from 'sonner'
 import { FuzzyDate } from '@/components/FuzzyDate'
 import { FuzzyDateInput } from '@/components/FuzzyDateInput'
 import { MemberStatusBadge } from '@/components/StatusBadge'
+import { PinnedNotesPanel } from '@/components/research/PinnedNotesPanel'
 import { CitationsPanel } from '@/components/sources/CitationsPanel'
 import { ErrorState } from '@/components/ErrorState'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { Breadcrumbs } from '@/components/Breadcrumbs'
 import { CopyButton } from '@/components/CopyButton'
+import { ShareImageButton } from '@/components/share/ShareImageButton'
 import { ageFromFuzzyDates, currentAffiliations, primaryAffiliation, timeAgo } from '@/lib/utils'
 import { DetailHeaderSkeleton } from '@/components/skeletons'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -31,13 +33,14 @@ import {
   useDeleteMember, useMemberIncidents, useMembersByIds, useUpdateMember,
   useCreateMemberIncarceration, useUpdateMemberIncarceration, useDeleteMemberIncarceration,
 } from '@/lib/queries'
-import type { IncidentListItem, MemberCustodyIdRead, MemberIncarcerationRead, MemberRead } from '@/lib/types'
+import type { IncidentListItem, MemberIncarcerationRead, MemberRead } from '@/lib/types'
 import {
   controllingSpell, formatTermRange, groupIncarcerations, incarcerationStatus,
   incarcerationSummary, OPEN_SENTENCE_LABEL, parseSentenceNotes,
 } from '@/lib/incarceration'
 import type { FuzzyDateValue } from '@/components/FuzzyDate'
 import { downloadText } from '@/lib/download'
+import { custodyLabel, custodyShort, otherCustodyIds } from '@/lib/custody'
 import {
   INCIDENT_TYPE_CHIP, INCIDENT_TYPE_LABEL,
   ROLE_CHIP as PARTICIPANT_ROLE_CHIP,
@@ -483,32 +486,6 @@ function buildMemberMarkdown({
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
-// Custody systems beyond the two that still have their own member columns.
-// MDOC and BOP keep their dedicated badges (with their lookup links), so rows
-// mirrored from those columns are not shown a second time here.
-const CUSTODY_SYSTEMS: Record<string, { short: string; label: string }> = {
-  GDC: { short: 'GDC', label: 'Georgia Department of Corrections ID' },
-  GA_OTN: { short: 'OTN', label: 'Georgia Offender Tracking Number (per arrest)' },
-  TDOC: { short: 'TDOC', label: 'Tennessee Department of Correction number' },
-  IDOC: { short: 'IDOC', label: 'Illinois Department of Corrections number' },
-  COOK_COUNTY_JAIL: { short: 'Cook Co. jail', label: 'Cook County jail booking number' },
-  RICHMOND_COUNTY_JAIL: { short: 'Richmond Co. jail', label: 'Richmond County jail booking number' },
-}
-
-function custodyShort(system: string): string {
-  return CUSTODY_SYSTEMS[system]?.short ?? system
-}
-
-function custodyLabel(system: string): string {
-  return CUSTODY_SYSTEMS[system]?.label ?? system
-}
-
-function otherCustodyIds(
-  member: MemberRead & { custody_ids?: MemberCustodyIdRead[] },
-): MemberCustodyIdRead[] {
-  return (member.custody_ids ?? []).filter((c) => c.system !== 'MDOC' && c.system !== 'BOP')
-}
-
 function MemberDetailPage() {
   const { id } = Route.useParams()
   const universe = useUniverseStore((s) => s.activeUniverse)
@@ -666,6 +643,7 @@ function MemberDetailPage() {
                   <CopyButton value={window.location.href} label="Copy link" className="ml-1.5 align-middle opacity-40 hover:opacity-100" />
                 </h1>
                 <div className="flex shrink-0 items-center gap-1.5">
+                  <ShareImageButton kind="member" id={member.id} name={member.display_name} />
                   <Button size="sm" variant="outline" onClick={() => setEditing(true)} title="Edit (e)">
                     <Pencil className="h-3.5 w-3.5 sm:mr-1.5" /><span className="hidden sm:inline">Edit</span>
                   </Button>
@@ -908,6 +886,7 @@ function MemberDetailPage() {
                 )}
               </section>
 
+{universe && <PinnedNotesPanel universeId={universe.id} kind="member" entityId={member.id} />}
               {/* Sources */}
               {universe && (
                 <CitationsPanel

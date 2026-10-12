@@ -1,7 +1,8 @@
 import uuid
 from typing import Annotated, Optional
 
-from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile
+from botocore.exceptions import ClientError
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, Response, UploadFile
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.dependencies import CurrentUser, require_global_role
@@ -150,6 +151,29 @@ async def list_media(
     session, universe_id = await _scope(municipality_id, universe_id, session, prod_session)
     items = await crud.list_media(session, universe_id, **ids)
     return [await _attach_signed_urls(m) for m in items]
+
+
+@router.get("/proxy")
+async def proxy_media(url: str, _: CurrentUser) -> Response:
+    """The bytes behind a signed photo URL, served from this origin.
+
+    R2 sends no CORS headers, so the browser cannot read a photo back into a
+    canvas, which is what turning a page into a PNG needs. The share-image
+    renderer fetches photos through here instead. Only URLs this backend signed
+    are accepted (`storage.key_from_signed_url`), so it fetches nothing else.
+    """
+    located = storage.key_from_signed_url(url)
+    if located is None:
+        raise HTTPException(400, "Not a signed media URL")
+    try:
+        data, content_type = await storage.get_object(*located)
+    except ClientError as exc:
+        if exc.response.get("Error", {}).get("Code") in {"NoSuchKey", "404"}:
+            raise HTTPException(404) from exc
+        raise
+    return Response(
+        content=data, media_type=content_type, headers={"Cache-Control": "private, max-age=3600"}
+    )
 
 
 @router.get("/{id}", response_model=MediaReadWithUrls)

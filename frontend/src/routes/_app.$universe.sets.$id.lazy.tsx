@@ -24,7 +24,8 @@ import { ErrorState } from '@/components/ErrorState'
 import { FuzzyDate, type FuzzyDateValue } from '@/components/FuzzyDate'
 import { Breadcrumbs } from '@/components/Breadcrumbs'
 import { CopyButton } from '@/components/CopyButton'
-import { currentAffiliations, timeAgo } from '@/lib/utils'
+import { ShareImageButton } from '@/components/share/ShareImageButton'
+import { currentAffiliations, fuzzyDateSortKey, timeAgo, UNDATED_SORT_KEY } from '@/lib/utils'
 import { downloadText } from '@/lib/download'
 import { DetailHeaderSkeleton } from '@/components/skeletons'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -32,15 +33,18 @@ import { GangPill, SetAvatar, SetFormSheet } from './_app.$universe.sets.index'
 import { TAB_KEYS, type TabKey } from './_app.$universe.sets.$id'
 import { MemberFormSheet } from './_app.$universe.members.index'
 import { MemberAvatar } from '@/components/members/MemberFormSheet'
-import { DetailRow, IncidentRow, None, PanelHeading, RankBadge, StatStrip } from '@/components/detail/DetailParts'
+import { DetailRow, IncidentRow, IncidentsYearStrip, None, PanelHeading, RankBadge, StatStrip } from '@/components/detail/DetailParts'
+import { ActivityFeed } from '@/components/detail/ActivityFeed'
+import { NameVariantChips } from '@/components/names/NameVariantChips'
 import { AddMemberToSetDialog } from '@/components/AddMemberToSetDialog'
 import { LineagePanel } from '@/components/sets/LineagePanel'
+import { PinnedNotesPanel } from '@/components/research/PinnedNotesPanel'
 import { CitationsPanel } from '@/components/sources/CitationsPanel'
 import { CasesPanel } from '@/components/cases/CasesPanel'
 import { AffiliationCombobox } from '@/components/members/MemberFormSheet/pickers/AffiliationCombobox'
 import { setPickerItems } from '@/lib/setPicker'
 import { InheritedAllianceRelationships } from '@/components/alliances/AllianceRelationships'
-import { leadSlots, nonPrimaryVariantsText, variantDisplay, variantExtras } from '@/lib/setDisplay'
+import { leadSlots, nonPrimaryVariantsText } from '@/lib/setDisplay'
 import { MEMBER_STATUS_CHIP_ACTIVE, MEMBER_STATUS_DOT, MEMBER_STATUS_ORDER } from '@/lib/statusColors'
 import { useRecordRecent } from '@/stores/recents'
 import { useEditShortcut } from '@/hooks/useKeymap'
@@ -59,138 +63,9 @@ const PhotoGallery = lazy(() =>
   import('@/components/media/PhotoGallery').then((m) => ({ default: m.PhotoGallery })),
 )
 
-/**
- * Tiny year-bucketed activity strip — pure SVG, no recharts.
- * Renders one bar per year between min..max, filling gaps with zero so the
- * timeline is uniform. Designed to fit in ~64px height above an incidents table.
- */
-function IncidentsYearStrip({ data }: { data: Array<{ year: number; count: number }> }) {
-  if (!data.length) return null
-  const minYear = data[0].year
-  const maxYear = data[data.length - 1].year
-  const span = maxYear - minYear + 1
-  // Densify: include every year between min and max so years aren't squished.
-  const counts = new Map(data.map((d) => [d.year, d.count]))
-  const years = Array.from({ length: span }, (_, i) => minYear + i)
-  const max = Math.max(...data.map((d) => d.count), 1)
-  return (
-    <div className="rounded-lg border border-zinc-800 bg-zinc-950 p-3">
-      <div className="mb-1.5 flex items-baseline justify-between text-[10px] uppercase tracking-wider text-zinc-400">
-        <span>Incidents per year</span>
-        <span className="font-mono tabular-nums">{minYear}–{maxYear}</span>
-      </div>
-      <div className="flex items-end gap-0.5" style={{ height: 48 }}>
-        {years.map((y) => {
-          const c = counts.get(y) ?? 0
-          const h = c === 0 ? 2 : Math.max(4, (c / max) * 48)
-          return (
-            <div
-              key={y}
-              title={`${y}: ${c} incident${c === 1 ? '' : 's'}`}
-              className={`flex-1 rounded-md transition-colors ${c === 0 ? 'bg-zinc-800/40' : 'bg-violet-500/70 hover:bg-violet-400'}`}
-              style={{ height: h }}
-            />
-          )
-        })}
-      </div>
-    </div>
-  )
-}
-
-/** Audit-log feed grouped by day. */
-function ActivityFeed({ entries, loading, setName }: {
-  entries: import('@/lib/types').SetActivityEntry[]
-  loading: boolean
-  setName: string
-}) {
-  if (loading) return <Skeleton className="h-40 w-full" />
-  if (entries.length === 0) {
-    return (
-      <EmptyState
-        icon={Activity}
-        title="No activity yet"
-        description={`Edits to ${setName} or any of its members will appear here.`}
-      />
-    )
-  }
-  // Group by YYYY-MM-DD (local time)
-  const groups = new Map<string, typeof entries>()
-  for (const e of entries) {
-    const d = new Date(e.created_at)
-    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
-    if (!groups.has(key)) groups.set(key, [])
-    groups.get(key)!.push(e)
-  }
-  return (
-    <div className="space-y-4">
-      {Array.from(groups.entries()).map(([day, items]) => {
-        const date = new Date(items[0].created_at)
-        const today = new Date()
-        const isToday = date.toDateString() === today.toDateString()
-        const yesterday = new Date(today.getTime() - 86_400_000)
-        const isYesterday = date.toDateString() === yesterday.toDateString()
-        const label = isToday ? 'Today' : isYesterday ? 'Yesterday' : date.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })
-        return (
-          <div key={day}>
-            <h3 className="mb-1.5 text-[10px] font-medium uppercase tracking-wider text-zinc-400">{label}</h3>
-            <ul className="divide-y divide-zinc-800 rounded-lg border border-zinc-800 bg-zinc-900/30">
-              {items.map((e) => {
-                const verb = e.action === 'CREATE' ? 'created' : e.action === 'DELETE' ? 'deleted' : 'updated'
-                const actor = e.actor_email ? e.actor_email.split('@')[0] : 'Someone'
-                const noun = e.entity_type === 'set' ? 'set' : 'member'
-                const target = e.target_label ?? '(deleted)'
-                const linkTo = e.entity_type === 'set'
-                  ? { to: '/$universe/sets/$id' as const, params: { id: e.target_slug ?? e.entity_id } }
-                  : { to: '/$universe/members/$id' as const, params: { id: e.target_slug ?? e.entity_id } }
-                const time = new Date(e.created_at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
-                // The audit listener captures every column on CREATE — too noisy
-                // to display; only render diff_keys for UPDATE actions.
-                const showKeys = e.action === 'UPDATE' && e.diff_keys.length > 0
-                return (
-                  <li key={e.id} className="flex items-start gap-3 px-4 py-2.5 text-sm">
-                    <span className={`mt-1 inline-block h-1.5 w-1.5 shrink-0 rounded-full ${
-                      e.action === 'CREATE' ? 'bg-emerald-500' :
-                      e.action === 'DELETE' ? 'bg-red-500' : 'bg-violet-500'
-                    }`} aria-hidden />
-                    <div className="min-w-0 flex-1">
-                      <div className="flex flex-wrap items-baseline gap-x-1.5 gap-y-0.5">
-                        <span className="text-zinc-300">{actor}</span>
-                        <span className="text-zinc-400">{verb} {noun}</span>
-                        <Link from="/$universe" {...linkTo} className="font-medium text-violet-400 hover:underline truncate">
-                          {target}
-                        </Link>
-                        <span className="ml-auto font-mono text-[11px] tabular-nums text-zinc-400">{time}</span>
-                      </div>
-                      {showKeys && (
-                        <div className="mt-0.5 flex flex-wrap gap-1 text-[10px] text-zinc-400">
-                          {e.diff_keys.slice(0, 6).map((k) => (
-                            <span key={k} className="rounded bg-zinc-800/60 px-1.5 py-0.5">{k}</span>
-                          ))}
-                          {e.diff_keys.length > 6 && <span className="text-zinc-400">+{e.diff_keys.length - 6}</span>}
-                        </div>
-                      )}
-                    </div>
-                  </li>
-                )
-              })}
-            </ul>
-          </div>
-        )
-      })}
-    </div>
-  )
-}
 
 // Sortable column key from a FuzzyDate. Missing dates sort last.
-const UNDATED = '\uffff'
-
-function fuzzyDateSortKey(d: FuzzyDateValue | null | undefined): string {
-  if (!d || !d.year) return UNDATED
-  const y = String(d.year).padStart(4, '0')
-  const m = String(d.month ?? 1).padStart(2, '0')
-  const day = String(d.day ?? 1).padStart(2, '0')
-  return `${y}-${m}-${day}`
-}
+const UNDATED = UNDATED_SORT_KEY
 
 type SortDir = 'asc' | 'desc'
 
@@ -785,35 +660,7 @@ function SetDetailPage() {
                   <h1 className="text-2xl font-bold leading-tight text-white">{set.name}</h1>
                   <CopyButton value={window.location.href} label="Copy link to this set" className="opacity-40 hover:opacity-100" />
                 </div>
-                {(() => {
-                  const variants = set.name_variants ?? []
-                  const primary = variants.find((v) => v.is_primary)
-                  const others = variants.filter((v) => !v.is_primary)
-                  const primaryExtras = primary ? variantExtras(primary) : []
-                  if (primaryExtras.length === 0 && others.length === 0) return null
-                  return (
-                    <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-xs">
-                      {primaryExtras.map(({ slot, value }) => (
-                        <span key={slot} className="inline-flex items-center gap-1 rounded-full bg-zinc-800/70 px-2 py-0.5 text-zinc-300">
-                          <span className="text-[10px] uppercase tracking-wider text-zinc-400">{slot}</span>
-                          {value}
-                        </span>
-                      ))}
-                      {others.length > 0 && <span className="ml-1 text-[10px] uppercase tracking-wider text-zinc-400">a/k/a</span>}
-                      {others.map((v, i) => {
-                        const shown = variantDisplay(v)
-                        if (!shown) return null
-                        const extras = variantExtras(v).map((e) => e.value)
-                        return (
-                          <span key={i} className="inline-flex items-center gap-1 rounded-full border border-zinc-800 bg-zinc-900/60 px-2 py-0.5 text-zinc-400">
-                            <span className="text-zinc-200">{shown}</span>
-                            {extras.length > 0 && <span>· {extras.join(' · ')}</span>}
-                          </span>
-                        )
-                      })}
-                    </div>
-                  )
-                })()}
+                <NameVariantChips variants={set.name_variants} />
                 <div className="mt-2 flex flex-wrap items-center gap-2">
                   <SetStatusBadge status={set.status} />
                   {isReserved && (
@@ -835,6 +682,7 @@ function SetDetailPage() {
               </div>
             </div>
             <div className="flex shrink-0 items-center gap-2">
+              {!isReserved && <ShareImageButton kind="set" id={set.id} name={set.name} />}
               <Button size="sm" variant="outline" onClick={() => setEditing(true)} title="Edit (e)">
                 <Pencil className="mr-1.5 h-3.5 w-3.5" />Edit
               </Button>
@@ -1064,6 +912,7 @@ function SetDetailPage() {
                       relationship graph, so a set with lineage and no allies or
                       enemies showed none of it. */}
                   {!isReserved && universe && <LineagePanel setId={set.id} setName={set.name} universeId={universe.id} />}
+{!isReserved && universe && <PinnedNotesPanel universeId={universe.id} kind="set" entityId={set.id} />}
                   {!isReserved && universe && (
                     <CitationsPanel universeId={universe.id} entityType="set" entityId={set.id} citations={set.citations ?? []} />
                   )}
@@ -1233,7 +1082,7 @@ function SetDetailPage() {
             )}
 
             <TabsContent value="activity" className="mt-4">
-              <ActivityFeed entries={activityData ?? []} loading={activityLoading} setName={set.name} />
+              <ActivityFeed entries={activityData ?? []} loading={activityLoading} emptyDescription={`Edits to ${set.name} or any of its members will appear here.`} />
             </TabsContent>
           </Tabs>
 
