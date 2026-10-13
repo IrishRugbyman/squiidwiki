@@ -87,6 +87,7 @@ async def upload_media(
     source_id: Optional[uuid.UUID] = Form(None),
     set_id: Optional[uuid.UUID] = Form(None),
     alliance_id: Optional[uuid.UUID] = Form(None),
+    rap_group_id: Optional[uuid.UUID] = Form(None),
     municipality_id: Optional[uuid.UUID] = Form(None),
     caption: Optional[str] = Form(None),
 ):
@@ -96,6 +97,7 @@ async def upload_media(
         source_id=source_id,
         set_id=set_id,
         alliance_id=alliance_id,
+        rap_group_id=rap_group_id,
         municipality_id=municipality_id,
     )
     _validate_attach_query(**ids)
@@ -137,6 +139,7 @@ async def list_media(
     source_id: Optional[uuid.UUID] = Query(None),
     set_id: Optional[uuid.UUID] = Query(None),
     alliance_id: Optional[uuid.UUID] = Query(None),
+    rap_group_id: Optional[uuid.UUID] = Query(None),
     municipality_id: Optional[uuid.UUID] = Query(None),
 ):
     ids = dict(
@@ -145,6 +148,7 @@ async def list_media(
         source_id=source_id,
         set_id=set_id,
         alliance_id=alliance_id,
+        rap_group_id=rap_group_id,
         municipality_id=municipality_id,
     )
     _validate_attach_query(**ids)

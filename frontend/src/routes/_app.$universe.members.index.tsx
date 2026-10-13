@@ -92,7 +92,17 @@ function MemberName({ member }: { member: MemberListItem }) {
   return (
     <>
       <span className={`font-medium ${isDead ? 'text-zinc-400' : 'text-white'}`}>{member.display_name}</span>
-      {member.is_rapper && <Mic aria-label="Rapper" className="ml-1.5 inline h-3 w-3 align-baseline text-fuchsia-400" />}
+      {(member.is_rapper || !!member.rap_groups?.length) && (
+        <span
+          className="ml-1.5 inline-block align-baseline"
+          title={member.rap_groups?.length ? `Rapper · ${member.rap_groups.map((g) => g.name).join(' · ')}` : 'Rapper'}
+        >
+          <Mic
+            aria-label={member.rap_groups?.length ? `Rapper: ${member.rap_groups.map((g) => g.name).join(', ')}` : 'Rapper'}
+            className="inline h-3 w-3 text-fuchsia-400"
+          />
+        </span>
+      )}
       {member.is_snitch && <Rat aria-label="Snitch" className="ml-1.5 inline h-3 w-3 align-baseline text-amber-400" />}
       {member.aliases && member.aliases.length > 0 && (
         <span className="mt-0.5 block truncate text-[11px] text-zinc-400">

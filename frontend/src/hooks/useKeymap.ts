@@ -34,6 +34,7 @@ export const GO_TO_SHORTCUTS: GoToShortcut[] = [
   { keys: 'g s', to: '/$universe/sets', label: 'Sets' },
   { keys: 'g a', to: '/$universe/alliances', label: 'Alliances' },
   { keys: 'g m', to: '/$universe/members', label: 'Members' },
+  { keys: 'g o', to: '/$universe/rap-groups', label: 'Rap groups & labels' },
   { keys: 'g i', to: '/$universe/incidents', label: 'Incidents' },
   { keys: 'g k', to: '/$universe/cases', label: 'Court cases' },
   { keys: 'g r', to: '/$universe/sources', label: 'Sources' },

@@ -60,6 +60,7 @@ class SourceCounts(BaseModel):
     incident: int = 0
     set: int = 0
     alliance: int = 0
+    rap_group: int = 0
     court_case: int = 0
     municipality: int = 0
     business: int = 0
@@ -76,6 +77,7 @@ class SourceCounts(BaseModel):
             + self.incident
             + self.set
             + self.alliance
+            + self.rap_group
             + self.court_case
             + self.municipality
             + self.business

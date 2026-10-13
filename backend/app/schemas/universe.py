@@ -26,6 +26,7 @@ RESERVED_UNIVERSE_SLUGS = frozenset(
         "map",
         "members",
         "municipalities",
+        "rap-groups",
         "research",
         "sets",
         "sources",

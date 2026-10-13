@@ -15,6 +15,7 @@ export const SCOPED_SECTIONS = [
   'map',
   'members',
   'municipalities',
+  'rap-groups',
   'research',
   'sets',
   'sources',

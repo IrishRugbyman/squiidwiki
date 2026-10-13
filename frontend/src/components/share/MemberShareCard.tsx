@@ -65,6 +65,7 @@ export default function MemberShareCard({ id, universeId, universeName, onReady 
   const headPhoto = (mediaQ.data ?? []).find((m) => m.is_primary)?.url ?? member.primary_photo_url
 
   const primaryAff = primaryAffiliation(member.affiliations)
+  const rapGroups = member.rap_groups ?? []
   const otherCurrent = currentAffiliations(member.affiliations).filter((a) => a.set_id !== primaryAff?.set_id)
   const past = member.affiliations.filter((a) => !currentAffiliations([a]).length)
   const aliasNames = [...(member.aliases ?? []), ...member.aliases_detail.map((a) => a.alias)]
@@ -131,7 +132,13 @@ export default function MemberShareCard({ id, universeId, universeName, onReady 
               </Chip>
             )}
             {member.alliance_name && <Chip className="bg-blue-950/70 text-blue-200 ring-1 ring-blue-800/50">{member.alliance_name}</Chip>}
-            {member.is_rapper && <Chip className="bg-fuchsia-950/60 text-fuchsia-300 ring-1 ring-fuchsia-800/60"><Mic className="h-4 w-4" />Rapper</Chip>}
+            {(member.is_rapper || rapGroups.length > 0) && (
+              // Plain text: nothing on a card links the wiki.
+              <Chip className="bg-fuchsia-950/60 text-fuchsia-300 ring-1 ring-fuchsia-800/60">
+                <Mic className="h-4 w-4" />Rapper
+                {rapGroups.map((g) => <span key={g.id}><span className="mr-2 text-fuchsia-500/70">·</span>{g.name}</span>)}
+              </Chip>
+            )}
             {member.is_snitch && <Chip className="bg-amber-950/60 text-amber-300 ring-1 ring-amber-800/60"><Rat className="h-4 w-4" />Snitch</Chip>}
           </div>
         </div>

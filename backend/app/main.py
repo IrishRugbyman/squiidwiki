@@ -90,6 +90,7 @@ from app.routers.mdoc import router as mdoc_router  # noqa: E402
 from app.routers.media import router as media_router  # noqa: E402
 from app.routers.member import router as member_router  # noqa: E402
 from app.routers.municipality import router as municipality_router  # noqa: E402
+from app.routers.rap_group import router as rap_group_router  # noqa: E402
 from app.routers.research_note import router as research_note_router  # noqa: E402
 from app.routers.source import router as source_router  # noqa: E402
 from app.routers.universe import router as universe_router  # noqa: E402
@@ -100,6 +101,7 @@ app.include_router(municipality_router, prefix="/api/v1")
 app.include_router(source_router, prefix="/api/v1")
 app.include_router(citation_router, prefix="/api/v1")
 app.include_router(alliance_router, prefix="/api/v1")
+app.include_router(rap_group_router, prefix="/api/v1")
 app.include_router(business_router, prefix="/api/v1")
 app.include_router(gang_router, prefix="/api/v1")
 app.include_router(gang_set_router, prefix="/api/v1")

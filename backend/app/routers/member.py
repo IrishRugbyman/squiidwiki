@@ -142,6 +142,7 @@ async def get_member(
 
     aff_map = await crud.load_member_affiliations(session, [obj.id])
     crud._attach_affiliations(obj, aff_map.get(obj.id, []))
+    await crud.attach_rap_groups(session, [obj])
 
     alliance_name = alliance_slug = None
     if obj.alliance_id:
@@ -198,6 +199,7 @@ async def get_member(
         bop_register_number=obj.bop_register_number,
         biography=obj.biography,
         affiliations=affiliations,
+        rap_groups=getattr(obj, "rap_groups", []),
         primary_set_id=primary.set_id if primary else None,
         primary_set_name=primary.set_name if primary else None,
         primary_set_slug=primary.set_slug if primary else None,

@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
 import {
   AlertTriangle, ChevronRight, Copy, Download, ExternalLink, GitFork,
-  Mic, MoreHorizontal, Pencil, Plus, Rat, Skull, Trash2, X,
+  MoreHorizontal, Pencil, Plus, Rat, Skull, Trash2, X,
 } from 'lucide-react'
 import { FacebookIcon, InstagramIcon, TwitterIcon } from '@/components/icons/SocialIcons'
 import { lazy, Suspense, useMemo, useState } from 'react'
@@ -50,6 +50,7 @@ import {
 import { useUniverseStore } from '@/stores/universe'
 import { UniverseChip } from '@/components/detail/DetailParts'
 import { CasesPanel } from '@/components/cases/CasesPanel'
+import { RapperPill } from '@/components/members/RapperPill'
 import { paramsIn } from '@/lib/universeRoutes'
 import { useAuthStore } from '@/stores/auth'
 import { MemberFormSheet, familyDictToEntries, ROLE_LABEL, ROLE_LABEL_PLURAL } from './_app.$universe.members.index'
@@ -698,11 +699,7 @@ function MemberDetailPage() {
                     {primaryAff.set_name}
                   </Link>
                 )}
-                {member.is_rapper && (
-                  <span className="inline-flex items-center gap-1 rounded-full bg-fuchsia-950/50 px-2.5 py-0.5 text-xs text-fuchsia-300 ring-1 ring-fuchsia-800/60">
-                    <Mic className="h-3 w-3" />Rapper
-                  </span>
-                )}
+                <RapperPill isRapper={member.is_rapper} groups={member.rap_groups} />
                 {member.is_snitch && (
                   <span className="inline-flex items-center gap-1 rounded-full bg-amber-950/50 px-2.5 py-0.5 text-xs text-amber-300 ring-1 ring-amber-800/60">
                     <Rat className="h-3 w-3" />Snitch

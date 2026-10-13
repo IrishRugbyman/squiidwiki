@@ -18,6 +18,9 @@ _AUDITED_TABLES = {
     "universe",
     "municipality",
     "alliance",
+    "rap_group",
+    "rap_group_member",
+    "rap_group_relationship",
     "sets",
     "member",
     "incident",
@@ -93,6 +96,7 @@ def attach_audit_listeners() -> None:
     import app.models.media  # noqa: F401
     import app.models.member  # noqa: F401
     import app.models.municipality  # noqa: F401
+    import app.models.rap_group  # noqa: F401
     import app.models.source  # noqa: F401
     import app.models.universe  # noqa: F401
 

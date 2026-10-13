@@ -22,6 +22,7 @@ from app.models.member import (
     MemberIncarceration,
     MemberSet,
 )
+from app.models.rap_group import RapGroup, RapGroupMember
 from app.schemas.common import make_cursor, parse_cursor
 from app.schemas.member import (
     MemberAliasCreate,
@@ -30,6 +31,7 @@ from app.schemas.member import (
     MemberCustodyIdUpdate,
     MemberIncarcerationCreate,
     MemberIncarcerationUpdate,
+    MemberRapGroupRef,
     MemberSetAffiliationIn,
     MemberSetAffiliationOut,
     MemberUpdate,
@@ -311,6 +313,41 @@ def _attach_affiliations(obj: Member, affiliations: list[MemberSetAffiliationOut
     object.__setattr__(obj, "primary_set_rank", primary.rank if primary else None)
 
 
+async def load_member_rap_groups(
+    session: AsyncSession, member_ids: list[uuid.UUID]
+) -> dict[uuid.UUID, list[MemberRapGroupRef]]:
+    """Batch-load each member's rap groups and labels, ordered by position."""
+    if not member_ids:
+        return {}
+    rows = (
+        await session.execute(
+            select(
+                RapGroupMember.member_id,
+                RapGroup.id,
+                RapGroup.slug,
+                RapGroup.name,
+                RapGroupMember.role,
+            )
+            .join(RapGroup, RapGroup.id == RapGroupMember.rap_group_id)
+            .where(RapGroupMember.member_id.in_(member_ids))
+            .order_by(RapGroupMember.position, RapGroup.name, RapGroup.id)
+        )
+    ).all()
+    out: dict[uuid.UUID, list[MemberRapGroupRef]] = {}
+    for member_id, gid, slug, name, role in rows:
+        out.setdefault(member_id, []).append(
+            MemberRapGroupRef(id=gid, slug=slug, name=name, role=role)
+        )
+    return out
+
+
+async def attach_rap_groups(session: AsyncSession, members: list[Member]) -> None:
+    """Attach `rap_groups` to each member, for the list item and detail reads."""
+    groups = await load_member_rap_groups(session, [m.id for m in members])
+    for m in members:
+        object.__setattr__(m, "rap_groups", groups.get(m.id, []))
+
+
 async def _attach_affiliations_bulk(session: AsyncSession, members: list[Member]) -> list[Member]:
     """Batch-load and attach affiliations for every member in the list.
 
@@ -323,6 +360,7 @@ async def _attach_affiliations_bulk(session: AsyncSession, members: list[Member]
     aff_map = await load_member_affiliations(session, [m.id for m in members])
     for m in members:
         _attach_affiliations(m, aff_map.get(m.id, []))
+    await attach_rap_groups(session, members)
     return members
 
 

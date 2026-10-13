@@ -16,6 +16,7 @@ from app.models.incident import (
 )
 from app.models.member import Member, MemberSet
 from app.models.municipality import Municipality
+from app.models.rap_group import RapGroupMember
 from app.models.universe import Universe
 from app.schemas.common import make_cursor, parse_cursor
 from app.schemas.incident import (
@@ -509,6 +510,28 @@ async def list_incidents_by_alliance(
                     MemberSet.until_date.is_(None),
                 )
             ),
+        )
+        .distinct()
+        .order_by(Incident.sortable_date.desc(), Incident.created_at.desc())
+        .limit(limit)
+    )
+    result = await session.execute(stmt)
+    return result.scalars().all()
+
+
+async def list_incidents_by_rap_group(
+    session: AsyncSession,
+    rap_group_id: uuid.UUID,
+    limit: int = 10_000,
+) -> list[Incident]:
+    """Incidents where any member of the rap group is a participant, newest first."""
+    stmt = (
+        select(Incident)
+        .join(IncidentParticipant, IncidentParticipant.incident_id == Incident.id)
+        .where(
+            IncidentParticipant.member_id.in_(
+                select(RapGroupMember.member_id).where(RapGroupMember.rap_group_id == rap_group_id)
+            )
         )
         .distinct()
         .order_by(Incident.sortable_date.desc(), Incident.created_at.desc())

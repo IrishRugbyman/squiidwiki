@@ -18,7 +18,14 @@ from app.core.sources import domain_of
 from app.schemas.common import FuzzyDateField
 
 EntityType = Literal[
-    "member", "incident", "set", "alliance", "court_case", "municipality", "business"
+    "member",
+    "incident",
+    "set",
+    "alliance",
+    "rap_group",
+    "court_case",
+    "municipality",
+    "business",
 ]
 
 

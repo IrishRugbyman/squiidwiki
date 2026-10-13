@@ -1,14 +1,14 @@
 import { matchedVariantLabel } from '@/lib/setDisplay'
 import { useNavigate } from '@tanstack/react-router'
 import { useSwitchUniverse } from '@/hooks/useSwitchUniverse'
-import { AlertTriangle, Clock, FileText, Gavel, Globe, MapPin, Network, Plus, Shield, Users } from 'lucide-react'
+import { AlertTriangle, Clock, FileText, Gavel, Globe, MapPin, Mic, Network, Plus, Shield, Users } from 'lucide-react'
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '@/lib/api'
 import { useDebounce } from '@/hooks/useDebounce'
 import {
   useAllianceSearch, useCourtCaseSearch, useIncidentSearch, useMemberSearch, useMunicipalitySearch,
-  useSetSearch, useSourceSearch, useCreateUniverse,
+  useRapGroupSearch, useSetSearch, useSourceSearch, useCreateUniverse,
 } from '@/lib/queries'
 import { useUniverseStore, type Universe } from '@/stores/universe'
 import { useAuthStore } from '@/stores/auth'
@@ -156,6 +156,7 @@ export function GlobalCommandPalette({ open, onClose }: GlobalCommandPaletteProp
   const { data: memberResults } = useMemberSearch(universeId, dq)
   const { data: setResults } = useSetSearch(universeId, dq)
   const { data: allianceResults } = useAllianceSearch(universeId, dq)
+  const { data: rapGroupResults } = useRapGroupSearch(universeId, dq)
   const { data: incidentResults } = useIncidentSearch(universeId, dq)
   // Name, docket, or any other spelling of the docket on file.
   const { data: caseResults } = useCourtCaseSearch(universeId, dq)
@@ -167,6 +168,7 @@ export function GlobalCommandPalette({ open, onClose }: GlobalCommandPaletteProp
     (memberResults?.length ?? 0) > 0 ||
     (setResults?.length ?? 0) > 0 ||
     (allianceResults?.length ?? 0) > 0 ||
+    (rapGroupResults?.length ?? 0) > 0 ||
     (incidentResults?.length ?? 0) > 0 ||
     (caseResults?.length ?? 0) > 0 ||
     (sourceResults?.length ?? 0) > 0 ||
@@ -256,6 +258,22 @@ export function GlobalCommandPalette({ open, onClose }: GlobalCommandPaletteProp
                     <span>{a.name}</span>
                     {matchLabel && <span className="ml-2 text-[10px] text-zinc-400">a/k/a {matchLabel}</span>}
                     <span className="ml-auto text-[10px] text-zinc-400">{a.status}</span>
+                  </CommandItem>
+                )
+              })}
+            </CommandGroup>
+          )}
+
+          {searching && (rapGroupResults?.length ?? 0) > 0 && (
+            <CommandGroup heading={groupHeading('Rap groups & labels', rapGroupResults!.length)}>
+              {rapGroupResults!.slice(0, GROUP_CAP).map((g) => {
+                const matchLabel = matchedVariantLabel(g.name_variants, q)
+                return (
+                  <CommandItem key={g.id} value={`rap-group-${g.id}`} onSelect={() => go(inUniverse(`/rap-groups/${g.slug ?? g.id}`))}>
+                    <Mic className="mr-2 h-3.5 w-3.5 shrink-0 text-fuchsia-400" />
+                    <span>{g.name}</span>
+                    {matchLabel && <span className="ml-2 text-[10px] text-zinc-400">a/k/a {matchLabel}</span>}
+                    <span className="ml-auto text-[10px] text-zinc-400">{g.kind === 'LABEL' ? 'Label' : 'Group'}</span>
                   </CommandItem>
                 )
               })}

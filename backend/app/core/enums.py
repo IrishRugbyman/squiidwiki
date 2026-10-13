@@ -46,6 +46,27 @@ class AllianceStatus(str, Enum):
     DORMANT = "DORMANT"
 
 
+class RapGroupStatus(str, Enum):
+    ACTIVE = "ACTIVE"
+    DISBANDED = "DISBANDED"
+
+
+class RapGroupKind(str, Enum):
+    """A rap group is a set of artists; a label is a company they sign to."""
+
+    GROUP = "GROUP"
+    LABEL = "LABEL"
+
+
+class RapGroupRole(str, Enum):
+    """SIGNED is an artist signed to a label."""
+
+    FOUNDER = "FOUNDER"
+    MEMBER = "MEMBER"
+    SIGNED = "SIGNED"
+    AFFILIATE = "AFFILIATE"
+
+
 class IncidentType(str, Enum):
     SHOOTING = "SHOOTING"
     MURDER = "MURDER"

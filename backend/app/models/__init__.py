@@ -38,6 +38,7 @@ from app.models.member import (
     MemberSet,
 )
 from app.models.municipality import Municipality, MunicipalityOverlap
+from app.models.rap_group import RapGroup, RapGroupMember, RapGroupRelationship
 from app.models.research_note import ResearchNote, ResearchNotePin
 from app.models.source import Source
 from app.models.universe import Universe
@@ -78,6 +79,9 @@ __all__ = [
     "ResearchNote",
     "ResearchNotePin",
     "Media",
+    "RapGroup",
+    "RapGroupMember",
+    "RapGroupRelationship",
     "CourtCase",
     "CourtCaseDefendant",
     "CourtCaseIncident",

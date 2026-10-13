@@ -5,7 +5,7 @@ from typing import Annotated, Any, Optional
 
 from pydantic import AfterValidator, BaseModel, computed_field, model_validator
 
-from app.core.enums import CustodySystem, MemberStatus, SetRank
+from app.core.enums import CustodySystem, MemberStatus, RapGroupRole, SetRank
 from app.schemas.citation import CitationRead
 from app.schemas.common import FuzzyDateField
 
@@ -133,6 +133,15 @@ def _ensure_single_primary(affiliations: list[MemberSetAffiliationIn]) -> None:
         affiliations[0].is_primary = True
 
 
+class MemberRapGroupRef(BaseModel):
+    """A rap group or label as a member's page lists it."""
+
+    id: uuid.UUID
+    slug: Optional[str] = None
+    name: str
+    role: RapGroupRole
+
+
 class MemberRead(BaseModel):
     model_config = {"from_attributes": True}
 
@@ -150,6 +159,8 @@ class MemberRead(BaseModel):
     aliases: Optional[list[str]]
     biography: str
     affiliations: list[MemberSetAffiliationOut] = []
+    # Rap groups and labels, by position. Not sets: never an affiliation.
+    rap_groups: list[MemberRapGroupRef] = []
     primary_set_id: Optional[uuid.UUID] = None
     primary_set_name: Optional[str] = None
     primary_set_slug: Optional[str] = None
@@ -202,6 +213,7 @@ class MemberListItem(BaseModel):
     display_name: str
     status: MemberStatus
     affiliations: list[MemberSetAffiliationOut] = []
+    rap_groups: list[MemberRapGroupRef] = []
     primary_set_id: Optional[uuid.UUID] = None
     primary_set_name: Optional[str] = None
     primary_set_slug: Optional[str] = None

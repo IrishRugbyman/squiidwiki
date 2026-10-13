@@ -28,6 +28,7 @@ CITATION_TARGETS: tuple[tuple[str, str, str], ...] = (
     ("incident", "incident_id", "incident"),
     ("set", "set_id", "sets"),
     ("alliance", "alliance_id", "alliance"),
+    ("rap_group", "rap_group_id", "rap_group"),
     ("court_case", "court_case_id", "court_case"),
     ("municipality", "municipality_id", "municipality"),
     ("business", "business_id", "business"),
@@ -43,8 +44,8 @@ class Citation(SQLModel, table=True):
     __tablename__ = "citation"
     __table_args__ = (
         sa.CheckConstraint(
-            "num_nonnulls(member_id, incident_id, set_id, alliance_id, court_case_id, "
-            "municipality_id, business_id) = 1",
+            "num_nonnulls(member_id, incident_id, set_id, alliance_id, rap_group_id, "
+            "court_case_id, municipality_id, business_id) = 1",
             name="ck_citation_exactly_one_target",
         ),
         # One citation per source per record: two pages of the same filing are
@@ -78,6 +79,7 @@ class Citation(SQLModel, table=True):
     incident_id: uuid.UUID | None = Field(default=None, sa_column=_target("incident"))
     set_id: uuid.UUID | None = Field(default=None, sa_column=_target("sets"))
     alliance_id: uuid.UUID | None = Field(default=None, sa_column=_target("alliance"))
+    rap_group_id: uuid.UUID | None = Field(default=None, sa_column=_target("rap_group"))
     court_case_id: uuid.UUID | None = Field(default=None, sa_column=_target("court_case"))
     municipality_id: uuid.UUID | None = Field(default=None, sa_column=_target("municipality"))
     business_id: uuid.UUID | None = Field(default=None, sa_column=_target("business"))

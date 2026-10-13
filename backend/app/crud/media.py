@@ -26,6 +26,7 @@ _ENTITY_COL = {
     "source": Media.source_id,
     "set": Media.set_id,
     "alliance": Media.alliance_id,
+    "rap_group": Media.rap_group_id,
     "municipality": Media.municipality_id,
 }
 ENTITY_FIELDS = tuple(f"{t}_id" for t in _ENTITY_COL)
@@ -96,6 +97,7 @@ async def create_media(
     source_id: uuid.UUID | None = None,
     set_id: uuid.UUID | None = None,
     alliance_id: uuid.UUID | None = None,
+    rap_group_id: uuid.UUID | None = None,
     municipality_id: uuid.UUID | None = None,
     file_bytes: bytes,
     original_filename: str | None,
@@ -109,6 +111,7 @@ async def create_media(
         source_id=source_id,
         set_id=set_id,
         alliance_id=alliance_id,
+        rap_group_id=rap_group_id,
         municipality_id=municipality_id,
     )
 
@@ -165,6 +168,7 @@ async def list_media(
     source_id: uuid.UUID | None = None,
     set_id: uuid.UUID | None = None,
     alliance_id: uuid.UUID | None = None,
+    rap_group_id: uuid.UUID | None = None,
     municipality_id: uuid.UUID | None = None,
 ) -> list[Media]:
     entity_type, entity_id = _ensure_exactly_one(
@@ -173,6 +177,7 @@ async def list_media(
         source_id=source_id,
         set_id=set_id,
         alliance_id=alliance_id,
+        rap_group_id=rap_group_id,
         municipality_id=municipality_id,
     )
     result = await session.execute(
@@ -288,6 +293,10 @@ async def attach_primary_photos_sets(session: AsyncSession, items: list) -> None
 
 async def attach_primary_photos_alliances(session: AsyncSession, items: list) -> None:
     await _attach_photos_generic(session, items, Media.alliance_id, "id")
+
+
+async def attach_primary_photos_rap_groups(session: AsyncSession, items: list) -> None:
+    await _attach_photos_generic(session, items, Media.rap_group_id, "id")
 
 
 async def get_primary_media_for_members(

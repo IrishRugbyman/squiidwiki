@@ -3,6 +3,8 @@ import type { QueryClient } from '@tanstack/react-query'
 import { api } from './api'
 import type {
   AllianceActivityEntry,
+  RapGroupListItem,
+  RapGroupReadDetail,
   AllianceLineageItem,
   CitableType,
   CitationRead,
@@ -584,6 +586,79 @@ export const useDeleteAlliance = (universeId: UUID) => {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['alliances'] })
       qc.invalidateQueries({ queryKey: ['sets'] })
+      qc.invalidateQueries({ queryKey: ['members'] })
+    },
+  })
+}
+
+// ─── Rap groups and labels ────────────────────────────────────────────────────
+
+/** Every rap group and label in the universe, name-ordered. Filtering by kind and search is client-side. */
+export const useRapGroups = (universeId: UUID | null) =>
+  useQuery({
+    queryKey: ['rap-groups', universeId],
+    queryFn: async (): Promise<OffsetPage<RapGroupListItem>> => {
+      const PAGE = 200
+      const url = (offset: number) => `/rap-groups/?universe_id=${universeId}&limit=${PAGE}&offset=${offset}`
+      const first = await api.get<OffsetPage<RapGroupListItem>>(url(0))
+      const items = [...first.items]
+      while (items.length < first.total) {
+        const next = await api.get<OffsetPage<RapGroupListItem>>(url(items.length))
+        if (next.items.length === 0) break
+        items.push(...next.items)
+      }
+      return { items, total: first.total }
+    },
+    enabled: !!universeId,
+  })
+
+/** Palette search: the list endpoint's `q`. */
+export const useRapGroupSearch = (universeId: UUID | null, q: string) =>
+  useQuery({
+    queryKey: ['rap-groups', 'search', universeId, q],
+    queryFn: async () =>
+      (await api.get<OffsetPage<RapGroupListItem>>(`/rap-groups/?universe_id=${universeId}&q=${encodeURIComponent(q)}&limit=10`)).items,
+    enabled: !!universeId && q.length >= 2,
+    placeholderData: keepPreviousData,
+  })
+
+export const useRapGroup = (id: UUID, universeId: UUID | null) =>
+  useQuery({
+    queryKey: ['rap-groups', id],
+    queryFn: () => api.get<RapGroupReadDetail>(`/rap-groups/${id}?universe_id=${universeId}`),
+    enabled: !!universeId && !!id,
+  })
+
+export const useCreateRapGroup = () => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (body: Record<string, unknown>) => api.post<RapGroupReadDetail>('/rap-groups/', body),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['rap-groups'] })
+      qc.invalidateQueries({ queryKey: ['members'] })
+    },
+  })
+}
+
+export const useUpdateRapGroup = (id: UUID, universeId: UUID) => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (body: Record<string, unknown>) =>
+      api.patch<RapGroupReadDetail>(`/rap-groups/${id}?universe_id=${universeId}`, body),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['rap-groups'] })
+      // The roster is on the member reads too.
+      qc.invalidateQueries({ queryKey: ['members'] })
+    },
+  })
+}
+
+export const useDeleteRapGroup = (universeId: UUID) => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (id: UUID) => api.delete(`/rap-groups/${id}?universe_id=${universeId}`),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['rap-groups'] })
       qc.invalidateQueries({ queryKey: ['members'] })
     },
   })
@@ -1284,11 +1359,11 @@ export const useDeleteSource = (universeId: UUID) => {
  *  record that renders citations. Invalidated by root because detail pages key
  *  by slug or UUID depending on how they were reached. */
 const CITED_ROOTS = [
-  'sources', 'members', 'incidents', 'sets', 'alliances', 'court-cases', 'municipalities', 'businesses',
+  'sources', 'members', 'incidents', 'sets', 'alliances', 'court-cases', 'municipalities', 'businesses', 'rap-groups',
 ]
 const ROOT_OF: Record<CitableType, string> = {
   member: 'members', incident: 'incidents', set: 'sets', alliance: 'alliances',
-  court_case: 'court-cases', municipality: 'municipalities', business: 'businesses',
+  court_case: 'court-cases', municipality: 'municipalities', business: 'businesses', rap_group: 'rap-groups',
 }
 
 function invalidateCited(qc: ReturnType<typeof useQueryClient>, only?: CitableType) {
@@ -1637,6 +1712,7 @@ const mediaEntityField = (entityType: MediaEntityType): string => {
   if (entityType === 'source') return 'source_id'
   if (entityType === 'set') return 'set_id'
   if (entityType === 'municipality') return 'municipality_id'
+  if (entityType === 'rap_group') return 'rap_group_id'
   return 'alliance_id'
 }
 

@@ -31,6 +31,7 @@ from app.models.incident import Incident
 from app.models.media import Media
 from app.models.member import Member, MemberAlias, MemberCustodyId
 from app.models.municipality import Municipality
+from app.models.rap_group import RapGroup
 from app.models.source import Source
 from app.models.universe import Universe
 from app.schemas.source import SourceCounts, SourceCreate, SourceLookup, SourceUpdate
@@ -424,6 +425,7 @@ async def list_source_citations(
         "incident": Incident,
         "set": GangSet,
         "alliance": Alliance,
+        "rap_group": RapGroup,
         "court_case": CourtCase,
         "municipality": Municipality,
         "business": Business,

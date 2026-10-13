@@ -33,7 +33,7 @@ export type ParticipantOutcome = 'KILLED' | 'INJURED' | 'UNHARMED' | 'UNKNOWN'
 export type SourceReliability = 'HIGH' | 'MEDIUM' | 'LOW' | 'UNVERIFIED'
 export type SetRelationshipType = 'FRIEND' | 'ENEMY'
 export type MediaKind = 'R2' | 'EXTERNAL_URL'
-export type MediaEntityType = 'member' | 'incident' | 'source' | 'set' | 'alliance' | 'municipality'
+export type MediaEntityType = 'member' | 'incident' | 'source' | 'set' | 'alliance' | 'municipality' | 'rap_group'
 
 // Universe
 export interface UniverseListItem {
@@ -167,7 +167,7 @@ export interface CitationRead {
 }
 
 export type CitableType =
-  | 'member' | 'incident' | 'set' | 'alliance' | 'court_case' | 'municipality' | 'business'
+  | 'member' | 'incident' | 'set' | 'alliance' | 'court_case' | 'municipality' | 'business' | 'rap_group'
 
 export interface SourceCounts {
   member: number
@@ -406,6 +406,75 @@ export interface GangWrite {
   symbols?: string[] | null
   /** The national history on the shared card. */
   card_description?: string | null
+}
+
+// Rap groups and labels
+// A rap group is not a set: no map, no set stats, never an affiliation. A label
+// shares the table, told apart by `kind`.
+export type RapGroupKind = 'GROUP' | 'LABEL'
+export type RapGroupStatus = 'ACTIVE' | 'DISBANDED'
+export type RapGroupRole = 'FOUNDER' | 'MEMBER' | 'SIGNED' | 'AFFILIATE'
+
+/** One group a member belongs to, as the member reads carry it. */
+export interface MemberRapGroupRef {
+  id: UUID
+  slug: string | null
+  name: string
+  role: RapGroupRole
+}
+
+export interface RapGroupListItem {
+  id: UUID
+  slug: string | null
+  /** Derived: the display of the primary name variant, as for sets. */
+  name: string
+  name_variants: NameVariant[] | null
+  kind: RapGroupKind
+  status: RapGroupStatus
+  active_from: FuzzyDateValue | null
+  active_to: FuzzyDateValue | null
+  municipality: { id: UUID; name: string; slug: string | null } | null
+  member_count: number
+  primary_photo_url: string | null
+}
+
+export interface RapGroupMemberRow {
+  member_id: UUID
+  slug: string | null
+  display_name: string
+  role: RapGroupRole
+  since: FuzzyDateValue | null
+  until: FuzzyDateValue | null
+  primary_photo_thumb_url: string | null
+  status: MemberStatus
+  sets: { id: UUID; slug: string | null; name: string }[]
+}
+
+export interface RapGroupRelationshipRow {
+  rap_group_id: UUID
+  slug: string | null
+  name: string
+  type: SetRelationshipType
+}
+
+export interface RapGroupReadDetail extends RapGroupListItem {
+  universe_id: UUID
+  bio: string | null
+  members: RapGroupMemberRow[]
+  sets_represented: { id: UUID; slug: string | null; name: string; count: number }[]
+  relationships: RapGroupRelationshipRow[]
+  incidents: IncidentListItem[]
+  citations: CitationRead[]
+  created_at: string
+  updated_at: string
+}
+
+/** One entry of the complete member list a POST or PATCH sends. */
+export interface RapGroupMemberInput {
+  member_id: UUID
+  role: RapGroupRole
+  since: FuzzyDateValue | null
+  until: FuzzyDateValue | null
 }
 
 // Alliance
@@ -746,6 +815,8 @@ export interface MemberListItem {
   date_of_death: FuzzyDateValue | null
   is_rapper: boolean
   is_snitch: boolean
+  /** Rap groups and labels the member belongs to, in position order. */
+  rap_groups?: MemberRapGroupRef[]
 }
 
 export interface MemberAliasRead {

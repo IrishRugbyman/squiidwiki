@@ -22,6 +22,7 @@ class MediaRead(BaseModel):
     source_id: Optional[uuid.UUID]
     set_id: Optional[uuid.UUID]
     alliance_id: Optional[uuid.UUID]
+    rap_group_id: Optional[uuid.UUID] = None
     municipality_id: Optional[uuid.UUID] = None
     kind: MediaKind
     r2_key: Optional[str]
