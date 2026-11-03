@@ -41,7 +41,6 @@ goes in `CHANGELOG.md`.
 - [ ] **Show a member's sources on their page**: `MemberReadDetail` returns `source_ids` and the member page renders none of them, so a citation attached to a member is invisible in the UI and only reachable through the sources list. Set and incident pages have the same gap. Blocks any cleanup that moves a URL out of prose into a source row.
 
 - [ ] **Per-fact citations** — let a sentence in a biography or incident narrative reference a specific source. Inline `[[source:123]]` markers rendered as superscript footnotes. Entity-scoped citations are fine for "this member exists" but useless for "this member fired the gun."
-- [ ] **Member merge** — when duplicate records exist, a merge dialog picks the canonical record and migrates all incident participations, family links, and source citations.
 - [ ] **Web Archive snapshot on source create** — when a `Source` URL is saved, fire a request to `web.archive.org/save/<url>` and store the resulting archived URL alongside. News links rot fast.
 - [ ] **Auto-fetch source metadata** — when a URL is pasted into the source form, fetch title / byline / publish date / og-image and prefill the fields. Removes the most tedious part of citing.
 - [ ] **"Stale data" indicators** — `last_verified_at` timestamp on Members and Sets with a subtle UI indicator if a profile hasn't been updated or involved in a new incident in over 18 months.

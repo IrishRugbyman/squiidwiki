@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
 import {
   AlertTriangle, ChevronRight, Copy, Download, ExternalLink, FileText, GitFork,
-  Mic, MoreHorizontal, Pencil, Plus, Rat, Skull, Trash2, X,
+  GitMerge, Mic, MoreHorizontal, Pencil, Plus, Rat, Skull, Trash2, X,
 } from 'lucide-react'
 import { FacebookIcon, InstagramIcon, TwitterIcon } from '@/components/icons/SocialIcons'
 import { lazy, Suspense, useMemo, useState } from 'react'
@@ -49,6 +49,9 @@ import { useAuthStore } from '@/stores/auth'
 import { MemberFormSheet, familyDictToEntries, ROLE_LABEL, ROLE_LABEL_PLURAL } from './_app.$universe.members.index'
 import type { FamilyRole } from './_app.$universe.members.index'
 import { AddFamilyRelativeDialog } from '@/components/AddFamilyRelativeDialog'
+const MergeMemberDialog = lazy(() =>
+  import('@/components/MergeMemberDialog').then((m) => ({ default: m.MergeMemberDialog })),
+)
 const PhotoGallery = lazy(() =>
   import('@/components/media/PhotoGallery').then((m) => ({ default: m.PhotoGallery })),
 )
@@ -551,6 +554,7 @@ function MemberDetailPage() {
   const [addingIncarceration, setAddingIncarceration] = useState(false)
   const [incarcerationDraft, setIncarcerationDraft] = useState<IncarcerationDraft>(EMPTY_INCARCERATION_DRAFT)
   const [deleting, setDeleting] = useState(false)
+  const [merging, setMerging] = useState(false)
   const [creatingIncident, setCreatingIncident] = useState(false)
   const [addingFamily, setAddingFamily] = useState(false)
   const [familyGraphOpen, setFamilyGraphOpen] = useState(false)
@@ -698,6 +702,9 @@ function MemberDetailPage() {
                       {isAdmin && (
                         <>
                           <DropdownMenuSeparator />
+                          <DropdownMenuItem onSelect={() => setMerging(true)} className="gap-2">
+                            <GitMerge className="h-3.5 w-3.5" />Merge duplicate…
+                          </DropdownMenuItem>
                           <DropdownMenuItem onSelect={() => setDeleting(true)} className="gap-2 text-red-400 focus:text-red-300">
                             <Trash2 className="h-3.5 w-3.5" />Delete member
                           </DropdownMenuItem>
@@ -1453,6 +1460,17 @@ function MemberDetailPage() {
             </Dialog>
           )}
 
+          {merging && universe && (
+            <Suspense fallback={null}>
+              <MergeMemberDialog
+                member={member}
+                universeId={universe.id}
+                universeSlug={universe.slug}
+                open
+                onClose={() => setMerging(false)}
+              />
+            </Suspense>
+          )}
           <ConfirmDialog
             open={deleting}
             title="Delete Member"

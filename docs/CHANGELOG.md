@@ -480,3 +480,28 @@ whole year, approximate widens it by a year each side) and reports only when the
 spans do not overlap. The page is `/$universe/anomalies`, in the admin part of the
 sidebar, grouped by check with links to both records.
 
+
+---
+
+## 2026-11-03 - Member merge
+
+A duplicate member could only be fixed by re-entering one record's links by hand on the
+other and deleting it. `POST /members/{keep}/merge` (admin, body `{drop_id, prefer,
+dry_run}`) moves everything that points at `drop` onto `keep` and deletes `drop`, in one
+transaction: incident participations, set spells, source citations, business links,
+alias rows, incarcerations, custody numbers, photos and sets founded, and it rewrites
+every relative's family JSON to name `keep`. `keep` wins every clash, so the record
+chosen as canonical is never silently rewritten: a shared incident keeps `keep`'s
+role, an open spell in a set both are in keeps `keep`'s, a moved primary spell or photo
+stops being primary when `keep` has one. Columns keep `keep`'s value unless it is
+empty; `prefer` names the ones where `drop`'s should win. `drop`'s nickname and legal
+name become aliases on `keep`, so the old spelling still finds it. A merge that moves a
+KILLED participation onto a record not marked DEAD is reported as a clash.
+
+`dry_run` runs the whole merge and rolls it back, so the preview is the real merge. The
+member page's menu has "Merge duplicate…" (admin): pick the other record (likely
+duplicates from `/members/similar` are offered first), swap which one is kept, click a
+differing field to take the other value, see what moves and what clashes, then merge.
+History records it on `keep` ("Merged in (record deleted)"), each touched incident gets
+a participants link change, and stats refresh afterwards. `drop`'s own history stays
+under its id, and its slug stops resolving.

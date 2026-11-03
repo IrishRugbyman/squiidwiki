@@ -228,6 +228,46 @@ class MemberSimilar(BaseModel):
     score: float
 
 
+class MemberMergeRequest(BaseModel):
+    """Merge ``drop_id`` into the member in the path, then delete ``drop_id``."""
+
+    drop_id: uuid.UUID
+    # Columns where the dropped record's value should win (see
+    # app/crud/member_merge.PREFERABLE_FIELDS). Otherwise the kept value stands
+    # unless it is empty.
+    prefer: list[str] = []
+    # Do the whole merge and roll it back: the preview is the real thing.
+    dry_run: bool = False
+
+
+class MemberMergeRef(BaseModel):
+    id: uuid.UUID
+    display_name: str
+    slug: Optional[str] = None
+
+
+class MemberMergeField(BaseModel):
+    field: str
+    kept: Any = None
+    discarded: Any = None
+
+
+class MemberMergeConflict(BaseModel):
+    kind: str
+    id: Optional[uuid.UUID] = None
+    message: str
+    discarded: Any = None
+
+
+class MemberMergeReport(BaseModel):
+    keep: MemberMergeRef
+    drop: MemberMergeRef
+    fields: list[MemberMergeField]
+    moved: dict[str, int]
+    conflicts: list[MemberMergeConflict]
+    dry_run: bool
+
+
 class MemberIncarcerationCreate(BaseModel):
     from_date: FuzzyDateField = None
     # When the spell ended. Set means historical; see the model for why that is

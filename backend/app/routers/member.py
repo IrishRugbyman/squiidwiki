@@ -10,6 +10,8 @@ from app.core.csv_export import to_csv_response
 from app.core.database import get_session
 from app.core.enums import GlobalRole, MemberStatus
 from app.crud import member as crud
+from app.crud import member_merge as merge_crud
+from app.crud.stats import refresh_materialized_views
 from app.models.alliance import Alliance
 from app.models.incident import Incident
 from app.models.municipality import Municipality
@@ -27,6 +29,8 @@ from app.schemas.member import (
     MemberIncarcerationUpdate,
     MemberKilledInSummary,
     MemberListItem,
+    MemberMergeReport,
+    MemberMergeRequest,
     MemberRead,
     MemberReadDetail,
     MemberReleaseEvent,
@@ -274,6 +278,26 @@ async def delete_member(
     ok = await crud.delete_member(session, id, universe_id)
     if not ok:
         raise HTTPException(404)
+
+
+@router.post("/{id}/merge", response_model=MemberMergeReport)
+async def merge_member(
+    id: uuid.UUID,
+    universe_id: uuid.UUID,
+    data: MemberMergeRequest,
+    session: Annotated[AsyncSession, Depends(get_session)],
+    _: Annotated[None, require_global_role(GlobalRole.ADMIN)],
+):
+    """Merge ``data.drop_id`` into member ``id`` and delete it (admin only, like delete).
+
+    With ``dry_run`` the merge runs and is rolled back, returning the same report.
+    """
+    report = await merge_crud.merge_members(
+        session, universe_id, id, data.drop_id, prefer=data.prefer, dry_run=data.dry_run
+    )
+    if not data.dry_run:
+        await refresh_materialized_views(session)
+    return report
 
 
 @router.get("/{id}/stats", response_model=MemberStats)
