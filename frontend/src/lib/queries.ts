@@ -38,6 +38,8 @@ import type {
   SetLineageKind,
   SetListItem,
   SetRead,
+  TextSearchHit,
+  MemberSimilar,
   SetReadDetail,
   SetReadDetailFull,
   SetRelationshipType,
@@ -713,6 +715,29 @@ export const useMemberSearch = (universeId: UUID | null, q: string) =>
     queryFn: () => api.get<MemberListItem[]>(`/members/search?universe_id=${universeId}&q=${encodeURIComponent(q)}`),
     enabled: !!universeId && q.length >= 2,
     placeholderData: keepPreviousData,
+  })
+
+// Full-text search over prose (biographies, narratives, source notes). Needs 3+
+// characters: shorter queries are all stop words or noise.
+export const useTextSearch = (universeId: UUID | null, q: string) =>
+  useQuery({
+    queryKey: ['search', 'text', universeId, q],
+    queryFn: () => api.get<TextSearchHit[]>(`/search/text?universe_id=${universeId}&q=${encodeURIComponent(q)}&limit=10`),
+    enabled: !!universeId && q.trim().length >= 3,
+    placeholderData: keepPreviousData,
+  })
+
+// Members whose name is close to `name`: the duplicate check on the create form.
+export const useSimilarMembers = (universeId: UUID | null, name: string, excludeId?: UUID) =>
+  useQuery({
+    queryKey: ['members', 'similar', universeId, name, excludeId ?? null],
+    queryFn: () =>
+      api.get<MemberSimilar[]>(
+        `/members/similar?universe_id=${universeId}&name=${encodeURIComponent(name)}` +
+          (excludeId ? `&exclude_id=${excludeId}` : ''),
+      ),
+    enabled: !!universeId && name.trim().length >= 3,
+    staleTime: 30_000,
   })
 
 export const useMember = (id: UUID, universeId: UUID | null) =>

@@ -7,7 +7,7 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select
 
-from app.core import storage
+from app.core import fuzzy, storage
 from app.core.enums import CustodySystem, MediaKind
 from app.core.slug import slugify
 from app.models.alliance import AllianceSet
@@ -579,21 +579,80 @@ async def list_members_by_source(
     return await _attach_affiliations_bulk(session, list(result.scalars().all()))
 
 
+def _member_name_score(q: str):
+    """Best trigram score of ``q`` across a member's names, aliases included."""
+    alias_score = (
+        select(sa.func.max(fuzzy.word_score(q, MemberAlias.alias)))
+        .where(MemberAlias.member_id == Member.id)
+        .scalar_subquery()
+    )
+    return sa.func.greatest(
+        fuzzy.best_score(q, Member.nickname, Member.legal_name, sa.cast(Member.aliases, sa.Text)),
+        sa.func.coalesce(alias_score, 0),
+    )
+
+
 async def search_members(session: AsyncSession, universe_id: uuid.UUID, q: str) -> list[Member]:
+    """Substring matches first, then trigram near-misses by score (see app/core/fuzzy.py)."""
     pattern = f"%{q}%"
     alias_match = select(MemberAlias.member_id).where(MemberAlias.alias.ilike(pattern))
+    substring = (
+        Member.nickname.ilike(pattern)
+        | Member.legal_name.ilike(pattern)
+        | sa.cast(Member.aliases, sa.Text).ilike(pattern)
+        | Member.id.in_(alias_match)
+    )
+    if not fuzzy.use_fuzzy(q):
+        result = await session.execute(
+            select(Member).where(Member.universe_id == universe_id, substring).distinct()
+        )
+        return await _attach_affiliations_bulk(session, list(result.scalars().all()))
+
+    score = _member_name_score(q).label("score")
+    exact = sa.case((substring, 1), else_=0).label("exact")
+    inner = (
+        select(Member.id, exact, score).where(Member.universe_id == universe_id).subquery()
+    )
     result = await session.execute(
         select(Member)
-        .where(
-            Member.universe_id == universe_id,
-            Member.nickname.ilike(pattern)
-            | Member.legal_name.ilike(pattern)
-            | sa.cast(Member.aliases, sa.Text).ilike(pattern)
-            | Member.id.in_(alias_match),
-        )
-        .distinct()
+        .join(inner, inner.c.id == Member.id)
+        .where((inner.c.exact == 1) | (inner.c.score >= fuzzy.FUZZY_THRESHOLD))
+        .order_by(inner.c.exact.desc(), inner.c.score.desc(), Member.nickname, Member.legal_name)
     )
     return await _attach_affiliations_bulk(session, list(result.scalars().all()))
+
+
+async def find_similar_members(
+    session: AsyncSession,
+    universe_id: uuid.UUID,
+    name: str,
+    threshold: float = fuzzy.FUZZY_THRESHOLD,
+    exclude_id: uuid.UUID | None = None,
+    limit: int = 10,
+) -> list[tuple[Member, float]]:
+    """Members whose nickname, legal name or an alias is close to ``name``.
+
+    The duplicate check: before creating a member, is someone with nearly the
+    same name already on file? Unlike search it returns scores,
+    and an exact match scores 1.0, so a caller can tell "this is them" from
+    "this might be them".
+    """
+    score = _member_name_score(name).label("score")
+    inner = select(Member.id, score).where(Member.universe_id == universe_id)
+    if exclude_id is not None:
+        inner = inner.where(Member.id != exclude_id)
+    inner = inner.subquery()
+    result = await session.execute(
+        select(Member, inner.c.score)
+        .join(inner, inner.c.id == Member.id)
+        .where(inner.c.score >= threshold)
+        .order_by(inner.c.score.desc(), Member.nickname)
+        .limit(limit)
+    )
+    rows = result.all()
+    members = await _attach_affiliations_bulk(session, [r[0] for r in rows])
+    by_id = {m.id: m for m in members}
+    return [(by_id[r[0].id], float(r[1])) for r in rows]
 
 
 async def list_member_aliases(session: AsyncSession, member_id: uuid.UUID) -> list[MemberAlias]:

@@ -406,3 +406,29 @@ shortcuts and palette name the universe explicitly.
 
 A half-migrated frontend was briefly live mid-change: `vite build` writes the
 `dist/` nginx serves. Use `npm run build` only to ship.
+
+---
+
+## 2026-11-03 - Fuzzy name search, a duplicate check, and full-text search
+
+Name search was `ILIKE '%q%'`, so one wrong letter found nothing, and a second record
+for someone already on file (the same name with a different last syllable) went in
+unnoticed. Member, set, alliance and source search now keep the substring match and
+add a pg_trgm `word_similarity` match at 0.5 or above, substring hits first and the
+rest by score; queries under three characters stay substring-only. Member search also
+scores `member_alias` rows. The threshold and the pairs it was calibrated on are in
+`app/core/fuzzy.py`. `/sets/search` now goes through `search_gang_sets` (it had been
+a shim over the list filter, which stays substring-only) and scores the variants'
+names and initials, not their JSON keys.
+
+`GET /members/similar?name=` returns members whose nickname, legal name or alias is
+close to a name, with scores (1.0 is exact). The member form shows them under the
+name fields as "Possible duplicate"; nothing blocks the save. The `wiki` CLI can call
+the same endpoint before `member new`.
+
+`GET /search/text?q=` is full-text search (`websearch_to_tsquery`, english stemming)
+over member biographies, set bios, alliance descriptions, incident narratives and
+source titles + notes, ranked, with snippets returned as plain-text runs rather than
+HTML. ⌘K shows them as a "Mentioned in" group under the name matches. Migration
+`3c7f32fad6eb` adds the GIN expression indexes it uses, and a trigram index on
+`member_alias.alias`.

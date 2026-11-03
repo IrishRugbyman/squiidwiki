@@ -854,3 +854,25 @@ export interface UserUniverseAccessItem {
   role: UniverseRole
   granted: boolean
 }
+
+// GET /search/text: full-text hits over biographies, set bios, alliance
+// descriptions, incident narratives and source titles + notes.
+export type TextSearchEntity = 'member' | 'set' | 'alliance' | 'incident' | 'source'
+
+export interface TextSearchHit {
+  entity_type: TextSearchEntity
+  id: UUID
+  label: string
+  slug: string | null
+  date: FuzzyDateValue | null
+  rank: number
+  // The matched passage as runs; `hit` marks the matched words. Plain text,
+  // never HTML.
+  snippet: { text: string; hit: boolean }[]
+}
+
+// GET /members/similar: a possible duplicate and how close its name is (0..1).
+export interface MemberSimilar {
+  member: MemberListItem
+  score: number
+}

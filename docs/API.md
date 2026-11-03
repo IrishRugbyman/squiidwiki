@@ -126,7 +126,8 @@ POST   /api/v1/members/                          Create
 GET    /api/v1/members/{id}?universe_id=         Get (includes source_ids)
 PATCH  /api/v1/members/{id}?universe_id=         Update
 DELETE /api/v1/members/{id}?universe_id=         Delete (Admin)
-GET    /api/v1/members/search?universe_id=&q=    Trigram search on nickname/legal_name
+GET    /api/v1/members/search?universe_id=&q=    Substring, then trigram near-misses, on nickname/legal_name/aliases
+GET    /api/v1/members/similar?universe_id=&name=[&exclude_id=&threshold=0.5&limit=10]  Possible duplicates with scores (0..1)
 GET    /api/v1/members/{id}/stats?universe_id=   Kill/shooting stats
 ```
 
@@ -183,7 +184,8 @@ POST   /api/v1/sources/                       Create
 GET    /api/v1/sources/{id}?universe_id=      Get
 PATCH  /api/v1/sources/{id}?universe_id=      Update
 DELETE /api/v1/sources/{id}?universe_id=      Delete (Admin)
-GET    /api/v1/sources/search?universe_id=&q= Search
+GET    /api/v1/sources/search?universe_id=&q= Substring, then trigram near-misses, on title
+GET    /api/v1/search/text?universe_id=&q=[&types=member|set|alliance|incident|source&limit=20]  Full-text over bios, narratives, source notes
 ```
 
 ---

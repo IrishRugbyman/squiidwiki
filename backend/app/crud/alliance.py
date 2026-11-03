@@ -7,6 +7,7 @@ from sqlalchemy import delete
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import func, select
 
+from app.core import fuzzy
 from app.core.enums import SetRelationshipType
 from app.core.slug import slugify
 from app.crud.media import delete_media
@@ -360,12 +361,16 @@ async def list_alliance_set_ids(session: AsyncSession, alliance_id: uuid.UUID) -
 
 async def search_alliances(session: AsyncSession, universe_id: uuid.UUID, q: str) -> list[Alliance]:
     pattern = f"%{q}%"
-    result = await session.execute(
-        select(Alliance).where(
-            Alliance.universe_id == universe_id,
-            Alliance.name.ilike(pattern) | sa.cast(Alliance.aliases, sa.Text).ilike(pattern),
-        )
+    aliases = sa.cast(Alliance.aliases, sa.Text)
+    substring = Alliance.name.ilike(pattern) | aliases.ilike(pattern)
+    where = Alliance.universe_id == universe_id
+    if not fuzzy.use_fuzzy(q):
+        result = await session.execute(select(Alliance).where(where, substring))
+        return result.scalars().all()
+    stmt = fuzzy.ranked_select(
+        Alliance, where, substring, fuzzy.best_score(q, Alliance.name, aliases), Alliance.name
     )
+    result = await session.execute(stmt)
     return result.scalars().all()
 
 

@@ -9,6 +9,7 @@ from sqlalchemy import case, delete
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import func, select
 
+from app.core import fuzzy
 from app.core.enums import SetRelationshipType, SetStatus
 from app.core.fuzzy_date import FuzzyDate
 from app.core.slug import slugify
@@ -454,8 +455,11 @@ def _apply_set_filters(
     gang_id: FilterId = None,
     municipality_id: FilterId = None,
     reserved: bool | None = None,
+    ids: list[uuid.UUID] | None = None,
 ):
     stmt = stmt.where(GangSet.universe_id == universe_id)
+    if ids is not None:
+        stmt = stmt.where(GangSet.id.in_(ids))
     # None: everything. False: the real sets only. True: the system sets only.
     if reserved is not None:
         stmt = stmt.where(GangSet.is_reserved.is_(reserved))
@@ -503,6 +507,7 @@ async def list_gang_sets(
     gang_id: FilterId = None,
     municipality_id: FilterId = None,
     reserved: bool | None = None,
+    ids: list[uuid.UUID] | None = None,
     sort: SortKey = "name",
     order: SortOrder = "asc",
 ) -> tuple[list[GangSet], int]:
@@ -521,6 +526,7 @@ async def list_gang_sets(
         gang_id=gang_id,
         municipality_id=municipality_id,
         reserved=reserved,
+        ids=ids,
     )
     total = (await session.execute(count_stmt)).scalar_one()
 
@@ -558,6 +564,7 @@ async def list_gang_sets(
         gang_id=gang_id,
         municipality_id=municipality_id,
         reserved=reserved,
+        ids=ids,
     )
 
     sort_cols: dict[str, sa.sql.ColumnElement] = {
@@ -1224,12 +1231,26 @@ async def get_set_max_updated_at(session: AsyncSession, set_id: uuid.UUID) -> da
 
 async def search_gang_sets(session: AsyncSession, universe_id: uuid.UUID, q: str) -> list[GangSet]:
     pattern = f"%{q}%"
-    result = await session.execute(
-        select(GangSet).where(
-            GangSet.universe_id == universe_id,
-            GangSet.name.ilike(pattern) | sa.cast(GangSet.name_variants, sa.Text).ilike(pattern),
-        )
+    variants = sa.cast(GangSet.name_variants, sa.Text)
+    substring = GangSet.name.ilike(pattern) | variants.ilike(pattern)
+    where = GangSet.universe_id == universe_id
+    if not fuzzy.use_fuzzy(q):
+        result = await session.execute(select(GangSet).where(where, substring))
+        return result.scalars().all()
+    # The variants' JSON text carries key names ("initials", "number") that would
+    # score against queries like "num"; score the display name and the variants'
+    # values only.
+    variant_values = sa.literal_column(
+        "(SELECT coalesce(string_agg(v #>> '{}', ' '), '') FROM jsonb_path_query("
+        "sets.name_variants, '$[*].name ? (@.type() == \"string\")') v)"
+        " || ' ' || "
+        "(SELECT coalesce(string_agg(v #>> '{}', ' '), '') FROM jsonb_path_query("
+        "sets.name_variants, '$[*].initials ? (@.type() == \"string\")') v)"
     )
+    stmt = fuzzy.ranked_select(
+        GangSet, where, substring, fuzzy.best_score(q, GangSet.name, variant_values), GangSet.name
+    )
+    result = await session.execute(stmt)
     return result.scalars().all()
 
 

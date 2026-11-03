@@ -55,8 +55,6 @@ goes in `CHANGELOG.md`.
 
 ## Search & discovery
 
-- [ ] **Full-text search across biographies and source narratives** — Postgres `tsvector` + GIN index. ⌘K only matches names today; this lets you find "the kid mentioned in that 2022 article."
-- [ ] **Fuzzy nickname matching (`pg_trgm`)** — trigram similarity search on `display_name` and aliases so ⌘K and participant search capture misspellings and phonetic variations ("Lil Tony" vs. "Lil Tone").
 - [ ] **Radial geographic filtering** — "drop pin + radius" filter on the incidents list. Instead of hard municipality boundaries, filter by "everything within 2 miles of [coordinates/intersection]."
 - [ ] **Saved search alerts** — saved filter presets already exist; add a "notify me when a new entity matches this filter" toggle, surfaced as a feed badge. SSE or polled.
 - [ ] **Favorites / star entities** — quick access to frequently used entities via a sidebar section or ⌘K, separate from the recents list.

@@ -5,6 +5,7 @@ import sqlalchemy as sa
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import func, select
 
+from app.core import fuzzy
 from app.models.business import BusinessSource
 from app.models.gang_set import SetSource
 from app.models.incident import IncidentSource
@@ -119,10 +120,11 @@ async def delete_source(session: AsyncSession, id: uuid.UUID, universe_id: uuid.
 
 
 async def search_sources(session: AsyncSession, universe_id: uuid.UUID, q: str) -> list[Source]:
-    result = await session.execute(
-        select(Source).where(
-            Source.universe_id == universe_id,
-            Source.title.ilike(f"%{q}%"),
-        )
-    )
+    substring = Source.title.ilike(f"%{q}%")
+    where = Source.universe_id == universe_id
+    if not fuzzy.use_fuzzy(q):
+        result = await session.execute(select(Source).where(where, substring))
+        return result.scalars().all()
+    stmt = fuzzy.ranked_select(Source, where, substring, fuzzy.word_score(q, Source.title), Source.title)
+    result = await session.execute(stmt)
     return result.scalars().all()
