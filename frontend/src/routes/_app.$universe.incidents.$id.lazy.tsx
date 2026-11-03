@@ -2,6 +2,7 @@ import { createLazyFileRoute, Link, useNavigate } from '@tanstack/react-router'
 import { CheckCircle2, ExternalLink, FileText, MapPin, MoreHorizontal, Pencil, Plus, Trash2, UserPlus, Users } from 'lucide-react'
 import { lazy, Suspense, useState } from 'react'
 import { Breadcrumbs } from '@/components/Breadcrumbs'
+import { DetailViewTabs, HistoryPanel, type DetailView } from '@/components/history/HistoryPanel'
 import { DetailRow, PanelHeading } from '@/components/detail/DetailParts'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { CopyButton } from '@/components/CopyButton'
@@ -125,6 +126,10 @@ function IncidentDetailPage() {
   useRecordRecent(incident ? { type: 'incident', id: incident.id, slug: null, label: incidentLabel(incident.type, incident.date) } : null)
 
   const [editing, setEditing] = useState(false)
+  const [view, setView] = useState<DetailView>('overview')
+  // History reads the audit log, which is admin-only like the Audit Log page.
+  const isAdmin = user?.global_role === 'ADMIN'
+  const showHistory = isAdmin && view === 'history'
   const [deleting, setDeleting] = useState(false)
   const [addingParticipant, setAddingParticipant] = useState(false)
   const [creatingMember, setCreatingMember] = useState(false)
@@ -228,7 +233,9 @@ function IncidentDetailPage() {
               </div>
             </div>
 
-            <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_340px]">
+            {isAdmin && <DetailViewTabs value={view} onChange={setView} />}
+            {showHistory && <HistoryPanel entityType="incident" entityId={incident.id} universeId={universe?.id ?? null} />}
+            <div className={`${showHistory ? 'hidden ' : ''}grid gap-5 lg:grid-cols-[minmax(0,1fr)_340px]`}>
               <div className="min-w-0 space-y-5">
                 {incident.narrative ? (
                   <div className="group relative rounded-lg border border-zinc-800 bg-zinc-900/30 p-4">

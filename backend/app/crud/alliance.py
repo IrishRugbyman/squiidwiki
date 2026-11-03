@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import func, select
 
 from app.core import fuzzy
+from app.core.audit import record_link_change
 from app.core.enums import SetRelationshipType
 from app.core.slug import slugify
 from app.crud.media import delete_media
@@ -112,6 +113,15 @@ async def _sync_alliance_sets(
         ).scalars()
     )
     dropped = current - set(wanted)
+    record_link_change(
+        session,
+        entity_type="alliance",
+        entity_id=alliance_id,
+        link="sets",
+        key="set_id",
+        before=[{"set_id": sid} for sid in current],
+        after=[{"set_id": sid} for sid in wanted],
+    )
     if dropped:
         await session.execute(
             delete(AllianceSet).where(

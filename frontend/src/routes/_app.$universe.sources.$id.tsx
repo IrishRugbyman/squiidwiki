@@ -7,6 +7,7 @@ import { MemberStatusBadge } from '@/components/StatusBadge'
 import { ErrorState } from '@/components/ErrorState'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { Breadcrumbs } from '@/components/Breadcrumbs'
+import { HistoryPanel } from '@/components/history/HistoryPanel'
 import { CopyButton } from '@/components/CopyButton'
 import { timeAgo } from '@/lib/utils'
 import { DetailHeaderSkeleton } from '@/components/skeletons'
@@ -146,6 +147,8 @@ function SourceDetailPage() {
                 )}
               </TabsTrigger>
               <TabsTrigger value="photos">Photos</TabsTrigger>
+              {/* The audit log is admin-only, like the Audit Log page. */}
+              {user?.global_role === 'ADMIN' && <TabsTrigger value="history">History</TabsTrigger>}
             </TabsList>
 
             <TabsContent value="incidents" className="mt-4">
@@ -227,6 +230,11 @@ function SourceDetailPage() {
                 </Suspense>
               )}
             </TabsContent>
+            {user?.global_role === 'ADMIN' && (
+              <TabsContent value="history">
+                <HistoryPanel entityType="source" entityId={source.id} universeId={universe?.id ?? null} />
+              </TabsContent>
+            )}
           </Tabs>
 
           {universe && (

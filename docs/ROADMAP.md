@@ -44,9 +44,7 @@ goes in `CHANGELOG.md`.
 - [ ] **Member merge** — when duplicate records exist, a merge dialog picks the canonical record and migrates all incident participations, family links, and source citations.
 - [ ] **Web Archive snapshot on source create** — when a `Source` URL is saved, fire a request to `web.archive.org/save/<url>` and store the resulting archived URL alongside. News links rot fast.
 - [ ] **Auto-fetch source metadata** — when a URL is pasted into the source form, fetch title / byline / publish date / og-image and prefill the fields. Removes the most tedious part of citing.
-- [ ] **Version history / diff view on biographies** — audit log on writes is already captured; expose it on the entity page as a "History" tab with red/green diffs.
 - [ ] **"Stale data" indicators** — `last_verified_at` timestamp on Members and Sets with a subtle UI indicator if a profile hasn't been updated or involved in a new incident in over 18 months.
-- [ ] **Data anomaly dashboard** — admin view flagging logical impossibilities: member linked to an incident before their birth year, member `outcome=KILLED` in 2021 but attached to a later incident in 2023, set `EXTINCT` but has recent incidents, etc.
 - [ ] **Wiki-style internal links in bios** — `[[member:slug]]` / `[[set:slug]]` syntax expanded by the markdown renderer into typed links. Pairs with the inline bio editor.
 - [ ] **AI-assisted bio draft from source URL** — paste a news article, get a structured proposal: name, DOB, sets, incidents to link, draft bio. User reviews before insert. Admin-only endpoint to control token spend.
 - [ ] **Inline biography markdown split-pane** *(partial)* — plain-text inline edit shipped. Remaining: live markdown preview split-pane (GitHub issue-editor style); requires installing `react-markdown`.

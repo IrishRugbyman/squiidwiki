@@ -42,6 +42,9 @@ Alembic config (`alembic.ini`) targets the prod DB by default. After autogenerat
 ## Audit log & death sync
 
 - All write operations on tracked entities are captured by SQLAlchemy event listeners (see `app/core/audit.py`). The `member` listener captures changes for free, including those triggered by `_sync_killed_participants`.
+- The listeners store a **whole-row snapshot**, not a diff; `app/crud/history.py` diffs consecutive snapshots for the History tab (`GET /history/{type}/{id}`).
+- **Join rows are not snapshotted.** Their sync functions (`_sync_member_sets`, `_sync_participants`, `_sync_set_gangs`, ...) replace rows with a Core DELETE and re-insert, which ORM listeners cannot see properly. Each one instead reads the rows before writing and calls `record_link_change(...)`, which writes one audit row on the owner when the list changed, with `_related` naming every far side (GIN-indexed). **A new sync function for a join table must do the same**, or its changes never reach History.
+- `attach_audit_listeners()` is idempotent. Tests that need audit rows call it themselves: the ASGI test client skips the app lifespan.
 - **Incident-driven death sync** is implemented in `app/crud/incident.py`: `_sync_killed_participants` runs after `_sync_participants` on both create and update. For semantics (when it fires, what it does, irreversibility, FK behavior on incident delete), see the root `CLAUDE.md` → "Incident-driven death sync".
 
 ## Media / SQLModel quirks

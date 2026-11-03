@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select
 
 from app.core import fuzzy, storage
+from app.core.audit import load_link_rows, record_link_change
 from app.core.enums import CustodySystem, MediaKind
 from app.core.slug import slugify
 from app.models.alliance import AllianceSet
@@ -198,11 +199,27 @@ async def attach_primary_photos(session: AsyncSession, members: list[Member]) ->
 async def _sync_member_sources(
     session: AsyncSession, member_id: uuid.UUID, source_ids: list[uuid.UUID]
 ) -> None:
+    before = await load_link_rows(
+        session, MemberSource, MemberSource.member_id == member_id, ["source_id"]
+    )
     await session.execute(
         MemberSource.__table__.delete().where(MemberSource.member_id == member_id)
     )
     for sid in source_ids:
         session.add(MemberSource(member_id=member_id, source_id=sid))
+    record_link_change(
+        session,
+        entity_type="member",
+        entity_id=member_id,
+        link="sources",
+        key="source_id",
+        before=before,
+        after=[{"source_id": sid} for sid in source_ids],
+    )
+
+
+# The fields of a set spell that the history tab shows.
+_SPELL_FIELDS = ["set_id", "rank", "is_primary", "from_date", "until_date"]
 
 
 async def _sync_member_sets(
@@ -214,10 +231,26 @@ async def _sync_member_sets(
     touched here: ending an affiliation is an explicit dated action, not a side
     effect of editing the current list. See `end_member_affiliation`.
     """
-    await session.execute(
-        MemberSet.__table__.delete().where(
-            MemberSet.member_id == member_id, MemberSet.until_date.is_(None)
-        )
+    open_spell = (MemberSet.member_id == member_id) & MemberSet.until_date.is_(None)
+    before = await load_link_rows(session, MemberSet, open_spell, _SPELL_FIELDS)
+    await session.execute(MemberSet.__table__.delete().where(open_spell))
+    record_link_change(
+        session,
+        entity_type="member",
+        entity_id=member_id,
+        link="sets",
+        key="set_id",
+        before=before,
+        after=[
+            {
+                "set_id": aff.set_id,
+                "rank": aff.rank,
+                "is_primary": aff.is_primary,
+                "from_date": _fuzzy_to_dict(aff.from_date),
+                "until_date": None,
+            }
+            for aff in affiliations
+        ],
     )
     for aff in affiliations:
         session.add(
@@ -300,9 +333,19 @@ async def end_member_affiliation(
     ).scalar_one_or_none()
     if row is None:
         return False
+    before = {f: getattr(row, f) for f in _SPELL_FIELDS}
     row.until_date = until_date
     # A set the member has left cannot stay flagged as their primary one.
     row.is_primary = False
+    record_link_change(
+        session,
+        entity_type="member",
+        entity_id=member_id,
+        link="sets",
+        key="set_id",
+        before=[before],
+        after=[{f: getattr(row, f) for f in _SPELL_FIELDS}],
+    )
     await session.commit()
     return True
 

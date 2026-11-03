@@ -6,9 +6,12 @@ import type {
   AllianceRelationshipItem,
   AllianceRead,
   AllianceReadDetail,
+  AnomalyReport,
   AuditLogRead,
   CursorPage,
   GangListItem,
+  HistoryEntityType,
+  HistoryPage,
   GangDetail,
   GangRead,
   GangWrite,
@@ -1373,6 +1376,35 @@ export const useAuditLogs = (filters: {
       return api.get<OffsetPage<AuditLogRead>>(`/audit/?${params}`)
     },
     staleTime: 10_000,
+  })
+
+// ─── Entity history / anomalies (admin) ───────────────────────────────────────
+
+// Audit-log history of one entity, its link changes included. Fetched only
+// while the History tab is open.
+export const useEntityHistory = (
+  entityType: HistoryEntityType,
+  entityId: UUID,
+  universeId: UUID | null,
+  offset: number,
+  enabled: boolean,
+) =>
+  useQuery({
+    queryKey: ['history', entityType, entityId, offset],
+    queryFn: () =>
+      api.get<HistoryPage>(
+        `/history/${entityType}/${entityId}?universe_id=${universeId}&offset=${offset}&limit=25`,
+      ),
+    enabled: enabled && !!universeId && !!entityId,
+    placeholderData: keepPreviousData,
+  })
+
+export const useAnomalies = (universeId: UUID | null) =>
+  useQuery({
+    queryKey: ['anomalies', universeId],
+    queryFn: () => api.get<AnomalyReport>(`/admin/anomalies?universe_id=${universeId}`),
+    enabled: !!universeId,
+    staleTime: 30_000,
   })
 
 // ─── Users (admin) ────────────────────────────────────────────────────────────

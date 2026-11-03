@@ -5,6 +5,7 @@ from sqlalchemy import case, text
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select
 
+from app.core.audit import load_link_rows, record_link_change
 from app.core.enums import MemberStatus, ParticipantOutcome
 from app.models.alliance import AllianceSet
 from app.models.gang_set import GangSet
@@ -36,6 +37,19 @@ def _fuzzy_to_dict(fd) -> dict | None:
 async def _sync_participants(
     session: AsyncSession, incident_id: uuid.UUID, participants: list[ParticipantCreate]
 ) -> None:
+    fields = ["member_id", "role", "outcome", "acquitted", "notes"]
+    before = await load_link_rows(
+        session, IncidentParticipant, IncidentParticipant.incident_id == incident_id, fields
+    )
+    record_link_change(
+        session,
+        entity_type="incident",
+        entity_id=incident_id,
+        link="participants",
+        key="member_id",
+        before=before,
+        after=[{f: getattr(p, f) for f in fields} for p in participants],
+    )
     await session.execute(
         IncidentParticipant.__table__.delete().where(IncidentParticipant.incident_id == incident_id)
     )
@@ -55,6 +69,19 @@ async def _sync_participants(
 async def _sync_set_participants(
     session: AsyncSession, incident_id: uuid.UUID, set_participants: list[SetParticipantCreate]
 ) -> None:
+    fields = ["set_id", "role", "outcome", "notes"]
+    before = await load_link_rows(
+        session, IncidentSetParticipant, IncidentSetParticipant.incident_id == incident_id, fields
+    )
+    record_link_change(
+        session,
+        entity_type="incident",
+        entity_id=incident_id,
+        link="set_participants",
+        key="set_id",
+        before=before,
+        after=[{f: getattr(p, f) for f in fields} for p in set_participants],
+    )
     await session.execute(
         IncidentSetParticipant.__table__.delete().where(
             IncidentSetParticipant.incident_id == incident_id
@@ -75,6 +102,18 @@ async def _sync_set_participants(
 async def _sync_incident_sources(
     session: AsyncSession, incident_id: uuid.UUID, source_ids: list[uuid.UUID]
 ) -> None:
+    before = await load_link_rows(
+        session, IncidentSource, IncidentSource.incident_id == incident_id, ["source_id"]
+    )
+    record_link_change(
+        session,
+        entity_type="incident",
+        entity_id=incident_id,
+        link="sources",
+        key="source_id",
+        before=before,
+        after=[{"source_id": sid} for sid in source_ids],
+    )
     await session.execute(
         IncidentSource.__table__.delete().where(IncidentSource.incident_id == incident_id)
     )

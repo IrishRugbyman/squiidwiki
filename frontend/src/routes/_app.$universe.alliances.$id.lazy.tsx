@@ -4,6 +4,7 @@ import { GitFork, MoreHorizontal, Network, Pencil, Plus, Search, Shield, Swords,
 import { lazy, Suspense, useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import { Breadcrumbs } from '@/components/Breadcrumbs'
+import { DetailViewTabs, HistoryPanel, type DetailView } from '@/components/history/HistoryPanel'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { CopyButton } from '@/components/CopyButton'
 import { DetailRow, IncidentRow, None, PanelHeading, StatStrip } from '@/components/detail/DetailParts'
@@ -99,6 +100,10 @@ function AllianceDetailPage() {
   useRecordRecent(alliance ? { type: 'alliance', id: alliance.id, slug: alliance.slug, label: alliance.name } : null)
 
   const [editing, setEditing] = useState(false)
+  const [view, setView] = useState<DetailView>('overview')
+  // History reads the audit log, which is admin-only like the Audit Log page.
+  const isAdmin = user?.global_role === 'ADMIN'
+  const showHistory = isAdmin && view === 'history'
   const [deleting, setDeleting] = useState(false)
   const [addingSet, setAddingSet] = useState(false)
   const [addingRel, setAddingRel] = useState(false)
@@ -242,7 +247,9 @@ function AllianceDetailPage() {
             { label: 'Murders', value: killings, accent: 'text-rose-400', title: 'Murders involving its members, on either side' },
           ]} />
 
-          <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_320px]">
+          {isAdmin && <DetailViewTabs value={view} onChange={setView} />}
+          {showHistory && <HistoryPanel entityType="alliance" entityId={alliance.id} universeId={universe?.id ?? null} />}
+          <div className={`${showHistory ? 'hidden ' : ''}grid gap-5 lg:grid-cols-[minmax(0,1fr)_320px]`}>
             <div className="min-w-0 space-y-6">
               {alliance.description ? (
                 <div className="group relative rounded-lg border border-zinc-800 bg-zinc-900/30 p-4">

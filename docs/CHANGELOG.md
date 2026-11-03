@@ -432,3 +432,51 @@ source titles + notes, ranked, with snippets returned as plain-text runs rather 
 HTML. ⌘K shows them as a "Mentioned in" group under the name matches. Migration
 `3c7f32fad6eb` adds the GIN expression indexes it uses, and a trigram index on
 `member_alias.alias`.
+
+---
+
+## 2026-11-03 - A History tab on every entity page, and an anomaly report
+
+**History.** `audit_log` had recorded every write since the first schema, but only
+the global Audit Log page read it, and only as raw row snapshots: finding who put a
+member in a set meant querying it by hand, and could not be answered at all,
+because join rows were never logged. `GET /history/{member|set|alliance|incident|source}/{id}`
+(admin only, like `/audit/`) returns one entity's changes newest first, paginated,
+with the actor's email and column-level old -> new. The listeners store a whole-row
+snapshot, so the diff is computed against the previous snapshot of the same entity,
+and a save that changed nothing visible is dropped.
+
+Join rows are the other half. Their sync functions replace every row with a Core
+DELETE and re-insert on each save, so a row-level listener would log "added" for
+every unchanged link on every edit and miss every delete. Instead each sync reads
+the rows first and calls `record_link_change` (`app/core/audit.py`), which writes
+one audit row on the owner only when the list actually changed: added, removed,
+and changed rows, plus `_related`, every far-side id. That covers a member's sets
+(including ending a spell) and sources, an incident's participants, set
+participants and sources, a set's gangs, alliances and sources, and an alliance's
+sets. A GIN index on `diff_json -> '_related'` (migration `8ee2386f30c6`) lets the
+far side read them, so a set's History shows "Member A was added to this set" and a
+member's shows the incidents they were put in. Link history starts with this
+change: nothing older was recorded.
+
+The tab is on the member, set, alliance, incident and source pages, for admins.
+Long text (biography, bio, description, narrative, notes) renders as a red/green
+word diff, everything else as old -> new, ids as links. The panel is its own lazy
+chunk; the main bundle grew by 0.4 kB gzipped.
+
+**Anomalies.** `wiki check` compares case files with the database; nothing looked
+for rows that contradict each other. `GET /admin/anomalies?universe_id=...` (admin,
+`kind=` repeatable to run a subset) runs the checks in `app/crud/anomalies.py`,
+plain functions over one load of the universe that a CLI can call directly:
+a member in a non-reserved set with nothing citing them (no `member_source`, no
+source on any incident they are in; `member_set` has no source column, so the link
+itself cannot be asked), DEAD with no date of death and no death incident, a
+participant in an incident after their death, or before their birth, an EXTINCT set
+in an incident in the last two years (sets have no extinction date), a death
+incident on a member who is not DEAD, a KILLED row on a member who is not DEAD,
+killed in two incidents, died before being born, and a set spell that ends before it
+starts. Every date comparison goes through the FuzzyDate's span (a Y date is the
+whole year, approximate widens it by a year each side) and reports only when the
+spans do not overlap. The page is `/$universe/anomalies`, in the admin part of the
+sidebar, grouped by check with links to both records.
+

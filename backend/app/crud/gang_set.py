@@ -10,6 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import func, select
 
 from app.core import fuzzy
+from app.core.audit import load_link_rows, record_link_change
 from app.core.enums import SetRelationshipType, SetStatus
 from app.core.fuzzy_date import FuzzyDate
 from app.core.slug import slugify
@@ -203,6 +204,18 @@ async def _sync_set_gangs(session: AsyncSession, obj: GangSet, gang_ids: list[uu
                 status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
                 detail=f"gang_ids not in this universe: {', '.join(missing)}",
             )
+    before = await load_link_rows(
+        session, SetGang, SetGang.set_id == obj.id, ["gang_id", "position"]
+    )
+    record_link_change(
+        session,
+        entity_type="sets",
+        entity_id=obj.id,
+        link="gangs",
+        key="gang_id",
+        before=before,
+        after=[{"gang_id": g, "position": i} for i, g in enumerate(gang_ids)],
+    )
     await session.execute(delete(SetGang).where(SetGang.set_id == obj.id))
     await session.flush()
     for position, gang_id in enumerate(gang_ids):
@@ -240,7 +253,19 @@ async def _sync_set_alliances(
                 status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
                 detail=f"alliance_ids not in this universe: {', '.join(missing)}",
             )
-    before = set(await list_set_alliance_ids(session, obj.id))
+    before_rows = await load_link_rows(
+        session, AllianceSet, AllianceSet.set_id == obj.id, ["alliance_id", "position"]
+    )
+    before = {r["alliance_id"] for r in before_rows}
+    record_link_change(
+        session,
+        entity_type="sets",
+        entity_id=obj.id,
+        link="alliances",
+        key="alliance_id",
+        before=before_rows,
+        after=[{"alliance_id": a, "position": i} for i, a in enumerate(alliance_ids)],
+    )
     await session.execute(delete(AllianceSet).where(AllianceSet.set_id == obj.id))
     await session.flush()
     for position, alliance_id in enumerate(alliance_ids):
@@ -361,6 +386,16 @@ async def _sync_set_sources(
                 status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
                 detail=f"Sources not found in this universe: {', '.join(missing)}",
             )
+    before = await load_link_rows(session, SetSource, SetSource.set_id == set_id, ["source_id"])
+    record_link_change(
+        session,
+        entity_type="sets",
+        entity_id=set_id,
+        link="sources",
+        key="source_id",
+        before=before,
+        after=[{"source_id": sid} for sid in wanted],
+    )
     await session.execute(delete(SetSource).where(SetSource.set_id == set_id))
     for sid in wanted:
         session.add(SetSource(set_id=set_id, source_id=sid))

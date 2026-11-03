@@ -1,6 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router'
 
-export const TAB_KEYS = ['overview', 'members', 'incidents', 'relationships', 'media', 'activity'] as const
+export const TAB_KEYS = ['overview', 'members', 'incidents', 'relationships', 'media', 'activity', 'history'] as const
 export type TabKey = typeof TAB_KEYS[number]
 
 export interface SetSearch {
