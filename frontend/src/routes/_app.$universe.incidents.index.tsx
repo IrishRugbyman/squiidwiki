@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
-import { Banknote, Bomb, Bookmark, BookmarkPlus, CarFront, CheckCircle2, Download, Flame, HandCoins, Pencil, Plus, Search, ShieldAlert, Skull, Swords, Trash2, User, UserX, X } from 'lucide-react'
+import { Banknote, Bomb, Bookmark, BookmarkPlus, CarFront, CheckCircle2, Download, Flame, HandCoins, Pencil, Pill, Plus, Search, ShieldAlert, Skull, Swords, Trash2, User, UserX, X } from 'lucide-react'
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useVirtualizer } from '@tanstack/react-virtual'
@@ -27,7 +27,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Skeleton } from '@/components/ui/skeleton'
 import { Textarea } from '@/components/ui/textarea'
 import {
-  useCreateIncident, useUpdateIncident, useIncident,
+  useCreateIncident, useUpdateIncident, useIncident, useBatchCitations,
   useAllIncidents, useIncidentsByMunicipality, useMember, useMemberIncidents, useMemberSearch,
   useMunicipalities, useAllMembers, useAllSets, useDeleteIncident,
 } from '@/lib/queries'
@@ -42,6 +42,8 @@ import { textParam } from '@/lib/searchParams'
 import type { FuzzyDateValue } from '@/components/FuzzyDate'
 import type { IncidentListItem, IncidentReadDetail, IncidentType, MemberListItem, ParticipantOutcome, ParticipantRole, SetListItem, UUID } from '@/lib/types'
 import { useUniverseStore } from '@/stores/universe'
+import { participantDrafts, participantPayload, setParticipantDrafts } from '@/lib/incidentDraft'
+import type { ParticipantDraft, SetParticipantDraft } from '@/lib/incidentDraft'
 
 type SortKey = 'date' | 'added'
 
@@ -82,6 +84,7 @@ const TYPE_CONFIG: Record<IncidentType, { icon: typeof ShieldAlert; color: strin
   KIDNAPPING: { icon: UserX,       color: 'text-blue-400',   dot: 'bg-blue-500',   tile: 'bg-blue-950/60 text-blue-400',     label: 'Kidnapping' },
   ROBBERY:    { icon: Banknote,    color: 'text-emerald-400',dot: 'bg-emerald-500',tile: 'bg-emerald-950/60 text-emerald-400', label: 'Robbery'  },
   CRASH:      { icon: CarFront,    color: 'text-sky-400',    dot: 'bg-sky-500',    tile: 'bg-sky-950/60 text-sky-400',       label: 'Crash'    },
+  OVERDOSE:   { icon: Pill,        color: 'text-fuchsia-400', dot: 'bg-fuchsia-500', tile: 'bg-fuchsia-950/60 text-fuchsia-400', label: 'Overdose' },
 }
 
 const TYPE_ORDER = Object.keys(TYPE_CONFIG) as IncidentType[]
@@ -99,21 +102,7 @@ function TypeChip({ type }: { type: IncidentType }) {
 
 // ─── Participant types ────────────────────────────────────────────────────────
 
-export interface ParticipantDraft {
-  member_id: UUID
-  member_name: string
-  role: ParticipantRole
-  outcome: ParticipantOutcome
-  /** A court cleared them of this role. Excluded from kill/shooting counts. */
-  acquitted: boolean
-}
-
-export interface SetParticipantDraft {
-  set_id: UUID
-  set_name: string
-  role: ParticipantRole
-  outcome: ParticipantOutcome
-}
+export type { ParticipantDraft, SetParticipantDraft } from '@/lib/incidentDraft'
 
 // ─── Unified participants section ─────────────────────────────────────────────
 
@@ -429,25 +418,17 @@ function IncidentFormSheetInner({ universeId, open, onClose, initial, defaultPar
   const [narrative, setNarrative] = useState(initial?.narrative ?? '')
   const [verified, setVerified] = useState(initial?.verified ?? false)
   const [participants, setParticipants] = useState<ParticipantDraft[]>(() =>
-    initial?.participants?.map((p) => ({
-      member_id: p.member_id,
-      member_name: memberNameMap[p.member_id] ?? p.member_id,
-      role: p.role,
-      outcome: p.outcome,
-      acquitted: p.acquitted,
-    })) ?? defaultParticipants ?? []
+    initial ? participantDrafts(initial, memberNameMap) : (defaultParticipants ?? [])
   )
   const [setLevelParticipants, updateSetLevelParticipants] = useState<SetParticipantDraft[]>(() =>
-    initial?.set_participants?.map((p) => ({
-      set_id: p.set_id,
-      set_name: setNameById[p.set_id] ?? p.set_id,
-      role: p.role,
-      outcome: p.outcome,
-    })) ?? []
+    initial ? setParticipantDrafts(initial, setNameById) : []
   )
   const [error, setError] = useState<string | null>(null)
   const urlPaste = useUrlPasteBanner()
   const [creatingSourceFromUrl, setCreatingSourceFromUrl] = useState<string | null>(null)
+  // Sources saved from a pasted link before the incident exists: cited once it does.
+  const [queuedSourceIds, setQueuedSourceIds] = useState<string[]>([])
+  const batchCite = useBatchCitations(universeId)
 
   // Address geocode autocomplete (Mapbox v6 forward geocoding)
   type MapboxFeature = {
@@ -571,7 +552,12 @@ function IncidentFormSheetInner({ universeId, open, onClose, initial, defaultPar
     [allMunis, cityId],
   )
 
-  const effectiveMunicipalityId = subDistrictId || cityId || null
+  // Until a pick is made, the place on file stands even when the list has not
+  // loaded yet: read off the list alone, a Save clicked before it arrived sent
+  // null and unlinked the incident from its city.
+  const untouched = cityPick === null && subPick === null && !initialMuni
+  const effectiveMunicipalityId =
+    subDistrictId || cityId || (untouched ? initial?.municipality_id ?? defaultMunicipalityId ?? null : null)
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -586,17 +572,20 @@ function IncidentFormSheetInner({ universeId, open, onClose, initial, defaultPar
         municipality_id: effectiveMunicipalityId,
         narrative: narrative || null,
         verified,
-        participants: participants.map(({ member_id, role, outcome, acquitted }) => ({
-          member_id, role, outcome, acquitted,
-        })),
-        set_participants: setLevelParticipants.map(({ set_id, role, outcome }) => ({ set_id, role, outcome })),
+        ...participantPayload(participants, setLevelParticipants),
       }
       if (isEdit) {
         await update.mutateAsync(body)
         toast.success(`Updated ${type.toLowerCase()} incident`)
       } else {
-        await create.mutateAsync(body)
+        const created = await create.mutateAsync(body)
         toast.success(`Recorded ${type.toLowerCase()} incident`)
+        if (queuedSourceIds.length > 0) {
+          await batchCite.mutateAsync({
+            items: queuedSourceIds.map((source_id) => ({ source_id, entity_type: 'incident', entity_id: created.id })),
+          })
+          setQueuedSourceIds([])
+        }
         setType('SHOOTING'); setDate(null); setLocationText(''); setLat(''); setLng(''); setCityId(''); setSubDistrictId('')
         setNarrative(''); setVerified(false); setParticipants([]); updateSetLevelParticipants([])
       }
@@ -637,7 +626,11 @@ function IncidentFormSheetInner({ universeId, open, onClose, initial, defaultPar
             <p className="text-xs font-medium uppercase tracking-wider text-zinc-400">Location</p>
             <div className="space-y-1.5">
               <Label className="text-zinc-300">City</Label>
-              <Select value={cityId || 'none'} onValueChange={(v) => { setCityId(v === 'none' ? '' : v); setSubDistrictId('') }}>
+              {/* Radix calls onValueChange('') when the value has no item yet, which
+                  is every edit opened before the municipality list arrives. Read
+                  as a choice, it unlinked the incident from its city on Save. A
+                  real clear is the 'none' item, so '' is never the user. */}
+              <Select value={cityId || 'none'} onValueChange={(v) => { if (!v) return; setCityId(v === 'none' ? '' : v); setSubDistrictId('') }}>
                 <SelectTrigger><SelectValue placeholder="None" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="none">None</SelectItem>
@@ -650,7 +643,7 @@ function IncidentFormSheetInner({ universeId, open, onClose, initial, defaultPar
             {cityId && subDistricts.length > 0 && (
               <div className="space-y-1.5">
                 <Label className="text-zinc-300">Sub-district</Label>
-                <Select value={subDistrictId || 'none'} onValueChange={(v) => setSubDistrictId(v === 'none' ? '' : v)}>
+                <Select value={subDistrictId || 'none'} onValueChange={(v) => { if (v) setSubDistrictId(v === 'none' ? '' : v) }}>
                   <SelectTrigger><SelectValue placeholder="City level" /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="none">City level</SelectItem>
@@ -766,6 +759,13 @@ function IncidentFormSheetInner({ universeId, open, onClose, initial, defaultPar
           open
           onClose={() => setCreatingSourceFromUrl(null)}
           defaultUrl={creatingSourceFromUrl}
+          onSaved={(s) => {
+            if (initial) {
+              batchCite.mutate({ items: [{ source_id: s.id, entity_type: 'incident', entity_id: initial.id }] })
+            } else {
+              setQueuedSourceIds((q) => [...q, s.id])
+            }
+          }}
         />
       )}
     </Sheet>

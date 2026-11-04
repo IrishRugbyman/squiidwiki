@@ -1,3 +1,4 @@
+import { variantsSearchText } from '@/lib/setDisplay'
 import { Link } from '@tanstack/react-router'
 import { allianceRefsOf } from '@/lib/setGangs'
 import { Plus, Swords, Users, X } from 'lucide-react'
@@ -170,7 +171,7 @@ export function AddAllianceRelationshipDialog({ allianceId, allianceName, univer
     const out: ComboboxItem[] = []
     for (const a of alliances?.items ?? []) {
       if (a.id === allianceId || taken.has(`a:${a.id}`)) continue
-      out.push({ id: `a:${a.id}`, name: a.name, hint: 'alliance', dotClass: 'bg-violet-400', keywords: (a.aliases ?? []).join(' ') })
+      out.push({ id: `a:${a.id}`, name: a.name, hint: 'alliance', dotClass: 'bg-violet-400', keywords: variantsSearchText(a.name_variants) })
     }
     for (const s of sets?.items ?? []) {
       // Its own sets are refused by the server; reserved sets hold no links.

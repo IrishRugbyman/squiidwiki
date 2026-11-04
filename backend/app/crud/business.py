@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import func, select
 
 from app.core.slug import slugify
-from app.models.business import Business, BusinessMember, BusinessSet, BusinessSource
+from app.models.business import Business, BusinessMember, BusinessSet
 from app.models.member import Member
 from app.models.municipality import Municipality
 from app.schemas.business import BusinessCreate, BusinessMemberOut, BusinessUpdate
@@ -53,20 +53,10 @@ async def _sync_business_sets(
         session.add(BusinessSet(business_id=business_id, set_id=sid))
 
 
-async def _sync_business_sources(
-    session: AsyncSession, business_id: uuid.UUID, source_ids: list[uuid.UUID]
-) -> None:
-    await session.execute(
-        BusinessSource.__table__.delete().where(BusinessSource.business_id == business_id)
-    )
-    for sid in source_ids:
-        session.add(BusinessSource(business_id=business_id, source_id=sid))
-
-
 async def create_business(
     session: AsyncSession, data: BusinessCreate, actor_id: uuid.UUID
 ) -> Business:
-    dump = data.model_dump(exclude={"members", "set_ids", "source_ids", "founded_at", "ended_at"})
+    dump = data.model_dump(exclude={"members", "set_ids", "founded_at", "ended_at"})
     dump["founded_at"] = _fuzzy_to_dict(data.founded_at)
     dump["ended_at"] = _fuzzy_to_dict(data.ended_at)
     base = _slugify(data.name)
@@ -76,7 +66,6 @@ async def create_business(
     await session.flush()
     await _sync_business_members(session, obj.id, data.members)
     await _sync_business_sets(session, obj.id, data.set_ids)
-    await _sync_business_sources(session, obj.id, data.source_ids)
     await session.commit()
     await session.refresh(obj)
     return obj
@@ -159,7 +148,7 @@ async def update_business(
     if obj is None:
         return None
     dump = data.model_dump(
-        exclude_unset=True, exclude={"members", "set_ids", "source_ids", "founded_at", "ended_at"}
+        exclude_unset=True, exclude={"members", "set_ids", "founded_at", "ended_at"}
     )
     fields_set = data.model_fields_set
     if "founded_at" in fields_set:
@@ -177,8 +166,6 @@ async def update_business(
         await _sync_business_members(session, obj.id, data.members)
     if data.set_ids is not None:
         await _sync_business_sets(session, obj.id, data.set_ids)
-    if data.source_ids is not None:
-        await _sync_business_sources(session, obj.id, data.source_ids)
     await session.commit()
     await session.refresh(obj)
     return obj
@@ -190,7 +177,6 @@ async def delete_business(session: AsyncSession, id: uuid.UUID, universe_id: uui
         return False
     await session.execute(BusinessMember.__table__.delete().where(BusinessMember.business_id == id))
     await session.execute(BusinessSet.__table__.delete().where(BusinessSet.business_id == id))
-    await session.execute(BusinessSource.__table__.delete().where(BusinessSource.business_id == id))
     await session.delete(obj)
     await session.commit()
     return True
@@ -225,15 +211,6 @@ async def list_business_members(
 async def list_business_set_ids(session: AsyncSession, business_id: uuid.UUID) -> list[uuid.UUID]:
     result = await session.execute(
         select(BusinessSet.set_id).where(BusinessSet.business_id == business_id)
-    )
-    return result.scalars().all()
-
-
-async def list_business_source_ids(
-    session: AsyncSession, business_id: uuid.UUID
-) -> list[uuid.UUID]:
-    result = await session.execute(
-        select(BusinessSource.source_id).where(BusinessSource.business_id == business_id)
     )
     return result.scalars().all()
 

@@ -41,6 +41,8 @@ export interface TerritoryMapProps {
   onSelectSet: (id: UUID) => void
   /** Reset/zoom signal — when this id changes, refit to the relevant bounds. */
   fitSignal: number
+  /** Where the camera frames when no set is selected; null frames every set. */
+  focusBounds?: LngLatBounds | null
   fallbackCenter?: { longitude: number; latitude: number; zoom: number }
   /** When true, map clicks place a territory pin instead of selecting a set. */
   pinMode?: boolean
@@ -201,6 +203,7 @@ export default function TerritoryMap({
   onPolygonComplete,
   onSelectSet,
   fitSignal,
+  focusBounds = null,
   fallbackCenter = { longitude: -83.0458, latitude: 42.3314, zoom: 10 },
   pinMode = false,
   pendingPoint,
@@ -432,13 +435,17 @@ export default function TerritoryMap({
     return found ? [[minLng, minLat], [maxLng, maxLat]] : null
   }, [setPolygons])
 
-  const initialViewState = useMemo(() => {
-    if (allBounds) return { bounds: allBounds, fitBoundsOptions: { padding: 60 } }
-    return fallbackCenter
-  }, [allBounds, fallbackCenter])
+  // Where the camera sits with nothing selected: the focused cities, else every set.
+  const viewBounds = focusBounds ?? allBounds
 
-  // Refit when `fitSignal` changes (sidebar select / reset button): to the
-  // selected set's own boundary or pin when it has one, else to everything.
+  const initialViewState = useMemo(() => {
+    if (viewBounds) return { bounds: viewBounds, fitBoundsOptions: { padding: 60 } }
+    return fallbackCenter
+  }, [viewBounds, fallbackCenter])
+
+  // Refit when `fitSignal` changes (sidebar select / reset button / city
+  // chips): to the selected set's own boundary or pin when it has one, else to
+  // the focused cities, else to everything.
   // It used to refit to every loaded polygon, so picking a set never moved
   // the map to that set.
   useEffect(() => {
@@ -457,7 +464,7 @@ export default function TerritoryMap({
       map.flyTo({ center: [lng, lat], zoom: Math.max(map.getZoom(), 14), duration: 600 })
       return
     }
-    if (allBounds) map.fitBounds(allBounds, { padding: 60, duration: 600 })
+    if (viewBounds) map.fitBounds(viewBounds, { padding: 60, duration: 600 })
     // Also on selectedSetId: the selection arrives through the URL, which can
     // land a render after the signal, and the fit must see the new set.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -577,10 +584,10 @@ export default function TerritoryMap({
   }, [drawingFor, pinMode, onPinPlaced, onSelectSet, onSelectIncident, selectedSetId])
 
   const resetView = useCallback(() => {
-    if (mapRef.current && allBounds) {
-      mapRef.current.fitBounds(allBounds, { padding: 60, duration: 700 })
+    if (mapRef.current && viewBounds) {
+      mapRef.current.fitBounds(viewBounds, { padding: 60, duration: 700 })
     }
-  }, [allBounds])
+  }, [viewBounds])
 
   // ─── render ──────────────────────────────────────────────────────────────
 
@@ -878,7 +885,7 @@ export default function TerritoryMap({
         )}
       </MapGL>
 
-      {allBounds && (
+      {viewBounds && (
         <button
           onClick={resetView}
           className="absolute left-3 top-3 z-10 inline-flex items-center gap-1.5 rounded-md border border-zinc-700 bg-zinc-900/80 px-2.5 py-1.5 text-xs font-medium text-zinc-300 backdrop-blur transition-colors hover:border-zinc-500 hover:text-white"

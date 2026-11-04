@@ -1,19 +1,22 @@
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
 import {
-  AlertTriangle, ChevronRight, Copy, Download, ExternalLink, FileText, GitFork,
-  Mic, MoreHorizontal, Pencil, Plus, Rat, Skull, Trash2, X,
+  AlertTriangle, ChevronRight, Copy, Download, ExternalLink, GitFork,
+  MoreHorizontal, Pencil, Plus, Rat, Skull, Trash2, X,
 } from 'lucide-react'
 import { FacebookIcon, InstagramIcon, TwitterIcon } from '@/components/icons/SocialIcons'
 import { lazy, Suspense, useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import { FuzzyDate } from '@/components/FuzzyDate'
 import { FuzzyDateInput } from '@/components/FuzzyDateInput'
-import { MemberStatusBadge, ReliabilityBadge } from '@/components/StatusBadge'
+import { MemberStatusBadge } from '@/components/StatusBadge'
+import { PinnedNotesPanel } from '@/components/research/PinnedNotesPanel'
+import { CitationsPanel } from '@/components/sources/CitationsPanel'
 import { ErrorState } from '@/components/ErrorState'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { Breadcrumbs } from '@/components/Breadcrumbs'
 import { DetailViewTabs, HistoryPanel, type DetailView } from '@/components/history/HistoryPanel'
 import { CopyButton } from '@/components/CopyButton'
+import { ShareImageButton } from '@/components/share/ShareImageButton'
 import { ageFromFuzzyDates, currentAffiliations, primaryAffiliation, timeAgo } from '@/lib/utils'
 import { DetailHeaderSkeleton } from '@/components/skeletons'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -27,17 +30,18 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import {
-  useMember, useAllSources,
+  useMember,
   useDeleteMember, useMemberIncidents, useMembersByIds, useUpdateMember,
   useCreateMemberIncarceration, useUpdateMemberIncarceration, useDeleteMemberIncarceration,
 } from '@/lib/queries'
-import type { IncidentListItem, MemberCustodyIdRead, MemberIncarcerationRead, MemberRead } from '@/lib/types'
+import type { IncidentListItem, MemberIncarcerationRead, MemberRead } from '@/lib/types'
 import {
   controllingSpell, formatTermRange, groupIncarcerations, incarcerationStatus,
   incarcerationSummary, OPEN_SENTENCE_LABEL, parseSentenceNotes,
 } from '@/lib/incarceration'
 import type { FuzzyDateValue } from '@/components/FuzzyDate'
 import { downloadText } from '@/lib/download'
+import { custodyLabel, custodyShort, otherCustodyIds } from '@/lib/custody'
 import {
   INCIDENT_TYPE_CHIP, INCIDENT_TYPE_LABEL,
   ROLE_CHIP as PARTICIPANT_ROLE_CHIP,
@@ -45,10 +49,17 @@ import {
   OUTCOME_LABEL,
 } from '@/lib/incidentColors'
 import { useUniverseStore } from '@/stores/universe'
+import { UniverseChip } from '@/components/detail/DetailParts'
+import { CasesPanel } from '@/components/cases/CasesPanel'
+import { RapperPill } from '@/components/members/RapperPill'
+import { paramsIn } from '@/lib/universeRoutes'
 import { useAuthStore } from '@/stores/auth'
 import { MemberFormSheet, familyDictToEntries, ROLE_LABEL, ROLE_LABEL_PLURAL } from './_app.$universe.members.index'
 import type { FamilyRole } from './_app.$universe.members.index'
 import { AddFamilyRelativeDialog } from '@/components/AddFamilyRelativeDialog'
+const AppearsInStrip = lazy(() =>
+  import('@/components/media/AppearsInStrip').then((m) => ({ default: m.AppearsInStrip })),
+)
 const PhotoGallery = lazy(() =>
   import('@/components/media/PhotoGallery').then((m) => ({ default: m.PhotoGallery })),
 )
@@ -480,32 +491,6 @@ function buildMemberMarkdown({
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
-// Custody systems beyond the two that still have their own member columns.
-// MDOC and BOP keep their dedicated badges (with their lookup links), so rows
-// mirrored from those columns are not shown a second time here.
-const CUSTODY_SYSTEMS: Record<string, { short: string; label: string }> = {
-  GDC: { short: 'GDC', label: 'Georgia Department of Corrections ID' },
-  GA_OTN: { short: 'OTN', label: 'Georgia Offender Tracking Number (per arrest)' },
-  TDOC: { short: 'TDOC', label: 'Tennessee Department of Correction number' },
-  IDOC: { short: 'IDOC', label: 'Illinois Department of Corrections number' },
-  COOK_COUNTY_JAIL: { short: 'Cook Co. jail', label: 'Cook County jail booking number' },
-  RICHMOND_COUNTY_JAIL: { short: 'Richmond Co. jail', label: 'Richmond County jail booking number' },
-}
-
-function custodyShort(system: string): string {
-  return CUSTODY_SYSTEMS[system]?.short ?? system
-}
-
-function custodyLabel(system: string): string {
-  return CUSTODY_SYSTEMS[system]?.label ?? system
-}
-
-function otherCustodyIds(
-  member: MemberRead & { custody_ids?: MemberCustodyIdRead[] },
-): MemberCustodyIdRead[] {
-  return (member.custody_ids ?? []).filter((c) => c.system !== 'MDOC' && c.system !== 'BOP')
-}
-
 function MemberDetailPage() {
   const { id } = Route.useParams()
   const universe = useUniverseStore((s) => s.activeUniverse)
@@ -529,16 +514,6 @@ function MemberDetailPage() {
   const [editingSpellId, setEditingSpellId] = useState<string | null>(null)
   const [expandedCaseKey, setExpandedCaseKey] = useState<string | null>(null)
   const killedIn = member?.killed_in ?? null
-  // Sources were linked (source_ids) but never shown: a member could cite five
-  // documents and the page named none of them. Shares the ⌘K/incident cache.
-  const { data: allSources } = useAllSources(universe?.id ?? null)
-  const memberSources = useMemo(() => {
-    const byId = new Map((allSources?.items ?? []).map((src) => [src.id, src]))
-    return (member?.source_ids ?? []).flatMap((sid) => {
-      const src = byId.get(sid)
-      return src ? [src] : []
-    })
-  }, [allSources, member?.source_ids])
 
   useRecordRecent(member ? { type: 'member', id: member.id, slug: member.slug, label: member.display_name } : null)
 
@@ -676,6 +651,7 @@ function MemberDetailPage() {
                   <CopyButton value={window.location.href} label="Copy link" className="ml-1.5 align-middle opacity-40 hover:opacity-100" />
                 </h1>
                 <div className="flex shrink-0 items-center gap-1.5">
+                  <ShareImageButton kind="member" id={member.id} name={member.display_name} />
                   <Button size="sm" variant="outline" onClick={() => setEditing(true)} title="Edit (e)">
                     <Pencil className="h-3.5 w-3.5 sm:mr-1.5" /><span className="hidden sm:inline">Edit</span>
                   </Button>
@@ -730,11 +706,7 @@ function MemberDetailPage() {
                     {primaryAff.set_name}
                   </Link>
                 )}
-                {member.is_rapper && (
-                  <span className="inline-flex items-center gap-1 rounded-full bg-fuchsia-950/50 px-2.5 py-0.5 text-xs text-fuchsia-300 ring-1 ring-fuchsia-800/60">
-                    <Mic className="h-3 w-3" />Rapper
-                  </span>
-                )}
+                <RapperPill isRapper={member.is_rapper} groups={member.rap_groups} />
                 {member.is_snitch && (
                   <span className="inline-flex items-center gap-1 rounded-full bg-amber-950/50 px-2.5 py-0.5 text-xs text-amber-300 ring-1 ring-amber-800/60">
                     <Rat className="h-3 w-3" />Snitch
@@ -748,7 +720,7 @@ function MemberDetailPage() {
           {member.status === 'DEAD' && member.death_incident_id && (
             <Link
               from="/$universe" to="/$universe/incidents/$id"
-              params={{ id: member.death_incident_id }}
+              params={paramsIn(killedIn?.universe_slug, member.death_incident_id)}
               className="group flex items-center gap-3 rounded-lg border border-rose-900/60 bg-rose-950/30 px-4 py-3 transition-colors hover:border-rose-700 hover:bg-rose-950/50"
             >
               <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-rose-950/80">
@@ -872,7 +844,7 @@ function MemberDetailPage() {
                                   own: it is true for a small minority, so a whole column spent
                                   rendering an em dash costs more width than the flag is worth.
                                   The slot is always reserved so dates stay aligned. */}
-                              <Link from="/$universe" to="/$universe/incidents/$id" params={{ id: inc.id }} className="flex items-center gap-2 px-4 py-3 text-zinc-300 hover:text-violet-400">
+                              <Link from="/$universe" to="/$universe/incidents/$id" params={paramsIn(inc.universe_slug, inc.id)} className="flex items-center gap-2 px-4 py-3 text-zinc-300 hover:text-violet-400">
                                 {inc.verified ? (
                                   <Tooltip>
                                     <TooltipTrigger asChild>
@@ -884,7 +856,7 @@ function MemberDetailPage() {
                                   <span className="h-1.5 w-1.5 shrink-0" aria-hidden />
                                 )}
                                 <span className="min-w-0">
-                                  <span className="block whitespace-nowrap">{inc.date ? <FuzzyDate value={inc.date} /> : 'Undated'}</span>
+                                  <span className="flex items-center gap-1.5 whitespace-nowrap">{inc.date ? <FuzzyDate value={inc.date} /> : 'Undated'}<UniverseChip slug={inc.universe_slug} /></span>
                                   {/* The Type and Victims columns drop on a phone; their
                                       content folds in under the date instead. */}
                                   <span className="block truncate text-[11px] text-zinc-400 md:hidden">
@@ -925,46 +897,16 @@ function MemberDetailPage() {
                 )}
               </section>
 
+{universe && <PinnedNotesPanel universeId={universe.id} kind="member" entityId={member.id} />}
               {/* Sources */}
-              <section>
-                <PanelHeading>
-                  <span className="inline-flex items-center gap-2">
-                    Sources
-                    {memberSources.length > 0 && <Badge variant="secondary" className="px-1.5 py-0 text-xs">{memberSources.length}</Badge>}
-                  </span>
-                </PanelHeading>
-                {memberSources.length === 0 ? (
-                  <p className="py-2 text-sm text-zinc-400">No sources linked. Attach them from a source page.</p>
-                ) : (
-                  <ul className="divide-y divide-zinc-800 overflow-hidden rounded-lg border border-zinc-800">
-                    {memberSources.map((src) => (
-                      <li key={src.id} className="group flex items-center gap-3 px-3 py-2.5 transition-colors hover:bg-zinc-900/50">
-                        <FileText className="h-3.5 w-3.5 shrink-0 text-zinc-500" />
-                        <Link
-                          from="/$universe" to="/$universe/sources/$id"
-                          params={{ id: src.id }}
-                          className="min-w-0 flex-1 truncate text-sm text-zinc-200 hover:text-violet-400"
-                          title={src.title}
-                        >
-                          {src.title}
-                        </Link>
-                        <ReliabilityBadge reliability={src.reliability} />
-                        {isValidUrl(src.url) && (
-                          <a
-                            href={src.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            aria-label={`Open ${src.title} in a new tab`}
-                            className="shrink-0 rounded p-1 text-zinc-500 transition-colors hover:bg-zinc-800 hover:text-zinc-200"
-                          >
-                            <ExternalLink className="h-3.5 w-3.5" />
-                          </a>
-                        )}
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </section>
+              {universe && (
+                <CitationsPanel
+                  universeId={universe.id}
+                  entityType="member"
+                  entityId={member.id}
+                  citations={member.citations}
+                />
+              )}
 
               {/* Photos: in the record column, not after everything. */}
               {universe && (
@@ -974,6 +916,13 @@ function MemberDetailPage() {
                     <PhotoGallery entityType="member" entityId={member.id} universeId={universe.id} />
                   </Suspense>
                 </section>
+              )}
+
+              {/* Photos on other pages this member is tagged in; the strip renders nothing when there are none. */}
+              {universe && (
+                <Suspense fallback={null}>
+                  <AppearsInStrip memberId={member.id} universeId={universe.id} />
+                </Suspense>
               )}
             </div>
 
@@ -1100,6 +1049,8 @@ function MemberDetailPage() {
             {/* Right, second block: incarceration, family, social */}
             {universe && (
               <div className="order-3 min-w-0 space-y-4 lg:col-start-2 lg:row-start-2">
+
+                <CasesPanel filter="member_id" id={memberUuid} universeId={universe.id} />
 
                 {hasIncarcerationPanel && (
                   <div className="rounded-lg border border-zinc-800 bg-zinc-900/30 px-4 py-3 space-y-3">

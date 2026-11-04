@@ -1,5 +1,6 @@
 import { Badge } from './ui/badge'
 import type { AllianceStatus, MemberStatus, SetStatus, SourceReliability } from '@/lib/types'
+import { RELIABILITY_LABEL } from '@/lib/statusColors'
 
 const MEMBER_STATUS_STYLE: Record<MemberStatus, string> = {
   FREE: 'border-transparent bg-emerald-900 text-emerald-300',
@@ -46,5 +47,5 @@ export function AllianceStatusBadge({ status }: { status: AllianceStatus }) {
 }
 
 export function ReliabilityBadge({ reliability }: { reliability: SourceReliability }) {
-  return <Badge className={RELIABILITY_STYLE[reliability]}>{reliability}</Badge>
+  return <Badge className={RELIABILITY_STYLE[reliability]}>{RELIABILITY_LABEL[reliability]}</Badge>
 }

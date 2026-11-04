@@ -1,6 +1,7 @@
 import uuid
 from datetime import UTC, datetime
 
+import sqlalchemy as sa
 from sqlalchemy import Column, DateTime, ForeignKey, String
 from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from sqlmodel import Field, SQLModel
@@ -62,6 +63,16 @@ class Media(SQLModel, table=True):
         ),
     )
 
+    rap_group_id: uuid.UUID | None = Field(
+        default=None,
+        sa_column=Column(
+            PG_UUID(as_uuid=True),
+            ForeignKey("rap_group.id", ondelete="CASCADE"),
+            nullable=True,
+            index=True,
+        ),
+    )
+
     # Municipalities live in prod whatever the DB mode, so their photos do too:
     # the media router routes municipality_id to the prod session.
     municipality_id: uuid.UUID | None = Field(
@@ -89,6 +100,35 @@ class Media(SQLModel, table=True):
     caption: str | None = None
     is_primary: bool = False
 
+    created_at: datetime = Field(
+        sa_type=DateTime(timezone=True), default_factory=lambda: datetime.now(UTC)
+    )
+    created_by_id: uuid.UUID | None = Field(default=None, foreign_key="users.id")
+
+
+class MediaMember(SQLModel, table=True):
+    """A member who appears in a photo, optionally in left-to-right order.
+
+    The photo still belongs to one entity through `media`; this link only says who
+    is in it, and shows the photo on that member's page. `position` null means the
+    order is unknown. Both ends cascade. The member must be in the photo's
+    universe and cannot be the photo's own owner (checked in crud/media.py).
+    """
+
+    __tablename__ = "media_member"
+
+    media_id: uuid.UUID = Field(
+        sa_column=Column(sa.Uuid(), ForeignKey("media.id", ondelete="CASCADE"), primary_key=True)
+    )
+    member_id: uuid.UUID = Field(
+        sa_column=Column(
+            sa.Uuid(),
+            ForeignKey("member.id", ondelete="CASCADE"),
+            primary_key=True,
+            index=True,
+        )
+    )
+    position: int | None = Field(default=None, sa_column=Column(sa.Integer(), nullable=True))
     created_at: datetime = Field(
         sa_type=DateTime(timezone=True), default_factory=lambda: datetime.now(UTC)
     )

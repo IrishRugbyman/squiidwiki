@@ -6,6 +6,27 @@ here ships, its line comes out of that file.
 
 ---
 
+## 2026-10-04 - Incidents can move to another universe
+
+An incident belongs to the universe it happened in, and a state that gets its own
+universe after the fact (Louisiana and Texas, 2026-10-04) leaves incidents filed
+elsewhere for want of one. The API cannot move them: every write is scoped to the
+incident's universe, and its citations, photos and municipality are tied to it.
+
+`$PY -m app.scripts.move_incident <id>... --to <slug> [--municipality <name>] [--go]`
+moves them through the ORM, audited as claude-admin, dry run by default:
+
+- each citation is pointed at the target universe's source with the same normalised
+  URL, or at a copy of its source made there; two old sources that share a URL become
+  one, and the second citation is folded into the first (locator, quote and note
+  joined), since a record cites a source once;
+- photos take the target universe; their R2 objects stay where they are;
+- the municipality is set to the named one in the target universe, or cleared;
+- participants and court-case links are left alone, as both may cross universes; an
+  incident with set participants is refused, since those must share its universe.
+
+`import_populations` covers Louisiana and Texas.
+
 ## 2026-09-29 - Sets cite their sources; alliances delete cleanly
 
 `set_source` existed since `3aed746` with no write path: no schema field, no CRUD,
@@ -409,6 +430,246 @@ A half-migrated frontend was briefly live mid-change: `vite build` writes the
 
 ---
 
+## 2026-10-02 - Incidents can have participants from another universe
+
+An incident has one `universe_id`, so a member who took part in one elsewhere (a
+Michigan member in a 2012 shooting in Columbus, Ohio) could only be written into a
+biography. With the universe in the URL, a link can now point into another
+universe, so the rule became: **an incident belongs to the universe it happened
+in, and its member participants can come from any.** Its municipality and set
+participants must still be in its own universe, refused with a 422 by
+`_check_universe` (a set is local to its streets, so one from elsewhere is a typo).
+
+Nothing stopped such a row being stored before; reading it was what failed.
+`list_incidents_by_member`, `_by_set` and `_by_alliance` filtered on the incident's
+universe, so the member's page would not have listed it, and the death sync
+filtered the same way, so a member killed away from home stayed alive on his page.
+Both filters are gone. Incident reads carry `universe_slug`, each participant
+`member_universe_slug` and the member's `killed_in` its incident's slug; the
+frontend links through `paramsIn(slug, id)` and marks a foreign row with a
+`UniverseChip`. Michigan's own incident list, map and calendar stay Michigan's.
+
+Also fixed while there:
+- A set's incident list ignored `incident_set_participant`, so an incident whose
+  only participant is the set (a member killed, never named) did not reach its page.
+- The incident form dropped participant `notes` on every save (87 member and 6 set
+  participant notes on file); the drafts now carry them, through
+  `lib/incidentDraft.ts`, which is tested on its own.
+- The incident form unlinked an incident from its city on Save. Radix `Select`
+  calls `onValueChange('')` when its value has no item yet, which is every edit
+  opened before the municipality list arrives, and the form read that as "no city".
+  Both pickers, and the municipality form's parent picker, now ignore `''` (a real
+  clear is the `none` item), and an untouched form keeps the place on file.
+
+---
+
+## 2026-10-02 - Court cases, phase 1: schema and API
+
+The first phase of `docs/2026-10-02-court-case-entity-plan.md`. Migration
+`437b8ac567a8` adds `court_case`, `court_case_defendant`, `court_case_incident`,
+`court_case_set`, `court_case_source` and `member_incarceration.court_case_id`;
+applied to prod (dumped first to `~/backups/`), test and dev, and its downgrade
+run on test. Autogenerate again proposed dropping the trigram and partial unique
+indexes; the file is hand-written.
+
+Jurisdiction, kind and disposition are VARCHAR holding enum values, as custody
+systems are, so a French or a new state court is a code change. The router at
+`/api/v1/court-cases` lists a universe's cases, or every case a member, set or
+incident is in whatever universe it sits in (each row carries `universe_slug`,
+and a member's list his own disposition and sentence); searches name, docket and
+every docket alias; and writes cases and defendants. A duplicate court and docket,
+or a member charged twice in one case, is a 409; it is caught at the first flush,
+since the shared test session showed a commit-time handler alone let it surface as
+a 500 and poison the session.
+
+The participant `acquitted` flag became a mirror of the verdicts (see CLAUDE.md),
+which keeps `member_stats` and `set_stats` untouched. The rules were each tested,
+and the tests checked by breaking the code: an acquittal sets it and a conviction
+clears it; a state acquittal and a federal conviction for the same shooting does
+not clear; a hand-set flag no case speaks to survives; an incident edit that sends
+`acquitted: false` does not undo a court's acquittal; unlinking the incident,
+deleting the defendant or deleting the case releases it. `court_case` and
+`court_case_defendant` are audited; sources gained `court_case_count`.
+
+Nothing is in the tables yet: pages are phase 2, the backfill from the 443 spells
+carrying a case number is phase 3.
+
+---
+
+## 2026-10-03 - Court cases, phase 2: pages; and the date input that rewrote dates
+
+**Pages.** A Court cases section (`/$universe/cases`, nav, `g k`, recents, ⌘K by
+name or any spelling of a docket) and a case page: header with court and
+docket, summary, defendants (number, member or label, disposition, counts with
+statutes, sentence and supervised release, cooperation), linked incidents with
+unlink, sources with Cite, and an aside with details, CourtListener links, sets,
+related cases (parent and appeals) and time served. The case form and the
+defendant dialog search members and incidents in any universe, since a case's
+defendants and incidents can come from elsewhere. A Court cases panel shows on
+member, set, incident and alliance pages when there is something in it; the
+alliance's list is the cases about its sets, a new `alliance_id` filter on the
+API. `cases` joined `RESERVED_UNIVERSE_SLUGS` and `SCOPED_SECTIONS`.
+
+Checked in a browser against an API on the test database (port 8091) and a dev
+server pointed at it, so prod stayed untouched: list, page, cross-universe
+member panel and links, palette, creating a case, adding a defendant from
+another universe with a count and a sentence. The test DB holds 9,431
+universes from test runs and `/universes/` returns 50, so the seed went into
+two of those 50; prod has 6.
+
+**`FuzzyDateInput` rewrote the date on file on mount.** It reported its value
+from an effect, which runs on mount, through three modes (exact, year,
+unknown): opening any form with a month-precision date and saving unchanged
+turned "June 2022" into "circa 2022", and every bare year became approximate.
+It now reports only what the user changes; tests mount it with each precision
+and assert silence, and fail on the old component. The audit log shows two
+member dates of death downgraded this way since August; one was later
+corrected by hand, and one still reads circa 2022 where June 2022 was recorded.
+
+---
+
+## 2026-10-03 - Court cases, phase 3: every spell finds its case
+
+`app/core/dockets.py` reads a court and a normalised docket out of a spell's
+case text and notes: a federal docket with its court in brackets, in the notes,
+or named in full ("District of North Dakota" becomes D.N.D.), padded the way
+PACER pads (`3:23-cr-180` is `3:23-cr-00180`); a Michigan court file of any
+shape (`09912345-FC`, `150000054321-FH`, `CRW012345-FH`, `912345-02`,
+`Wayne Circuit 11-054321-FC`) placed by the county OTIS or a note names. It
+never guesses: a docket with no court anywhere, a court with no docket, two
+files in one spell, a file with no county, are left alone and reported. It also
+reads a disposition (OTIS "Conviction type", or a plea, verdict, term or
+judgment in a research note, in digits or words) and an OTIS count as a charge.
+
+`app/services/court_case_links.link_spell` runs when a spell is written or its
+case text changes, from the member page, the OTIS import or the `wiki` CLI:
+it finds the case by court and docket or any alias, creates it when the rule
+allows (federal always; a Michigan file only with a homicide or assault count,
+not resisting an officer, or a second defendant), links the spell, and puts the
+member on the case with the spell's count. Working captions are "United States
+v. <surname>" or "People v. <surname>", past any "Jr." or "III"; the research
+replaces them with the court's caption.
+
+`app.scripts.link_spells_to_cases` ran over prod (dumped first): of 443 spells,
+244 now link to 72 new cases, 13 federal (the largest with 13, 11 and 10
+defendants) and 59 state, with 120 defendant rows; 191 spells are ordinary
+state files and stay as they are; 8 could not be placed (a federal docket and
+three court-only entries whose numbers nothing on file states, two files with
+no county, one spell holding two files). The run did not attach the audit
+listeners, so its 192 creations were written to `audit_log` afterwards as
+claude-admin, and the script now attaches them. Two federal defendants read
+PENDING because their notes spell the term in words or say "judgment"; the
+pattern was widened (tests added) and both were corrected through the API.
+
+The case page's defendant actions sat in a column and doubled every row's
+height; they are side by side now.
+
+---
+
+## 2026-10-03 - A member's cases told apart by count and date
+
+Two homicide files against one man, pleaded in one deal, read identically in his
+Court cases panel: same caption, same court, same disposition. A charge now
+carries the `offense_date` OTIS gives each count, and a member's list row shows
+his lead count (`lead_charge`: a homicide over an assault or robbery over
+anything else) and its date. `merge_charge` fills a date a listed count lacked
+instead of adding the count twice, and `link_spells_to_cases --refresh-charges`
+dated the 59 state defendant rows made before (audited as claude-admin;
+idempotent). The case page shows each count's date too.
+
+---
+
+## 2026-10-03 - Court cases, phase 4: a lesser count joins its file's case
+
+The phase-3 backfill walked spells oldest first, so a file's felony-firearm count
+written before its murder count was skipped ("not notable") and nothing returned
+for it once the murder made the case: 41 spells on 23 cases sat unlinked, their
+counts missing from the defendant rows. `link_spell` now takes the other unlinked
+spells naming the same file in the same court with it, which the OTIS import
+needs too since it writes counts one at a time; the test fails without the fix.
+A rerun linked them. With the research CLI's `wiki case` verbs and the import of
+the case folders (research CHANGELOG), the wiki holds 93 cases and 245 defendant
+rows, and 294 of 455 spells with a case text link to their case; the rest are
+ordinary state files and seven texts that name no docket.
+
+---
+
+## 2026-10-03 - Court cases, phase 5: court facts leave the prose; sentencings dated
+
+**Prose.** Where a member or an incident is on a court case, the biography or
+narrative sentences that only restated a charge, plea, verdict or sentence were
+removed, after each fact was put on the defendant row if it was not there
+(statute left empty where the source names none; plea dates, credited time and
+similar detail went to the row's notes). Of 56 Michigan biographies, 27 were
+trimmed, 3 emptied and 26 left alone, because what they say (an acquittal on
+another count, a hung jury, an earlier conviction, an age) is on no row. All 14
+narratives on covered incidents were trimmed; outcomes for people on no case
+stayed. The writes went through the research CLI (dry run, then `--go`) and are
+in its case files. Biographies and narratives of members and incidents on no
+case (Corsica 31, Illinois 10, Michigan 11 biographies; 60 narratives) were not
+touched: their facts would have nowhere to go.
+
+**Sentencings on the timeline and calendar.** `GET /court-cases/sentencings`
+lists every dated sentencing in a universe's cases; the timeline and calendar
+show each as "<defendant>, sentenced to <term> · <case>", linking to the case.
+A set page's stat strip counts its court cases and jumps to the panel.
+
+The phase surfaced two research-CLI defects, fixed there: a Grand Rapids case
+file written with `--universe michigan` became a stray copy under
+`detroit/seeds/` (now found in its sibling directory), and `case defendant
+--notes` was not recorded in the case file.
+
+## 2026-10-04 - Sources rebuilt around citations
+
+**What prompted it.** Sources were heavy at every layer. Citations lived in six
+link tables that said only "this record cites this source", with no order and no
+way to say what a source supports. Member, incident and business writes accepted
+duplicate ids (a 500) and sources from another universe (silently). 384
+`published_at` values were JSON `'null'`, which `IS NULL` does not see. The member
+page downloaded every source in the universe to show a handful; five copies of the
+same source-list markup existed; no page could remove a citation; "create source"
+in a cite dialog never cited it; the reverse-attach dialogs did a GET and a PATCH
+per record. And 106 of the sources were the same three custody lookup pages (BOP,
+MDOC OTIS, GDC), told apart only by a person's name in the title.
+
+**What was built.**
+
+- `citation` (migration `4a89130f7a88`): one row per source per record, with
+  `locator`, `quote`, `note`, `position` and `accessed_at`; one nullable FK per
+  record type (member, incident, set, alliance, court case, municipality,
+  business) under a CHECK that exactly one is set, CASCADE from the record,
+  RESTRICT from the source. The 6,111 link rows were copied with a per-table count
+  check that aborts the migration on any mismatch, and the six tables dropped. No
+  compatibility layer: `source_ids` is gone from every read and write, and every
+  client moved in the same change.
+- `source.kind` (COURT, PRESS, CUSTODY, SOCIAL, VIDEO, WIKI, MAP, INTERNAL,
+  OTHER), derived from the URL by `app/core/sources.py` and overridable;
+  `url_norm` for the duplicate check; `lookup_system`. JSON `'null'` dates became
+  SQL NULL and the column now stores None as NULL.
+- One source per custody lookup system per universe
+  (`app/scripts/merge_lookup_sources.py`, then unique index in `d8690312003c`): 99
+  rows folded into 7, 335 citations carrying the person's register or MDOC number
+  as their locator, collisions combined.
+- API: `/citations` (create, batch all-or-nothing, edit, reorder, delete), a
+  server-filtered `/sources` list with kind and reliability facets, ranked search
+  over title, publication and URL, `/sources/lookup` for a pasted URL, paged
+  `/sources/{id}/citations`, bulk edit, merge, and a delete that refuses while
+  cited unless forced. `ApiError` gives the frontend a stable `code`.
+- Frontend: `CitationsPanel` on every record page (members, incidents, sets,
+  alliances, cases, places): grouped by kind, a compact `SourceCard` per source
+  with its locator, quote and note, cite / edit / reorder / detach in place.
+  `SourcePicker` finds a source, resolves a pasted link (already on file, a custody
+  lookup with the number filled in, or create it) and cites in one flow. The
+  source list and page are rebuilt server-driven, with paging through the 3,335
+  incidents one source carries.
+
+**Decision.** Citations, not link rows, so a record can say where in a document
+its claim sits and what the document supports; and no backward compatibility,
+per the project's rule that a refactor updates every caller in the same change.
+
+
+---
+
 ## 2026-11-03 - Fuzzy name search, a duplicate check, and full-text search
 
 Name search was `ILIKE '%q%'`, so one wrong letter found nothing, and a second record
@@ -418,8 +679,11 @@ add a pg_trgm `word_similarity` match at 0.5 or above, substring hits first and 
 rest by score; queries under three characters stay substring-only. Member search also
 scores `member_alias` rows. The threshold and the pairs it was calibrated on are in
 `app/core/fuzzy.py`. `/sets/search` now goes through `search_gang_sets` (it had been
-a shim over the list filter, which stays substring-only) and scores the variants'
-names and initials, not their JSON keys.
+a shim over the list filter, which stays substring-only); it and alliance search
+score the variants' names and initials (`fuzzy.name_variant_values`), not their JSON
+keys. Source search (`/sources/search`, the picker and the palette) keeps the citation
+rebuild's ranking and URL pinning and adds the near-misses on the title after the
+substring hits; the source list's `?q=` filter stays substring-only.
 
 `GET /members/similar?name=` returns members whose nickname, legal name or alias is
 close to a name, with scores (1.0 is exact). The member form shows them under the
@@ -452,11 +716,14 @@ every unchanged link on every edit and miss every delete. Instead each sync read
 the rows first and calls `record_link_change` (`app/core/audit.py`), which writes
 one audit row on the owner only when the list actually changed: added, removed,
 and changed rows, plus `_related`, every far-side id. That covers a member's sets
-(including ending a spell) and sources, an incident's participants, set
-participants and sources, a set's gangs, alliances and sources, and an alliance's
-sets. A GIN index on `diff_json -> '_related'` (migration `8ee2386f30c6`) lets the
+(including ending a spell), an incident's participants and set participants, a
+set's gangs and alliances, and an alliance's sets. Sources need none of it: since
+the citation rebuild each citation is a row written through the ORM and already
+snapshotted, so History reads those snapshots (`_citation_entry`) as "Sources" on the
+cited record and "Cited by" on the source, a reorder alone showing nothing; that
+part of the history reaches back to 2026-10-04. A GIN index on `diff_json -> '_related'` (migration `8ee2386f30c6`) lets the
 far side read them, so a set's History shows "Member A was added to this set" and a
-member's shows the incidents they were put in. Link history starts with this
+member's shows the incidents they were put in. Other link history starts with this
 change: nothing older was recorded.
 
 The tab is on the member, set, alliance, incident and source pages, for admins.
@@ -468,8 +735,8 @@ chunk; the main bundle grew by 0.4 kB gzipped.
 for rows that contradict each other. `GET /admin/anomalies?universe_id=...` (admin,
 `kind=` repeatable to run a subset) runs the checks in `app/crud/anomalies.py`,
 plain functions over one load of the universe that a CLI can call directly:
-a member in a non-reserved set with nothing citing them (no `member_source`, no
-source on any incident they are in; `member_set` has no source column, so the link
+a member in a non-reserved set with nothing citing them (no citation, no
+citation on any incident they are in; `member_set` has no source column, so the link
 itself cannot be asked), DEAD with no date of death and no death incident, a
 participant in an incident after their death, or before their birth, an EXTINCT set
 in an incident in the last two years (sets have no extinction date), a death
@@ -479,4 +746,3 @@ starts. Every date comparison goes through the FuzzyDate's span (a Y date is the
 whole year, approximate widens it by a year each side) and reports only when the
 spans do not overlap. The page is `/$universe/anomalies`, in the admin part of the
 sidebar, grouped by check with links to both records.
-

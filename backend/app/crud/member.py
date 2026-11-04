@@ -22,8 +22,8 @@ from app.models.member import (
     MemberCustodyId,
     MemberIncarceration,
     MemberSet,
-    MemberSource,
 )
+from app.models.rap_group import RapGroup, RapGroupMember
 from app.schemas.common import make_cursor, parse_cursor
 from app.schemas.member import (
     MemberAliasCreate,
@@ -32,6 +32,7 @@ from app.schemas.member import (
     MemberCustodyIdUpdate,
     MemberIncarcerationCreate,
     MemberIncarcerationUpdate,
+    MemberRapGroupRef,
     MemberSetAffiliationIn,
     MemberSetAffiliationOut,
     MemberUpdate,
@@ -196,28 +197,6 @@ async def attach_primary_photos(session: AsyncSession, members: list[Member]) ->
         object.__setattr__(m, "primary_photo_thumb_url", thumb)
 
 
-async def _sync_member_sources(
-    session: AsyncSession, member_id: uuid.UUID, source_ids: list[uuid.UUID]
-) -> None:
-    before = await load_link_rows(
-        session, MemberSource, MemberSource.member_id == member_id, ["source_id"]
-    )
-    await session.execute(
-        MemberSource.__table__.delete().where(MemberSource.member_id == member_id)
-    )
-    for sid in source_ids:
-        session.add(MemberSource(member_id=member_id, source_id=sid))
-    record_link_change(
-        session,
-        entity_type="member",
-        entity_id=member_id,
-        link="sources",
-        key="source_id",
-        before=before,
-        after=[{"source_id": sid} for sid in source_ids],
-    )
-
-
 # The fields of a set spell that the history tab shows.
 _SPELL_FIELDS = ["set_id", "rank", "is_primary", "from_date", "until_date"]
 
@@ -365,6 +344,41 @@ def _attach_affiliations(obj: Member, affiliations: list[MemberSetAffiliationOut
     object.__setattr__(obj, "primary_set_rank", primary.rank if primary else None)
 
 
+async def load_member_rap_groups(
+    session: AsyncSession, member_ids: list[uuid.UUID]
+) -> dict[uuid.UUID, list[MemberRapGroupRef]]:
+    """Batch-load each member's rap groups and labels, ordered by position."""
+    if not member_ids:
+        return {}
+    rows = (
+        await session.execute(
+            select(
+                RapGroupMember.member_id,
+                RapGroup.id,
+                RapGroup.slug,
+                RapGroup.name,
+                RapGroupMember.role,
+            )
+            .join(RapGroup, RapGroup.id == RapGroupMember.rap_group_id)
+            .where(RapGroupMember.member_id.in_(member_ids))
+            .order_by(RapGroupMember.position, RapGroup.name, RapGroup.id)
+        )
+    ).all()
+    out: dict[uuid.UUID, list[MemberRapGroupRef]] = {}
+    for member_id, gid, slug, name, role in rows:
+        out.setdefault(member_id, []).append(
+            MemberRapGroupRef(id=gid, slug=slug, name=name, role=role)
+        )
+    return out
+
+
+async def attach_rap_groups(session: AsyncSession, members: list[Member]) -> None:
+    """Attach `rap_groups` to each member, for the list item and detail reads."""
+    groups = await load_member_rap_groups(session, [m.id for m in members])
+    for m in members:
+        object.__setattr__(m, "rap_groups", groups.get(m.id, []))
+
+
 async def _attach_affiliations_bulk(session: AsyncSession, members: list[Member]) -> list[Member]:
     """Batch-load and attach affiliations for every member in the list.
 
@@ -377,6 +391,7 @@ async def _attach_affiliations_bulk(session: AsyncSession, members: list[Member]
     aff_map = await load_member_affiliations(session, [m.id for m in members])
     for m in members:
         _attach_affiliations(m, aff_map.get(m.id, []))
+    await attach_rap_groups(session, members)
     return members
 
 
@@ -413,7 +428,7 @@ async def _assert_bop_register_number_free(
 
 async def create_member(session: AsyncSession, data: MemberCreate, actor_id: uuid.UUID) -> Member:
     await _assert_bop_register_number_free(session, data.universe_id, data.bop_register_number)
-    dump = data.model_dump(exclude={"source_ids", "affiliations", "dob", "date_of_death"})
+    dump = data.model_dump(exclude={"affiliations", "dob", "date_of_death"})
     dump["dob"] = _fuzzy_to_dict(data.dob)
     dump["date_of_death"] = _fuzzy_to_dict(data.date_of_death)
     display = data.nickname if not data.nickname_unknown and data.nickname else data.legal_name
@@ -423,7 +438,6 @@ async def create_member(session: AsyncSession, data: MemberCreate, actor_id: uui
     obj = Member(**dump, created_by_id=actor_id)
     session.add(obj)
     await session.flush()
-    await _sync_member_sources(session, obj.id, data.source_ids)
     await _sync_member_sets(session, obj.id, data.affiliations)
     if data.family:
         await _sync_bilateral_family(session, obj.id, data.universe_id, None, data.family)
@@ -510,9 +524,7 @@ async def update_member(
     obj = await get_member(session, id, universe_id)
     if obj is None:
         return None
-    dump = data.model_dump(
-        exclude_unset=True, exclude={"source_ids", "affiliations", "dob", "date_of_death"}
-    )
+    dump = data.model_dump(exclude_unset=True, exclude={"affiliations", "dob", "date_of_death"})
     if "dob" in data.model_fields_set:
         dump["dob"] = _fuzzy_to_dict(data.dob)
     if "date_of_death" in data.model_fields_set:
@@ -540,8 +552,6 @@ async def update_member(
     for k, v in dump.items():
         setattr(obj, k, v)
     session.add(obj)
-    if data.source_ids is not None:
-        await _sync_member_sources(session, obj.id, data.source_ids)
     if data.affiliations is not None:
         await _sync_member_sets(session, obj.id, data.affiliations)
     if "family" in data.model_fields_set:
@@ -575,14 +585,17 @@ async def delete_member(session: AsyncSession, id: uuid.UUID, universe_id: uuid.
     obj = await get_member(session, id, universe_id)
     if obj is None:
         return False
+    # Court defendant rows outlive the member: SET NULL in the schema, with the
+    # name copied into `label` first so the row still says who was charged.
+    from app.crud.court_case import keep_defendants_of_deleted_member
+
+    await keep_defendants_of_deleted_member(session, obj)
     # Remove incident participations (no cascade on member_id FK)
     await session.execute(
         IncidentParticipant.__table__.delete().where(IncidentParticipant.member_id == id)
     )
     # Remove set affiliations
     await session.execute(MemberSet.__table__.delete().where(MemberSet.member_id == id))
-    # Remove source citations (no cascade on member_id FK)
-    await session.execute(MemberSource.__table__.delete().where(MemberSource.member_id == id))
     # Remove aliases (no cascade on member_id FK)
     await session.execute(MemberAlias.__table__.delete().where(MemberAlias.member_id == id))
     # Remove custody numbers (no cascade on member_id FK)
@@ -600,26 +613,6 @@ async def delete_member(session: AsyncSession, id: uuid.UUID, universe_id: uuid.
     await session.delete(obj)
     await session.commit()
     return True
-
-
-async def list_member_source_ids(session: AsyncSession, member_id: uuid.UUID) -> list[uuid.UUID]:
-    result = await session.execute(
-        select(MemberSource.source_id).where(MemberSource.member_id == member_id)
-    )
-    return result.scalars().all()
-
-
-async def list_members_by_source(
-    session: AsyncSession, source_id: uuid.UUID, universe_id: uuid.UUID, limit: int = 100
-) -> list[Member]:
-    stmt = (
-        select(Member)
-        .join(MemberSource, MemberSource.member_id == Member.id)
-        .where(MemberSource.source_id == source_id, Member.universe_id == universe_id)
-        .limit(limit)
-    )
-    result = await session.execute(stmt)
-    return await _attach_affiliations_bulk(session, list(result.scalars().all()))
 
 
 def _member_name_score(q: str):
@@ -653,9 +646,7 @@ async def search_members(session: AsyncSession, universe_id: uuid.UUID, q: str) 
 
     score = _member_name_score(q).label("score")
     exact = sa.case((substring, 1), else_=0).label("exact")
-    inner = (
-        select(Member.id, exact, score).where(Member.universe_id == universe_id).subquery()
-    )
+    inner = select(Member.id, exact, score).where(Member.universe_id == universe_id).subquery()
     result = await session.execute(
         select(Member)
         .join(inner, inner.c.id == Member.id)
@@ -760,6 +751,18 @@ async def get_member_stats(session: AsyncSession, member_id: uuid.UUID) -> dict 
     }
 
 
+async def _check_court_case(
+    session: AsyncSession, court_case_id: uuid.UUID | None
+) -> uuid.UUID | None:
+    """A spell may point at a case in any universe: a member can serve a
+    sentence another universe's court passed. It must exist."""
+    from app.models.court_case import CourtCase
+
+    if court_case_id is not None and await session.get(CourtCase, court_case_id) is None:
+        raise HTTPException(422, detail="court_case_id is not a court case")
+    return court_case_id
+
+
 async def list_member_incarcerations(
     session: AsyncSession, member_id: uuid.UUID
 ) -> list[MemberIncarceration]:
@@ -787,9 +790,16 @@ async def create_member_incarceration(
         life_sentence=data.life_sentence,
         facility=data.facility,
         case_id=data.case_id,
+        court_case_id=await _check_court_case(session, data.court_case_id),
         notes=data.notes,
     )
     session.add(obj)
+    if obj.court_case_id is None:
+        # Find or make the case its court file names (app.services.court_case_links).
+        from app.services.court_case_links import link_spell
+
+        await session.flush()
+        await link_spell(session, obj)
     await session.commit()
     await session.refresh(obj)
     return obj
@@ -816,6 +826,16 @@ async def update_member_incarceration(
     for field in ("facility", "case_id", "notes"):
         if field in data.model_fields_set:
             setattr(obj, field, getattr(data, field))
+    if "court_case_id" in data.model_fields_set:
+        obj.court_case_id = await _check_court_case(session, data.court_case_id)
+    elif "case_id" in data.model_fields_set:
+        # The case text changed and no link was sent: the old link named the old
+        # text, so look the case up again.
+        from app.services.court_case_links import link_spell
+
+        obj.court_case_id = None
+        await session.flush()
+        await link_spell(session, obj)
     if data.life_sentence is not None:
         obj.life_sentence = data.life_sentence
     # Only touch a date the caller actually sent: these fields default to None, so

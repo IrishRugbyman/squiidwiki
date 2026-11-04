@@ -26,14 +26,10 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.enums import MemberStatus, ParticipantOutcome, ParticipantRole, SetStatus
+from app.models.citation import Citation
 from app.models.gang_set import GangSet
-from app.models.incident import (
-    Incident,
-    IncidentParticipant,
-    IncidentSetParticipant,
-    IncidentSource,
-)
-from app.models.member import Member, MemberSet, MemberSource
+from app.models.incident import Incident, IncidentParticipant, IncidentSetParticipant
+from app.models.member import Member, MemberSet
 
 # How far back an incident counts as "recent" for an extinct set.
 RECENT_DAYS = 730
@@ -163,15 +159,22 @@ async def load_universe_data(session: AsyncSession, universe_id: uuid.UUID) -> U
                 )
             )
         )
+        # A citation always lives in its record's universe.
         data.sourced_incidents = set(
             await rows(
-                select(IncidentSource.incident_id).where(IncidentSource.incident_id.in_(inc_ids))
+                select(Citation.incident_id).where(
+                    Citation.universe_id == universe_id, Citation.incident_id.is_not(None)
+                )
             )
         )
     if mem_ids:
         data.spells = list(await rows(select(MemberSet).where(MemberSet.member_id.in_(mem_ids))))
         data.sourced_members = set(
-            await rows(select(MemberSource.member_id).where(MemberSource.member_id.in_(mem_ids)))
+            await rows(
+                select(Citation.member_id).where(
+                    Citation.universe_id == universe_id, Citation.member_id.is_not(None)
+                )
+            )
         )
     return data
 

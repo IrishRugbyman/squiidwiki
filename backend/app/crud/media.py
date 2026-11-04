@@ -3,14 +3,23 @@ import uuid
 from io import BytesIO
 
 from PIL import Image
+from sqlalchemy import case
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlmodel import select
+from sqlmodel import func, select
 
 from app.core import storage
 from app.core.database import get_db_mode
 from app.core.enums import MediaKind
-from app.models.media import Media
-from app.schemas.media import MediaUpdate
+from app.core.errors import ApiError
+from app.models.alliance import Alliance
+from app.models.gang_set import GangSet
+from app.models.incident import Incident
+from app.models.media import Media, MediaMember
+from app.models.member import Member
+from app.models.municipality import Municipality
+from app.models.rap_group import RapGroup
+from app.models.source import Source
+from app.schemas.media import MediaOwner, MediaPerson, MediaPersonInput, MediaUpdate
 
 logger = logging.getLogger(__name__)
 
@@ -26,6 +35,7 @@ _ENTITY_COL = {
     "source": Media.source_id,
     "set": Media.set_id,
     "alliance": Media.alliance_id,
+    "rap_group": Media.rap_group_id,
     "municipality": Media.municipality_id,
 }
 ENTITY_FIELDS = tuple(f"{t}_id" for t in _ENTITY_COL)
@@ -96,6 +106,7 @@ async def create_media(
     source_id: uuid.UUID | None = None,
     set_id: uuid.UUID | None = None,
     alliance_id: uuid.UUID | None = None,
+    rap_group_id: uuid.UUID | None = None,
     municipality_id: uuid.UUID | None = None,
     file_bytes: bytes,
     original_filename: str | None,
@@ -109,6 +120,7 @@ async def create_media(
         source_id=source_id,
         set_id=set_id,
         alliance_id=alliance_id,
+        rap_group_id=rap_group_id,
         municipality_id=municipality_id,
     )
 
@@ -165,6 +177,7 @@ async def list_media(
     source_id: uuid.UUID | None = None,
     set_id: uuid.UUID | None = None,
     alliance_id: uuid.UUID | None = None,
+    rap_group_id: uuid.UUID | None = None,
     municipality_id: uuid.UUID | None = None,
 ) -> list[Media]:
     entity_type, entity_id = _ensure_exactly_one(
@@ -173,6 +186,7 @@ async def list_media(
         source_id=source_id,
         set_id=set_id,
         alliance_id=alliance_id,
+        rap_group_id=rap_group_id,
         municipality_id=municipality_id,
     )
     result = await session.execute(
@@ -290,6 +304,10 @@ async def attach_primary_photos_alliances(session: AsyncSession, items: list) ->
     await _attach_photos_generic(session, items, Media.alliance_id, "id")
 
 
+async def attach_primary_photos_rap_groups(session: AsyncSession, items: list) -> None:
+    await _attach_photos_generic(session, items, Media.rap_group_id, "id")
+
+
 async def get_primary_media_for_members(
     session: AsyncSession, member_ids: list[uuid.UUID]
 ) -> dict[uuid.UUID, Media]:
@@ -302,3 +320,182 @@ async def get_primary_media_for_members(
         )
     )
     return {m.member_id: m for m in result.scalars().all()}
+
+
+# ── People in a photo ──────────────────────────────────────────────────────
+
+
+def _person_sort_name():
+    """The name a member is listed by: nickname, or legal name when it is unknown."""
+    return func.lower(
+        case(
+            (
+                Member.nickname_unknown.is_(False) & Member.nickname.is_not(None),
+                Member.nickname,
+            ),
+            else_=func.coalesce(Member.legal_name, Member.nickname, ""),
+        )
+    )
+
+
+async def people_for(
+    session: AsyncSession, media_ids: list[uuid.UUID]
+) -> dict[uuid.UUID, list[MediaPerson]]:
+    """The members tagged in each photo, one query for the whole list.
+
+    Ordered by position (null last), then by name, so an unordered photo reads
+    alphabetically.
+    """
+    out: dict[uuid.UUID, list[MediaPerson]] = {mid: [] for mid in media_ids}
+    if not media_ids:
+        return out
+    rows = await session.execute(
+        select(MediaMember.media_id, MediaMember.position, Member)
+        .join(Member, Member.id == MediaMember.member_id)
+        .where(MediaMember.media_id.in_(media_ids))
+        .order_by(MediaMember.position.asc().nulls_last(), _person_sort_name(), Member.id)
+    )
+    for media_id, position, member in rows.all():
+        out[media_id].append(
+            MediaPerson(
+                member_id=member.id,
+                slug=member.slug,
+                nickname=member.nickname,
+                legal_name=member.legal_name,
+                display_name=member.display_name,
+                position=position,
+            )
+        )
+    return out
+
+
+async def set_people(
+    session: AsyncSession,
+    media: Media,
+    people: list[MediaPersonInput],
+    actor_id: uuid.UUID,
+) -> None:
+    """Replace the members tagged in `media` with `people`.
+
+    422 on a duplicate, on the photo's own member (the photo is already on his
+    page) and on a member that is missing or in another universe. Rows that stay
+    are updated in place and only the difference is inserted or deleted, so the
+    audit log records what changed rather than a delete-and-recreate.
+    """
+    ids = [p.member_id for p in people]
+    duplicated = sorted({str(i) for i in ids if ids.count(i) > 1})
+    if duplicated:
+        raise ApiError(
+            422, "duplicate_person", "A member can be tagged once per photo.", member_ids=duplicated
+        )
+    if media.member_id is not None and media.member_id in ids:
+        raise ApiError(
+            422,
+            "person_is_owner",
+            "This photo is already on that member's page; it cannot also tag him.",
+            member_id=media.member_id,
+        )
+    if ids:
+        found = set(
+            (
+                await session.execute(
+                    select(Member.id).where(
+                        Member.id.in_(ids), Member.universe_id == media.universe_id
+                    )
+                )
+            )
+            .scalars()
+            .all()
+        )
+        missing = sorted(str(i) for i in ids if i not in found)
+        if missing:
+            raise ApiError(
+                422,
+                "person_not_in_universe",
+                "Every tagged member must exist in the photo's universe.",
+                member_ids=missing,
+            )
+
+    existing = {
+        r.member_id: r
+        for r in (
+            await session.execute(select(MediaMember).where(MediaMember.media_id == media.id))
+        )
+        .scalars()
+        .all()
+    }
+    wanted = {p.member_id: p.position for p in people}
+    for member_id, row in existing.items():
+        if member_id not in wanted:
+            await session.delete(row)
+        elif row.position != wanted[member_id]:
+            row.position = wanted[member_id]
+            session.add(row)
+    for member_id, position in wanted.items():
+        if member_id not in existing:
+            session.add(
+                MediaMember(
+                    media_id=media.id,
+                    member_id=member_id,
+                    position=position,
+                    created_by_id=actor_id,
+                )
+            )
+    await session.commit()
+
+
+async def _owner_labels(session: AsyncSession, media: list[Media]) -> dict[uuid.UUID, MediaOwner]:
+    """Who each photo belongs to, one query per entity type present."""
+    from app.crud.research_note import _incident_label
+
+    out: dict[uuid.UUID, MediaOwner] = {}
+    by_type: dict[str, dict[uuid.UUID, list[uuid.UUID]]] = {}
+    for m in media:
+        entity_type, entity_id = _entity_of(m)
+        by_type.setdefault(entity_type, {}).setdefault(entity_id, []).append(m.id)
+
+    models = {
+        "member": Member,
+        "set": GangSet,
+        "incident": Incident,
+        "alliance": Alliance,
+        "rap_group": RapGroup,
+        "municipality": Municipality,
+        "source": Source,
+    }
+    for entity_type, owners in by_type.items():
+        model = models[entity_type]
+        entities = await session.execute(select(model).where(model.id.in_(list(owners))))
+        for e in entities.scalars().all():
+            if entity_type == "member":
+                name, slug = e.display_name, e.slug
+            elif entity_type == "incident":
+                name, slug = _incident_label(e), None
+            elif entity_type == "municipality":
+                name, slug = e.name, None
+            elif entity_type == "source":
+                name, slug = e.title, None
+            else:
+                name, slug = e.name, e.slug
+            for media_id in owners[e.id]:
+                out[media_id] = MediaOwner(type=entity_type, id=e.id, name=name, slug=slug)
+    return out
+
+
+async def list_appearances(
+    session: AsyncSession, universe_id: uuid.UUID, member_id: uuid.UUID
+) -> list[tuple[Media, MediaOwner]]:
+    """Photos `member_id` is tagged in that are not his own, newest first, each with its owner."""
+    result = await session.execute(
+        select(Media)
+        .join(MediaMember, MediaMember.media_id == Media.id)
+        .where(
+            MediaMember.member_id == member_id,
+            Media.universe_id == universe_id,
+            Media.member_id.is_distinct_from(member_id),
+        )
+        .order_by(Media.created_at.desc(), Media.id)
+    )
+    items = result.scalars().all()
+    owners = await _owner_labels(session, items)
+    return [(m, owners[m.id]) for m in items if m.id in owners]

@@ -6,7 +6,7 @@ from sqlalchemy import CheckConstraint, Column, DateTime
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlmodel import Field, SQLModel
 
-from app.core.enums import AllianceStatus, SetRelationshipType
+from app.core.enums import AllianceStatus, SetLineageKind, SetRelationshipType
 
 
 # M2M join tables
@@ -42,18 +42,55 @@ class AllianceSet(SQLModel, table=True):
     position: int = Field(default=0)
 
 
+class AllianceGang(SQLModel, table=True):
+    """Every gang an alliance claims, in order: position 0 is the primary.
+
+    The alliance counterpart of `set_gang`, for a bloc whose crews ride under
+    more than one card. `alliance.gang_id` mirrors the position-0 row, written by
+    `_sync_alliance_gangs` in crud/alliance.py and nothing else.
+    """
+
+    __tablename__ = "alliance_gang"
+
+    alliance_id: uuid.UUID = Field(
+        sa_column=Column(
+            sa.Uuid, sa.ForeignKey("alliance.id", ondelete="CASCADE"), primary_key=True
+        )
+    )
+    gang_id: uuid.UUID = Field(
+        sa_column=Column(
+            sa.Uuid, sa.ForeignKey("gang.id", ondelete="CASCADE"), primary_key=True, index=True
+        )
+    )
+    position: int = Field(default=0)
+
+
 class Alliance(SQLModel, table=True):
     __tablename__ = "alliance"
     __table_args__ = (sa.Index("uq_alliance_universe_slug", "universe_id", "slug", unique=True),)
 
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
     universe_id: uuid.UUID = Field(foreign_key="universe.id", index=True)
+    # Derived, never set on its own: the display of the primary entry in
+    # name_variants, exactly as for sets (app/core/set_names.py).
     name: str = Field(index=True)
-    aliases: list | None = Field(default=None, sa_column=Column(JSONB))
+    name_variants: list | None = Field(default=None, sa_column=Column(JSONB(none_as_null=True)))
+    # Glyphs the bloc is known by, first is the badge. Same rules as sets.emojis.
+    emojis: list | None = Field(default=None, sa_column=Column(JSONB(none_as_null=True)))
     description: str | None = None
     status: AllianceStatus = AllianceStatus.ACTIVE
+    # Mirror of alliance_gang position 0.
     gang_id: uuid.UUID | None = Field(default=None, foreign_key="gang.id", index=True)
-    founded_at: dict | None = Field(default=None, sa_column=Column(JSONB))
+    founder_id: uuid.UUID | None = Field(
+        default=None,
+        sa_column=Column(
+            sa.Uuid,
+            sa.ForeignKey("member.id", ondelete="SET NULL", use_alter=True),
+            nullable=True,
+            index=True,
+        ),
+    )
+    founded_at: dict | None = Field(default=None, sa_column=Column(JSONB(none_as_null=True)))
     slug: str | None = Field(default=None, index=True)
     created_at: datetime = Field(
         sa_type=DateTime(timezone=True), default_factory=lambda: datetime.now(UTC)
@@ -127,5 +164,42 @@ class AllianceRelationship(SQLModel, table=True):
     )
     relationship_type: SetRelationshipType
     # none_as_null is load-bearing: see the note on MemberSet.until_date.
+    from_date: dict | None = Field(default=None, sa_column=Column(JSONB(none_as_null=True)))
+    until_date: dict | None = Field(default=None, sa_column=Column(JSONB(none_as_null=True)))
+
+
+class AllianceLineage(SQLModel, table=True):
+    """Directional descent between two alliances: which bloc came out of which.
+
+    The alliance counterpart of `set_lineage`, kept out of
+    `alliance_relationship` for the same reason: that table is symmetric and
+    cannot say which side is the parent. `kind` reads **child KIND parent**, and
+    `until_date` closes a spell rather than deleting it.
+    """
+
+    __tablename__ = "alliance_lineage"
+    __table_args__ = (
+        CheckConstraint("parent_id <> child_id", name="ck_alliance_lineage_no_self"),
+        sa.Index(
+            "uq_alliance_lineage_current",
+            "parent_id",
+            "child_id",
+            unique=True,
+            postgresql_where=sa.text("until_date IS NULL"),
+        ),
+    )
+
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    parent_id: uuid.UUID = Field(
+        sa_column=Column(
+            sa.Uuid(), sa.ForeignKey("alliance.id", ondelete="CASCADE"), nullable=False, index=True
+        )
+    )
+    child_id: uuid.UUID = Field(
+        sa_column=Column(
+            sa.Uuid(), sa.ForeignKey("alliance.id", ondelete="CASCADE"), nullable=False, index=True
+        )
+    )
+    kind: SetLineageKind
     from_date: dict | None = Field(default=None, sa_column=Column(JSONB(none_as_null=True)))
     until_date: dict | None = Field(default=None, sa_column=Column(JSONB(none_as_null=True)))

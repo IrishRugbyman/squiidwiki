@@ -8,5 +8,8 @@ export const Route = createFileRoute('/_app/$universe/map')({
     selected: typeof s.selected === 'string' ? (s.selected as UUID) : undefined,
     edit: s.edit === '1' || s.edit === 1 ? '1' as const : undefined,
     view: s.view === 'alliances' ? 'alliances' as const : 'sets' as const,
+    // Cities in scope, comma-separated ids, or 'all'. Absent means the
+    // universe's default (Detroit for Michigan), so a bare link opens there.
+    cities: typeof s.cities === 'string' && s.cities ? s.cities : undefined,
   }),
 })

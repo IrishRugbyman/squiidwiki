@@ -2,6 +2,24 @@ import { keepPreviousData, useMutation, useQueries, useQuery, useQueryClient } f
 import type { QueryClient } from '@tanstack/react-query'
 import { api } from './api'
 import type {
+  AllianceActivityEntry,
+  RapGroupListItem,
+  RapGroupReadDetail,
+  AllianceLineageItem,
+  CitableType,
+  CitationRead,
+  SourceCitationRow,
+  SourceCustodyRow,
+  SourceKind,
+  SourceListPage,
+  SourceLookup,
+  SourceReadDetail,
+  SourceReliability,
+  CourtCaseListItem,
+  SentencingEvent,
+  CourtCaseRead,
+  CourtCaseReadDetail,
+  DefendantRead,
   AllianceListItem,
   AllianceRelationshipItem,
   AllianceRead,
@@ -23,6 +41,7 @@ import type {
   MediaEntityType,
   MunicipalityKind,
   MediaWithUrls,
+  MediaAppearance,
   MemberAliasRead,
   MemberIncarcerationRead,
   MemberListItem,
@@ -34,6 +53,9 @@ import type {
   MunicipalityListItem,
   MunicipalityRead,
   OffsetPage,
+  NoteKind,
+  PinKind,
+  PinRef,
   ResearchNoteListItem,
   ResearchNoteRead,
   SetActivityEntry,
@@ -506,6 +528,44 @@ export const useAllianceIncidents = (id: UUID, universeId: UUID | null) =>
     enabled: !!universeId && !!id,
   })
 
+// Descent between blocs, the alliance counterpart of set lineage. The rows come
+// back in the detail payload (`lineage`), so these only write and invalidate it.
+export const useAddAllianceLineage = (allianceId: UUID, universeId: UUID) => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (body: { other_id: UUID; kind: SetLineageKind; direction: 'parent' | 'child'; from_date?: unknown }) =>
+      api.post<AllianceLineageItem>(`/alliances/${allianceId}/lineage?universe_id=${universeId}`, body),
+    onSettled: () => { qc.invalidateQueries({ queryKey: ['alliances'] }) },
+  })
+}
+
+export const useEndAllianceLineage = (allianceId: UUID, universeId: UUID) => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ lineageId, until_date }: { lineageId: UUID; until_date?: unknown }) =>
+      api.post(`/alliances/${allianceId}/lineage/${lineageId}/end?universe_id=${universeId}`, { until_date }),
+    onSettled: () => { qc.invalidateQueries({ queryKey: ['alliances'] }) },
+  })
+}
+
+export const useDeleteAllianceLineage = (allianceId: UUID, universeId: UUID) => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (lineageId: UUID) =>
+      api.delete(`/alliances/${allianceId}/lineage/${lineageId}?universe_id=${universeId}`),
+    onSettled: () => { qc.invalidateQueries({ queryKey: ['alliances'] }) },
+  })
+}
+
+/** Audit feed for the alliance, its sets and the members tagged to it; fetched when shown. */
+export const useAllianceActivity = (allianceId: UUID | null, universeId: UUID | null, enabled: boolean) =>
+  useQuery({
+    queryKey: ['alliances', allianceId, 'activity'],
+    queryFn: () => api.get<AllianceActivityEntry[]>(`/alliances/${allianceId}/activity?universe_id=${universeId}&limit=40`),
+    enabled: enabled && !!universeId && !!allianceId,
+    staleTime: 30_000,
+  })
+
 export const useCreateAlliance = () => {
   const qc = useQueryClient()
   return useMutation({
@@ -532,6 +592,79 @@ export const useDeleteAlliance = (universeId: UUID) => {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['alliances'] })
       qc.invalidateQueries({ queryKey: ['sets'] })
+      qc.invalidateQueries({ queryKey: ['members'] })
+    },
+  })
+}
+
+// ─── Rap groups and labels ────────────────────────────────────────────────────
+
+/** Every rap group and label in the universe, name-ordered. Filtering by kind and search is client-side. */
+export const useRapGroups = (universeId: UUID | null) =>
+  useQuery({
+    queryKey: ['rap-groups', universeId],
+    queryFn: async (): Promise<OffsetPage<RapGroupListItem>> => {
+      const PAGE = 200
+      const url = (offset: number) => `/rap-groups/?universe_id=${universeId}&limit=${PAGE}&offset=${offset}`
+      const first = await api.get<OffsetPage<RapGroupListItem>>(url(0))
+      const items = [...first.items]
+      while (items.length < first.total) {
+        const next = await api.get<OffsetPage<RapGroupListItem>>(url(items.length))
+        if (next.items.length === 0) break
+        items.push(...next.items)
+      }
+      return { items, total: first.total }
+    },
+    enabled: !!universeId,
+  })
+
+/** Palette search: the list endpoint's `q`. */
+export const useRapGroupSearch = (universeId: UUID | null, q: string) =>
+  useQuery({
+    queryKey: ['rap-groups', 'search', universeId, q],
+    queryFn: async () =>
+      (await api.get<OffsetPage<RapGroupListItem>>(`/rap-groups/?universe_id=${universeId}&q=${encodeURIComponent(q)}&limit=10`)).items,
+    enabled: !!universeId && q.length >= 2,
+    placeholderData: keepPreviousData,
+  })
+
+export const useRapGroup = (id: UUID, universeId: UUID | null) =>
+  useQuery({
+    queryKey: ['rap-groups', id],
+    queryFn: () => api.get<RapGroupReadDetail>(`/rap-groups/${id}?universe_id=${universeId}`),
+    enabled: !!universeId && !!id,
+  })
+
+export const useCreateRapGroup = () => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (body: Record<string, unknown>) => api.post<RapGroupReadDetail>('/rap-groups/', body),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['rap-groups'] })
+      qc.invalidateQueries({ queryKey: ['members'] })
+    },
+  })
+}
+
+export const useUpdateRapGroup = (id: UUID, universeId: UUID) => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (body: Record<string, unknown>) =>
+      api.patch<RapGroupReadDetail>(`/rap-groups/${id}?universe_id=${universeId}`, body),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['rap-groups'] })
+      // The roster is on the member reads too.
+      qc.invalidateQueries({ queryKey: ['members'] })
+    },
+  })
+}
+
+export const useDeleteRapGroup = (universeId: UUID) => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (id: UUID) => api.delete(`/rap-groups/${id}?universe_id=${universeId}`),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['rap-groups'] })
       qc.invalidateQueries({ queryKey: ['members'] })
     },
   })
@@ -830,10 +963,9 @@ export const useReassignSetsToAlliance = (allianceId: UUID, universeId: UUID) =>
   return useMutation({
     mutationFn: async ({ currentSetIds, newSetIds }: { currentSetIds: UUID[]; newSetIds: UUID[] }) => {
       const merged = Array.from(new Set([...currentSetIds, ...newSetIds]))
-      await api.patch(`/alliances/${allianceId}?universe_id=${universeId}`, {
-        universe_id: universeId,
-        set_ids: merged,
-      })
+      // The universe goes in the query string: the alliance PATCH refuses
+      // fields it does not know, universe_id in the body among them.
+      await api.patch(`/alliances/${allianceId}?universe_id=${universeId}`, { set_ids: merged })
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['sets'] })
@@ -1133,52 +1265,84 @@ export const useDeleteIncident = (universeId: UUID) => {
  * of 50 while its page stepped by 100, so half of Michigan's 400 sources never
  * appeared on the list.
  */
-export const useAllSources = (universeId: UUID | null) =>
+// ─── Sources and citations ─────────────────────────────────────────────────────
+
+export interface SourceListParams {
+  q?: string
+  kind?: SourceKind
+  reliability?: SourceReliability
+  publication?: string
+  uncited?: boolean
+  sort?: 'added' | 'title' | 'published' | 'cited' | 'reliability' | 'relevance'
+  order?: 'asc' | 'desc'
+  offset?: number
+  limit?: number
+}
+
+function sourceListQuery(universeId: UUID, p: SourceListParams): string {
+  const qs = new URLSearchParams({ universe_id: universeId })
+  for (const [k, v] of Object.entries(p)) {
+    if (v !== undefined && v !== null && v !== '' && v !== false) qs.set(k, String(v))
+  }
+  return qs.toString()
+}
+
+export const useSources = (universeId: UUID | null, params: SourceListParams) =>
   useQuery({
-    queryKey: ['sources', 'all', universeId],
-    queryFn: async () => {
-      const items: SourceListItem[] = []
-      let total = 0
-      do {
-        const page = await api.get<OffsetPage<SourceListItem>>(
-          `/sources/?universe_id=${universeId}&limit=1000&offset=${items.length}`,
-        )
-        items.push(...page.items)
-        total = page.total
-        if (page.items.length === 0) break
-      } while (items.length < total)
-      return { items, total: items.length } satisfies OffsetPage<SourceListItem>
-    },
+    queryKey: ['sources', 'list', universeId, params],
+    queryFn: () => api.get<SourceListPage>(`/sources/?${sourceListQuery(universeId!, params)}`),
     enabled: !!universeId,
-    staleTime: 30_000,
+    placeholderData: keepPreviousData,
+  })
+
+/** The CSV of the list as filtered, every row. */
+export const sourcesCsvUrl = (universeId: UUID, params: SourceListParams) =>
+  `/sources/?${sourceListQuery(universeId, { ...params, offset: undefined, limit: undefined })}&format=csv`
+
+/** What the universe already holds for a pasted URL. */
+export const useSourceLookup = (universeId: UUID | null, url: string) =>
+  useQuery({
+    queryKey: ['sources', 'lookup', universeId, url],
+    queryFn: () =>
+      api.get<SourceLookup>(`/sources/lookup?universe_id=${universeId}&url=${encodeURIComponent(url)}`),
+    enabled: !!universeId && /^https?:\/\/\S+\.\S+/.test(url),
+    staleTime: 10_000,
   })
 
 export const useSource = (id: UUID, universeId: UUID | null) =>
   useQuery({
-    queryKey: ['sources', id],
-    queryFn: () => api.get<SourceRead>(`/sources/${id}?universe_id=${universeId}`),
+    queryKey: ['sources', 'detail', id],
+    queryFn: () => api.get<SourceReadDetail>(`/sources/${id}?universe_id=${universeId}`),
     enabled: !!universeId,
   })
 
-export const useSourceIncidents = (id: UUID, universeId: UUID | null) =>
+export const useSourceCitations = (
+  id: UUID, universeId: UUID | null, entityType: CitableType, offset: number, limit = 50,
+) =>
   useQuery({
-    queryKey: ['incidents', 'source', id],
-    queryFn: () => api.get<CursorPage<IncidentListItem>>(`/sources/${id}/incidents?universe_id=${universeId}`),
+    queryKey: ['sources', 'citations', id, entityType, offset, limit],
+    queryFn: () =>
+      api.get<OffsetPage<SourceCitationRow>>(
+        `/sources/${id}/citations?universe_id=${universeId}&entity_type=${entityType}&offset=${offset}&limit=${limit}`,
+      ),
     enabled: !!universeId && !!id,
+    placeholderData: keepPreviousData,
   })
 
-export const useSourceMembers = (id: UUID, universeId: UUID | null) =>
+export const useSourceCustodyIds = (id: UUID, universeId: UUID | null, enabled = true) =>
   useQuery({
-    queryKey: ['members', 'source', id],
-    queryFn: () => api.get<CursorPage<MemberListItem>>(`/sources/${id}/members?universe_id=${universeId}`),
-    enabled: !!universeId && !!id,
+    queryKey: ['sources', 'custody', id],
+    queryFn: () => api.get<SourceCustodyRow[]>(`/sources/${id}/custody-ids?universe_id=${universeId}`),
+    enabled: !!universeId && !!id && enabled,
   })
 
 export const useCreateSource = () => {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: (body: Record<string, unknown>) => api.post<SourceRead>('/sources/', body),
-    onSuccess: (data) => { qc.invalidateQueries({ queryKey: ['sources', data.universe_id] }) },
+    // A 409 (duplicate_url, lookup_source) is shown by the form itself.
+    meta: { silent: true },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['sources'] }) },
   })
 }
 
@@ -1187,23 +1351,114 @@ export const useUpdateSource = (id: UUID, universeId: UUID) => {
   return useMutation({
     mutationFn: (body: Record<string, unknown>) =>
       api.patch<SourceRead>(`/sources/${id}?universe_id=${universeId}`, body),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['sources'] })
-    },
+    onSuccess: () => { invalidateCited(qc) },
+  })
+}
+
+export const useBulkUpdateSources = (universeId: UUID) => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (body: { ids: UUID[]; reliability?: SourceReliability; kind?: SourceKind }) =>
+      api.patch<{ updated: number }>(`/sources/bulk?universe_id=${universeId}`, body),
+    onSuccess: () => { invalidateCited(qc) },
+  })
+}
+
+export const useMergeSource = (universeId: UUID) => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, intoId }: { id: UUID; intoId: UUID }) =>
+      api.post<{ moved: number; combined: number; into_id: UUID }>(
+        `/sources/${id}/merge?universe_id=${universeId}`, { into_id: intoId },
+      ),
+    onSuccess: () => { invalidateCited(qc) },
   })
 }
 
 export const useDeleteSource = (universeId: UUID) => {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (id: UUID) => api.delete(`/sources/${id}?universe_id=${universeId}`),
-    // Its citations go with it, so the records that cited it are stale too.
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['sources'] })
-      qc.invalidateQueries({ queryKey: ['incidents'] })
-      qc.invalidateQueries({ queryKey: ['members'] })
-      qc.invalidateQueries({ queryKey: ['sets'] })
-    },
+    mutationFn: ({ id, force = false }: { id: UUID; force?: boolean }) =>
+      api.delete(`/sources/${id}?universe_id=${universeId}${force ? '&force=true' : ''}`),
+    onSuccess: () => { invalidateCited(qc) },
+  })
+}
+
+/** The query roots a citation change can stale: the sources, and every kind of
+ *  record that renders citations. Invalidated by root because detail pages key
+ *  by slug or UUID depending on how they were reached. */
+const CITED_ROOTS = [
+  'sources', 'members', 'incidents', 'sets', 'alliances', 'court-cases', 'municipalities', 'businesses', 'rap-groups',
+]
+const ROOT_OF: Record<CitableType, string> = {
+  member: 'members', incident: 'incidents', set: 'sets', alliance: 'alliances',
+  court_case: 'court-cases', municipality: 'municipalities', business: 'businesses', rap_group: 'rap-groups',
+}
+
+function invalidateCited(qc: ReturnType<typeof useQueryClient>, only?: CitableType) {
+  if (only) {
+    qc.invalidateQueries({ queryKey: ['sources'] })
+    qc.invalidateQueries({ queryKey: [ROOT_OF[only]] })
+    return
+  }
+  for (const root of CITED_ROOTS) qc.invalidateQueries({ queryKey: [root] })
+}
+
+export interface CitationInput {
+  source_id: UUID
+  entity_type: CitableType
+  entity_id: UUID
+  locator?: string | null
+  quote?: string | null
+  note?: string | null
+  accessed_at?: string | null
+}
+
+export const useCreateCitation = (universeId: UUID) => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (body: CitationInput) =>
+      api.post<CitationRead>(`/citations/?universe_id=${universeId}`, body),
+    onSuccess: (_d, v) => { invalidateCited(qc, v.entity_type) },
+  })
+}
+
+export const useBatchCitations = (universeId: UUID) => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (body: { items: CitationInput[]; on_conflict?: 'skip' | 'update' }) =>
+      api.post<{ created: UUID[]; updated: UUID[]; skipped: UUID[] }>(
+        `/citations/batch?universe_id=${universeId}`, body,
+      ),
+    onSuccess: () => { invalidateCited(qc) },
+  })
+}
+
+export const useUpdateCitation = (universeId: UUID, entityType: CitableType) => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, ...body }: { id: UUID; locator?: string | null; quote?: string | null; note?: string | null; accessed_at?: string | null; source_id?: UUID }) =>
+      api.patch<CitationRead>(`/citations/${id}?universe_id=${universeId}`, body),
+    onSuccess: () => { invalidateCited(qc, entityType) },
+  })
+}
+
+export const useDeleteCitation = (universeId: UUID, entityType: CitableType) => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (id: UUID) => api.delete(`/citations/${id}?universe_id=${universeId}`),
+    onSuccess: () => { invalidateCited(qc, entityType) },
+  })
+}
+
+export const useReorderCitations = (universeId: UUID, entityType: CitableType, entityId: UUID) => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (ids: UUID[]) =>
+      api.put<CitationRead[]>(`/citations/order?universe_id=${universeId}`, {
+        entity_type: entityType, entity_id: entityId, ids,
+      }),
+    onSuccess: () => { invalidateCited(qc, entityType) },
   })
 }
 
@@ -1309,7 +1564,7 @@ export const useResearchNotes = (universeId: UUID | null, offset = 0) =>
   useQuery({
     queryKey: ['research', universeId, offset],
     queryFn: () =>
-      api.get<OffsetPage<ResearchNoteListItem>>(`/research/?universe_id=${universeId}&offset=${offset}`),
+      api.get<OffsetPage<ResearchNoteListItem>>(`/research/?universe_id=${universeId}&offset=${offset}&limit=200`),
     enabled: !!universeId,
   })
 
@@ -1327,10 +1582,19 @@ export const useResearchSearch = (universeId: UUID | null, q: string) =>
     enabled: !!universeId && q.length >= 2,
   })
 
+/** The notes pinned to one entity, newest first. */
+export const usePinnedNotes = (universeId: UUID | null, kind: PinKind, entityId: UUID | null) =>
+  useQuery({
+    queryKey: ['research', 'pinned', universeId, kind, entityId],
+    queryFn: () =>
+      api.get<ResearchNoteListItem[]>(`/research/pinned?universe_id=${universeId}&${kind}_id=${entityId}`),
+    enabled: !!universeId && !!entityId,
+  })
+
 export const useCreateResearchNote = () => {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (body: { universe_id: UUID; title: string; content: string }) =>
+    mutationFn: (body: { universe_id: UUID; title: string; content: string; kind?: NoteKind; pins?: PinRef[] }) =>
       api.post<ResearchNoteRead>('/research/', body),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['research'] })
@@ -1341,7 +1605,8 @@ export const useCreateResearchNote = () => {
 export const useUpdateResearchNote = (id: UUID, universeId: UUID) => {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (body: { title?: string; content?: string }) =>
+    // `pins`, when present, replaces the note's whole list of pins.
+    mutationFn: (body: { title?: string; content?: string; kind?: NoteKind; pins?: PinRef[] }) =>
       api.patch<ResearchNoteRead>(`/research/${id}?universe_id=${universeId}`, body),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['research'] })
@@ -1505,6 +1770,7 @@ const mediaEntityField = (entityType: MediaEntityType): string => {
   if (entityType === 'source') return 'source_id'
   if (entityType === 'set') return 'set_id'
   if (entityType === 'municipality') return 'municipality_id'
+  if (entityType === 'rap_group') return 'rap_group_id'
   return 'alliance_id'
 }
 
@@ -1581,6 +1847,7 @@ export const useUpdateMedia = (
     },
     onError: (_e, _v, ctx) => { if (ctx?.prev) restoreSnapshot(qc, ctx.prev) },
     onSettled: () => {
+      qc.invalidateQueries({ queryKey: ['media', 'appears-in'] })
       qc.invalidateQueries({ queryKey: mediaQueryKey(entityType, entityId) })
       qc.invalidateQueries({ queryKey: [`${entityType}s`] })
     },
@@ -1615,8 +1882,149 @@ export const useDeleteMedia = (
     },
     onError: (_e, _id, ctx) => { if (ctx?.prev) restoreSnapshot(qc, ctx.prev) },
     onSettled: () => {
+      qc.invalidateQueries({ queryKey: ['media', 'appears-in'] })
       qc.invalidateQueries({ queryKey: mediaQueryKey(entityType, entityId) })
       qc.invalidateQueries({ queryKey: [`${entityType}s`] })
     },
   })
 }
+
+// ─── Court cases ──────────────────────────────────────────────────────────────
+
+/** Every key a court case write can make stale: its own, and the incidents
+ *  whose `acquitted` flags follow its verdicts, and the spells it links. */
+function invalidateCourtCases(qc: QueryClient) {
+  qc.invalidateQueries({ queryKey: ['court-cases'] })
+  qc.invalidateQueries({ queryKey: ['incidents'] })
+  qc.invalidateQueries({ queryKey: ['members'] })
+  qc.invalidateQueries({ queryKey: ['sources'] })
+}
+
+export const useCourtCases = (universeId: UUID | null) =>
+  useQuery({
+    queryKey: ['court-cases', 'universe', universeId],
+    queryFn: async () => {
+      const items: CourtCaseListItem[] = []
+      let total = 0
+      do {
+        const page = await api.get<OffsetPage<CourtCaseListItem>>(
+          `/court-cases/?universe_id=${universeId}&limit=1000&offset=${items.length}`,
+        )
+        items.push(...page.items)
+        total = page.total
+        if (page.items.length === 0) break
+      } while (items.length < total)
+      return items
+    },
+    enabled: !!universeId,
+  })
+
+/** The cases a member, set, incident or alliance is in, in whatever universe each sits. */
+export const useCourtCasesFor = (
+  filter: 'member_id' | 'set_id' | 'incident_id' | 'alliance_id',
+  id: UUID | null | undefined,
+  universeId: UUID | null,
+) =>
+  useQuery({
+    queryKey: ['court-cases', filter, id],
+    queryFn: () =>
+      api.get<OffsetPage<CourtCaseListItem>>(`/court-cases/?universe_id=${universeId}&${filter}=${id}`)
+        .then((p) => p.items),
+    enabled: !!universeId && !!id,
+  })
+
+export const useCourtCase = (idOrSlug: string, universeId: UUID | null) =>
+  useQuery({
+    queryKey: ['court-cases', 'detail', universeId, idOrSlug],
+    queryFn: () => api.get<CourtCaseReadDetail>(`/court-cases/${idOrSlug}?universe_id=${universeId}`),
+    enabled: !!universeId && !!idOrSlug,
+  })
+
+export const useCourtCaseSearch = (universeId: UUID | null, q: string) =>
+  useQuery({
+    queryKey: ['court-cases', 'search', universeId, q],
+    queryFn: () => api.get<CourtCaseListItem[]>(`/court-cases/search?universe_id=${universeId}&q=${encodeURIComponent(q)}`),
+    enabled: !!universeId && q.length >= 2,
+    placeholderData: keepPreviousData,
+  })
+
+export const useCreateCourtCase = () => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (body: Record<string, unknown>) => api.post<CourtCaseRead>('/court-cases/', body),
+    onSuccess: () => invalidateCourtCases(qc),
+  })
+}
+
+export const useUpdateCourtCase = (id: UUID, universeId: UUID) => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (body: Record<string, unknown>) =>
+      api.patch<CourtCaseRead>(`/court-cases/${id}?universe_id=${universeId}`, body),
+    onSuccess: () => invalidateCourtCases(qc),
+  })
+}
+
+export const useDeleteCourtCase = (universeId: UUID) => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (id: UUID) => api.delete(`/court-cases/${id}?universe_id=${universeId}`),
+    onSuccess: () => invalidateCourtCases(qc),
+  })
+}
+
+export const useSaveDefendant = (caseId: UUID, universeId: UUID) => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, body }: { id?: UUID; body: Record<string, unknown> }) =>
+      id
+        ? api.patch<DefendantRead>(`/court-cases/${caseId}/defendants/${id}?universe_id=${universeId}`, body)
+        : api.post<DefendantRead>(`/court-cases/${caseId}/defendants?universe_id=${universeId}`, body),
+    onSuccess: () => invalidateCourtCases(qc),
+  })
+}
+
+export const useDeleteDefendant = (caseId: UUID, universeId: UUID) => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (id: UUID) => api.delete(`/court-cases/${caseId}/defendants/${id}?universe_id=${universeId}`),
+    onSuccess: () => invalidateCourtCases(qc),
+  })
+}
+
+/** Dated sentencings in a universe's cases, for the timeline and calendar. */
+export const useSentencings = (universeId: UUID | null) =>
+  useQuery({
+    queryKey: ['court-cases', 'sentencings', universeId],
+    queryFn: () => api.get<SentencingEvent[]>(`/court-cases/sentencings?universe_id=${universeId}`),
+    enabled: !!universeId,
+  })
+
+/** The members tagged in a photo, replaced wholesale (`position` null = order unknown). */
+export const useSetMediaPeople = (
+  entityType: MediaEntityType,
+  entityId: UUID,
+  universeId: UUID,
+) => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, people }: { id: UUID; people: { member_id: UUID; position: number | null }[] }) =>
+      api.put<MediaWithUrls>(`/media/${id}/people`, { universe_id: universeId, people }),
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: mediaQueryKey(entityType, entityId) })
+      // A tag changes which pages show the photo: every member's "Appears in" strip.
+      qc.invalidateQueries({ queryKey: ['media', 'appears-in'] })
+    },
+  })
+}
+
+/** Photos a member is tagged in that are not his own, with the entity each belongs to. */
+export const useMediaAppearsIn = (memberId: UUID | null, universeId: UUID | null) =>
+  useQuery({
+    queryKey: ['media', 'appears-in', memberId],
+    queryFn: () =>
+      api.get<MediaAppearance[]>(`/media/appears-in?member_id=${memberId}&universe_id=${universeId}`),
+    enabled: !!universeId && !!memberId,
+    // Signed URLs expire — refetch before they go stale.
+    staleTime: 30 * 60_000,
+  })

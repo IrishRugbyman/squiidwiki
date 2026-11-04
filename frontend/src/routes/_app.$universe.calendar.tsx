@@ -1,10 +1,11 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
-import { Banknote, Bomb, Cake, CarFront, CheckCircle2, ChevronLeft, ChevronRight, Flame, Flower, HandCoins, Keyboard, ShieldAlert, Skull, Swords, Unlock, UserX } from 'lucide-react'
+import { Banknote, Bomb, Cake, CarFront, CheckCircle2, ChevronLeft, ChevronRight, Flame, Flower, Gavel, HandCoins, Keyboard, Pill, ShieldAlert, Skull, Swords, Unlock, UserX } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { NoUniverse } from '@/components/NoUniverse'
 import { Button } from '@/components/ui/button'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
-import { useDatedIncidents, useAllMembers, useUniverseReleaseEvents } from '@/lib/queries'
+import { useDatedIncidents, useAllMembers, useSentencings, useUniverseReleaseEvents } from '@/lib/queries'
+import { sentencedPhrase } from '@/lib/courtCases'
 import { useUniverseStore } from '@/stores/universe'
 import type { FuzzyDateValue } from '@/components/FuzzyDate'
 import type { IncidentType } from '@/lib/types'
@@ -23,7 +24,7 @@ const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 
 // ─── Event types ─────────────────────────────────────────────────────────────
 
-type EventKind = IncidentType | 'DEATH' | 'MEMORIAL' | 'BIRTHDAY' | 'RELEASE'
+type EventKind = IncidentType | 'DEATH' | 'MEMORIAL' | 'BIRTHDAY' | 'RELEASE' | 'SENTENCED'
 
 // `text` is spelled out rather than derived from `dot` because Tailwind v4 only
 // emits classes it can find as literals in the source.
@@ -39,11 +40,13 @@ const KIND_CONFIG: Record<EventKind, {
   KIDNAPPING: { dot: 'bg-blue-500',    text: 'text-blue-400',    pill: 'bg-blue-950/80 text-blue-300 ring-1 ring-blue-800/50',          pillHover: 'hover:ring-blue-500',    icon: UserX,       label: 'Kidnapping' },
   ROBBERY:    { dot: 'bg-emerald-500', text: 'text-emerald-400', pill: 'bg-emerald-950/80 text-emerald-300 ring-1 ring-emerald-800/50', pillHover: 'hover:ring-emerald-500', icon: Banknote,    label: 'Robbery'    },
   CRASH:      { dot: 'bg-sky-500',     text: 'text-sky-400',     pill: 'bg-sky-950/80 text-sky-300 ring-1 ring-sky-800/50',             pillHover: 'hover:ring-sky-500',     icon: CarFront,    label: 'Crash'      },
+  OVERDOSE:   { dot: 'bg-fuchsia-500', text: 'text-fuchsia-400', pill: 'bg-fuchsia-950/80 text-fuchsia-300 ring-1 ring-fuchsia-800/50', pillHover: 'hover:ring-fuchsia-500', icon: Pill,        label: 'Overdose'   },
   DEATH:      { dot: 'bg-zinc-500',    text: 'text-zinc-400',    pill: 'bg-zinc-900 text-zinc-400 ring-1 ring-zinc-700',                pillHover: 'hover:ring-zinc-500',    icon: Skull,       label: 'Death'      },
   // Flower rather than Flame: ARSON now owns the flame glyph.
   MEMORIAL:   { dot: 'bg-fuchsia-500', text: 'text-fuchsia-400', pill: 'bg-fuchsia-950/80 text-fuchsia-300 ring-1 ring-fuchsia-800/50', pillHover: 'hover:ring-fuchsia-500', icon: Flower,      label: 'Memorial'   },
   BIRTHDAY:   { dot: 'bg-sky-500',     text: 'text-sky-400',     pill: 'bg-sky-950/80 text-sky-300 ring-1 ring-sky-800/50',             pillHover: 'hover:ring-sky-500',     icon: Cake,        label: 'Birthday'   },
   RELEASE:    { dot: 'bg-emerald-500', text: 'text-emerald-400', pill: 'bg-emerald-950/80 text-emerald-300 ring-1 ring-emerald-800/50', pillHover: 'hover:ring-emerald-500', icon: Unlock,      label: 'Release'    },
+  SENTENCED:  { dot: 'bg-indigo-500',  text: 'text-indigo-400',  pill: 'bg-indigo-950/80 text-indigo-300 ring-1 ring-indigo-800/50',    pillHover: 'hover:ring-indigo-500',  icon: Gavel,       label: 'Sentenced'  },
 }
 
 const KIND_ORDER = Object.keys(KIND_CONFIG) as EventKind[]
@@ -54,7 +57,7 @@ interface CalendarEvent {
   label: string
   sublabel?: string
   /** A typed route and its param, so the Link is checked rather than cast. */
-  link: { to: '/$universe/incidents/$id' | '/$universe/members/$id'; id: string }
+  link: { to: '/$universe/incidents/$id' | '/$universe/members/$id' | '/$universe/cases/$id'; id: string }
   date: FuzzyDateValue | null
   verified?: boolean
 }
@@ -252,12 +255,14 @@ function CalendarPage() {
   const { data: incidentData } = useDatedIncidents(universe?.id ?? null)
   const { data: memberData }   = useAllMembers(universe?.id ?? null)
   const { data: releaseData }  = useUniverseReleaseEvents(universe?.id ?? null, year)
+  const { data: sentencingData } = useSentencings(universe?.id ?? null)
 
   // Stable references: a bare `?? []` is a new array every render, which made
   // every memo below recompute on every render and defeated the memoising.
   const incidents = useMemo(() => incidentData?.items ?? [], [incidentData])
   const members   = useMemo(() => memberData?.items ?? [], [memberData])
   const releases  = useMemo(() => releaseData ?? [], [releaseData])
+  const sentencings = useMemo(() => sentencingData ?? [], [sentencingData])
 
   // All three derived collections depend only on data + year/month, not selectedDay.
   // Memoising prevents re-building on every cell click.
@@ -347,6 +352,18 @@ function CalendarPage() {
       }
     }
 
+    for (const s of sentencings) {
+      if (!fuzzyMatchesMonth(s.sentenced_at, year, month)) continue
+      evs.push({
+        id: `${s.court_case_id}-${s.defendant}-sentenced`,
+        kind: 'SENTENCED',
+        label: s.defendant,
+        sublabel: `${sentencedPhrase(s.sentence_months, s.life_sentence)} · ${s.case_name}`,
+        link: { to: '/$universe/cases/$id', id: s.case_slug ?? s.court_case_id },
+        date: s.sentenced_at,
+      })
+    }
+
     for (const r of releases) {
       if (r.life_sentence) continue
       const memberLink = { to: '/$universe/members/$id' as const, id: r.member_slug ?? r.member_id }
@@ -374,7 +391,7 @@ function CalendarPage() {
     }
 
     return evs
-  }, [incidents, members, releases, year, month])
+  }, [incidents, members, releases, sentencings, year, month])
 
   // day → events (only YMD-precise events land in a cell)
   const dayEvents = useMemo<Record<number, CalendarEvent[]>>(() => {

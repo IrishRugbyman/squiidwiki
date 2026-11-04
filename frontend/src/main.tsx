@@ -5,6 +5,7 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { toast } from 'sonner'
 import './index.css'
+import { TooltipProvider } from './components/ui/tooltip'
 import { ApiError } from './lib/api'
 import { routeTree } from './routeTree.gen'
 
@@ -76,7 +77,11 @@ declare module '@tanstack/react-query' {
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
-      <RouterProvider router={router} />
+      {/* One provider for the whole app: shared components (the reliability dot,
+          the source list's counts) use tooltips on pages that set up none. */}
+      <TooltipProvider delayDuration={200}>
+        <RouterProvider router={router} />
+      </TooltipProvider>
       <ReactQueryDevtools initialIsOpen={false} />
     </QueryClientProvider>
   </StrictMode>,

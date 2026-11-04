@@ -1,7 +1,11 @@
 import { Link } from '@tanstack/react-router'
+import { ArrowUpRight } from 'lucide-react'
 import { FuzzyDate } from '@/components/FuzzyDate'
 import { INCIDENT_TYPE_ICON, INCIDENT_TYPE_TILE } from '@/lib/incidentColors'
+import { useUniverses } from '@/lib/queries'
 import type { IncidentListItem } from '@/lib/types'
+import { paramsIn } from '@/lib/universeRoutes'
+import { useUniverseStore } from '@/stores/universe'
 
 // Building blocks shared by the detail pages (set, alliance, incident), so the
 // three read as one design and a fix lands on all of them.
@@ -36,7 +40,12 @@ export const None = () => <span className="text-zinc-500">-</span>
  */
 export function StatStrip({ cells }: { cells: { label: string; value: number; accent: string; onClick?: () => void; title?: string }[] }) {
   return (
-    <div className="grid grid-cols-3 divide-x divide-y divide-zinc-800 overflow-hidden rounded-lg border border-zinc-800 bg-zinc-900/30 sm:grid-cols-6 sm:divide-y-0">
+    // One row from sm up, however many cells: a fixed six columns wrapped the
+    // set page's seventh cell onto a row of its own.
+    <div
+      style={{ '--cells': cells.length } as React.CSSProperties}
+      className="grid grid-cols-3 divide-x divide-y divide-zinc-800 overflow-hidden rounded-lg border border-zinc-800 bg-zinc-900/30 sm:grid-cols-[repeat(var(--cells),minmax(0,1fr))] sm:divide-y-0"
+    >
       {cells.map((c) => {
         const body = (
           <>
@@ -78,10 +87,27 @@ export function IncidentPeople({ inc }: { inc: IncidentListItem }) {
   )
 }
 
+/** Marks an incident recorded in another universe than the page's: an Ohio
+ *  shooting on a Michigan set's or member's page reads "in Ohio", with an arrow
+ *  because following the row switches the app to that universe. Incidents of
+ *  the page's own universe carry no chip. */
+export function UniverseChip({ slug }: { slug: string | null | undefined }) {
+  const active = useUniverseStore((s) => s.activeUniverse?.slug)
+  const { data } = useUniverses()
+  if (!slug || slug === active) return null
+  const name = (data?.items ?? []).find((u) => u.slug === slug)?.name ?? slug
+  return (
+    <span className="inline-flex shrink-0 items-center gap-0.5 rounded-full border border-sky-800/60 bg-sky-950/40 px-1.5 py-0.5 text-[10px] font-medium leading-none text-sky-300">
+      in {name}
+      <ArrowUpRight className="h-2.5 w-2.5" aria-hidden />
+    </span>
+  )
+}
+
 export function IncidentRow({ inc }: { inc: IncidentListItem }) {
   const Icon = INCIDENT_TYPE_ICON[inc.type]
   return (
-    <Link from="/$universe" to="/$universe/incidents/$id" params={{ id: inc.id }} className="flex items-center gap-3 px-3 py-2.5 transition-colors hover:bg-zinc-900/60">
+    <Link from="/$universe" to="/$universe/incidents/$id" params={paramsIn(inc.universe_slug, inc.id)} className="flex items-center gap-3 px-3 py-2.5 transition-colors hover:bg-zinc-900/60">
       <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-md ${INCIDENT_TYPE_TILE[inc.type]}`} title={titleCase(inc.type)}>
         <Icon className="h-4 w-4" aria-hidden />
       </span>
@@ -90,9 +116,48 @@ export function IncidentRow({ inc }: { inc: IncidentListItem }) {
           <span className="font-medium text-zinc-100">{titleCase(inc.type)}</span>
           <span className="font-mono text-xs tabular-nums text-zinc-400">{inc.date ? <FuzzyDate value={inc.date} /> : 'Date unknown'}</span>
           {inc.municipality_name && <span className="hidden truncate text-xs text-zinc-500 sm:inline">{inc.municipality_name}</span>}
+          <UniverseChip slug={inc.universe_slug} />
         </span>
         <IncidentPeople inc={inc} />
       </span>
     </Link>
+  )
+}
+
+/**
+ * Tiny year-bucketed activity strip — pure SVG, no recharts.
+ * Renders one bar per year between min..max, filling gaps with zero so the
+ * timeline is uniform. Designed to fit in ~64px height above an incidents table.
+ */
+export function IncidentsYearStrip({ data }: { data: Array<{ year: number; count: number }> }) {
+  if (!data.length) return null
+  const minYear = data[0].year
+  const maxYear = data[data.length - 1].year
+  const span = maxYear - minYear + 1
+  // Densify: include every year between min and max so years aren't squished.
+  const counts = new Map(data.map((d) => [d.year, d.count]))
+  const years = Array.from({ length: span }, (_, i) => minYear + i)
+  const max = Math.max(...data.map((d) => d.count), 1)
+  return (
+    <div className="rounded-lg border border-zinc-800 bg-zinc-950 p-3">
+      <div className="mb-1.5 flex items-baseline justify-between text-[10px] uppercase tracking-wider text-zinc-400">
+        <span>Incidents per year</span>
+        <span className="font-mono tabular-nums">{minYear}–{maxYear}</span>
+      </div>
+      <div className="flex items-end gap-0.5" style={{ height: 48 }}>
+        {years.map((y) => {
+          const c = counts.get(y) ?? 0
+          const h = c === 0 ? 2 : Math.max(4, (c / max) * 48)
+          return (
+            <div
+              key={y}
+              title={`${y}: ${c} incident${c === 1 ? '' : 's'}`}
+              className={`flex-1 rounded-md transition-colors ${c === 0 ? 'bg-zinc-800/40' : 'bg-violet-500/70 hover:bg-violet-400'}`}
+              style={{ height: h }}
+            />
+          )
+        })}
+      </div>
+    </div>
   )
 }

@@ -107,3 +107,21 @@ export function gangColorStyle(hex: string): CSSProperties {
     borderColor: `rgba(${r}, ${g}, ${b}, 0.55)`,
   }
 }
+
+/** Every slot of every variant, plus each variant's display, as one string to
+ *  search in: "CFP 2400 Cash Flow Posse CFP 2400". */
+export function variantsSearchText(variants?: NameVariant[] | null): string {
+  return (variants ?? [])
+    .flatMap((v) => [variantDisplay(v), v.name, v.initials, v.number])
+    .filter(Boolean)
+    .join(' ')
+}
+
+/** The non-primary variant a search query hit, as "Name · INI · 123", so a
+ *  result found through an a/k/a says which one; null when the main name matched. */
+export function matchedVariantLabel(variants: NameVariant[] | null | undefined, query: string): string | null {
+  const q = query.toLowerCase()
+  const hit = (variants ?? []).find((v) =>
+    v && !v.is_primary && [v.name, v.initials, v.number].filter(Boolean).some((x) => x!.toLowerCase().includes(q)))
+  return hit ? [hit.name, hit.initials, hit.number].filter(Boolean).join(' · ') : null
+}

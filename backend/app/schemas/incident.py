@@ -9,8 +9,8 @@ from app.core.enums import (
     MemberStatus,
     ParticipantOutcome,
     ParticipantRole,
-    SourceReliability,
 )
+from app.schemas.citation import CitationRead
 from app.schemas.common import FuzzyDateField
 
 
@@ -34,6 +34,9 @@ class ParticipantRead(BaseModel):
     # truncated member dump (4,600+ members; list endpoints cap at 500).
     member_name: Optional[str] = None
     member_slug: Optional[str] = None
+    # The member's own universe, which may not be the incident's: a Michigan
+    # member can take part in an Ohio incident. His page link is built from it.
+    member_universe_slug: Optional[str] = None
     # Also filled by the detail endpoint, so the page draws each participant
     # (photo, status, set) without downloading the whole universe's members.
     member_status: Optional[MemberStatus] = None
@@ -43,18 +46,6 @@ class ParticipantRead(BaseModel):
     set_id: Optional[uuid.UUID] = None
     set_name: Optional[str] = None
     set_slug: Optional[str] = None
-
-
-class IncidentSourceBrief(BaseModel):
-    """A cited source as the incident page shows it."""
-
-    model_config = {"from_attributes": True}
-
-    id: uuid.UUID
-    title: str
-    url: str
-    publication: Optional[str] = None
-    reliability: SourceReliability
 
 
 class SetParticipantCreate(BaseModel):
@@ -87,7 +78,6 @@ class IncidentCreate(BaseModel):
     verified: bool = False
     participants: list[ParticipantCreate] = []
     set_participants: list[SetParticipantCreate] = []
-    source_ids: list[uuid.UUID] = []
 
 
 class IncidentUpdate(BaseModel):
@@ -101,7 +91,6 @@ class IncidentUpdate(BaseModel):
     verified: Optional[bool] = None
     participants: Optional[list[ParticipantCreate]] = None
     set_participants: Optional[list[SetParticipantCreate]] = None
-    source_ids: Optional[list[uuid.UUID]] = None
 
 
 class IncidentRead(BaseModel):
@@ -119,13 +108,13 @@ class IncidentRead(BaseModel):
     verified: bool
     created_at: datetime
     updated_at: datetime
+    universe_slug: Optional[str] = None
 
 
 class IncidentReadDetail(IncidentRead):
     participants: list[ParticipantRead]
     set_participants: list[SetParticipantRead]
-    source_ids: list[uuid.UUID]
-    sources: list[IncidentSourceBrief] = []
+    citations: list[CitationRead] = []
 
 
 class IncidentListItem(BaseModel):
@@ -141,6 +130,9 @@ class IncidentListItem(BaseModel):
     lng: Optional[float]
     verified: bool
     universe_id: uuid.UUID
+    # Where the incident's page lives. A member's or set's list can hold
+    # incidents from another universe, so a link cannot assume the current one.
+    universe_slug: Optional[str] = None
     victim_names: list[str] = []
     shooter_names: list[str] = []
     # The role held by the member this list was filtered on, when it was. A member's

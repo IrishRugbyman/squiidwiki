@@ -8,10 +8,14 @@ import { CopyButton } from '@/components/CopyButton'
 import { DetailHeaderSkeleton } from '@/components/skeletons'
 import { ErrorState } from '@/components/ErrorState'
 import { Button } from '@/components/ui/button'
+import { PinChip } from '@/components/research/PinChip'
+import { PinPicker } from '@/components/research/PinPicker'
 import { Input } from '@/components/ui/input'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import { useDeleteResearchNote, useResearchNote, useUpdateResearchNote } from '@/lib/queries'
 import { useUniverseStore } from '@/stores/universe'
+import { NOTE_KINDS, NOTE_KIND_LABEL, type NoteKind, type PinRef } from '@/lib/types'
 import { useEditShortcut } from '@/hooks/useKeymap'
 import { useRecordRecent } from '@/stores/recents'
 import { LinkifiedText } from '@/components/LinkifiedText'
@@ -63,6 +67,10 @@ function ResearchDetailPage() {
       // Drop the ?edit=1 from URL after first save so refresh doesn't re-enter edit
       navigate({ from: '/$universe', to: '/$universe/research/$id', params: { id }, search: { edit: undefined }, replace: true })
     }
+  }
+
+  function savePins(pins: PinRef[]) {
+    update.mutate({ pins: pins.map(({ kind, id }) => ({ kind, id })) })
   }
 
   function handleCancel() {
@@ -134,6 +142,26 @@ function ResearchDetailPage() {
                 </>
               )}
             </div>
+          </div>
+
+          {/* Kind and pins save on their own, in or out of edit mode. */}
+          <div className="mb-4 flex flex-wrap items-center gap-x-3 gap-y-2">
+            <Select value={note.kind} onValueChange={(v) => update.mutate({ kind: v as NoteKind })} disabled={update.isPending}>
+              <SelectTrigger className="h-8 w-[8.5rem] text-sm" aria-label="Note kind"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {NOTE_KINDS.map((k) => (
+                  <SelectItem key={k} value={k}>{NOTE_KIND_LABEL[k]}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {note.pins.map((p) => (
+              <PinChip
+                key={`${p.kind}-${p.id}`}
+                pin={p}
+                onRemove={() => savePins(note.pins.filter((x) => !(x.kind === p.kind && x.id === p.id)))}
+              />
+            ))}
+            {universe && <PinPicker universeId={universe.id} pinned={note.pins} onPick={(ref) => savePins([...note.pins, ref])} />}
           </div>
 
           {editing ? (

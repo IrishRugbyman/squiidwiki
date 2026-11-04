@@ -160,15 +160,12 @@ async def get_universe_analytics(
         ),
         _exec(
             """
-            SELECT src.id, src.title,
-                COALESCE(isr.cnt, 0) + COALESCE(msr.cnt, 0) AS ref_count
+            SELECT src.id, src.title, COALESCE(c.cnt, 0) AS ref_count
             FROM source src
             LEFT JOIN (
-                SELECT source_id, count(*) AS cnt FROM incident_source GROUP BY source_id
-            ) isr ON isr.source_id = src.id
-            LEFT JOIN (
-                SELECT source_id, count(*) AS cnt FROM member_source GROUP BY source_id
-            ) msr ON msr.source_id = src.id
+                SELECT source_id, count(*) AS cnt FROM citation
+                WHERE universe_id = :uid GROUP BY source_id
+            ) c ON c.source_id = src.id
             WHERE src.universe_id = :uid
             ORDER BY ref_count DESC
             LIMIT 5

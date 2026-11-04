@@ -73,6 +73,12 @@ class World:
             "/api/v1/sources/", {"url": f"https://example.com/{_uid()}", "title": "Test Article"}
         )
 
+    async def cite(self, source: dict, entity_type: str, record: dict) -> dict:
+        return await self.post(
+            f"/api/v1/citations/?universe_id={self.uni}",
+            {"source_id": source["id"], "entity_type": entity_type, "entity_id": record["id"]},
+        )
+
     async def incident(self, date: dict | None, participants=(), **body) -> dict:
         return await self.post(
             "/api/v1/incidents/",
@@ -143,10 +149,11 @@ async def test_set_member_unsourced(client: AsyncClient, db_session: AsyncSessio
     bare = await w.member(affiliations=[{"set_id": s["id"]}])
     src = await w.source()
     # Cited directly.
-    await w.member(affiliations=[{"set_id": s["id"]}], source_ids=[src["id"]])
+    cited = await w.member(affiliations=[{"set_id": s["id"]}])
+    await w.cite(src, "member", cited)
     # Cited through an incident they are in.
     via = await w.member(affiliations=[{"set_id": s["id"]}])
-    await w.incident(Y(2020), [p(via)], source_ids=[src["id"]])
+    await w.cite(src, "incident", await w.incident(Y(2020), [p(via)]))
     # Not in a set at all.
     await w.member()
 

@@ -8,13 +8,6 @@ from sqlmodel import Field, SQLModel
 from app.core.enums import IncidentType, ParticipantOutcome, ParticipantRole
 
 
-class IncidentSource(SQLModel, table=True):
-    __tablename__ = "incident_source"
-
-    incident_id: uuid.UUID = Field(foreign_key="incident.id", primary_key=True)
-    source_id: uuid.UUID = Field(foreign_key="source.id", primary_key=True)
-
-
 class IncidentParticipant(SQLModel, table=True):
     """
     Orthogonal role + outcome per participant.

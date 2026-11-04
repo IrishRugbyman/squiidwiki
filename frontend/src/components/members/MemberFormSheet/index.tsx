@@ -12,7 +12,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { FuzzyDate } from '@/components/FuzzyDate'
 import { FuzzyDateInput } from '@/components/FuzzyDateInput'
 import {
-  useCreateMember, useUpdateMember,
+  useCreateMember, useUpdateMember, useBatchCitations,
   useAllSets, useAlliances, useGangs, useMember, useMemberSearch,
   useMdocLookup, useMdocImportPhoto, useMemberIncarcerations,
   useCreateSet, useCreateAlliance, useCreateGang,
@@ -535,6 +535,9 @@ function MemberFormSheetInner({ universeId, open, onClose, initial, defaultSetId
   const [mdocFound, setMdocFound] = useState<MdocProfile | null>(null)
   const urlPaste = useUrlPasteBanner()
   const [creatingSourceFromUrl, setCreatingSourceFromUrl] = useState<string | null>(null)
+  // Sources saved from a pasted link before the member exists: cited once it does.
+  const [queuedSourceIds, setQueuedSourceIds] = useState<string[]>([])
+  const batchCite = useBatchCitations(universeId)
 
   // Inline incarceration (create-only). Edit mode still routes users to the
   // detail page so they don't accidentally clobber an active spell from here.
@@ -602,6 +605,12 @@ function MemberFormSheetInner({ universeId, open, onClose, initial, defaultSetId
       } else {
         const created = await create.mutateAsync(body)
         toast.success(`Created ${label}`)
+        if (queuedSourceIds.length > 0) {
+          await batchCite.mutateAsync({
+            items: queuedSourceIds.map((source_id) => ({ source_id, entity_type: 'member', entity_id: created.id })),
+          })
+          setQueuedSourceIds([])
+        }
         if (photoQueue.length > 0) {
           await flushPhotoQueue({
             files: photoQueue,
@@ -1224,6 +1233,13 @@ function MemberFormSheetInner({ universeId, open, onClose, initial, defaultSetId
           open
           onClose={() => setCreatingSourceFromUrl(null)}
           defaultUrl={creatingSourceFromUrl}
+          onSaved={(s) => {
+            if (initial) {
+              batchCite.mutate({ items: [{ source_id: s.id, entity_type: 'member', entity_id: initial.id }] })
+            } else {
+              setQueuedSourceIds((q) => [...q, s.id])
+            }
+          }}
         />
       )}
     </Sheet>

@@ -1,13 +1,14 @@
+import { matchedVariantLabel } from '@/lib/setDisplay'
 import { useNavigate } from '@tanstack/react-router'
 import { useSwitchUniverse } from '@/hooks/useSwitchUniverse'
-import { AlertTriangle, Clock, FileText, Globe, MapPin, Network, Plus, Shield, TextSearch, Users } from 'lucide-react'
+import { AlertTriangle, Clock, FileText, Gavel, Globe, MapPin, Mic, Network, Plus, Shield, TextSearch, Users } from 'lucide-react'
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '@/lib/api'
 import { useDebounce } from '@/hooks/useDebounce'
 import {
-  useAllianceSearch, useIncidentSearch, useMemberSearch, useMunicipalitySearch,
-  useSetSearch, useSourceSearch, useTextSearch, useCreateUniverse,
+  useAllianceSearch, useCourtCaseSearch, useIncidentSearch, useMemberSearch, useMunicipalitySearch,
+  useRapGroupSearch, useSetSearch, useSourceSearch, useTextSearch, useCreateUniverse,
 } from '@/lib/queries'
 import { useUniverseStore, type Universe } from '@/stores/universe'
 import { useAuthStore } from '@/stores/auth'
@@ -184,7 +185,10 @@ export function GlobalCommandPalette({ open, onClose }: GlobalCommandPaletteProp
   const { data: memberResults } = useMemberSearch(universeId, dq)
   const { data: setResults } = useSetSearch(universeId, dq)
   const { data: allianceResults } = useAllianceSearch(universeId, dq)
+  const { data: rapGroupResults } = useRapGroupSearch(universeId, dq)
   const { data: incidentResults } = useIncidentSearch(universeId, dq)
+  // Name, docket, or any other spelling of the docket on file.
+  const { data: caseResults } = useCourtCaseSearch(universeId, dq)
   const { data: sourceResults } = useSourceSearch(universeId, dq)
   const { data: municipalityResults } = useMunicipalitySearch(universeId, dq)
   const { data: textResults } = useTextSearch(universeId, dq)
@@ -194,7 +198,9 @@ export function GlobalCommandPalette({ open, onClose }: GlobalCommandPaletteProp
     (memberResults?.length ?? 0) > 0 ||
     (setResults?.length ?? 0) > 0 ||
     (allianceResults?.length ?? 0) > 0 ||
+    (rapGroupResults?.length ?? 0) > 0 ||
     (incidentResults?.length ?? 0) > 0 ||
+    (caseResults?.length ?? 0) > 0 ||
     (sourceResults?.length ?? 0) > 0 ||
     (municipalityResults?.length ?? 0) > 0 ||
     (textResults?.length ?? 0) > 0
@@ -257,16 +263,7 @@ export function GlobalCommandPalette({ open, onClose }: GlobalCommandPaletteProp
           {searching && (setResults?.length ?? 0) > 0 && (
             <CommandGroup heading={groupHeading('Sets', setResults!.length)}>
               {setResults!.slice(0, GROUP_CAP).map((s) => {
-                const ql = q.toLowerCase()
-                const matchedVariant = (s.name_variants ?? []).find((v) => {
-                  if (!v || v.is_primary) return false
-                  return [v.name, v.initials, v.number]
-                    .filter(Boolean)
-                    .some((x) => x!.toLowerCase().includes(ql))
-                })
-                const matchLabel = matchedVariant
-                  ? [matchedVariant.name, matchedVariant.initials, matchedVariant.number].filter(Boolean).join(' · ')
-                  : null
+                const matchLabel = matchedVariantLabel(s.name_variants, q)
                 return (
                   <CommandItem key={s.id} value={`set-${s.id}`} onSelect={() => go(inUniverse(`/sets/${s.slug ?? s.id}`))}>
                     <Shield className="mr-2 h-3.5 w-3.5 shrink-0 text-zinc-400" />
@@ -283,13 +280,34 @@ export function GlobalCommandPalette({ open, onClose }: GlobalCommandPaletteProp
 
           {searching && (allianceResults?.length ?? 0) > 0 && (
             <CommandGroup heading={groupHeading('Alliances', allianceResults!.length)}>
-              {allianceResults!.slice(0, GROUP_CAP).map((a) => (
-                <CommandItem key={a.id} value={`alliance-${a.id}`} onSelect={() => go(inUniverse(`/alliances/${a.slug ?? a.id}`))}>
-                  <Network className="mr-2 h-3.5 w-3.5 shrink-0 text-zinc-400" />
-                  <span>{a.name}</span>
-                  <span className="ml-auto text-[10px] text-zinc-400">{a.status}</span>
-                </CommandItem>
-              ))}
+              {allianceResults!.slice(0, GROUP_CAP).map((a) => {
+                const matchLabel = matchedVariantLabel(a.name_variants, q)
+                return (
+                  <CommandItem key={a.id} value={`alliance-${a.id}`} onSelect={() => go(inUniverse(`/alliances/${a.slug ?? a.id}`))}>
+                    <Network className="mr-2 h-3.5 w-3.5 shrink-0 text-zinc-400" />
+                    {a.emojis?.[0] && <span className="mr-1.5 text-sm leading-none" aria-hidden>{a.emojis[0]}</span>}
+                    <span>{a.name}</span>
+                    {matchLabel && <span className="ml-2 text-[10px] text-zinc-400">a/k/a {matchLabel}</span>}
+                    <span className="ml-auto text-[10px] text-zinc-400">{a.status}</span>
+                  </CommandItem>
+                )
+              })}
+            </CommandGroup>
+          )}
+
+          {searching && (rapGroupResults?.length ?? 0) > 0 && (
+            <CommandGroup heading={groupHeading('Rap groups & labels', rapGroupResults!.length)}>
+              {rapGroupResults!.slice(0, GROUP_CAP).map((g) => {
+                const matchLabel = matchedVariantLabel(g.name_variants, q)
+                return (
+                  <CommandItem key={g.id} value={`rap-group-${g.id}`} onSelect={() => go(inUniverse(`/rap-groups/${g.slug ?? g.id}`))}>
+                    <Mic className="mr-2 h-3.5 w-3.5 shrink-0 text-fuchsia-400" />
+                    <span>{g.name}</span>
+                    {matchLabel && <span className="ml-2 text-[10px] text-zinc-400">a/k/a {matchLabel}</span>}
+                    <span className="ml-auto text-[10px] text-zinc-400">{g.kind === 'LABEL' ? 'Label' : 'Group'}</span>
+                  </CommandItem>
+                )
+              })}
             </CommandGroup>
           )}
 
@@ -301,6 +319,18 @@ export function GlobalCommandPalette({ open, onClose }: GlobalCommandPaletteProp
                   <span>{inc.type}</span>
                   {inc.date && <span className="ml-1.5 text-[10px] text-zinc-400">{fmtDate(inc.date)}</span>}
                   {inc.verified && <span className="ml-auto text-[10px] text-emerald-600">verified</span>}
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          )}
+
+          {searching && (caseResults?.length ?? 0) > 0 && (
+            <CommandGroup heading={groupHeading('Court cases', caseResults!.length)}>
+              {caseResults!.slice(0, GROUP_CAP).map((c) => (
+                <CommandItem key={c.id} value={`case-${c.id}`} onSelect={() => go(inUniverse(`/cases/${c.slug ?? c.id}`))}>
+                  <Gavel className="mr-2 h-3.5 w-3.5 shrink-0 text-zinc-400" />
+                  <span className="truncate">{c.name}</span>
+                  {c.docket && <span className="ml-auto shrink-0 font-mono text-[10px] text-zinc-400">{c.docket}</span>}
                 </CommandItem>
               ))}
             </CommandGroup>

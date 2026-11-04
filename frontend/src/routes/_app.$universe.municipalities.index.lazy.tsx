@@ -73,6 +73,9 @@ function MuniRow({ m, depth, max, dim, orphan, expanded, onToggle, onEdit }: {
           {m.kind === 'NEIGHBORHOOD' && (
             <span title="Neighborhood: a named area that may overlap districts" className="shrink-0 rounded-full border border-zinc-700 px-1.5 py-0.5 text-[10px] text-zinc-400">hood</span>
           )}
+          {m.kind === 'HOUSING_PROJECT' && (
+            <span title="Housing project: a public housing estate" className="shrink-0 rounded-full border border-zinc-700 px-1.5 py-0.5 text-[10px] text-zinc-400">projects</span>
+          )}
           {m.aliases.length > 0 && <span className="hidden min-w-0 truncate text-[11px] text-zinc-400 sm:inline">{m.aliases.join(' · ')}</span>}
           {m.region && <span className="hidden shrink-0 rounded-full bg-zinc-800 px-1.5 py-0.5 text-[10px] text-zinc-300 md:inline">{m.region}</span>}
           {m.child_count > 0 && <span className="hidden shrink-0 text-[11px] text-zinc-500 sm:inline">{plural(m.child_count, 'sub-area')}</span>}
@@ -178,6 +181,7 @@ function MunicipalitiesPage() {
     cities: tree.top.length,
     districts: items.filter((m) => m.kind === 'DISTRICT').length,
     neighborhoods: items.filter((m) => m.kind === 'NEIGHBORHOOD').length,
+    projects: items.filter((m) => m.kind === 'HOUSING_PROJECT').length,
     unbounded: items.filter((m) => !m.has_geometry).length,
   }
   const maxCity = Math.max(0, ...tree.top.map((m) => m.total_incident_count))
@@ -217,7 +221,8 @@ function MunicipalitiesPage() {
         title="Municipalities"
         description={isLoading ? 'Loading…' : items.length === 0 ? 'None yet'
           : [plural(stats.cities, 'city', 'cities'), plural(stats.districts, 'district'),
-            ...(stats.neighborhoods ? [plural(stats.neighborhoods, 'neighborhood')] : [])].join(' · ')}
+            ...(stats.neighborhoods ? [plural(stats.neighborhoods, 'neighborhood')] : []),
+            ...(stats.projects ? [plural(stats.projects, 'housing project')] : [])].join(' · ')}
         action={
           <div className="flex items-center gap-2">
             <Button size="sm" variant="outline" asChild>

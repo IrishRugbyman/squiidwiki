@@ -107,12 +107,17 @@ async def test_create_business_with_owner_set_and_source(
             "business_type": "GAMING",
             "members": [{"member_id": owner_id, "role": "OWNER"}],
             "set_ids": [set_id],
-            "source_ids": [source_id],
         },
         headers={"Authorization": f"Bearer {token}"},
     )
     assert resp.status_code == 201
     business_id = resp.json()["id"]
+    cited = await client.post(
+        f"/api/v1/citations/?universe_id={universe_id}",
+        json={"source_id": source_id, "entity_type": "business", "entity_id": business_id},
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert cited.status_code == 201, cited.text
 
     detail = (
         await client.get(
@@ -121,7 +126,7 @@ async def test_create_business_with_owner_set_and_source(
         )
     ).json()
     assert detail["set_ids"] == [set_id]
-    assert detail["source_ids"] == [source_id]
+    assert [c["source_id"] for c in detail["citations"]] == [source_id]
     assert len(detail["members"]) == 1
     assert detail["members"][0]["member_id"] == owner_id
     assert detail["members"][0]["role"] == "OWNER"

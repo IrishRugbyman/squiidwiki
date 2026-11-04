@@ -14,21 +14,21 @@ interface FuzzyDateProps {
   className?: string
 }
 
-export function FuzzyDate({ value, fallback = 'Unknown', className }: FuzzyDateProps) {
-  if (!value || value.precision === 'UNKNOWN') {
-    return <span className={className}>{fallback}</span>
-  }
-
+/** A fuzzy date as plain text ("c. Mar 2019"), or null when there is none. */
+export function formatFuzzyDate(value: FuzzyDateValue | null | undefined): string | null {
+  if (!value || value.precision === 'UNKNOWN') return null
   const prefix = value.approx ? 'c. ' : ''
-
-  let text: string
   if (value.precision === 'YMD' && value.year && value.month && value.day) {
-    text = `${prefix}${MONTHS[value.month - 1]} ${value.day}, ${value.year}`
-  } else if (value.precision === 'YM' && value.year && value.month) {
-    text = `${prefix}${MONTHS[value.month - 1]} ${value.year}`
-  } else if (value.precision === 'Y' && value.year) {
-    text = `${prefix}${value.year}`
-  } else {
+    return `${prefix}${MONTHS[value.month - 1]} ${value.day}, ${value.year}`
+  }
+  if (value.precision === 'YM' && value.year && value.month) return `${prefix}${MONTHS[value.month - 1]} ${value.year}`
+  if (value.precision === 'Y' && value.year) return `${prefix}${value.year}`
+  return null
+}
+
+export function FuzzyDate({ value, fallback = 'Unknown', className }: FuzzyDateProps) {
+  const text = formatFuzzyDate(value)
+  if (!value || !text) {
     return <span className={className}>{fallback}</span>
   }
 

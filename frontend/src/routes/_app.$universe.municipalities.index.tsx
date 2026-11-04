@@ -68,7 +68,7 @@ function MunicipalityFormSheetInner({ universeId, open, onClose, initial, defaul
   const [name, setName] = useState(initial?.name ?? '')
   const [parentId, setParentId] = useState<string>(initial?.parent_id ?? defaultParentId ?? '')
   const [kind, setKind] = useState<Exclude<MunicipalityKind, 'CITY'>>(
-    initial?.kind === 'NEIGHBORHOOD' ? 'NEIGHBORHOOD' : 'DISTRICT'
+    initial?.kind && initial.kind !== 'CITY' ? initial.kind : 'DISTRICT'
   )
   const [aliases, setAliases] = useState((initial?.aliases ?? []).join(', '))
   const [region, setRegion] = useState(initial?.region ?? '')
@@ -146,7 +146,7 @@ function MunicipalityFormSheetInner({ universeId, open, onClose, initial, defaul
           {options.length > 0 && (
             <div className="space-y-1.5">
               <Label>Parent municipality</Label>
-              <Select value={parentId || 'none'} onValueChange={(v) => setParentId(v === 'none' ? '' : v)}>
+              <Select value={parentId || 'none'} onValueChange={(v) => { if (v) setParentId(v === 'none' ? '' : v) }}>
                 <SelectTrigger><SelectValue placeholder="None (top-level)" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="none">None</SelectItem>
@@ -165,6 +165,7 @@ function MunicipalityFormSheetInner({ universeId, open, onClose, initial, defaul
                 <SelectContent>
                   <SelectItem value="DISTRICT">District (splits the city, e.g. a ZIP code)</SelectItem>
                   <SelectItem value="NEIGHBORHOOD">Neighborhood (may overlap districts)</SelectItem>
+                  <SelectItem value="HOUSING_PROJECT">Housing project (a public housing estate)</SelectItem>
                 </SelectContent>
               </Select>
             </div>

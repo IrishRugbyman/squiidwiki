@@ -42,6 +42,9 @@ frontend/src/
   - `copyFrom` — duplicate mode (calls create, seeded from existing entity)
   - `defaultSetId` / `defaultAllianceId` / `defaultParticipants` — prefill seeds for create mode
   - When opening dynamically, key the sheet by entity id (`key={`dup-${id}`}`) so re-opens re-seed.
+- **Sources and citations** live in `components/sources/`: `CitationsPanel` (a record's sources on any detail page: grouped by kind, cite / edit / reorder / detach), `SourceCard` (one source, its citation's locator, quote and note on expand), `SourcePicker` (search, paste a URL, create inline, then cite), `SourceForm` (every source field, live duplicate and custody-lookup warning), `EntityCitePicker` (one source on many records, one batch call), `CitationEditDialog`, `ReliabilityDot`. Kind labels and icons, `domainOf`, `isValidUrl` and `lookupDeepLink` are in `lib/sourceMeta.ts`; reliability colours and labels only in `lib/statusColors.ts`. Never re-render a source list by hand on a page.
+- **Names in slots** are edited with `components/names/NameVariantsEditor.tsx` and `EmojiField.tsx` (form helpers in `lib/nameVariants.ts`, `hooks/useEmojiField.ts`) and shown with `NameVariantChips.tsx`, on both the set and alliance forms and headers. `variantsSearchText` and `matchedVariantLabel` in `lib/setDisplay.ts` make lists and the palette search every slot.
+- **Share as image**: `components/share/ShareImageButton.tsx` on the member, set and alliance pages renders a purpose-built card (`MemberShareCard`, `SetShareCard`, `AllianceShareCard`, their own lazy chunks) off-screen and turns it into a PNG with `modern-screenshot` (share sheet on a phone, clipboard on a desktop). R2 sends no CORS headers, so card photos are `<img data-share-src>` filled through the backend's `/media/proxy` (`lib/shareImage.ts`); a new card must use `ShareImg`, never a plain `<img src>`. Sources are left off the cards on purpose, and nothing on them names or links the wiki.
 - **Brand glyphs** — Facebook / Instagram / Twitter live in `components/icons/SocialIcons.tsx` (lucide v1.x removed brand icons).
 
 ## Keyboard
@@ -49,7 +52,7 @@ frontend/src/
 `/` and Ctrl+K open the command palette. Its open flag lives in `stores/commandPalette.ts` (`useCommandPalette`), so any page can open it; the dashboard's search field and the mobile top bar's search button do.
 
 `hooks/useKeymap.ts` exports:
-- `useGoToNavigation()` — wired in `_app.tsx`. `GO_TO_SHORTCUTS`: `g d`, `g s`, `g a`, `g m`, `g i`, `g r`, `g p`, `g x`, `g c`, `g n`. Add new routes to that list; the help dialog reads from it.
+- `useGoToNavigation()` — wired in `_app.tsx`. `GO_TO_SHORTCUTS`: `g d`, `g s`, `g a`, `g m`, `g i`, `g k` (court cases), `g r`, `g p`, `g x`, `g c`, `g n`. Add new routes to that list; the help dialog reads from it.
 - `useEditShortcut(handler)` — call on detail pages with `() => entity && setEditing(true)`. Listens for plain `e`, ignores typing contexts and the 800ms `g`-prefix window.
 
 ## Recents (⌘K bounce-back)
@@ -66,7 +69,7 @@ frontend/src/
 - **Detail pages share `components/detail/DetailParts.tsx`** (`PanelHeading`, `DetailRow`, `StatStrip`, `IncidentRow`, `RankBadge`) and `components/LinkifiedText.tsx` for free text with URLs. Use them on a new detail page rather than another copy.
 - **Mount form sheets only while open** on detail pages (`{editing && <XFormSheet open … />}`): each sheet loads the universe's members, sets, alliances and gangs for its pickers, so a closed one still cost the page ten requests.
 - **Free-text URL params go through `textParam()`** (`lib/searchParams.ts`): the router parses `?q=4822` as a number, and a string-only validator silently dropped it.
-- `ApiError` (`lib/api.ts`) surfaces `status` and `code` — use `err.code` to differentiate duplicate/not_found/forbidden in forms when a specific message is needed.
+- `ApiError` (`lib/api.ts`) surfaces `status`, `code` and the whole error `body`: use `err.code` to tell failures apart and `err.body` for the extras the backend sends (`existing_id` on a duplicate source).
 
 ## Type checking
 

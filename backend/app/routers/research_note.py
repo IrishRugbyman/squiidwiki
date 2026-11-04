@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.dependencies import CurrentUser, require_global_role
 from app.core.database import get_session
-from app.core.enums import GlobalRole
+from app.core.enums import GlobalRole, NoteKind
 from app.crud import research_note as crud
 from app.schemas.common import OffsetPage
 from app.schemas.research_note import (
@@ -26,8 +26,11 @@ async def list_notes(
     session: Annotated[AsyncSession, Depends(get_session)],
     offset: int = Query(0, ge=0),
     limit: int = Query(50, ge=1, le=200),
+    kind: NoteKind | None = None,
 ):
-    items, total = await crud.list_notes(session, universe_id, offset=offset, limit=limit)
+    items, total = await crud.list_notes(
+        session, universe_id, offset=offset, limit=limit, kind=kind
+    )
     return OffsetPage(items=items, total=total)
 
 
@@ -50,6 +53,33 @@ async def search_notes(
     if len(q.strip()) < 2:
         return []
     return await crud.search_notes(session, universe_id, q)
+
+
+@router.get("/pinned", response_model=list[ResearchNoteListItem])
+async def pinned_notes(
+    universe_id: uuid.UUID,
+    _: CurrentUser,
+    session: Annotated[AsyncSession, Depends(get_session)],
+    member_id: uuid.UUID | None = None,
+    set_id: uuid.UUID | None = None,
+    incident_id: uuid.UUID | None = None,
+    alliance_id: uuid.UUID | None = None,
+):
+    """Notes pinned to one entity: pass exactly one of the four ids."""
+    given = {
+        kind: value
+        for kind, value in (
+            ("member", member_id),
+            ("set", set_id),
+            ("incident", incident_id),
+            ("alliance", alliance_id),
+        )
+        if value is not None
+    }
+    if len(given) != 1:
+        raise HTTPException(422, "Pass exactly one of member_id, set_id, incident_id, alliance_id")
+    ((kind, entity_id),) = given.items()
+    return await crud.list_pinned_notes(session, universe_id, kind, entity_id)
 
 
 @router.get("/{id}", response_model=ResearchNoteRead)

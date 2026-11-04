@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
-import { AlertTriangle, ChevronRight, CheckCircle2, ExternalLink, Map, MapPin, Pencil, Plus, Shield, Trash2 } from 'lucide-react'
+import { AlertTriangle, ChevronRight, CheckCircle2, Map, MapPin, Pencil, Plus, Shield, Trash2 } from 'lucide-react'
 import { lazy, Suspense, useState } from 'react'
 import type { MapMetric } from '@/components/maps/MunicipalityMap'
 import { ErrorState } from '@/components/ErrorState'
@@ -11,12 +11,12 @@ import { DetailHeaderSkeleton } from '@/components/skeletons'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { LinkifiedText } from '@/components/LinkifiedText'
-import { ReliabilityBadge, SetStatusBadge } from '@/components/StatusBadge'
+import { SetStatusBadge } from '@/components/StatusBadge'
 import { PanelHeading } from '@/components/detail/DetailParts'
-import { AttachSourcesDialog } from '@/components/AttachSourcesDialog'
+import { CitationsPanel } from '@/components/sources/CitationsPanel'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import {
-  useMunicipality, useMunicipalities, useDeleteMunicipality, useUpdateMunicipality,
+  useMunicipality, useMunicipalities, useDeleteMunicipality,
   useIncidentsByMunicipality, useMunicipalityGeoJSON, useAllSets,
 } from '@/lib/queries'
 import { useUniverseStore } from '@/stores/universe'
@@ -24,9 +24,8 @@ import { useAuthStore } from '@/stores/auth'
 import { MunicipalityFormSheet } from './_app.$universe.municipalities.index'
 import { SetFormSheet } from './_app.$universe.sets.index'
 import { IncidentFormSheet } from './_app.$universe.incidents.index'
-import { SourceFormSheet } from './_app.$universe.sources.index'
 import { INCIDENT_TYPE_LABEL, INCIDENT_TYPE_TEXT } from '@/lib/incidentColors'
-import type { MunicipalityKind, MunicipalityListItem } from '@/lib/types'
+import { OVERLAY_KINDS, type MunicipalityKind, type MunicipalityListItem } from '@/lib/types'
 import { useRecordRecent } from '@/stores/recents'
 import { useEditShortcut } from '@/hooks/useKeymap'
 
@@ -39,7 +38,9 @@ const pct = (x: number) => `${Math.round(x * 100)}%`
 const CHILD_KIND_LABEL: Record<ChildKind, { one: string; many: string; of: string }> = {
   DISTRICT: { one: 'District', many: 'Districts', of: 'District of' },
   NEIGHBORHOOD: { one: 'Neighborhood', many: 'Neighborhoods', of: 'Neighborhood in' },
+  HOUSING_PROJECT: { one: 'Housing project', many: 'Housing projects', of: 'Housing project in' },
 }
+const CHILD_KINDS: ChildKind[] = ['DISTRICT', 'NEIGHBORHOOD', 'HOUSING_PROJECT']
 
 export const Route = createFileRoute('/_app/$universe/municipalities/$id')({
   component: MunicipalityDetailPage,
@@ -54,7 +55,6 @@ function MunicipalityDetailPage() {
   const { data: allMunicipalities } = useMunicipalities(universe?.id ?? null)
   const { data: incidentData, isLoading: incidentsLoading } = useIncidentsByMunicipality(id, universe?.id ?? null)
   const deleteMunicipality = useDeleteMunicipality(universe?.id ?? '')
-  const updateMunicipality = useUpdateMunicipality(municipality?.id ?? '', universe?.id ?? '')
   const { data: allSets } = useAllSets(universe?.id ?? null)
 
   useRecordRecent(municipality ? { type: 'municipality', id: municipality.id, slug: null, label: municipality.name } : null)
@@ -72,8 +72,9 @@ function MunicipalityDetailPage() {
   const childrenByKind: Record<ChildKind, MunicipalityListItem[]> = {
     DISTRICT: children.filter((c) => c.kind === 'DISTRICT'),
     NEIGHBORHOOD: children.filter((c) => c.kind === 'NEIGHBORHOOD'),
+    HOUSING_PROJECT: children.filter((c) => c.kind === 'HOUSING_PROJECT'),
   }
-  const mappableKinds = (['DISTRICT', 'NEIGHBORHOOD'] as ChildKind[]).filter((k) =>
+  const mappableKinds = CHILD_KINDS.filter((k) =>
     childrenByKind[k].some((c) => c.has_geometry),
   )
   const incidents = incidentData?.items ?? []
@@ -92,8 +93,6 @@ function MunicipalityDetailPage() {
     mapKind,
   )
 
-  const [addingSource, setAddingSource] = useState(false)
-  const [creatingSource, setCreatingSource] = useState(false)
   const [districtMetric, setDistrictMetric] = useState<MapMetric>('incidents')
   const [creatingChild, setCreatingChild] = useState(false)
   const [creatingSet, setCreatingSet] = useState(false)
@@ -150,7 +149,7 @@ function MunicipalityDetailPage() {
                       </Link>
                     </span>
                   )}
-                  {municipality.kind === 'NEIGHBORHOOD' && municipality.overlaps.length > 0 && (
+                  {OVERLAY_KINDS.includes(municipality.kind) && municipality.overlaps.length > 0 && (
                     <span>
                       · in{' '}
                       {municipality.overlaps.map((o, i) => (
@@ -227,7 +226,7 @@ function MunicipalityDetailPage() {
             <div className={`rounded-lg border border-zinc-800 bg-zinc-900/30 p-4 text-center ${municipality.population === null ? 'col-span-2 sm:col-span-1' : ''}`}>
               <div className="text-2xl font-bold tabular-nums text-white">{children.length}</div>
               <div className="mt-0.5 text-xs text-zinc-400">
-                {(['DISTRICT', 'NEIGHBORHOOD'] as ChildKind[])
+                {CHILD_KINDS
                   .filter((k) => childrenByKind[k].length > 0)
                   .map((k) => CHILD_KIND_LABEL[k].many).join(' & ')}
               </div>
@@ -263,7 +262,7 @@ function MunicipalityDetailPage() {
           <aside className="min-w-0 space-y-6">
             {municipality.kind === 'DISTRICT' && municipality.overlaps.length > 0 && (
               <section>
-                <PanelHeading>Neighborhoods ({municipality.overlaps.length})</PanelHeading>
+                <PanelHeading>Neighborhoods & projects ({municipality.overlaps.length})</PanelHeading>
                 <ul className="divide-y divide-zinc-800/70 rounded-lg border border-zinc-800 bg-zinc-900/30">
                   {municipality.overlaps.map((o) => (
                     <li key={o.id}>
@@ -300,32 +299,14 @@ function MunicipalityDetailPage() {
               )}
             </section>
 
-            <section>
-              <PanelHeading action={
-                <button type="button" onClick={() => setAddingSource(true)} className="inline-flex items-center gap-1 text-xs text-zinc-400 transition-colors hover:text-violet-400">
-                  <Plus className="h-3 w-3" />Cite
-                </button>
-              }>Sources{municipality.sources.length > 0 ? ` (${municipality.sources.length})` : ''}</PanelHeading>
-              {municipality.sources.length === 0 ? (
-                <p className="rounded-lg border border-zinc-800 bg-zinc-900/30 px-4 py-3 text-xs text-zinc-400">No sources cited.</p>
-              ) : (
-                <ul className="divide-y divide-zinc-800/70 rounded-lg border border-zinc-800 bg-zinc-900/30">
-                  {municipality.sources.map((src) => (
-                    <li key={src.id} className="flex items-center gap-3 px-3 py-2.5">
-                      <Link from="/$universe" to="/$universe/sources/$id" params={{ id: src.id }} className="group min-w-0 flex-1">
-                        <span className="block truncate text-sm font-medium text-white transition-colors group-hover:text-violet-300">{src.title}</span>
-                        {src.publication && <span className="block truncate text-[11px] text-zinc-500">{src.publication}</span>}
-                      </Link>
-                      <ReliabilityBadge reliability={src.reliability} />
-                      <a href={src.url} target="_blank" rel="noopener noreferrer" aria-label={`Open ${src.title} in a new tab`}
-                        className="rounded p-1.5 text-zinc-400 transition-colors hover:bg-zinc-800 hover:text-violet-300">
-                        <ExternalLink className="h-3.5 w-3.5" />
-                      </a>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </section>
+            {universe && (
+              <CitationsPanel
+                universeId={universe.id}
+                entityType="municipality"
+                entityId={municipality.id}
+                citations={municipality.citations}
+              />
+            )}
           </aside>
         </div>
       )}
@@ -393,7 +374,7 @@ function MunicipalityDetailPage() {
       )}
 
       {/* Sub-areas, one panel per kind */}
-      {(['DISTRICT', 'NEIGHBORHOOD'] as ChildKind[]).filter((k) => childrenByKind[k].length > 0).map((k) => (
+      {CHILD_KINDS.filter((k) => childrenByKind[k].length > 0).map((k) => (
         <div key={k} className="rounded-lg border border-zinc-800 bg-zinc-900/30">
           <div className="border-b border-zinc-800 px-4 py-3">
             <h2 className="text-xs font-semibold uppercase tracking-wider text-zinc-400">{CHILD_KIND_LABEL[k].many} ({childrenByKind[k].length})</h2>
@@ -498,18 +479,6 @@ function MunicipalityDetailPage() {
         />
       )}
 
-      {universe && municipality && addingSource && (
-        <AttachSourcesDialog
-          universeId={universe.id}
-          existingIds={municipality.sources.map((src) => src.id)}
-          open
-          onClose={() => setAddingSource(false)}
-          onCreateNew={() => { setAddingSource(false); setCreatingSource(true) }}
-          onAttach={(source_ids) => updateMunicipality.mutateAsync({ source_ids })}
-          attaching={updateMunicipality.isPending}
-        />
-      )}
-      {universe && creatingSource && <SourceFormSheet universeId={universe.id} open onClose={() => setCreatingSource(false)} />}
 
       {universe && (
         <SetFormSheet

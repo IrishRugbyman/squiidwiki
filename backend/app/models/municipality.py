@@ -9,25 +9,6 @@ from sqlmodel import Field, SQLModel
 from app.core.enums import MunicipalityKind
 
 
-class MunicipalitySource(SQLModel, table=True):
-    """A source behind a municipality's description."""
-
-    __tablename__ = "municipality_source"
-
-    municipality_id: uuid.UUID = Field(
-        sa_column=Column(
-            PG_UUID(as_uuid=True),
-            ForeignKey("municipality.id", ondelete="CASCADE"),
-            primary_key=True,
-        )
-    )
-    source_id: uuid.UUID = Field(
-        sa_column=Column(
-            PG_UUID(as_uuid=True), ForeignKey("source.id", ondelete="CASCADE"), primary_key=True
-        )
-    )
-
-
 class MunicipalityOverlap(SQLModel, table=True):
     """A neighborhood's area inside one district of the same city.
 

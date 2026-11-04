@@ -11,6 +11,7 @@ signed URL, which list endpoints multiplied by ~50 rows × 2 keys.
 Signed GET URLs are cached in-process for nearly the full URL lifetime, so
 repeated list renders skip re-signing entirely.
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -86,6 +87,34 @@ async def upload_object(key: str, data: bytes, content_type: str) -> None:
         ContentType=content_type,
     )
     _url_cache.pop((get_bucket(), key), None)
+
+
+async def get_object(bucket: str, key: str) -> tuple[bytes, str]:
+    """Body and content type of one object. Raises the client's NoSuchKey if absent."""
+    client = await _get_client()
+    resp = await client.get_object(Bucket=bucket, Key=key)
+    async with resp["Body"] as body:
+        data = await body.read()
+    return data, resp.get("ContentType") or "application/octet-stream"
+
+
+def key_from_signed_url(url: str) -> tuple[str, str] | None:
+    """(bucket, key) of a URL this module signed, or None for any other URL.
+
+    Signed URLs are path-style (`<endpoint>/<bucket>/<key>?X-Amz-...`), and only
+    the two configured buckets on the configured endpoint are accepted, so a
+    caller cannot turn this into a fetch of an arbitrary host or bucket.
+    """
+    from urllib.parse import unquote, urlsplit
+
+    parts = urlsplit(url)
+    endpoint = urlsplit(settings.r2_endpoint_url)
+    if parts.scheme != "https" or not endpoint.netloc or parts.netloc != endpoint.netloc:
+        return None
+    bucket, _, key = parts.path.lstrip("/").partition("/")
+    if not key or bucket not in {settings.r2_bucket_prod, settings.r2_bucket_test} - {""}:
+        return None
+    return bucket, unquote(key)
 
 
 async def delete_object(key: str) -> None:

@@ -13,6 +13,7 @@ import { useDebounce } from '@/hooks/useDebounce'
 import {
   useAllSets,
   useMappableIncidents,
+  useMunicipalities,
   useMunicipalityGeoJSON,
   useSet,
   useSetTerritoryPolygons,
@@ -35,6 +36,29 @@ export const Route = createLazyFileRoute('/_app/$universe/map')({
 })
 
 type MappedFilter = 'all' | 'mapped' | 'unmapped'
+
+// The city a universe's map opens framed on. Michigan runs from Benton Harbor
+// to Flint, and fitting all of it shrank Detroit, where most of the sets are, to
+// a smear. Universes not listed open on everything.
+const DEFAULT_CITY: Record<string, string> = { michigan: 'Detroit' }
+
+type Bounds = [[number, number], [number, number]]
+
+// The box around every vertex of the given geometries, or null when there are none.
+function bboxOf(geometries: ({ coordinates?: unknown } | null | undefined)[]): Bounds | null {
+  let minLng = Infinity, minLat = Infinity, maxLng = -Infinity, maxLat = -Infinity
+  const visit = (c: unknown): void => {
+    if (Array.isArray(c) && typeof c[0] === 'number' && typeof c[1] === 'number') {
+      const [lng, lat] = c as [number, number]
+      if (lng < minLng) minLng = lng
+      if (lat < minLat) minLat = lat
+      if (lng > maxLng) maxLng = lng
+      if (lat > maxLat) maxLat = lat
+    } else if (Array.isArray(c)) c.forEach(visit)
+  }
+  for (const g of geometries) if (g?.coordinates) visit(g.coordinates)
+  return Number.isFinite(minLng) ? [[minLng, minLat], [maxLng, maxLat]] : null
+}
 
 const fold = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
 
@@ -103,9 +127,10 @@ async function geocodeOne(query: string, signal: AbortSignal): Promise<{ lng: nu
 }
 
 function TerritoryMapPage() {
-  const { selected, edit, view } = Route.useSearch()
+  const { selected, edit, view, cities } = Route.useSearch()
   const navigate = useNavigate({ from: '/$universe/map' })
   const universeId = useUniverseStore((s) => s.activeUniverse?.id ?? null)
+  const universeSlug = useUniverseStore((s) => s.activeUniverse?.slug ?? null)
 
   const [showSubDistricts, setShowSubDistricts] = useState(false)
   const [showIncidents, setShowIncidents] = useState(false)
@@ -141,7 +166,6 @@ function TerritoryMapPage() {
   // territory and made the "mapped" dots and the header count change with
   // the selection.
   const { data: allPolygons } = useSetTerritoryPolygons(universeId, null)
-  const setPolygons = allPolygons
   // Sub-districts of the selected set's primary municipality (only loaded when
   // outlines toggle is on, or when needed for auto-detect on save).
   const { data: subDistrictGeoJSON, isPending: subDistrictsPending } = useMunicipalityGeoJSON(universeId, selectedMuniId ?? undefined)
@@ -154,41 +178,14 @@ function TerritoryMapPage() {
   // both opened on the wrong city.
   const { data: universeGeo, isPending: universeGeoPending } = useMunicipalityGeoJSON(universeId)
   const fallbackCenter = useMemo(() => {
-    const features = (universeGeo as { features?: { geometry?: unknown }[] } | undefined)?.features
-    if (!features?.length) return undefined
-    let minLng = Infinity, minLat = Infinity, maxLng = -Infinity, maxLat = -Infinity
-    const visit = (c: unknown): void => {
-      if (Array.isArray(c) && typeof c[0] === 'number' && typeof c[1] === 'number') {
-        const [lng, lat] = c as [number, number]
-        if (lng < minLng) minLng = lng
-        if (lat < minLat) minLat = lat
-        if (lng > maxLng) maxLng = lng
-        if (lat > maxLat) maxLat = lat
-      } else if (Array.isArray(c)) c.forEach(visit)
-    }
-    for (const f of features) {
-      const g = f.geometry as { coordinates?: unknown } | undefined
-      if (g?.coordinates) visit(g.coordinates)
-    }
-    if (!Number.isFinite(minLng)) return undefined
+    const b = bboxOf((universeGeo?.features ?? []).map((f) => f.geometry))
+    if (!b) return undefined
+    const [[minLng, minLat], [maxLng, maxLat]] = b
     const span = Math.max(maxLng - minLng, maxLat - minLat)
     // Rough fit: a degree of span is about zoom 8, a tenth about zoom 11.
     const zoom = span > 0 ? Math.min(12, Math.max(7, Math.round(8 - Math.log2(span)))) : 10
     return { longitude: (minLng + maxLng) / 2, latitude: (minLat + maxLat) / 2, zoom }
   }, [universeGeo])
-
-  const { data: incidentsData } = useMappableIncidents(showIncidents ? universeId : null)
-  const incidentPoints: IncidentPoint[] = useMemo(() => {
-    if (!showIncidents) return []
-    return (incidentsData?.items ?? []).flatMap((inc) =>
-      inc.lat != null && inc.lng != null
-        ? [{
-            id: inc.id, type: inc.type, lat: inc.lat, lng: inc.lng,
-            label: inc.victim_names.join(', '),
-          }]
-        : [],
-    )
-  }, [showIncidents, incidentsData])
 
   // Sidebar list — search-filtered. In alliances view we still list sets, but
   // group/sort by alliance name; selection is set-scoped (clicking an entry
@@ -205,6 +202,76 @@ function TerritoryMapPage() {
 
   // The system sets (Civilian, Police, Unknown) hold no territory.
   const realSets = useMemo(() => (setsList?.items ?? []).filter((s) => !s.is_reserved), [setsList])
+
+  // ─── city focus ─────────────────────────────────────────────────────────
+  // The city chips only frame the camera: every set stays drawn, so a Wayne
+  // crew at Detroit's edge is still on screen while the map sits on Detroit.
+  // A set anchored to a ZIP or neighborhood counts under that place's city.
+  const { data: munisData, isPending: munisPending } = useMunicipalities(universeId)
+  // Every city holding at least one set, busiest first.
+  const cityOptions = useMemo(() => {
+    const items = munisData?.items ?? []
+    const cityByMuni = new Map(items.map((m) => [m.id, m.parent_id ?? m.id]))
+    const names = new Map(items.map((m) => [m.id, m.name]))
+    const counts = new Map<UUID, number>()
+    for (const s of realSets) {
+      const c = s.municipality_id ? cityByMuni.get(s.municipality_id) : undefined
+      if (c) counts.set(c, (counts.get(c) ?? 0) + 1)
+    }
+    return Array.from(counts, ([id, count]) => ({ id, name: names.get(id) ?? '?', count }))
+      .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name))
+  }, [realSets, munisData])
+  // Empty means frame everything, and so does a selection that has emptied out.
+  const focusCities = useMemo<Set<UUID>>(() => {
+    if (cities === 'all') return new Set()
+    if (cities) {
+      const known = new Set(cityOptions.map((c) => c.id))
+      return new Set((cities.split(',') as UUID[]).filter((id) => known.has(id)))
+    }
+    const name = universeSlug ? DEFAULT_CITY[universeSlug] : undefined
+    const fallback = name ? cityOptions.find((c) => c.name === name) : undefined
+    return new Set(fallback ? [fallback.id] : [])
+  }, [cities, cityOptions, universeSlug])
+  function setFocusCities(next: Set<UUID>) {
+    navigate({ search: (prev) => ({ ...prev, cities: next.size ? Array.from(next).join(',') : 'all' }) })
+  }
+  function toggleCity(id: UUID) {
+    const next = new Set(focusCities)
+    if (next.has(id)) next.delete(id)
+    else next.add(id)
+    setFocusCities(next)
+  }
+  // Framed on the cities' own outlines, not on their sets, so the view is the
+  // city whatever has been drawn in it.
+  const focusBounds = useMemo(
+    () => focusCities.size === 0 ? null
+      : bboxOf((universeGeo?.features ?? []).filter((f) => focusCities.has(f.id as UUID)).map((f) => f.geometry)),
+    [focusCities, universeGeo],
+  )
+
+  // Changing the cities moves the camera. Not on first render: the map mounts
+  // already framed.
+  const focusKey = Array.from(focusCities).sort().join(',')
+  const prevFocusKey = useRef(focusKey)
+  useEffect(() => {
+    if (prevFocusKey.current === focusKey) return
+    prevFocusKey.current = focusKey
+    setFitSignal((n) => n + 1)
+  }, [focusKey])
+
+  const { data: incidentsData } = useMappableIncidents(showIncidents ? universeId : null)
+  const incidentPoints: IncidentPoint[] = useMemo(() => {
+    if (!showIncidents) return []
+    return (incidentsData?.items ?? []).flatMap((inc) =>
+      inc.lat != null && inc.lng != null
+        ? [{
+            id: inc.id, type: inc.type, lat: inc.lat, lng: inc.lng,
+            label: inc.victim_names.join(', '),
+          }]
+        : [],
+    )
+  }, [showIncidents, incidentsData])
+
   const searched = useMemo(() => {
     const terms = fold(debouncedQ.trim()).split(/\s+/).filter(Boolean)
     if (terms.length === 0) return realSets
@@ -446,6 +513,30 @@ function TerritoryMapPage() {
           )}
         </div>
 
+        {/* Where the camera sits. None picked frames everything. */}
+        {cityOptions.length > 1 && (
+          <div className="flex flex-wrap gap-1" role="group" aria-label="Frame the map on">
+            <button type="button" onClick={() => setFocusCities(new Set())} aria-pressed={focusCities.size === 0}
+              className={`rounded-md border px-2 py-0.5 text-[11px] font-medium transition-colors ${
+                focusCities.size === 0 ? 'border-violet-700 bg-violet-950/60 text-violet-200' : 'border-zinc-800 text-zinc-400 hover:border-zinc-600 hover:text-zinc-200'
+              }`}>
+              All
+            </button>
+            {cityOptions.map((c) => {
+              const on = focusCities.has(c.id)
+              return (
+                <button key={c.id} type="button" onClick={() => toggleCity(c.id)} aria-pressed={on}
+                  className={`inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-[11px] font-medium transition-colors ${
+                    on ? 'border-violet-700 bg-violet-950/60 text-violet-200' : 'border-zinc-800 text-zinc-400 hover:border-zinc-600 hover:text-zinc-200'
+                  }`}>
+                  {c.name}
+                  <span className="tabular-nums opacity-60">{c.count}</span>
+                </button>
+              )
+            })}
+          </div>
+        )}
+
         {/* Mapped or not: the unmapped list is the work queue. */}
         <div className="flex items-center gap-1 rounded-lg border border-zinc-800 bg-zinc-900/50 p-1" role="group" aria-label="On the map">
           {(['all', 'mapped', 'unmapped'] as const).map((f) => (
@@ -615,8 +706,9 @@ function TerritoryMapPage() {
               arrives a tick later is simply ignored - which is how every universe
               ended up opening over Detroit. */}
           <Suspense fallback={<MapPlaceholder />}>
-            {universeGeoPending ? <MapPlaceholder /> : <TerritoryMap
-              setPolygons={setPolygons ?? []}
+            {universeGeoPending || munisPending ? <MapPlaceholder /> : <TerritoryMap
+              setPolygons={allPolygons ?? []}
+              focusBounds={focusBounds}
               selectedSetId={selected ?? null}
               drawingFor={editTab === 'draw' ? drawingFor : null}
               initialPolygon={selectedSet?.territory_polygon?.type === 'Polygon' ? selectedSet.territory_polygon : null}
