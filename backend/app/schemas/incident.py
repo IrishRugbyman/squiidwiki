@@ -11,7 +11,7 @@ from app.core.enums import (
     ParticipantRole,
 )
 from app.schemas.citation import CitationRead
-from app.schemas.common import FuzzyDateField
+from app.schemas.common import FuzzyDateField, refuse_null
 
 
 class ParticipantCreate(BaseModel):
@@ -115,6 +115,7 @@ class IncidentCreate(_ParticipantLists):
 
 
 class IncidentUpdate(_ParticipantLists):
+    _required = refuse_null("type", "verified")
     type: Optional[IncidentType] = None
     date: FuzzyDateField = None
     municipality_id: Optional[uuid.UUID] = None

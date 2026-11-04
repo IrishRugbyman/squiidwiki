@@ -6,6 +6,7 @@ and numbers are invented.
 
 import uuid
 
+import pytest
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -150,3 +151,113 @@ async def test_the_same_set_twice_in_an_incident_is_a_422(
         ),
     )
     assert code == 422, body
+
+
+# --- 2. null into a NOT NULL column -------------------------------------------
+
+
+async def _make(client: AsyncClient, h: dict, db_session: AsyncSession, uni: str, kind: str) -> str:
+    """Create one record of `kind` and return the path a PATCH goes to."""
+    q = f"?universe_id={uni}"
+    if kind == "incident":
+        i = await _post(client, h, "/api/v1/incidents/", {"universe_id": uni, "type": "FIGHT"})
+        return f"/api/v1/incidents/{i['id']}{q}"
+    if kind == "member":
+        return f"/api/v1/members/{await _member(client, h, uni, f'Followup {_uid()}')}{q}"
+    if kind == "set":
+        s = await _post(client, h, "/api/v1/sets/", {"universe_id": uni, "name": f"Crew {_uid()}"})
+        return f"/api/v1/sets/{s['id']}{q}"
+    if kind == "alliance":
+        a = await _post(
+            client, h, "/api/v1/alliances/", {"universe_id": uni, "name": f"Bloc {_uid()}"}
+        )
+        return f"/api/v1/alliances/{a['id']}{q}"
+    if kind == "gang":
+        g = await _post(client, h, "/api/v1/gangs/", {"universe_id": uni, "name": f"G {_uid()}"})
+        return f"/api/v1/gangs/{g['id']}{q}"
+    if kind == "universe":
+        return f"/api/v1/universes/{uni}"
+    if kind == "municipality":
+        m = await _post(
+            client, h, "/api/v1/municipalities/", {"universe_id": uni, "name": f"Town {_uid()}"}
+        )
+        return f"/api/v1/municipalities/{m['id']}{q}"
+    if kind == "source":
+        s = await _post(
+            client,
+            h,
+            "/api/v1/sources/",
+            {"universe_id": uni, "url": f"https://example.com/{_uid()}", "title": "A page"},
+        )
+        return f"/api/v1/sources/{s['id']}{q}"
+    if kind == "research":
+        n = await _post(client, h, "/api/v1/research/", {"universe_id": uni, "title": "A note"})
+        return f"/api/v1/research/{n['id']}{q}"
+    if kind == "business":
+        b = await _post(
+            client,
+            h,
+            "/api/v1/businesses/",
+            {"universe_id": uni, "name": f"Shop {_uid()}", "business_type": "NIGHTLIFE"},
+        )
+        return f"/api/v1/businesses/{b['id']}{q}"
+    if kind == "media":
+        from app.models.media import Media
+
+        mid = await _member(client, h, uni, f"Followup {_uid()}")
+        m = Media(
+            universe_id=uuid.UUID(uni),
+            member_id=uuid.UUID(mid),
+            kind="EXTERNAL_URL",
+            external_url="https://example.com/photo.jpg",
+        )
+        db_session.add(m)
+        await db_session.commit()
+        return f"/api/v1/media/{m.id}{q}"
+    raise AssertionError(kind)
+
+
+# PATCH fields whose column is NOT NULL and whose update wrote a null into it
+# (a 500). Null is not a value these columns can hold, and nothing documents
+# it as "reset to the default", so a PATCH sending it is bad input: a 422
+# naming the field. Fields whose update already reads null as "no change" or
+# "empty list" (municipality kind, citation source, court case and defendant
+# fields, a spell's life_sentence) are not listed: they never failed.
+NOT_NULL_FIELDS = [
+    ("incident", "type"),
+    ("incident", "verified"),
+    ("member", "nickname_unknown"),
+    ("member", "is_rapper"),
+    ("member", "is_snitch"),
+    ("member", "status"),
+    ("member", "biography"),
+    ("set", "status"),
+    ("alliance", "status"),
+    ("gang", "name"),
+    ("universe", "name"),
+    ("universe", "slug"),
+    ("municipality", "name"),
+    ("source", "url"),
+    ("source", "title"),
+    ("source", "reliability"),
+    ("source", "kind"),
+    ("research", "title"),
+    ("research", "content"),
+    ("research", "kind"),
+    ("business", "name"),
+    ("business", "business_type"),
+    ("business", "status"),
+    ("media", "is_primary"),
+]
+
+
+@pytest.mark.parametrize(("kind", "field"), NOT_NULL_FIELDS)
+async def test_patching_a_required_field_to_null_is_a_422(
+    client: AsyncClient, db_session: AsyncSession, kind: str, field: str
+):
+    h = await _admin(client, db_session)
+    uni = await _universe(client, h)
+    path = await _make(client, h, db_session, uni, kind)
+    code, body = await _status(db_session, client.patch(path, json={field: None}, headers=h))
+    assert code == 422, (kind, field, code, body)
+    assert field in body

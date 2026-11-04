@@ -5,9 +5,11 @@ from typing import Literal, Optional
 from pydantic import BaseModel, Field
 
 from app.core.enums import MediaKind
+from app.schemas.common import refuse_null
 
 
 class MediaUpdate(BaseModel):
+    _required = refuse_null("is_primary")
     caption: Optional[str] = None
     is_primary: Optional[bool] = None
 

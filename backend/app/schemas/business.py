@@ -6,7 +6,7 @@ from pydantic import BaseModel
 
 from app.core.enums import BusinessRole, BusinessStatus, BusinessType
 from app.schemas.citation import CitationRead
-from app.schemas.common import FuzzyDateField
+from app.schemas.common import FuzzyDateField, refuse_null
 
 
 class BusinessMemberIn(BaseModel):
@@ -36,6 +36,7 @@ class BusinessCreate(BaseModel):
 
 
 class BusinessUpdate(BaseModel):
+    _required = refuse_null("name", "business_type", "status")
     name: Optional[str] = None
     aliases: Optional[list[str]] = None
     business_type: Optional[BusinessType] = None

@@ -7,7 +7,7 @@ from pydantic import AfterValidator, BaseModel, computed_field, model_validator
 
 from app.core.enums import CustodySystem, MemberStatus, RapGroupRole, SetRank
 from app.schemas.citation import CitationRead
-from app.schemas.common import FuzzyDateField
+from app.schemas.common import FuzzyDateField, refuse_null
 
 _BOP_REGISTER_NUMBER = re.compile(r"^(\d{5})-?(\d{3})$")
 
@@ -98,6 +98,7 @@ class MemberCreate(BaseModel):
 
 
 class MemberUpdate(BaseModel):
+    _required = refuse_null("nickname_unknown", "is_rapper", "is_snitch", "biography", "status")
     nickname: Optional[str] = None
     legal_name: Optional[str] = None
     mdoc_number: Optional[str] = None

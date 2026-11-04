@@ -7,7 +7,7 @@ from pydantic import BaseModel, field_validator
 
 from app.core.enums import GangNation
 from app.core.fuzzy_date import FuzzyDate
-from app.schemas.common import FuzzyDateField
+from app.schemas.common import FuzzyDateField, refuse_null
 
 _HEX_COLOR_RE = re.compile(r"^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$")
 
@@ -60,6 +60,7 @@ class GangCreate(_GangFields):
 
 
 class GangUpdate(_GangFields):
+    _required = refuse_null("name")
     name: Optional[str] = None
     card_description: Optional[str] = None
 

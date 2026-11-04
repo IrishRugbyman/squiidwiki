@@ -6,7 +6,7 @@ from pydantic import BaseModel, model_validator
 
 from app.core.enums import SetLineageKind, SetRelationshipType, SetStatus
 from app.schemas.citation import CitationRead
-from app.schemas.common import FuzzyDateField
+from app.schemas.common import FuzzyDateField, refuse_null
 from app.schemas.names import (
     NameVariant,
     dedupe_ids,
@@ -143,6 +143,7 @@ class SetCreate(BaseModel):
 
 
 class SetUpdate(BaseModel):
+    _required = refuse_null("status")
     # Derived from the primary name variant, never set on its own: a rename is
     # a change to name_variants. May be sent alongside them if it agrees.
     name: Optional[str] = None
