@@ -247,3 +247,45 @@ async def test_set_territory_changes_reach_history(client: AsyncClient, db_sessi
     links = [e for e in page["items"] if e["link"] == "territories"]
     assert len(links) == 1
     assert [r["municipality_id"] for r in links[0]["added"]] == [area["id"]]
+
+
+# --- lookup-source uniqueness -------------------------------------------------
+
+
+async def test_editing_a_source_url_into_a_lookup_system_is_a_409(
+    client: AsyncClient, db_session: AsyncSession
+):
+    """The custody lookups are one source per universe
+    (uq_source_universe_lookup_system). A create refuses a second one with 409
+    lookup_source; an edit that turns another source's URL into one must too,
+    rather than failing on the unique index."""
+    h = await _admin(client, db_session)
+    uni = await _universe(client, h)
+    canonical = await _post(
+        client,
+        h,
+        "/api/v1/sources/",
+        {"universe_id": uni, "url": "https://www.bop.gov/inmateloc/", "title": "BOP locator"},
+    )
+    other = await _post(
+        client,
+        h,
+        "/api/v1/sources/",
+        {"universe_id": uni, "url": f"https://example.com/{_uid()}", "title": "Some page"},
+    )
+    resp = await client.patch(
+        f"/api/v1/sources/{other['id']}?universe_id={uni}",
+        json={"url": "https://www.bop.gov/inmateloc/?inmatenum=00000-000"},
+        headers=h,
+    )
+    assert resp.status_code == 409, resp.text
+    assert resp.json()["code"] == "lookup_source"
+    assert resp.json()["existing_id"] == canonical["id"]
+
+    # The lookup source itself may still change its own URL.
+    resp = await client.patch(
+        f"/api/v1/sources/{canonical['id']}?universe_id={uni}",
+        json={"url": "https://www.bop.gov/inmateloc"},
+        headers=h,
+    )
+    assert resp.status_code == 200, resp.text
