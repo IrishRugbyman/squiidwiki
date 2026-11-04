@@ -174,7 +174,13 @@ async def _sync_case_verdicts(session: AsyncSession, incident_id: uuid.UUID) -> 
 async def _unsync_killed_participants(
     session: AsyncSession, incident: Incident, new_participants: list[ParticipantCreate]
 ) -> None:
-    """On incident update, clear death linkage for members who are no longer KILLED."""
+    """On incident update, unlink the death of members this incident no longer kills.
+
+    Only `death_incident_id` is cleared, and only where it points at this
+    incident. Reverting the death itself is never automatic (CLAUDE.md): the
+    member keeps his status and his date_of_death, which may have been
+    corrected by hand, until someone edits the member.
+    """
     new_killed_ids = {
         p.member_id for p in new_participants if p.outcome == ParticipantOutcome.KILLED
     }
@@ -188,8 +194,6 @@ async def _unsync_killed_participants(
     for m in prev_linked:
         if m.id not in new_killed_ids:
             m.death_incident_id = None
-            m.date_of_death = None
-            m.status = MemberStatus.UNKNOWN
             m.updated_at = now
             session.add(m)
 
@@ -223,7 +227,8 @@ async def _sync_killed_participants(
     for "not known", and reading that as a hand-entered date left Tank (264)
     undated after his killing was dated.
 
-    Never reverts; un-kill is a manual member edit. Audit listeners on `member`
+    Never reverts; un-kill is a manual member edit (an edit that stops killing
+    a member only drops the link, see `_unsync_killed_participants`). Audit listeners on `member`
     pick these mutations up automatically.
     """
     killed_ids = [p.member_id for p in participants if p.outcome == ParticipantOutcome.KILLED]

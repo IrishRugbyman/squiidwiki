@@ -304,3 +304,88 @@ async def test_blank_name_variant_is_refused(client: AsyncClient, db_session: As
             path, json={"universe_id": uni, "name_variants": [{"name": "   "}]}, headers=h
         )
         assert resp.status_code == 422, (path, resp.text)
+
+
+# --- un-kill ------------------------------------------------------------------
+
+
+async def test_dropping_a_killed_outcome_only_unlinks_the_death(
+    client: AsyncClient, db_session: AsyncSession
+):
+    """CLAUDE.md: "Reverting (un-kill) is never automatic". An edit that no longer has a
+    member KILLED clears his death_incident_id, and only where it points at
+    this incident. Status and date_of_death are his own to change, so a
+    hand-corrected date survives."""
+    h = await _admin(client, db_session)
+    uni = await _universe(client, h)
+    hand = {"year": 2016, "month": 8, "day": 3, "precision": "YMD", "approx": False}
+
+    async def member(nickname: str) -> str:
+        return (
+            await _post(client, h, "/api/v1/members/", {"universe_id": uni, "nickname": nickname})
+        )["id"]
+
+    async def incident(*participants: dict) -> str:
+        return (
+            await _post(
+                client,
+                h,
+                "/api/v1/incidents/",
+                {
+                    "universe_id": uni,
+                    "type": "MURDER",
+                    "date": {"year": 2016, "month": 7, "precision": "YM", "approx": False},
+                    "participants": list(participants),
+                },
+            )
+        )["id"]
+
+    def killed(mid: str) -> dict:
+        return {"member_id": mid, "role": "VICTIM", "outcome": "KILLED"}
+
+    async def get(mid: str) -> dict:
+        return (await client.get(f"/api/v1/members/{mid}?universe_id={uni}", headers=h)).json()
+
+    shot = await member("Review Shot")
+    elsewhere = await member("Review Elsewhere")
+    other = await incident(killed(elsewhere))
+    a = await incident(killed(shot), killed(elsewhere))
+    # The date of death corrected by hand after the shooting.
+    resp = await client.patch(
+        f"/api/v1/members/{shot}?universe_id={uni}", json={"date_of_death": hand}, headers=h
+    )
+    assert resp.status_code == 200, resp.text
+    assert (await get(elsewhere))["death_incident_id"] == other
+
+    resp = await client.patch(
+        f"/api/v1/incidents/{a}?universe_id={uni}",
+        json={
+            "participants": [
+                {"member_id": shot, "role": "VICTIM", "outcome": "INJURED"},
+                {"member_id": elsewhere, "role": "VICTIM", "outcome": "INJURED"},
+            ]
+        },
+        headers=h,
+    )
+    assert resp.status_code == 200, resp.text
+
+    got = await get(shot)
+    assert got["death_incident_id"] is None
+    assert got["status"] == "DEAD"
+    assert got["date_of_death"]["day"] == 3 and got["date_of_death"]["month"] == 8
+    # Linked to another incident: not touched by this one.
+    got = await get(elsewhere)
+    assert got["death_incident_id"] == other
+    assert got["status"] == "DEAD"
+
+    # Removing the participant outright is the same un-link.
+    again = await incident(killed(shot))
+    assert (await get(shot))["death_incident_id"] == again
+    resp = await client.patch(
+        f"/api/v1/incidents/{again}?universe_id={uni}", json={"participants": []}, headers=h
+    )
+    assert resp.status_code == 200, resp.text
+    got = await get(shot)
+    assert got["death_incident_id"] is None
+    assert got["status"] == "DEAD"
+    assert got["date_of_death"]["day"] == 3

@@ -686,7 +686,8 @@ async def test_member_killed_in_another_universe_is_marked_dead(
     assert member["killed_in"]["incident_id"] == incident
     assert member["killed_in"]["universe_slug"] == away_slug
 
-    # Dropping him from the incident clears the link again, across universes too.
+    # Dropping him from the incident clears the link again, across universes too,
+    # and only the link: un-kill is never automatic, so he stays DEAD.
     resp = await client.patch(
         f"/api/v1/incidents/{incident}",
         params={"universe_id": away},
@@ -698,7 +699,7 @@ async def test_member_killed_in_another_universe_is_marked_dead(
         await client.get(f"/api/v1/members/{victim}", params={"universe_id": home}, headers=auth)
     ).json()
     assert member["death_incident_id"] is None
-    assert member["status"] == "UNKNOWN"
+    assert member["status"] == "DEAD"
 
 
 async def test_incident_ground_must_be_in_its_universe(
