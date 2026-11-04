@@ -28,6 +28,7 @@ export type IncidentType =
   | 'KIDNAPPING'
   | 'ROBBERY'
   | 'CRASH'
+  | 'OVERDOSE'
 export type ParticipantRole = 'SHOOTER' | 'ASSISTED' | 'BYSTANDER' | 'VICTIM'
 export type ParticipantOutcome = 'KILLED' | 'INJURED' | 'UNHARMED' | 'UNKNOWN'
 export type SourceReliability = 'HIGH' | 'MEDIUM' | 'LOW' | 'UNVERIFIED'

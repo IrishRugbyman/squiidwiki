@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
-import { Banknote, Bomb, Bookmark, BookmarkPlus, CarFront, CheckCircle2, Download, Flame, HandCoins, Pencil, Plus, Search, ShieldAlert, Skull, Swords, Trash2, User, UserX, X } from 'lucide-react'
+import { Banknote, Bomb, Bookmark, BookmarkPlus, CarFront, CheckCircle2, Download, Flame, HandCoins, Pencil, Pill, Plus, Search, ShieldAlert, Skull, Swords, Trash2, User, UserX, X } from 'lucide-react'
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useVirtualizer } from '@tanstack/react-virtual'
@@ -84,6 +84,7 @@ const TYPE_CONFIG: Record<IncidentType, { icon: typeof ShieldAlert; color: strin
   KIDNAPPING: { icon: UserX,       color: 'text-blue-400',   dot: 'bg-blue-500',   tile: 'bg-blue-950/60 text-blue-400',     label: 'Kidnapping' },
   ROBBERY:    { icon: Banknote,    color: 'text-emerald-400',dot: 'bg-emerald-500',tile: 'bg-emerald-950/60 text-emerald-400', label: 'Robbery'  },
   CRASH:      { icon: CarFront,    color: 'text-sky-400',    dot: 'bg-sky-500',    tile: 'bg-sky-950/60 text-sky-400',       label: 'Crash'    },
+  OVERDOSE:   { icon: Pill,        color: 'text-fuchsia-400', dot: 'bg-fuchsia-500', tile: 'bg-fuchsia-950/60 text-fuchsia-400', label: 'Overdose' },
 }
 
 const TYPE_ORDER = Object.keys(TYPE_CONFIG) as IncidentType[]

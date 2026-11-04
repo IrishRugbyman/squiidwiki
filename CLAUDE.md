@@ -162,7 +162,7 @@ There are two databases (`squiidwiki_db` = prod, `squiidwiki_test` = test). The 
 - Set status: `ACTIVE`, `EXTINCT`
 - Alliance status: `ACTIVE`, `EXTINCT`, `DORMANT`
 - Source reliability: `HIGH`, `MEDIUM`, `LOW`, `UNVERIFIED`
-- Incident type: `SHOOTING`, `MURDER`
+- Incident type: `SHOOTING`, `MURDER`, `FIGHT`, `BOMBING`, `ARSON`, `EXTORTION`, `KIDNAPPING`, `ROBBERY`, `CRASH`, `OVERDOSE` (the last two assert no aggressor: a death that was not a killing. A crash is any crash, car or go-kart; an illness is no incident)
 - Incident participant role: `SHOOTER`, `ASSISTED`, `BYSTANDER`, `VICTIM`
 - Incident participant outcome: `KILLED`, `INJURED`, `UNHARMED`, `UNKNOWN`
 - Global role: `ADMIN`, `USER`

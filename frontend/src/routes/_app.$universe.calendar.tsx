@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
-import { Banknote, Bomb, Cake, CarFront, CheckCircle2, ChevronLeft, ChevronRight, Flame, Flower, Gavel, HandCoins, Keyboard, ShieldAlert, Skull, Swords, Unlock, UserX } from 'lucide-react'
+import { Banknote, Bomb, Cake, CarFront, CheckCircle2, ChevronLeft, ChevronRight, Flame, Flower, Gavel, HandCoins, Keyboard, Pill, ShieldAlert, Skull, Swords, Unlock, UserX } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { NoUniverse } from '@/components/NoUniverse'
 import { Button } from '@/components/ui/button'
@@ -40,6 +40,7 @@ const KIND_CONFIG: Record<EventKind, {
   KIDNAPPING: { dot: 'bg-blue-500',    text: 'text-blue-400',    pill: 'bg-blue-950/80 text-blue-300 ring-1 ring-blue-800/50',          pillHover: 'hover:ring-blue-500',    icon: UserX,       label: 'Kidnapping' },
   ROBBERY:    { dot: 'bg-emerald-500', text: 'text-emerald-400', pill: 'bg-emerald-950/80 text-emerald-300 ring-1 ring-emerald-800/50', pillHover: 'hover:ring-emerald-500', icon: Banknote,    label: 'Robbery'    },
   CRASH:      { dot: 'bg-sky-500',     text: 'text-sky-400',     pill: 'bg-sky-950/80 text-sky-300 ring-1 ring-sky-800/50',             pillHover: 'hover:ring-sky-500',     icon: CarFront,    label: 'Crash'      },
+  OVERDOSE:   { dot: 'bg-fuchsia-500', text: 'text-fuchsia-400', pill: 'bg-fuchsia-950/80 text-fuchsia-300 ring-1 ring-fuchsia-800/50', pillHover: 'hover:ring-fuchsia-500', icon: Pill,        label: 'Overdose'   },
   DEATH:      { dot: 'bg-zinc-500',    text: 'text-zinc-400',    pill: 'bg-zinc-900 text-zinc-400 ring-1 ring-zinc-700',                pillHover: 'hover:ring-zinc-500',    icon: Skull,       label: 'Death'      },
   // Flower rather than Flame: ARSON now owns the flame glyph.
   MEMORIAL:   { dot: 'bg-fuchsia-500', text: 'text-fuchsia-400', pill: 'bg-fuchsia-950/80 text-fuchsia-300 ring-1 ring-fuchsia-800/50', pillHover: 'hover:ring-fuchsia-500', icon: Flower,      label: 'Memorial'   },

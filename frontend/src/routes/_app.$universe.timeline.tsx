@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
-import { Banknote, Bomb, CarFront, Flame, Gavel, HandCoins, ShieldAlert, Skull, Swords, Unlock, UserX } from 'lucide-react'
+import { Banknote, Bomb, CarFront, Flame, Gavel, HandCoins, Pill, ShieldAlert, Skull, Swords, Unlock, UserX } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { useMemo } from 'react'
 import { FuzzyDate } from '@/components/FuzzyDate'
@@ -49,6 +49,7 @@ const KIND_CONFIG: Record<EventKind, { icon: LucideIcon; tint: string; label: st
   KIDNAPPING: { icon: UserX, tint: 'text-blue-400 bg-blue-950/40 border-blue-800/60', label: 'Kidnapping', route: '/$universe/incidents/$id' },
   ROBBERY: { icon: Banknote, tint: 'text-emerald-400 bg-emerald-950/40 border-emerald-800/60', label: 'Robbery', route: '/$universe/incidents/$id' },
   CRASH: { icon: CarFront, tint: 'text-sky-400 bg-sky-950/40 border-sky-800/60', label: 'Crash', route: '/$universe/incidents/$id' },
+  OVERDOSE: { icon: Pill, tint: 'text-fuchsia-400 bg-fuchsia-950/40 border-fuchsia-800/60', label: 'Overdose', route: '/$universe/incidents/$id' },
   DEATH: { icon: Skull, tint: 'text-rose-300 bg-rose-950/30 border-rose-900/60', label: 'Member died', route: '/$universe/members/$id' },
   RELEASE: { icon: Unlock, tint: 'text-emerald-400 bg-emerald-950/30 border-emerald-800/60', label: 'Released', route: '/$universe/members/$id' },
   SENTENCED: { icon: Gavel, tint: 'text-indigo-400 bg-indigo-950/30 border-indigo-800/60', label: 'Sentenced', route: '/$universe/cases/$id' },

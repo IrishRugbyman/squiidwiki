@@ -71,6 +71,7 @@ export const INCIDENT_TYPE_HEX: Record<IncidentType, string> = {
   KIDNAPPING: '#3b82f6',
   ROBBERY: '#10b981',
   CRASH: '#0ea5e9',
+  OVERDOSE: '#d946ef',
 }
 
 export const RELIABILITY_DESCRIPTION: Record<SourceReliability, string> = {
