@@ -860,10 +860,27 @@ export interface MdocSpell {
   notes: string | null
 }
 
-/** `POST /members/{id}/incarcerations/import`: what was written, and how many were already on file. */
+/** A field a matched spell lacked, filled from OTIS. */
+export interface MemberIncarcerationFill {
+  spell_id: UUID
+  field: string
+  value: unknown
+}
+
+/** A field OTIS disagrees with. Not written: a person checks it by hand. */
+export interface MemberIncarcerationDifference {
+  spell_id: UUID
+  field: string
+  on_file: unknown
+  incoming: unknown
+}
+
+/** `POST /members/{id}/incarcerations/import`: what was written, matched, filled, and left for review. */
 export interface MemberIncarcerationImportResult {
   created: MemberIncarcerationRead[]
   matched: number
+  filled: MemberIncarcerationFill[]
+  differences: MemberIncarcerationDifference[]
 }
 
 export interface MdocProfile {

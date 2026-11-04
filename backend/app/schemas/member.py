@@ -337,11 +337,30 @@ class MemberIncarcerationRead(BaseModel):
     created_at: datetime
 
 
+class MemberIncarcerationFill(BaseModel):
+    """A field a matched row lacked, filled from the custody record."""
+
+    spell_id: uuid.UUID
+    field: str
+    value: Any
+
+
+class MemberIncarcerationDifference(BaseModel):
+    """A field the custody record disagrees with. Not written: a person decides."""
+
+    spell_id: uuid.UUID
+    field: str
+    on_file: Any
+    incoming: Any
+
+
 class MemberIncarcerationImportResult(BaseModel):
-    """What an import wrote, and how many of its spells were already on file."""
+    """What an import wrote, matched, filled, and left for review."""
 
     created: list[MemberIncarcerationRead]
     matched: int
+    filled: list[MemberIncarcerationFill] = []
+    differences: list[MemberIncarcerationDifference] = []
 
 
 def normalise_custody_number(system: "CustodySystem", number: str) -> str:

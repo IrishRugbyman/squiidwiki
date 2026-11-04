@@ -480,18 +480,25 @@ async def import_member_incarcerations(
     _: CurrentUser,
     session: Annotated[AsyncSession, Depends(get_session)],
 ):
-    """Write the spells of one custody record (an OTIS import) that are not on file.
+    """Write the spells of one custody record (an OTIS import) onto a member.
 
     Safe to repeat: a spell matching one the member holds (same court file,
-    offense line and dates) is counted, not written again, and matching is by
-    count, so identical counts OTIS lists separately stay separate.
+    offense line and start date, matched by count, so identical counts OTIS
+    lists separately stay separate) is not written again. A matched row is
+    never overwritten: its empty fields are filled, and every value OTIS gives
+    that disagrees with one on file comes back in `differences`, unwritten.
     """
     obj = await crud.get_member(session, id, universe_id)
     if obj is None:
         raise HTTPException(404)
-    created, matched = await crud.import_member_incarcerations(session, id, data.spells)
+    created, matched, filled, differences = await crud.import_member_incarcerations(
+        session, id, data.spells
+    )
     return MemberIncarcerationImportResult(
-        created=[MemberIncarcerationRead.model_validate(c) for c in created], matched=matched
+        created=[MemberIncarcerationRead.model_validate(c) for c in created],
+        matched=matched,
+        filled=filled,
+        differences=differences,
     )
 
 

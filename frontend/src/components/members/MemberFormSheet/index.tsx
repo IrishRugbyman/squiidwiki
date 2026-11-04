@@ -23,7 +23,7 @@ import { api } from '@/lib/api'
 import { currentAffiliations } from '@/lib/utils'
 import { normalizeHandle, splitSocial, SOCIAL_BASE, type SocialMap, type SocialPlatform } from '@/lib/social'
 import { memberStatusFromMdoc } from '@/lib/mdoc'
-import { writeMdocSpells } from '@/lib/mdocImport'
+import { summariseDifferences, writeMdocSpells } from '@/lib/mdocImport'
 import { UrlPasteBanner, useUrlPasteBanner } from '@/components/UrlPasteBanner'
 import { SourceFormSheet } from '@/routes/_app.$universe.sources.index'
 import type { MdocProfile, MdocSpell, MemberListItem, MemberRead, MemberStatus, SetRank } from '@/lib/types'
@@ -661,16 +661,26 @@ function MemberFormSheetInner({ universeId, open, onClose, initial, defaultSetId
     // same OTIS profile imported twice writes nothing the second time.
     if (mdocPending.spells.length > 0) {
       try {
-        const { saved, skipped } = await writeMdocSpells(api.post, {
+        const { saved, skipped, filled, differences } = await writeMdocSpells(api.post, {
           memberId,
           universeId,
           spells: mdocPending.spells,
         })
         if (skipped > 0) {
-          toast.info(skipped === 1 ? 'Skipped 1 sentence already on record' : `Skipped ${skipped} sentences already on record`)
+          toast.info(
+            (skipped === 1 ? 'Skipped 1 sentence already on record' : `Skipped ${skipped} sentences already on record`) +
+              (filled > 0 ? `; filled ${filled} empty field${filled === 1 ? '' : 's'}` : ''),
+          )
         }
         if (saved > 0) {
           toast.success(saved === 1 ? 'Imported MDOC incarceration record' : `Imported ${saved} MDOC incarceration records`)
+        }
+        if (differences.length > 0) {
+          // Never written: what is on file stays until someone checks OTIS by hand.
+          toast.warning(
+            `${differences.length} difference${differences.length === 1 ? '' : 's'} from OTIS left for review, nothing overwritten`,
+            { description: summariseDifferences(differences), duration: 20_000 },
+          )
         }
       } catch (e) {
         toast.error(e instanceof Error ? `Couldn't save MDOC incarcerations: ${e.message}` : "Couldn't save MDOC incarcerations")

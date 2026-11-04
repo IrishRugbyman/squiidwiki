@@ -6,29 +6,30 @@ here ships, its line comes out of that file.
 
 ---
 
-## 2026-11-04 - Re-importing an OTIS profile no longer duplicates its spells
+## 2026-11-04 - Re-importing an OTIS profile is safe, and never overwrites
 
-Production held 103 groups of identical spells: same member, court file, offense
-line and dates, one sentence four times where OTIS lists it once. The member form
-decided what was already on record from its cached list of the member's spells
+A latent duplication path, found in the code: the member form decided which OTIS
+sentences were already on record from its cached list of the member's spells
 (`['members', id, 'incarcerations']`, fresh for five minutes) and posted the rest
 one at a time with a bare `api.post` that never refreshed that cache. Saving the
-form refetched it in parallel with the first post, so it kept the pre-import list;
-the member page did the same and showed no new spells, and importing again inside
-those five minutes posted every sentence again. The same set-of-court-files check
-also skipped a genuinely new count on a file already on record.
+form refetched the list in parallel with the first post, so it kept the
+pre-import state, and a second import inside those five minutes would have posted
+every sentence again. The same set-of-court-files check skipped a genuinely new
+count on a file already on record. (Production's groups of identical spells were
+checked against OTIS: they are separate counts OTIS lists the same number of
+times, not copies, and stay.)
 
 - `POST /members/{id}/incarcerations/import` (`import_member_incarcerations`)
-  decides on the server, under a lock on the member row: it matches by count on
-  `incarceration_match_key` (court file, first notes line, from and to dates),
-  so a repeat import writes nothing and identical counts stay separate. The form
-  uses it and invalidates the member's queries afterwards.
-- `$PY -m app.scripts.dedupe_incarcerations [--db test] [--go]` deletes the
-  extras. A sentence's legitimate number of copies is the most any one import
-  batch wrote (writes more than `--batch-gap` seconds apart are separate
-  imports); the oldest copies are kept, groups whose copies differ are left
-  alone, and groups that keep several rows are listed for checking against OTIS
-  (`--keep-one` collapses them). Deletions go to `audit_log` and a JSON backup.
+  decides on the server, under a lock on the member row. A spell matches a row
+  on file by court file, first notes line ("Offense: ...") and start date
+  (`incarceration_match_key`), by count, so identical counts stay separate.
+- A matched row is never overwritten. An empty end date, release date,
+  facility or note is filled from OTIS; a filled value OTIS disagrees with
+  (the rebuilt site gives file-level discharge dates where the old one gave
+  plausible per-count ones) is left as it is and returned in `differences`
+  for a person to check. The form says how many were left for review.
+- The form's write path is `writeMdocSpells` in `frontend/src/lib/mdocImport.ts`;
+  it invalidates the member's queries afterwards.
 
 ---
 
