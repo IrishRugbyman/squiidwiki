@@ -143,6 +143,19 @@ async def update_source(
     new_url = dump.get("url")
     if new_url and new_url != obj.url:
         dump.update(_derived(new_url))
+        # One source per lookup system and universe: the same refusal a create
+        # gets, instead of a 500 from uq_source_universe_lookup_system.
+        if dump["lookup_system"]:
+            canonical = await lookup_source(session, universe_id, dump["lookup_system"])
+            if canonical is not None and canonical.id != obj.id:
+                raise ApiError(
+                    409,
+                    "lookup_source",
+                    f"{canonical.title} is already a source: cite it with the record "
+                    "number as the locator rather than adding another.",
+                    existing_id=canonical.id,
+                    suggested_locator=lookup_locator(new_url),
+                )
         # A kind set by hand survives a URL edit; one the URL implied follows it.
         if "kind" not in dump and obj.kind == classify_kind(obj.url).value:
             dump["kind"] = classify_kind(new_url).value

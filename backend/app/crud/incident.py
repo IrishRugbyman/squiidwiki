@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select
 
 from app.core.audit import load_link_rows, record_link_change
-from app.core.enums import MemberStatus, ParticipantOutcome
+from app.core.enums import DatePrecision, MemberStatus, ParticipantOutcome
 from app.models.alliance import AllianceSet
 from app.models.gang_set import GangSet
 from app.models.incident import (
@@ -33,6 +33,22 @@ def _fuzzy_to_dict(fd) -> dict | None:
     if fd is None:
         return None
     return fd.model_dump()
+
+
+def _sortable_date(fd) -> datetime | None:
+    """The date an incident sorts by, or None when it has no year.
+
+    FuzzyDate checks which parts a precision needs but not that they make a
+    calendar date, so 30 February or month 13 got this far and crashed here
+    with a 500. They are bad input: a 422.
+    """
+    if fd is None:
+        return None
+    try:
+        sd = fd.to_sortable_date()
+    except ValueError as e:
+        raise HTTPException(422, detail=f"date is not a calendar date: {e}") from None
+    return datetime(sd.year, sd.month, sd.day) if sd is not None else None
 
 
 async def _check_universe(
@@ -158,7 +174,13 @@ async def _sync_case_verdicts(session: AsyncSession, incident_id: uuid.UUID) -> 
 async def _unsync_killed_participants(
     session: AsyncSession, incident: Incident, new_participants: list[ParticipantCreate]
 ) -> None:
-    """On incident update, clear death linkage for members who are no longer KILLED."""
+    """On incident update, unlink the death of members this incident no longer kills.
+
+    Only `death_incident_id` is cleared, and only where it points at this
+    incident. Reverting the death itself is never automatic (CLAUDE.md): the
+    member keeps his status and his date_of_death, which may have been
+    corrected by hand, until someone edits the member.
+    """
     new_killed_ids = {
         p.member_id for p in new_participants if p.outcome == ParticipantOutcome.KILLED
     }
@@ -172,8 +194,6 @@ async def _unsync_killed_participants(
     for m in prev_linked:
         if m.id not in new_killed_ids:
             m.death_incident_id = None
-            m.date_of_death = None
-            m.status = MemberStatus.UNKNOWN
             m.updated_at = now
             session.add(m)
 
@@ -207,7 +227,8 @@ async def _sync_killed_participants(
     for "not known", and reading that as a hand-entered date left Tank (264)
     undated after his killing was dated.
 
-    Never reverts; un-kill is a manual member edit. Audit listeners on `member`
+    Never reverts; un-kill is a manual member edit (an edit that stops killing
+    a member only drops the link, see `_unsync_killed_participants`). Audit listeners on `member`
     pick these mutations up automatically.
     """
     killed_ids = [p.member_id for p in participants if p.outcome == ParticipantOutcome.KILLED]
@@ -218,7 +239,13 @@ async def _sync_killed_participants(
     members = result.scalars().all()
 
     incident_date = incident.date
-    incident_has_date = bool(incident_date and incident_date.get("year"))
+    # At least year precision: a year filed under precision UNKNOWN is not a
+    # date the incident itself sorts by (no sortable_date), so it dates no one.
+    incident_has_date = bool(
+        incident_date
+        and incident_date.get("year")
+        and incident_date.get("precision") != DatePrecision.UNKNOWN
+    )
 
     now = datetime.now(UTC)
     for m in members:
@@ -239,13 +266,7 @@ async def create_incident(
     session: AsyncSession, data: IncidentCreate, actor_id: uuid.UUID
 ) -> Incident:
     fd = data.date
-    sortable = None
-    if fd is not None:
-        sd = fd.to_sortable_date()
-        if sd is not None:
-            from datetime import datetime
-
-            sortable = datetime(sd.year, sd.month, sd.day)
+    sortable = _sortable_date(fd)
 
     await _check_universe(session, data.universe_id, data.municipality_id, data.set_participants)
     dump = data.model_dump(exclude={"date", "participants", "set_participants"})
@@ -351,14 +372,7 @@ async def update_incident(
     if "date" in data.model_fields_set:
         fd = data.date
         dump["date"] = _fuzzy_to_dict(fd)
-        if fd is not None:
-            sd = fd.to_sortable_date()
-            if sd is not None:
-                dump["sortable_date"] = datetime(sd.year, sd.month, sd.day)
-            else:
-                dump["sortable_date"] = None
-        else:
-            dump["sortable_date"] = None
+        dump["sortable_date"] = _sortable_date(fd)
     for k, v in dump.items():
         setattr(obj, k, v)
     obj.updated_at = datetime.now(UTC)

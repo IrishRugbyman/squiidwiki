@@ -464,6 +464,28 @@ async def update_gang(
     return obj
 
 
+async def _renumber(session: AsyncSession, model, owner) -> uuid.UUID | None:
+    """Close the gap a deleted gang leaves in a set's or an alliance's gang list.
+
+    Positions are renumbered from 0 in their current order, so the gang next in
+    line really is at position 0, the primary, and not only in the mirror
+    column. Returns that gang, or None when none is left.
+    """
+    rows = (
+        await session.execute(
+            select(model.gang_id, model.position).where(owner).order_by(model.position)
+        )
+    ).all()
+    for position, (gang_id, current) in enumerate(rows):
+        if current != position:
+            await session.execute(
+                model.__table__.update()
+                .where(owner, model.gang_id == gang_id)
+                .values(position=position)
+            )
+    return rows[0][0] if rows else None
+
+
 async def delete_gang(session: AsyncSession, id: uuid.UUID, universe_id: uuid.UUID) -> bool:
     obj = await get_gang(session, id, universe_id)
     if obj is None:
@@ -477,14 +499,7 @@ async def delete_gang(session: AsyncSession, id: uuid.UUID, universe_id: uuid.UU
     )
     await session.execute(delete(SetGang).where(SetGang.gang_id == id))
     for set_id in affected:
-        next_gang = (
-            await session.execute(
-                select(SetGang.gang_id)
-                .where(SetGang.set_id == set_id)
-                .order_by(SetGang.position)
-                .limit(1)
-            )
-        ).scalar_one_or_none()
+        next_gang = await _renumber(session, SetGang, SetGang.set_id == set_id)
         await session.execute(
             GangSet.__table__.update().where(GangSet.id == set_id).values(gang_id=next_gang)
         )
@@ -501,14 +516,7 @@ async def delete_gang(session: AsyncSession, id: uuid.UUID, universe_id: uuid.UU
     )
     await session.execute(delete(AllianceGang).where(AllianceGang.gang_id == id))
     for alliance_id in affected_alliances:
-        next_gang = (
-            await session.execute(
-                select(AllianceGang.gang_id)
-                .where(AllianceGang.alliance_id == alliance_id)
-                .order_by(AllianceGang.position)
-                .limit(1)
-            )
-        ).scalar_one_or_none()
+        next_gang = await _renumber(session, AllianceGang, AllianceGang.alliance_id == alliance_id)
         await session.execute(
             Alliance.__table__.update().where(Alliance.id == alliance_id).values(gang_id=next_gang)
         )
