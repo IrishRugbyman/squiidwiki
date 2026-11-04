@@ -28,12 +28,13 @@ export type IncidentType =
   | 'KIDNAPPING'
   | 'ROBBERY'
   | 'CRASH'
+  | 'OVERDOSE'
 export type ParticipantRole = 'SHOOTER' | 'ASSISTED' | 'BYSTANDER' | 'VICTIM'
 export type ParticipantOutcome = 'KILLED' | 'INJURED' | 'UNHARMED' | 'UNKNOWN'
 export type SourceReliability = 'HIGH' | 'MEDIUM' | 'LOW' | 'UNVERIFIED'
 export type SetRelationshipType = 'FRIEND' | 'ENEMY'
 export type MediaKind = 'R2' | 'EXTERNAL_URL'
-export type MediaEntityType = 'member' | 'incident' | 'source' | 'set' | 'alliance' | 'municipality'
+export type MediaEntityType = 'member' | 'incident' | 'source' | 'set' | 'alliance' | 'municipality' | 'rap_group'
 
 // Universe
 export interface UniverseListItem {
@@ -51,9 +52,13 @@ export interface UniverseRead extends UniverseListItem {
 /**
  * CITY sits at the top level. DISTRICT partitions its city (Detroit's ZIP
  * codes); NEIGHBORHOOD is a named area whose outline may overlap districts,
- * so the two are never drawn on one map layer.
+ * so the two are never drawn on one map layer. HOUSING_PROJECT is a public
+ * housing estate, drawn over the districts the way a neighborhood is.
  */
-export type MunicipalityKind = 'CITY' | 'DISTRICT' | 'NEIGHBORHOOD'
+export type MunicipalityKind = 'CITY' | 'DISTRICT' | 'NEIGHBORHOOD' | 'HOUSING_PROJECT'
+
+/** Sub-areas laid over the districts, each knowing which districts it lies in. */
+export const OVERLAY_KINDS: readonly MunicipalityKind[] = ['NEIGHBORHOOD', 'HOUSING_PROJECT']
 
 export interface MunicipalityListItem {
   id: UUID
@@ -77,13 +82,6 @@ export interface MunicipalityListItem {
   has_geometry: boolean
 }
 
-export interface MunicipalitySourceBrief {
-  id: UUID
-  title: string
-  url: string
-  publication: string | null
-  reliability: SourceReliability
-}
 
 /**
  * The other layer of the same city: for a neighborhood, the districts it lies
@@ -105,7 +103,7 @@ export interface MunicipalityRead extends MunicipalityListItem {
   description: string | null
   /** Whose count: "US Census Bureau, Vintage 2025 estimates". */
   population_source: string | null
-  sources: MunicipalitySourceBrief[]
+  citations: CitationRead[]
   overlaps: MunicipalityOverlapBrief[]
 }
 
@@ -133,31 +131,177 @@ export interface MunicipalityGeoJSON {
   features: MunicipalityGeoJSONFeature[]
 }
 
-// Source
+// Sources and citations
+/** What a source is, derived from its URL unless set by hand. */
+export type SourceKind =
+  | 'COURT' | 'PRESS' | 'CUSTODY' | 'SOCIAL' | 'VIDEO' | 'WIKI' | 'MAP' | 'INTERNAL' | 'OTHER'
+
+/** A custody lookup: one source per system per universe, the record number on the citation. */
+export type LookupSystem = 'BOP' | 'MDOC_OTIS' | 'GDC'
+
+/** The one shape a source takes inside any record. */
+export interface SourceSummary {
+  id: UUID
+  title: string
+  url: string
+  domain: string | null
+  kind: SourceKind
+  publication: string | null
+  published_at: FuzzyDateValue | null
+  accessed_at: string | null
+  reliability: SourceReliability
+  archive_url: string | null
+  lookup_system: LookupSystem | null
+}
+
+/** One source backing one record, and what it supports there. */
+export interface CitationRead {
+  id: UUID
+  source_id: UUID
+  position: number
+  locator: string | null
+  quote: string | null
+  note: string | null
+  accessed_at: string | null
+  created_at: string
+  source: SourceSummary
+}
+
+export type CitableType =
+  | 'member' | 'incident' | 'set' | 'alliance' | 'court_case' | 'municipality' | 'business' | 'rap_group'
+
+export interface SourceCounts {
+  member: number
+  incident: number
+  set: number
+  alliance: number
+  court_case: number
+  municipality: number
+  business: number
+  custody_id: number
+  alias: number
+  media: number
+  total: number
+}
+
 export interface SourceListItem {
   id: UUID
   title: string
   url: string
+  domain: string | null
+  kind: SourceKind
+  lookup_system: LookupSystem | null
   reliability: SourceReliability
   publication: string | null
   published_at: FuzzyDateValue | null
+  archive_url: string | null
   created_at: string
-  /** How many records cite it. Filled on list rows only; 0 elsewhere. */
-  incident_count: number
-  member_count: number
-  set_count: number
-  business_count: number
-  /** Custody numbers and member aliases that name it as their source. */
-  custody_count: number
-  alias_count: number
+  counts: SourceCounts
+}
+
+export interface SourceListPage {
+  items: SourceListItem[]
+  total: number
+  facets: { kind: Partial<Record<SourceKind, number>>; reliability: Partial<Record<SourceReliability, number>> }
+}
+
+export interface SourceRead {
+  id: UUID
+  universe_id: UUID
+  title: string
+  url: string
+  domain: string | null
+  kind: SourceKind
+  lookup_system: LookupSystem | null
+  reliability: SourceReliability
+  publication: string | null
+  published_at: FuzzyDateValue | null
+  accessed_at: string | null
+  notes: string | null
+  archive_url: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface SourceReadDetail extends SourceRead {
+  counts: SourceCounts
+}
+
+export interface SourceLookup {
+  exact: SourceListItem | null
+  lookup: { source: SourceListItem; suggested_locator: string | null } | null
+  same_host: SourceListItem[]
+}
+
+/** Any record, as the source page lists it. */
+export interface EntityRef {
+  type: CitableType
+  id: UUID
+  slug: string | null
+  label: string
+  detail: string | null
+  date: FuzzyDateValue | null
+  universe_slug: string | null
+}
+
+export interface SourceCitationRow {
+  id: UUID
+  source_id: UUID
+  position: number
+  locator: string | null
+  quote: string | null
+  note: string | null
+  accessed_at: string | null
+  created_at: string
+  entity: EntityRef
+}
+
+export interface SourceCustodyRow {
+  id: UUID
+  system: string
+  number: string
+  retrieved_at: string | null
+  member_id: UUID
+  member_slug: string | null
+  member_label: string
 }
 
 // Research notes
+export type NoteKind = 'INBOX' | 'FOR_YOU' | 'PARKED' | 'REFERENCE'
+
+/** Triage order, which is also the order of the sections on the research index. */
+export const NOTE_KINDS: NoteKind[] = ['INBOX', 'FOR_YOU', 'PARKED', 'REFERENCE']
+
+export const NOTE_KIND_LABEL: Record<NoteKind, string> = {
+  INBOX: 'Inbox',
+  FOR_YOU: 'For you',
+  PARKED: 'Parked',
+  REFERENCE: 'Reference',
+}
+
+export type PinKind = 'member' | 'set' | 'incident' | 'alliance'
+
+/** What a pin is sent as. */
+export interface PinRef {
+  kind: PinKind
+  id: UUID
+}
+
+/** What a pin comes back as: enough to label and link it. */
+export interface NotePin extends PinRef {
+  /** Null for incidents, which have no slug. */
+  slug: string | null
+  /** Display name; an incident's is its date and location. */
+  name: string
+}
+
 export interface ResearchNoteRead {
   id: UUID
   universe_id: UUID
   title: string
   content: string
+  kind: NoteKind
+  pins: NotePin[]
   created_at: string
   updated_at: string
 }
@@ -166,6 +310,8 @@ export interface ResearchNoteListItem {
   id: UUID
   title: string
   content: string
+  kind: NoteKind
+  pins: NotePin[]
   updated_at: string
 }
 
@@ -263,12 +409,93 @@ export interface GangWrite {
   card_description?: string | null
 }
 
+// Rap groups and labels
+// A rap group is not a set: no map, no set stats, never an affiliation. A label
+// shares the table, told apart by `kind`.
+export type RapGroupKind = 'GROUP' | 'LABEL'
+export type RapGroupStatus = 'ACTIVE' | 'DISBANDED'
+export type RapGroupRole = 'FOUNDER' | 'MEMBER' | 'SIGNED' | 'AFFILIATE'
+
+/** One group a member belongs to, as the member reads carry it. */
+export interface MemberRapGroupRef {
+  id: UUID
+  slug: string | null
+  name: string
+  role: RapGroupRole
+}
+
+export interface RapGroupListItem {
+  id: UUID
+  slug: string | null
+  /** Derived: the display of the primary name variant, as for sets. */
+  name: string
+  name_variants: NameVariant[] | null
+  kind: RapGroupKind
+  status: RapGroupStatus
+  active_from: FuzzyDateValue | null
+  active_to: FuzzyDateValue | null
+  municipality: { id: UUID; name: string; slug: string | null } | null
+  member_count: number
+  primary_photo_url: string | null
+}
+
+export interface RapGroupMemberRow {
+  member_id: UUID
+  slug: string | null
+  display_name: string
+  role: RapGroupRole
+  since: FuzzyDateValue | null
+  until: FuzzyDateValue | null
+  primary_photo_thumb_url: string | null
+  status: MemberStatus
+  sets: { id: UUID; slug: string | null; name: string }[]
+}
+
+export interface RapGroupRelationshipRow {
+  rap_group_id: UUID
+  slug: string | null
+  name: string
+  type: SetRelationshipType
+}
+
+export interface RapGroupReadDetail extends RapGroupListItem {
+  universe_id: UUID
+  bio: string | null
+  members: RapGroupMemberRow[]
+  sets_represented: { id: UUID; slug: string | null; name: string; count: number }[]
+  relationships: RapGroupRelationshipRow[]
+  incidents: IncidentListItem[]
+  citations: CitationRead[]
+  created_at: string
+  updated_at: string
+}
+
+/** One entry of the complete member list a POST or PATCH sends. */
+export interface RapGroupMemberInput {
+  member_id: UUID
+  role: RapGroupRole
+  since: FuzzyDateValue | null
+  until: FuzzyDateValue | null
+}
+
 // Alliance
-export interface AllianceListItem {
+/** One gang an alliance claims, primary first. */
+export interface AllianceGangSummary {
   id: UUID
   name: string
-  aliases: string[] | null
+  slug: string | null
+  color: string | null
+}
+
+export interface AllianceListItem {
+  id: UUID
+  /** Derived: the display of the primary name variant, as for sets. */
+  name: string
+  name_variants: NameVariant[] | null
+  /** Glyphs the bloc is known by; the first is the badge. */
+  emojis: string[] | null
   status: AllianceStatus
+  /** Mirror of the first gang. */
   gang_id: UUID | null
   universe_id: UUID
   slug: string | null
@@ -280,18 +507,69 @@ export interface AllianceListItem {
   member_count: number
   gang_name: string | null
   gang_color: string | null
+  /** Every gang, primary first. Filled on list rows. */
+  gangs?: AllianceGangSummary[]
 }
 
 export interface AllianceRead extends AllianceListItem {
   description: string | null
+  /** Every gang id, primary first. */
+  gang_ids: UUID[]
+  founder_id: UUID | null
   founded_at: FuzzyDateValue | null
   created_at: string
   updated_at: string
 }
 
+/** Counts over the alliance's people (tagged to it, plus current members of its sets). */
+export interface AllianceStats {
+  member_count: number
+  active_member_count: number
+  locked_members: number
+  dead_members: number
+  total_shootings: number
+  total_assists: number
+  total_kills: number
+  first_incident_year: number | null
+  last_incident_year: number | null
+}
+
+export interface AllianceLineageItem {
+  id: UUID
+  kind: SetLineageKind
+  /** Where the *other* alliance sits relative to this one. */
+  direction: 'parent' | 'child'
+  other_id: UUID
+  other_name: string
+  other_slug: string | null
+  from_date: FuzzyDateValue | null
+  until_date: FuzzyDateValue | null
+  is_current: boolean
+}
+
 export interface AllianceReadDetail extends AllianceRead {
   territory_ids: UUID[]
   set_ids: UUID[]
+  citations: CitationRead[]
+  gangs: AllianceGangSummary[]
+  territories: { id: UUID; name: string; slug: string | null }[]
+  founder_display_name: string | null
+  founder_slug: string | null
+  stats: AllianceStats
+  incidents_per_year: IncidentsPerYear[]
+  lineage: AllianceLineageItem[]
+}
+
+export interface AllianceActivityEntry {
+  id: UUID
+  entity_type: 'alliance' | 'set' | 'member'
+  entity_id: UUID
+  action: 'CREATE' | 'UPDATE' | 'DELETE'
+  actor_email: string | null
+  target_label: string | null
+  target_slug: string | null
+  diff_keys: string[]
+  created_at: string
 }
 
 // Set
@@ -370,7 +648,6 @@ export interface SetReadDetail extends SetRead {
   friend_ids: UUID[]
   enemy_ids: UUID[]
   lineage: SetLineageItem[]
-  source_ids: UUID[]
 }
 
 /** How a child set came out of a parent set. Always reads child KIND parent. */
@@ -466,7 +743,7 @@ export interface SetReadDetailFull extends SetReadDetail {
   enemies: SetRelatedSummary[]
   stats: SetStats
   incidents_per_year: IncidentsPerYear[]
-  sources: MunicipalitySourceBrief[]
+  citations: CitationRead[]
   lede: string
 }
 
@@ -539,6 +816,8 @@ export interface MemberListItem {
   date_of_death: FuzzyDateValue | null
   is_rapper: boolean
   is_snitch: boolean
+  /** Rap groups and labels the member belongs to, in position order. */
+  rap_groups?: MemberRapGroupRef[]
 }
 
 export interface MemberAliasRead {
@@ -628,6 +907,8 @@ export interface MemberIncarcerationRead {
   life_sentence: boolean
   facility: string | null
   case_id: string | null
+  /** The court case this spell was served for; `case_id` stays as the custody record wrote it. */
+  court_case_id?: UUID | null
   notes: string | null
   created_at: string
 }
@@ -674,6 +955,8 @@ export interface MemberKilledInSummary {
   date: FuzzyDateValue | null
   municipality_id: UUID | null
   municipality_name: string | null
+  /** The incident's universe: a member can be killed away from home. */
+  universe_slug?: string | null
 }
 
 /** A number one custody system issued to a member: MDOC, BOP, a Georgia GDC ID
@@ -692,7 +975,7 @@ export interface MemberCustodyIdRead {
 }
 
 export interface MemberReadDetail extends MemberRead {
-  source_ids: UUID[]
+  citations: CitationRead[]
   alliance_name: string | null
   alliance_slug: string | null
   aliases_detail: MemberAliasRead[]
@@ -714,6 +997,8 @@ export interface MemberStats {
 export interface ParticipantRead {
   member_name?: string | null
   member_slug?: string | null
+  /** The member's own universe, which need not be the incident's. */
+  member_universe_slug?: string | null
   /** Filled on the incident detail payload, so the page needs no member dump. */
   member_status?: MemberStatus | null
   member_photo_url?: string | null
@@ -749,6 +1034,9 @@ export interface IncidentListItem {
   lng: number | null
   verified: boolean
   universe_id: UUID
+  /** Where the incident's page lives: a member's or set's list can hold one from
+   *  another universe. Absent on search results, which are always the current one. */
+  universe_slug?: string | null
   victim_names: string[]
   shooter_names: string[]
   /** Role held by the member the list was filtered on; null on unfiltered lists. */
@@ -763,20 +1051,11 @@ export interface IncidentRead extends IncidentListItem {
   updated_at: string
 }
 
-export interface IncidentSourceBrief {
-  id: UUID
-  title: string
-  url: string
-  publication: string | null
-  reliability: SourceReliability
-}
 
 export interface IncidentReadDetail extends IncidentRead {
   participants: ParticipantRead[]
   set_participants: SetParticipantRead[]
-  source_ids: UUID[]
-  /** The cited sources, in citation order. */
-  sources: IncidentSourceBrief[]
+  citations: CitationRead[]
 }
 
 // Audit
@@ -809,6 +1088,28 @@ export interface UniverseAnalytics {
 }
 
 // Media
+
+/** A member who appears in a photo; `position` null means the order is unknown. */
+export interface MediaPerson {
+  member_id: UUID
+  slug: string | null
+  nickname: string | null
+  legal_name: string | null
+  /** The nickname, or the legal name when the nickname is unknown. */
+  display_name: string
+  position: number | null
+}
+
+export type MediaOwnerType = 'member' | 'set' | 'incident' | 'alliance' | 'rap_group' | 'municipality' | 'source'
+
+/** The entity a photo belongs to. An incident has no name, so `name` is a label. */
+export interface MediaOwner {
+  type: MediaOwnerType
+  id: UUID
+  name: string
+  slug: string | null
+}
+
 export interface MediaWithUrls {
   id: UUID
   universe_id: UUID
@@ -832,6 +1133,12 @@ export interface MediaWithUrls {
   created_at: string
   url: string | null
   thumb_url: string | null
+  people: MediaPerson[]
+}
+
+/** A photo a member is tagged in that belongs to another entity. */
+export interface MediaAppearance extends MediaWithUrls {
+  owner: MediaOwner
 }
 
 // Users
@@ -952,4 +1259,132 @@ export interface MemberMergeReport {
   moved: Record<string, number>
   conflicts: { kind: string; id: UUID | null; message: string; discarded: unknown }[]
   dry_run: boolean
+}
+
+// Court cases
+
+export type CourtJurisdiction = 'US_FEDERAL' | 'US_STATE' | 'FR' | 'OTHER'
+export type CourtCaseKind = 'CRIMINAL' | 'CIVIL' | 'MAGISTRATE' | 'APPEAL'
+export type CaseDisposition = 'PENDING' | 'PLEADED' | 'CONVICTED' | 'ACQUITTED' | 'DISMISSED' | 'DIED'
+
+export interface Charge {
+  count: number | null
+  statute: string | null
+  offense: string | null
+  disposition: CaseDisposition | null
+  /** When the act was committed, as OTIS gives it per count. */
+  offense_date?: FuzzyDateValue | null
+}
+
+export interface CourtCaseRead {
+  id: UUID
+  universe_id: UUID
+  universe_slug: string | null
+  name: string
+  slug: string | null
+  jurisdiction: CourtJurisdiction
+  kind: CourtCaseKind
+  court: string
+  docket: string | null
+  docket_aliases: string[]
+  parent_case_id: UUID | null
+  filed_at: FuzzyDateValue | null
+  closed_at: FuzzyDateValue | null
+  judge: string | null
+  summary: string | null
+  courtlistener_ids: number[]
+  created_at: string
+  updated_at: string
+}
+
+export interface CourtCaseListItem {
+  id: UUID
+  universe_id: UUID
+  /** A member's or set's list can hold cases from another universe. */
+  universe_slug: string | null
+  name: string
+  slug: string | null
+  jurisdiction: CourtJurisdiction
+  kind: CourtCaseKind
+  court: string
+  docket: string | null
+  filed_at: FuzzyDateValue | null
+  closed_at: FuzzyDateValue | null
+  defendant_count: number
+  incident_count: number
+  /** On a member's own list: what the case did with them. */
+  viewer_disposition: CaseDisposition | null
+  viewer_sentence_months: number | null
+  viewer_life_sentence: boolean
+  /** His lead count (a homicide first) and its date: two files with the same
+   *  caption and court are told apart by these. */
+  viewer_lead_charge: string | null
+  viewer_offense_date: FuzzyDateValue | null
+}
+
+export interface CourtCaseBrief {
+  id: UUID
+  name: string
+  slug: string | null
+  court: string
+  docket: string | null
+  kind: CourtCaseKind
+  universe_slug: string | null
+}
+
+export interface DefendantRead {
+  id: UUID
+  court_case_id: UUID
+  member_id: UUID | null
+  /** For someone the wiki has no member for ("D-7"), or a deleted member's name. */
+  label: string | null
+  defendant_number: string | null
+  disposition: CaseDisposition
+  charges: Charge[]
+  sentence_months: number | null
+  life_sentence: boolean
+  supervised_release_months: number | null
+  sentenced_at: FuzzyDateValue | null
+  cooperated: boolean
+  notes: string | null
+  member_name: string | null
+  member_slug: string | null
+  member_universe_slug: string | null
+  member_status: MemberStatus | null
+}
+
+export interface CourtCaseSpellBrief {
+  id: UUID
+  member_id: UUID
+  member_name: string | null
+  member_slug: string | null
+  member_universe_slug: string | null
+  from_date: FuzzyDateValue | null
+  to_date: FuzzyDateValue | null
+  facility: string | null
+  life_sentence: boolean
+}
+
+export interface CourtCaseReadDetail extends CourtCaseRead {
+  defendants: DefendantRead[]
+  incidents: IncidentListItem[]
+  sets: { id: UUID; name: string; slug: string | null }[]
+  citations: CitationRead[]
+  spells: CourtCaseSpellBrief[]
+  parent: CourtCaseBrief | null
+  children: CourtCaseBrief[]
+}
+
+/** A dated sentencing in one of a universe's cases. */
+export interface SentencingEvent {
+  court_case_id: UUID
+  case_name: string
+  case_slug: string | null
+  universe_slug: string | null
+  defendant: string
+  member_id: UUID | null
+  sentenced_at: FuzzyDateValue
+  disposition: CaseDisposition
+  sentence_months: number | null
+  life_sentence: boolean
 }

@@ -13,14 +13,14 @@ Also adds the trigram index member_alias was missing: the fuzzy name search
 scores member_alias.alias as well as the member columns 9065522d726a indexed.
 
 Revision ID: 3c7f32fad6eb
-Revises: 81e18d3c4faa
+Revises: 9ac442b3acc6
 Create Date: 2026-11-03
 """
 
 from alembic import op
 
 revision = "3c7f32fad6eb"
-down_revision = "81e18d3c4faa"
+down_revision = "9ac442b3acc6"
 branch_labels = None
 depends_on = None
 

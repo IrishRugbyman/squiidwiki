@@ -1,6 +1,7 @@
 import uuid
 from datetime import UTC, datetime
 
+from fastapi import HTTPException
 from sqlalchemy import case, text
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select
@@ -13,11 +14,11 @@ from app.models.incident import (
     Incident,
     IncidentParticipant,
     IncidentSetParticipant,
-    IncidentSource,
 )
 from app.models.member import Member, MemberSet
 from app.models.municipality import Municipality
-from app.models.source import Source
+from app.models.rap_group import RapGroupMember
+from app.models.universe import Universe
 from app.schemas.common import make_cursor, parse_cursor
 from app.schemas.incident import (
     IncidentCreate,
@@ -32,6 +33,47 @@ def _fuzzy_to_dict(fd) -> dict | None:
     if fd is None:
         return None
     return fd.model_dump()
+
+
+async def _check_universe(
+    session: AsyncSession,
+    universe_id: uuid.UUID,
+    municipality_id: uuid.UUID | None,
+    set_participants: list[SetParticipantCreate] | None,
+) -> None:
+    """An incident belongs to the universe it happened in, and so does its ground.
+
+    The place and any set named as a participant must be in that universe: a set
+    is local to its streets, so a set from elsewhere is a typo. Member
+    participants are deliberately not checked. A Michigan member who shot
+    someone in Columbus takes part in an Ohio incident and stays a Michigan
+    member, and his page lists it under its own universe's URL.
+    """
+    if municipality_id is not None:
+        muni_universe = (
+            await session.execute(
+                select(Municipality.universe_id).where(Municipality.id == municipality_id)
+            )
+        ).scalar_one_or_none()
+        if muni_universe != universe_id:
+            raise HTTPException(422, detail="municipality_id is not in this incident's universe")
+    if set_participants:
+        set_ids = {p.set_id for p in set_participants}
+        found = set(
+            (
+                await session.execute(
+                    select(GangSet.id).where(
+                        GangSet.id.in_(set_ids), GangSet.universe_id == universe_id
+                    )
+                )
+            ).scalars()
+        )
+        if missing := set_ids - found:
+            raise HTTPException(
+                422,
+                detail="set participants not in this incident's universe: "
+                + ", ".join(sorted(str(i) for i in missing)),
+            )
 
 
 async def _sync_participants(
@@ -99,26 +141,18 @@ async def _sync_set_participants(
         )
 
 
-async def _sync_incident_sources(
-    session: AsyncSession, incident_id: uuid.UUID, source_ids: list[uuid.UUID]
-) -> None:
-    before = await load_link_rows(
-        session, IncidentSource, IncidentSource.incident_id == incident_id, ["source_id"]
-    )
-    record_link_change(
-        session,
-        entity_type="incident",
-        entity_id=incident_id,
-        link="sources",
-        key="source_id",
-        before=before,
-        after=[{"source_id": sid} for sid in source_ids],
-    )
-    await session.execute(
-        IncidentSource.__table__.delete().where(IncidentSource.incident_id == incident_id)
-    )
-    for sid in source_ids:
-        session.add(IncidentSource(incident_id=incident_id, source_id=sid))
+async def _sync_case_verdicts(session: AsyncSession, incident_id: uuid.UUID) -> None:
+    """Re-apply the court cases' verdicts to participant rows just rewritten.
+
+    A participant list is replaced whole, `acquitted` included, so a payload
+    built before a case was entered would undo its acquittal. Where a case
+    covering this incident has the participant as a defendant, its verdict
+    wins; elsewhere the flag stays as sent. See `app.crud.court_case`.
+    """
+    from app.crud.court_case import sync_acquitted
+
+    await session.flush()
+    await sync_acquitted(session, {incident_id})
 
 
 async def _unsync_killed_participants(
@@ -129,12 +163,9 @@ async def _unsync_killed_participants(
         p.member_id for p in new_participants if p.outcome == ParticipantOutcome.KILLED
     }
 
-    result = await session.execute(
-        select(Member).where(
-            Member.death_incident_id == incident.id,
-            Member.universe_id == incident.universe_id,
-        )
-    )
+    # No universe filter: a participant may come from another universe (see
+    # `_check_universe`), and his death is linked here all the same.
+    result = await session.execute(select(Member).where(Member.death_incident_id == incident.id))
     prev_linked = result.scalars().all()
 
     now = datetime.now(UTC)
@@ -183,9 +214,7 @@ async def _sync_killed_participants(
     if not killed_ids:
         return
 
-    result = await session.execute(
-        select(Member).where(Member.id.in_(killed_ids), Member.universe_id == incident.universe_id)
-    )
+    result = await session.execute(select(Member).where(Member.id.in_(killed_ids)))
     members = result.scalars().all()
 
     incident_date = incident.date
@@ -218,7 +247,8 @@ async def create_incident(
 
             sortable = datetime(sd.year, sd.month, sd.day)
 
-    dump = data.model_dump(exclude={"date", "participants", "set_participants", "source_ids"})
+    await _check_universe(session, data.universe_id, data.municipality_id, data.set_participants)
+    dump = data.model_dump(exclude={"date", "participants", "set_participants"})
     dump["date"] = _fuzzy_to_dict(fd)
     dump["sortable_date"] = sortable
     obj = Incident(**dump, created_by_id=actor_id)
@@ -226,8 +256,8 @@ async def create_incident(
     await session.flush()
     await _sync_participants(session, obj.id, data.participants)
     await _sync_set_participants(session, obj.id, data.set_participants)
-    await _sync_incident_sources(session, obj.id, data.source_ids)
     await _sync_killed_participants(session, obj, data.participants)
+    await _sync_case_verdicts(session, obj.id)
     await session.commit()
     await session.refresh(obj)
     return obj
@@ -308,12 +338,16 @@ async def update_incident(
     obj = await get_incident(session, id, universe_id)
     if obj is None:
         return None
+    await _check_universe(
+        session,
+        obj.universe_id,
+        data.municipality_id if "municipality_id" in data.model_fields_set else None,
+        data.set_participants,
+    )
     # Read before the setattr loop below replaces it: _sync_killed_participants
     # needs to tell a member date it wrote itself from one a human wrote.
     previous_date = obj.date
-    dump = data.model_dump(
-        exclude_unset=True, exclude={"date", "participants", "set_participants", "source_ids"}
-    )
+    dump = data.model_dump(exclude_unset=True, exclude={"date", "participants", "set_participants"})
     if "date" in data.model_fields_set:
         fd = data.date
         dump["date"] = _fuzzy_to_dict(fd)
@@ -333,6 +367,7 @@ async def update_incident(
         await _unsync_killed_participants(session, obj, data.participants)
         await _sync_participants(session, obj.id, data.participants)
         await _sync_killed_participants(session, obj, data.participants, previous_date)
+        await _sync_case_verdicts(session, obj.id)
     elif "date" in data.model_fields_set:
         # A date-only edit keeps the participants on file, and its dead are
         # dated by this incident just as if they had been re-sent.
@@ -341,8 +376,6 @@ async def update_incident(
         )
     if data.set_participants is not None:
         await _sync_set_participants(session, obj.id, data.set_participants)
-    if data.source_ids is not None:
-        await _sync_incident_sources(session, obj.id, data.source_ids)
     await session.commit()
     await session.refresh(obj)
     return obj
@@ -352,13 +385,12 @@ async def delete_incident(session: AsyncSession, id: uuid.UUID, universe_id: uui
     obj = await get_incident(session, id, universe_id)
     if obj is None:
         return False
-    # incident_participant and incident_source have NO ACTION FKs - clear them
-    # first or the delete raises. Set participants and media cascade, and
+    # incident_participant has a NO ACTION FK - clear it first or the delete
+    # raises. Citations, set participants and media cascade, and
     # member.death_incident_id is ON DELETE SET NULL.
     await session.execute(
         IncidentParticipant.__table__.delete().where(IncidentParticipant.incident_id == id)
     )
-    await session.execute(IncidentSource.__table__.delete().where(IncidentSource.incident_id == id))
     await session.delete(obj)
     await session.commit()
     return True
@@ -371,6 +403,18 @@ async def list_incident_participants(
         select(IncidentParticipant).where(IncidentParticipant.incident_id == incident_id)
     )
     return result.scalars().all()
+
+
+async def universe_slugs(
+    session: AsyncSession, universe_ids: set[uuid.UUID]
+) -> dict[uuid.UUID, str]:
+    """Slugs for the given universes, which is what a link into one is built from."""
+    if not universe_ids:
+        return {}
+    rows = await session.execute(
+        select(Universe.id, Universe.slug).where(Universe.id.in_(universe_ids))
+    )
+    return dict(rows.all())
 
 
 async def participant_member_briefs(
@@ -401,17 +445,6 @@ async def participant_current_sets(
     return out
 
 
-async def incident_source_briefs(
-    session: AsyncSession, source_ids: list[uuid.UUID]
-) -> list[Source]:
-    """The cited sources, in citation order."""
-    if not source_ids:
-        return []
-    result = await session.execute(select(Source).where(Source.id.in_(source_ids)))
-    by_id = {s.id: s for s in result.scalars()}
-    return [by_id[i] for i in source_ids if i in by_id]
-
-
 async def participant_set_briefs(
     session: AsyncSession, set_ids: list[uuid.UUID]
 ) -> dict[uuid.UUID, GangSet]:
@@ -431,16 +464,21 @@ async def list_incident_set_participants(
     return result.scalars().all()
 
 
+# The three lists below are scoped by the member, set or alliance alone, never by
+# the incident's universe: an incident sits in the universe it happened in, and a
+# member may take part in one elsewhere (see `_check_universe`). Each row carries
+# its own universe_slug so the page links it there.
+
+
 async def list_incidents_by_member(
     session: AsyncSession,
     member_id: uuid.UUID,
-    universe_id: uuid.UUID,
     limit: int = 50,
 ) -> list[Incident]:
     stmt = (
         select(Incident)
         .join(IncidentParticipant, IncidentParticipant.incident_id == Incident.id)
-        .where(IncidentParticipant.member_id == member_id, Incident.universe_id == universe_id)
+        .where(IncidentParticipant.member_id == member_id)
         .order_by(Incident.sortable_date.desc(), Incident.created_at.desc())
         .limit(limit)
     )
@@ -451,16 +489,24 @@ async def list_incidents_by_member(
 async def list_incidents_by_set(
     session: AsyncSession,
     set_id: uuid.UUID,
-    universe_id: uuid.UUID,
     limit: int = 50,
 ) -> list[Incident]:
+    """Incidents a member of this set took part in, or the set itself did.
+
+    The second half is the incident whose participant is unnamed, recorded
+    against the set (a member of it killed, sources naming nobody): it has no
+    member row to join through, and was missing from the set's page.
+    """
+    via_members = select(IncidentParticipant.incident_id).join(
+        MemberSet,
+        (MemberSet.member_id == IncidentParticipant.member_id) & (MemberSet.set_id == set_id),
+    )
+    via_set = select(IncidentSetParticipant.incident_id).where(
+        IncidentSetParticipant.set_id == set_id
+    )
     stmt = (
         select(Incident)
-        .join(IncidentParticipant, IncidentParticipant.incident_id == Incident.id)
-        .join(Member, Member.id == IncidentParticipant.member_id)
-        .join(MemberSet, (MemberSet.member_id == Member.id) & (MemberSet.set_id == set_id))
-        .where(Incident.universe_id == universe_id)
-        .distinct()
+        .where(Incident.id.in_(via_members.union(via_set)))
         .order_by(Incident.sortable_date.desc(), Incident.created_at.desc())
         .limit(limit)
     )
@@ -471,7 +517,6 @@ async def list_incidents_by_set(
 async def list_incidents_by_alliance(
     session: AsyncSession,
     alliance_id: uuid.UUID,
-    universe_id: uuid.UUID,
     limit: int = 50,
 ) -> list[Incident]:
     stmt = (
@@ -492,7 +537,28 @@ async def list_incidents_by_alliance(
                     MemberSet.until_date.is_(None),
                 )
             ),
-            Incident.universe_id == universe_id,
+        )
+        .distinct()
+        .order_by(Incident.sortable_date.desc(), Incident.created_at.desc())
+        .limit(limit)
+    )
+    result = await session.execute(stmt)
+    return result.scalars().all()
+
+
+async def list_incidents_by_rap_group(
+    session: AsyncSession,
+    rap_group_id: uuid.UUID,
+    limit: int = 10_000,
+) -> list[Incident]:
+    """Incidents where any member of the rap group is a participant, newest first."""
+    stmt = (
+        select(Incident)
+        .join(IncidentParticipant, IncidentParticipant.incident_id == Incident.id)
+        .where(
+            IncidentParticipant.member_id.in_(
+                select(RapGroupMember.member_id).where(RapGroupMember.rap_group_id == rap_group_id)
+            )
         )
         .distinct()
         .order_by(Incident.sortable_date.desc(), Incident.created_at.desc())
@@ -515,32 +581,6 @@ async def list_incidents_by_municipality(
         .limit(limit)
     )
     result = await session.execute(stmt)
-    return result.scalars().all()
-
-
-async def list_incidents_by_source(
-    session: AsyncSession,
-    source_id: uuid.UUID,
-    universe_id: uuid.UUID,
-    limit: int = 100,
-) -> list[Incident]:
-    stmt = (
-        select(Incident)
-        .join(IncidentSource, IncidentSource.incident_id == Incident.id)
-        .where(IncidentSource.source_id == source_id, Incident.universe_id == universe_id)
-        .order_by(Incident.sortable_date.desc(), Incident.created_at.desc())
-        .limit(limit)
-    )
-    result = await session.execute(stmt)
-    return result.scalars().all()
-
-
-async def list_incident_source_ids(
-    session: AsyncSession, incident_id: uuid.UUID
-) -> list[uuid.UUID]:
-    result = await session.execute(
-        select(IncidentSource.source_id).where(IncidentSource.incident_id == incident_id)
-    )
     return result.scalars().all()
 
 
@@ -630,6 +670,7 @@ async def enrich_participant_names(
             )
         ).all()
         muni_names = {r[0]: r[1] for r in muni_rows}
+    slugs = await universe_slugs(session, {inc.universe_id for inc in items})
 
     enriched = []
     for inc in items:
@@ -641,5 +682,6 @@ async def enrich_participant_names(
             d.viewer_role, d.viewer_outcome = viewer_map[key]
         if inc.municipality_id:
             d.municipality_name = muni_names.get(inc.municipality_id)
+        d.universe_slug = slugs.get(inc.universe_id)
         enriched.append(d)
     return enriched

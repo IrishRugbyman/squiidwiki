@@ -9,11 +9,16 @@ from app.core.csv_export import to_csv_response
 from app.core.database import get_session
 from app.core.enums import GlobalRole
 from app.crud import alliance as crud
+from app.crud import citation as citation_crud
 from app.crud import incident as incident_crud
 from app.crud import member as member_crud
 from app.crud.media import attach_primary_photos_alliances
 from app.schemas.alliance import (
+    AllianceActivityEntry,
     AllianceCreate,
+    AllianceLineageCreate,
+    AllianceLineageEnd,
+    AllianceLineageItem,
     AllianceListItem,
     AllianceRead,
     AllianceReadDetail,
@@ -81,16 +86,17 @@ async def get_alliance(
         obj = await crud.get_alliance_by_slug(session, id_or_slug, universe_id)
     if obj is None:
         raise HTTPException(404)
-    territory_ids = await crud.list_alliance_territory_ids(session, obj.id)
-    set_ids = await crud.list_alliance_set_ids(session, obj.id)
+    await crud.attach_gang_ids(session, obj)
     await attach_primary_photos_alliances(session, [obj])
     base = AllianceRead.model_validate(obj).model_dump()
     base["primary_photo_url"] = getattr(obj, "primary_photo_url", None)
     base["primary_photo_thumb_url"] = getattr(obj, "primary_photo_thumb_url", None)
     return AllianceReadDetail(
         **base,
-        territory_ids=territory_ids,
-        set_ids=set_ids,
+        territory_ids=await crud.list_alliance_territory_ids(session, obj.id),
+        set_ids=await crud.list_alliance_set_ids(session, obj.id),
+        citations=await citation_crud.list_citations(session, "alliance", obj.id),
+        **await crud.alliance_detail_extras(session, obj),
     )
 
 
@@ -135,6 +141,8 @@ async def list_alliance_members(
     items, next_cursor = await member_crud.list_members(
         session, universe_id, limit=limit, cursor=cursor, alliance_id=id
     )
+    # As the members list does: without it every avatar here fell back to initials.
+    await member_crud.attach_primary_photos(session, items)
     return CursorPage(items=items, next_cursor=next_cursor, total=None)
 
 
@@ -151,7 +159,7 @@ async def list_alliance_incidents(
     obj = await crud.get_alliance(session, id, universe_id)
     if obj is None:
         raise HTTPException(404)
-    items = await incident_crud.list_incidents_by_alliance(session, id, universe_id, limit=limit)
+    items = await incident_crud.list_incidents_by_alliance(session, id, limit=limit)
     # Enriched like every other incident list; returned bare, the victim and
     # shooter names and the city came back empty.
     items = await incident_crud.enrich_participant_names(session, items)
@@ -222,3 +230,80 @@ async def delete_alliance_relationship(
         raise HTTPException(404)
     if not await crud.delete_alliance_relationship(session, id, relationship_id):
         raise HTTPException(404)
+
+
+@router.get("/{id}/lineage", response_model=list[AllianceLineageItem])
+async def list_alliance_lineage(
+    id: uuid.UUID,
+    universe_id: uuid.UUID,
+    _: CurrentUser,
+    session: Annotated[AsyncSession, Depends(get_session)],
+    include_ended: bool = True,
+):
+    """Which blocs this one came out of, and which came out of it."""
+    if await crud.get_alliance(session, id, universe_id) is None:
+        raise HTTPException(404)
+    return await crud.list_alliance_lineage(session, id, include_ended=include_ended)
+
+
+@router.post("/{id}/lineage", response_model=AllianceLineageItem, status_code=201)
+async def add_alliance_lineage(
+    id: uuid.UUID,
+    universe_id: uuid.UUID,
+    data: AllianceLineageCreate,
+    _: CurrentUser,
+    session: Annotated[AsyncSession, Depends(get_session)],
+):
+    if await crud.get_alliance(session, id, universe_id) is None:
+        raise HTTPException(404)
+    row = await crud.add_alliance_lineage(session, id, data, universe_id)
+    for item in await crud.list_alliance_lineage(session, id):
+        if item["id"] == row.id:
+            return item
+    raise HTTPException(500, detail="lineage row vanished after write")
+
+
+@router.post("/{id}/lineage/{lineage_id}/end", status_code=204)
+async def end_alliance_lineage(
+    id: uuid.UUID,
+    lineage_id: uuid.UUID,
+    universe_id: uuid.UUID,
+    data: AllianceLineageEnd,
+    _: CurrentUser,
+    session: Annotated[AsyncSession, Depends(get_session)],
+):
+    if await crud.get_alliance(session, id, universe_id) is None:
+        raise HTTPException(404)
+    ok = await crud.end_alliance_lineage(
+        session, id, lineage_id, data.until_date.model_dump() if data.until_date else None
+    )
+    if not ok:
+        raise HTTPException(404, detail="No open lineage link with that id for this alliance")
+
+
+@router.delete("/{id}/lineage/{lineage_id}", status_code=204)
+async def delete_alliance_lineage(
+    id: uuid.UUID,
+    lineage_id: uuid.UUID,
+    universe_id: uuid.UUID,
+    _: CurrentUser,
+    session: Annotated[AsyncSession, Depends(get_session)],
+):
+    """Delete a link entered in error. Use /end when the descent really ended."""
+    if await crud.get_alliance(session, id, universe_id) is None:
+        raise HTTPException(404)
+    if not await crud.delete_alliance_lineage(session, id, lineage_id):
+        raise HTTPException(404)
+
+
+@router.get("/{id}/activity", response_model=list[AllianceActivityEntry])
+async def list_alliance_activity(
+    id: uuid.UUID,
+    universe_id: uuid.UUID,
+    _: CurrentUser,
+    session: Annotated[AsyncSession, Depends(get_session)],
+    limit: int = Query(30, ge=1, le=200),
+):
+    if await crud.get_alliance(session, id, universe_id) is None:
+        raise HTTPException(404)
+    return await crud.list_alliance_activity(session, id, limit=limit)

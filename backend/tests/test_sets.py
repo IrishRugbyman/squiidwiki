@@ -239,7 +239,7 @@ async def test_set_activity_includes_edits_to_the_set_itself(
     assert all(e["target_label"] == "Activity Block" for e in entries)
 
 
-async def test_set_sources_link_and_replace(client: AsyncClient, db_session: AsyncSession):
+async def test_set_citations_cite_order_and_detach(client: AsyncClient, db_session: AsyncSession):
     token = await _admin_token(client, db_session)
     uni = await _make_universe(client, token)
     h = {"Authorization": f"Bearer {token}"}
@@ -252,29 +252,41 @@ async def test_set_sources_link_and_replace(client: AsyncClient, db_session: Asy
         )
         assert r.status_code == 201, r.text
         src.append(r.json()["id"])
-
     created = await client.post(
-        "/api/v1/sets/",
-        json={"universe_id": uni, "name": f"Harperside {_uid()}", "source_ids": [src[0]]},
-        headers=h,
+        "/api/v1/sets/", json={"universe_id": uni, "name": f"Harperside {_uid()}"}, headers=h
     )
     assert created.status_code == 201, created.text
     sid = created.json()["id"]
+    cite = f"/api/v1/citations/?universe_id={uni}"
+    ids = []
+    for s in src:
+        r = await client.post(
+            cite, json={"source_id": s, "entity_type": "set", "entity_id": sid}, headers=h
+        )
+        assert r.status_code == 201, r.text
+        ids.append(r.json()["id"])
     detail = f"/api/v1/sets/{sid}/detail?universe_id={uni}"
-    got = (await client.get(detail, headers=h)).json()
-    assert [s["title"] for s in got["sources"]] == ["Map placemark"]
-    assert got["source_ids"] == [src[0]]
+    got = (await client.get(detail, headers=h)).json()["citations"]
+    assert [c["source"]["title"] for c in got] == ["Map placemark", "Member interview"]
+    assert [c["position"] for c in got] == [0, 1]
 
-    url = f"/api/v1/sets/{sid}?universe_id={uni}"
-    assert (await client.patch(url, json={"source_ids": src}, headers=h)).status_code == 200
-    # A PATCH without source_ids leaves the links alone.
-    assert (await client.patch(url, json={"bio": "Ravendale."}, headers=h)).status_code == 200
-    got = (await client.get(url, headers=h)).json()
-    assert sorted(got["source_ids"]) == sorted(src)
+    order = await client.put(
+        f"/api/v1/citations/order?universe_id={uni}",
+        json={"entity_type": "set", "entity_id": sid, "ids": list(reversed(ids))},
+        headers=h,
+    )
+    assert order.status_code == 200, order.text
+    got = (await client.get(detail, headers=h)).json()["citations"]
+    assert [c["source"]["title"] for c in got] == ["Member interview", "Map placemark"]
 
-    bad = await client.patch(url, json={"source_ids": [str(uuid.uuid4())]}, headers=h)
+    bad = await client.post(
+        cite,
+        json={"source_id": str(uuid.uuid4()), "entity_type": "set", "entity_id": sid},
+        headers=h,
+    )
     assert bad.status_code == 422
-    assert sorted((await client.get(url, headers=h)).json()["source_ids"]) == sorted(src)
 
-    assert (await client.patch(url, json={"source_ids": []}, headers=h)).status_code == 200
-    assert (await client.get(detail, headers=h)).json()["sources"] == []
+    gone = await client.delete(f"/api/v1/citations/{ids[0]}?universe_id={uni}", headers=h)
+    assert gone.status_code == 204
+    got = (await client.get(detail, headers=h)).json()["citations"]
+    assert [c["source"]["title"] for c in got] == ["Member interview"]

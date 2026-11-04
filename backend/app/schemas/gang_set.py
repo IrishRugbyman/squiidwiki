@@ -4,94 +4,16 @@ from typing import Any, Literal, Optional
 
 from pydantic import BaseModel, model_validator
 
-from app.core.enums import SetLineageKind, SetRelationshipType, SetStatus, SourceReliability
-from app.core.set_names import display_name, normalize_lead
+from app.core.enums import SetLineageKind, SetRelationshipType, SetStatus
+from app.schemas.citation import CitationRead
 from app.schemas.common import FuzzyDateField
-
-Slot = Literal["name", "initials", "number"]
-
-
-class NameVariant(BaseModel):
-    name: Optional[str] = None
-    initials: Optional[str] = None
-    number: Optional[str] = None
-    is_primary: bool = False
-    # Which slots are shown, in order: one slot ("initials"), or several
-    # (["initials", "number"] shows "CFP 2400"). If None, falls back to
-    # name → initials → number. See app/core/set_names.py.
-    lead: Optional[Slot | list[Slot]] = None
-
-    @model_validator(mode="after")
-    def _at_least_one_field(self):
-        if not (self.name or self.initials or self.number):
-            raise ValueError("name_variants entry must have at least one of name/initials/number")
-        # Slots the variant does not fill are dropped, and a list of one is
-        # stored as that slot.
-        self.lead = normalize_lead(self.lead, self)
-        return self
-
-
-MAX_EMOJIS = 12
-MAX_EMOJI_LENGTH = 16
-
-
-def _normalize_emojis(emojis: Optional[list[str]]) -> Optional[list[str]]:
-    """Trim, drop blanks, de-duplicate, and reject anything that is not a glyph.
-
-    Order is meaningful - the first entry is the badge - so de-duplication keeps
-    first occurrence rather than sorting.
-
-    The "not a glyph" test is that an entry cannot be *entirely* ASCII. A real
-    emoji never is, even the keycaps (`1\ufe0f\u20e3` is an ASCII digit plus two
-    non-ASCII code points), while `BO` or `752` is, and those belong in
-    `name_variants` where they are searchable as names. Anything looser and this
-    column quietly becomes a second alias field.
-    """
-    if emojis is None:
-        return None
-    out: list[str] = []
-    for raw in emojis:
-        e = (raw or "").strip()
-        if not e:
-            continue
-        if len(e) > MAX_EMOJI_LENGTH:
-            raise ValueError(f"emoji entry too long (max {MAX_EMOJI_LENGTH} characters): {e!r}")
-        if all(ord(c) < 128 for c in e):
-            raise ValueError(f"not an emoji: {e!r} - plain text belongs in name_variants")
-        if e not in out:
-            out.append(e)
-    if len(out) > MAX_EMOJIS:
-        raise ValueError(f"at most {MAX_EMOJIS} emojis per set (got {len(out)})")
-    return out or None
-
-
-def _normalize_variants(variants: Optional[list[NameVariant]]) -> Optional[list[NameVariant]]:
-    if not variants:
-        return variants
-    primaries = [v for v in variants if v.is_primary]
-    if len(primaries) > 1:
-        raise ValueError("name_variants may only have one primary entry")
-    if not primaries:
-        variants[0].is_primary = True
-    return variants
-
-
-def _derived_name(sent: Optional[str], variants: list[NameVariant]) -> str:
-    """The set's name, computed from its primary variant.
-
-    `sets.name` is never taken from the caller. A caller may still send it, and
-    it must then agree with the primary variant: a mismatch means the client
-    computed the display differently (the bug that let a form save rename "CFP
-    2400" to "CFP"), and is refused rather than silently overridden.
-    """
-    derived = display_name(variants)
-    if sent is not None and sent.strip() != derived:
-        raise ValueError(
-            f"name {sent!r} does not match the primary name variant, which displays as "
-            f"{derived!r}. A set's name is derived from its primary variant: change "
-            "name_variants (its slots or its lead) to rename it"
-        )
-    return derived
+from app.schemas.names import (
+    NameVariant,
+    dedupe_ids,
+    derived_name,
+    normalize_emojis,
+    normalize_variants,
+)
 
 
 def _validate_point(value: Optional[dict]) -> Optional[dict]:
@@ -178,13 +100,6 @@ class SetAllianceSummary(BaseModel):
     slug: Optional[str] = None
 
 
-def _dedupe_ids(ids: Optional[list[uuid.UUID]]) -> Optional[list[uuid.UUID]]:
-    """Keep the first occurrence of each id, preserving order (order is rank)."""
-    if ids is None:
-        return None
-    return list(dict.fromkeys(ids))
-
-
 class SetCreate(BaseModel):
     universe_id: uuid.UUID
     # Derived from the primary name variant; optional when variants are sent.
@@ -210,23 +125,20 @@ class SetCreate(BaseModel):
     territory_ids: list[uuid.UUID] = []
     friend_ids: list[uuid.UUID] = []
     enemy_ids: list[uuid.UUID] = []
-    # Citations for the set itself (set_source).
-    source_ids: list[uuid.UUID] = []
 
     @model_validator(mode="after")
     def _normalize(self):
-        variants = _normalize_variants(self.name_variants)
+        variants = normalize_variants(self.name_variants)
         if not variants:
             name = (self.name or "").strip()
             if not name:
                 raise ValueError("a set needs a name or a primary name variant")
             variants = [NameVariant(name=name, is_primary=True)]
         self.name_variants = variants
-        self.name = _derived_name(self.name, variants)
-        self.source_ids = _dedupe_ids(self.source_ids) or []
-        self.emojis = _normalize_emojis(self.emojis)
-        self.gang_ids = _dedupe_ids(self.gang_ids)
-        self.alliance_ids = _dedupe_ids(self.alliance_ids)
+        self.name = derived_name(self.name, variants)
+        self.emojis = normalize_emojis(self.emojis)
+        self.gang_ids = dedupe_ids(self.gang_ids)
+        self.alliance_ids = dedupe_ids(self.alliance_ids)
         return self
 
 
@@ -257,7 +169,6 @@ class SetUpdate(BaseModel):
     territory_polygon: Optional[dict] = None
     territory_point: Optional[dict] = None
     # The complete citation list for the set itself; [] clears. Omit to keep.
-    source_ids: Optional[list[uuid.UUID]] = None
 
     @model_validator(mode="after")
     def _normalize(self):
@@ -268,8 +179,8 @@ class SetUpdate(BaseModel):
         if "name_variants" in fields_set:
             if not self.name_variants:
                 raise ValueError("name_variants cannot be cleared: a set needs a primary name")
-            self.name_variants = _normalize_variants(self.name_variants)
-            self.name = _derived_name(
+            self.name_variants = normalize_variants(self.name_variants)
+            self.name = derived_name(
                 self.name if "name" in fields_set else None, self.name_variants
             )
         elif "name" in fields_set:
@@ -278,13 +189,11 @@ class SetUpdate(BaseModel):
                 "send name_variants to rename it"
             )
         if "emojis" in fields_set:
-            self.emojis = _normalize_emojis(self.emojis)
+            self.emojis = normalize_emojis(self.emojis)
         if "gang_ids" in fields_set:
-            self.gang_ids = _dedupe_ids(self.gang_ids)
+            self.gang_ids = dedupe_ids(self.gang_ids)
         if "alliance_ids" in fields_set:
-            self.alliance_ids = _dedupe_ids(self.alliance_ids)
-        if "source_ids" in fields_set:
-            self.source_ids = _dedupe_ids(self.source_ids)
+            self.alliance_ids = dedupe_ids(self.alliance_ids)
         if "territory_polygon" in fields_set:
             self.territory_polygon = _validate_polygon(self.territory_polygon)
         if "territory_point" in fields_set:
@@ -321,22 +230,11 @@ class SetRead(BaseModel):
     territory_point: Optional[dict] = None
 
 
-class SetSourceBrief(BaseModel):
-    model_config = {"from_attributes": True}
-
-    id: uuid.UUID
-    title: str
-    url: str
-    publication: Optional[str] = None
-    reliability: SourceReliability
-
-
 class SetReadDetail(SetRead):
     territory_ids: list[uuid.UUID]
     friend_ids: list[uuid.UUID]
     enemy_ids: list[uuid.UUID]
     lineage: list["SetLineageItem"] = []
-    source_ids: list[uuid.UUID] = []
 
 
 class SetPolygonItem(BaseModel):
@@ -520,5 +418,5 @@ class SetReadDetailFull(SetReadDetail):
     enemies: list[SetRelatedSummary] = []
     stats: SetStats
     incidents_per_year: list[IncidentsPerYear] = []
-    sources: list[SetSourceBrief] = []
+    citations: list[CitationRead] = []
     lede: str

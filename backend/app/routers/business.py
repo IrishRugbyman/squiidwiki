@@ -9,6 +9,7 @@ from app.core.csv_export import to_csv_response
 from app.core.database import get_session
 from app.core.enums import BusinessStatus, BusinessType, GlobalRole
 from app.crud import business as crud
+from app.crud import citation as citation_crud
 from app.crud.municipality import get_municipality
 from app.schemas.business import (
     BusinessCreate,
@@ -90,7 +91,7 @@ async def get_business(
         raise HTTPException(404)
     members = await crud.list_business_members(session, obj.id)
     set_ids = await crud.list_business_set_ids(session, obj.id)
-    source_ids = await crud.list_business_source_ids(session, obj.id)
+    citations = await citation_crud.list_citations(session, "business", obj.id)
     municipality_name = None
     if obj.municipality_id:
         muni = await get_municipality(session, obj.municipality_id, universe_id)
@@ -102,7 +103,7 @@ async def get_business(
         municipality_name=municipality_name,
         members=members,
         set_ids=set_ids,
-        source_ids=source_ids,
+        citations=citations,
     )
 
 

@@ -6,7 +6,9 @@ import { EmptyState } from '@/components/EmptyState'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
+import { PinChips } from '@/components/research/PinChip'
 import { useCreateResearchNote, useResearchNotes, useResearchSearch } from '@/lib/queries'
+import { NOTE_KINDS, NOTE_KIND_LABEL, type ResearchNoteListItem } from '@/lib/types'
 import { useUniverseStore } from '@/stores/universe'
 import { useDebounce } from '@/hooks/useDebounce'
 
@@ -44,6 +46,12 @@ function ResearchIndexPage() {
   const isSearching = debouncedQ.length >= 2
   const items = isSearching ? (searchResults ?? []) : (data?.items ?? [])
   const loading = isSearching ? searchLoading : isLoading
+
+  // Sections in triage order; an empty one is not shown.
+  const sections = NOTE_KINDS.map((kind) => ({
+    kind,
+    notes: items.filter((n: ResearchNoteListItem) => n.kind === kind),
+  })).filter((s) => s.notes.length > 0)
 
   async function handleNew() {
     if (!universe) return
@@ -101,29 +109,45 @@ function ResearchIndexPage() {
           }
         />
       ) : (
-        <div className="grid gap-2">
-          {items.map((n) => (
-            <Link
-              key={n.id}
-              from="/$universe" to="/$universe/research/$id"
-              params={{ id: n.id }}
-              search={{ edit: undefined }}
-              className="group block rounded-lg border border-zinc-800 bg-zinc-900/30 p-4 transition-colors hover:border-zinc-700 hover:bg-zinc-900/60"
-            >
-              <div className="flex items-start justify-between gap-4">
-                <h3 className="font-medium text-white group-hover:text-violet-400 transition-colors truncate">
-                  {n.title || 'Untitled'}
-                </h3>
-                <span className="shrink-0 text-[11px] text-zinc-400 tabular-nums">
-                  {formatDate(n.updated_at)}
-                </span>
+        <div className="space-y-6">
+          {sections.map(({ kind, notes }) => (
+            <section key={kind} aria-labelledby={`notes-${kind}`}>
+              <h2 id={`notes-${kind}`} className="mb-2 flex items-baseline gap-2 text-xs font-medium uppercase tracking-wider text-zinc-400">
+                {NOTE_KIND_LABEL[kind]}
+                <span className="tabular-nums text-zinc-500">{notes.length}</span>
+              </h2>
+              <div className="grid gap-2">
+                {notes.map((n) => (
+                  <div
+                    key={n.id}
+                    className="group relative rounded-lg border border-zinc-800 bg-zinc-900/30 p-4 transition-colors focus-within:border-zinc-700 hover:border-zinc-700 hover:bg-zinc-900/60"
+                  >
+                    <div className="flex items-start justify-between gap-4">
+                      <h3 className="min-w-0 truncate font-medium text-white transition-colors group-hover:text-violet-400">
+                        {/* The title link stretches over the card; the pin chips sit above it. */}
+                        <Link
+                          from="/$universe" to="/$universe/research/$id"
+                          params={{ id: n.id }}
+                          search={{ edit: undefined }}
+                          className="after:absolute after:inset-0 after:content-[''] focus-visible:outline-none"
+                        >
+                          {n.title || 'Untitled'}
+                        </Link>
+                      </h3>
+                      <span className="shrink-0 text-[11px] text-zinc-400 tabular-nums">
+                        {formatDate(n.updated_at)}
+                      </span>
+                    </div>
+                    {n.content && (
+                      <p className="mt-1 text-sm text-zinc-400 line-clamp-2">
+                        {preview(n.content)}
+                      </p>
+                    )}
+                    <PinChips pins={n.pins} className="relative z-10 mt-2" />
+                  </div>
+                ))}
               </div>
-              {n.content && (
-                <p className="mt-1 text-sm text-zinc-400 line-clamp-2">
-                  {preview(n.content)}
-                </p>
-              )}
-            </Link>
+            </section>
           ))}
         </div>
       )}

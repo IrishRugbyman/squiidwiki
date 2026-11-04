@@ -28,13 +28,18 @@ const FIELD_LABEL: Record<string, string> = {
 const MOVED_LABEL: Record<string, string> = {
   incident_participations: 'incident participations',
   set_spells: 'set spells',
-  sources: 'source citations',
+  citations: 'source citations',
   businesses: 'business links',
+  rap_groups: 'rap group memberships',
+  note_pins: 'research note pins',
+  court_cases: 'court case defendant rows',
+  photo_tags: 'photo tags',
   aliases: 'alias records',
   incarcerations: 'incarceration records',
   custody_ids: 'custody numbers',
   photos: 'photos',
   sets_founded: 'sets founded',
+  alliances_founded: 'alliances founded',
   family_links_repointed: "relatives' family links",
 }
 

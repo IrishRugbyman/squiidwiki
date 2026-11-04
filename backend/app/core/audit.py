@@ -18,11 +18,18 @@ _AUDITED_TABLES = {
     "universe",
     "municipality",
     "alliance",
+    "rap_group",
+    "rap_group_member",
+    "rap_group_relationship",
     "sets",
     "member",
     "incident",
     "source",
+    "citation",
     "media",
+    "media_member",
+    "court_case",
+    "court_case_defendant",
 }
 
 
@@ -38,7 +45,11 @@ def _json_safe(v):
 
 def _get_diff(target, state: str) -> dict:
     if state == "deleted":
-        return {"deleted": True}
+        # A deleted citation or photo tag is only meaningful with what it linked
+        # (neither has an id of its own to look up): record the whole row, as a
+        # create does.
+        if getattr(target.__class__, "__tablename__", None) not in ("citation", "media_member"):
+            return {"deleted": True}
     mapper = target.__class__.__mapper__  # type: ignore[attr-defined]
     return {
         col.key: _json_safe(getattr(target, col.key, None))
@@ -71,8 +82,7 @@ _attached = False
 
 
 def attach_audit_listeners() -> None:
-    # Idempotent: listens_for registers a new closure on every call, so a
-    # second call would write every audit row twice.
+    """Attach once per process: a second call would write every audit row twice."""
     global _attached
     if _attached:
         return
@@ -81,11 +91,14 @@ def attach_audit_listeners() -> None:
     from sqlalchemy.orm import mapperlib
 
     import app.models.alliance  # noqa: F401
+    import app.models.citation  # noqa: F401
+    import app.models.court_case  # noqa: F401
     import app.models.gang_set  # noqa: F401
     import app.models.incident  # noqa: F401
     import app.models.media  # noqa: F401
     import app.models.member  # noqa: F401
     import app.models.municipality  # noqa: F401
+    import app.models.rap_group  # noqa: F401
     import app.models.source  # noqa: F401
     import app.models.universe  # noqa: F401
 

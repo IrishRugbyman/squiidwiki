@@ -50,3 +50,15 @@ export function primaryAffiliation<
   const current = currentAffiliations(affiliations)
   return current.find((a) => a.is_primary) ?? current[0] ?? null
 }
+
+/** Sorts after every real date: the key of an undated value. */
+export const UNDATED_SORT_KEY = '\uffff'
+
+/** A FuzzyDate as a sortable string (`YYYY-MM-DD`, missing parts as 01). */
+export function fuzzyDateSortKey(d: { year?: number | null; month?: number | null; day?: number | null } | null | undefined): string {
+  if (!d || !d.year) return UNDATED_SORT_KEY
+  const y = String(d.year).padStart(4, '0')
+  const m = String(d.month ?? 1).padStart(2, '0')
+  const day = String(d.day ?? 1).padStart(2, '0')
+  return `${y}-${m}-${day}`
+}

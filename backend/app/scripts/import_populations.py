@@ -47,10 +47,19 @@ US_STATES = {
     "illinois": "Illinois",
     "ohio": "Ohio",
     "tennessee": "Tennessee",
+    "louisiana": "Louisiana",
+    "texas": "Texas",
+    "minnesota": "Minnesota",
 }
 # A municipality named "Town, KY" sits in a universe named for another state
 # (the Clarksville scene straddles the line); the suffix names its real state.
-STATE_SUFFIX = {"KY": "Kentucky", "TN": "Tennessee", "GA": "Georgia", "MI": "Michigan"}
+STATE_SUFFIX = {
+    "KY": "Kentucky",
+    "TN": "Tennessee",
+    "GA": "Georgia",
+    "MI": "Michigan",
+    "LA": "Louisiana",
+}
 
 # Places whose Census row is not "<name> city|village|town". Keyed by
 # (universe slug, municipality name): (SUMLEV, Census NAME, COUNTY or None).

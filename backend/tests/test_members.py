@@ -107,7 +107,7 @@ async def test_get_member(client: AsyncClient, db_session: AsyncSession):
     assert resp.status_code == 200
     data = resp.json()
     assert data["display_name"] == "Shadow"
-    assert "source_ids" in data
+    assert data["citations"] == []
 
 
 async def test_get_member_not_found(client: AsyncClient, db_session: AsyncSession):

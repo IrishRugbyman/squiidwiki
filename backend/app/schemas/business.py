@@ -5,6 +5,7 @@ from typing import Optional
 from pydantic import BaseModel
 
 from app.core.enums import BusinessRole, BusinessStatus, BusinessType
+from app.schemas.citation import CitationRead
 from app.schemas.common import FuzzyDateField
 
 
@@ -32,7 +33,6 @@ class BusinessCreate(BaseModel):
     ended_at: FuzzyDateField = None
     members: list[BusinessMemberIn] = []
     set_ids: list[uuid.UUID] = []
-    source_ids: list[uuid.UUID] = []
 
 
 class BusinessUpdate(BaseModel):
@@ -46,7 +46,6 @@ class BusinessUpdate(BaseModel):
     ended_at: FuzzyDateField = None
     members: Optional[list[BusinessMemberIn]] = None
     set_ids: Optional[list[uuid.UUID]] = None
-    source_ids: Optional[list[uuid.UUID]] = None
 
 
 class BusinessRead(BaseModel):
@@ -72,7 +71,7 @@ class BusinessReadDetail(BusinessRead):
     municipality_slug: Optional[str] = None
     members: list[BusinessMemberOut] = []
     set_ids: list[uuid.UUID] = []
-    source_ids: list[uuid.UUID] = []
+    citations: list[CitationRead] = []
 
 
 class BusinessListItem(BaseModel):

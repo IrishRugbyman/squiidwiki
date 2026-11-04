@@ -1,4 +1,4 @@
-import { AlertTriangle, FileText, MapPin, Network, NotebookText, Shield, Users, type LucideIcon } from 'lucide-react'
+import { AlertTriangle, FileText, Gavel, MapPin, Mic, Network, NotebookText, Shield, Users, type LucideIcon } from 'lucide-react'
 import type { RecentEntityType } from '@/stores/recents'
 
 /** Icon and base route per recent-entity type, shared by the palette and the dashboard. */
@@ -6,7 +6,9 @@ export const RECENT_ICON: Record<RecentEntityType, LucideIcon> = {
   member: Users,
   set: Shield,
   alliance: Network,
+  rap_group: Mic,
   incident: AlertTriangle,
+  case: Gavel,
   source: FileText,
   municipality: MapPin,
   research: NotebookText,
@@ -16,7 +18,9 @@ export const RECENT_ROUTE = {
   member: '/$universe/members',
   set: '/$universe/sets',
   alliance: '/$universe/alliances',
+  rap_group: '/$universe/rap-groups',
   incident: '/$universe/incidents',
+  case: '/$universe/cases',
   source: '/$universe/sources',
   municipality: '/$universe/municipalities',
   research: '/$universe/research',

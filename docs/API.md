@@ -123,7 +123,7 @@ GET    /api/v1/alliances/search?universe_id=&q= Trigram search
 ```
 GET    /api/v1/members/?universe_id=             Cursor-paginated list
 POST   /api/v1/members/                          Create
-GET    /api/v1/members/{id}?universe_id=         Get (includes source_ids)
+GET    /api/v1/members/{id}?universe_id=         Get (includes citations)
 PATCH  /api/v1/members/{id}?universe_id=         Update
 DELETE /api/v1/members/{id}?universe_id=         Delete (Admin)
 GET    /api/v1/members/search?universe_id=&q=    Substring, then trigram near-misses, on nickname/legal_name/aliases
@@ -152,7 +152,7 @@ curl -X POST http://localhost:8000/api/v1/members/ \
 ```
 GET    /api/v1/incidents/?universe_id=           Cursor-paginated list
 POST   /api/v1/incidents/                        Create (with participants)
-GET    /api/v1/incidents/{id}?universe_id=       Get (includes participants, source_ids)
+GET    /api/v1/incidents/{id}?universe_id=       Get (includes participants, citations)
 PATCH  /api/v1/incidents/{id}?universe_id=       Update
 DELETE /api/v1/incidents/{id}?universe_id=       Delete (Admin)
 GET    /api/v1/incidents/search?universe_id=&q=  Search
@@ -179,17 +179,46 @@ curl -X POST http://localhost:8000/api/v1/incidents/ \
 
 ## Sources
 
+A source is a document, page or record; a citation is one record citing it,
+with where in it (`locator`), the words (`quote`) and what it supports (`note`).
+Every record's detail response carries `citations: CitationRead[]` (member,
+incident, set, alliance, court case, municipality, business). There is no
+`source_ids` field on any record.
+
 ```
-GET    /api/v1/sources/?universe_id=          List
-POST   /api/v1/sources/                       Create
-GET    /api/v1/sources/{id}?universe_id=      Get
+GET    /api/v1/sources/?universe_id=&q=&kind=&reliability=&publication=&uncited=&sort=&order=&offset=&limit=
+                                              {items, total, facets{kind, reliability}}; &format=csv for all rows
+POST   /api/v1/sources/                       Create; 409 duplicate_url / lookup_source (body: existing_id)
+GET    /api/v1/sources/search?universe_id=&q= Ranked over title, publication, URL, then trigram near-misses on the title; a pasted URL pins its match
+GET    /api/v1/sources/lookup?universe_id=&url=
+                                              {exact, lookup{source, suggested_locator}, same_host}
+GET    /api/v1/sources/{id}?universe_id=      With counts per record type
+GET    /api/v1/sources/{id}/citations?universe_id=&entity_type=&offset=&limit=
+                                              Paged records citing it, each an EntityRef
+GET    /api/v1/sources/{id}/custody-ids?universe_id=
 PATCH  /api/v1/sources/{id}?universe_id=      Update
-DELETE /api/v1/sources/{id}?universe_id=      Delete (Admin)
-GET    /api/v1/sources/search?universe_id=&q= Substring, then trigram near-misses, on title
+PATCH  /api/v1/sources/bulk?universe_id=      {ids, reliability?, kind?}
+POST   /api/v1/sources/{id}/merge?universe_id= {into_id} (Admin)
+DELETE /api/v1/sources/{id}?universe_id=&force=
+                                              Admin; 409 source_in_use with counts unless force
 GET    /api/v1/search/text?universe_id=&q=[&types=member|set|alliance|incident|source&limit=20]  Full-text over bios, narratives, source notes
 ```
 
----
+## Citations
+
+```
+GET    /api/v1/citations/?universe_id=&entity_type=&entity_id=
+POST   /api/v1/citations/?universe_id=        {source_id, entity_type, entity_id, locator?, quote?, note?, accessed_at?}
+                                              409 citation_exists (body: citation_id)
+POST   /api/v1/citations/batch?universe_id=   {items[], on_conflict: skip|update}; all or nothing
+PATCH  /api/v1/citations/{id}?universe_id=    locator, quote, note, accessed_at, source_id
+PUT    /api/v1/citations/order?universe_id=   {entity_type, entity_id, ids[]}: every citation once
+DELETE /api/v1/citations/{id}?universe_id=
+```
+
+Municipality citations are read and written in prod whatever the DB mode.
+
+Errors raised as `ApiError` carry a stable `code` beside `detail`, plus extras.
 
 ## Error Responses
 

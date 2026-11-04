@@ -3,10 +3,15 @@ const BASE = '/api/v1'
 export class ApiError extends Error {
   status: number
   code?: string
-  constructor(status: number, message: string, code?: string) {
+  /** The whole error body: an `ApiError` from the backend carries extras
+   *  beside `code` (`existing_id` on a duplicate source, `counts` on a refused
+   *  delete). */
+  body: Record<string, unknown> | null
+  constructor(status: number, message: string, code?: string, body?: Record<string, unknown> | null) {
     super(message)
     this.status = status
     this.code = code
+    this.body = body ?? null
   }
 }
 
@@ -23,7 +28,10 @@ async function parseError(res: Response): Promise<ApiError> {
     }
     if (typeof rec.code === 'string') code = rec.code
   }
-  return new ApiError(res.status, message, code)
+  return new ApiError(
+    res.status, message, code,
+    body && typeof body === 'object' ? (body as Record<string, unknown>) : null,
+  )
 }
 
 async function request<T>(path: string, init: RequestInit = {}): Promise<T> {

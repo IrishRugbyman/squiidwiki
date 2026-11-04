@@ -8,17 +8,22 @@ import { useUniverseStore } from '@/stores/universe'
 // any page under it renders, and written to the store that every query reads
 // its universe id from, so a page never fetches with the previous universe.
 export const Route = createFileRoute('/_app/$universe')({
-  beforeLoad: async ({ params, context, location }) => {
+  beforeLoad: async ({ params, context, location, preload }) => {
     const page = await context.queryClient.fetchQuery(universesQueryOptions)
     const universe = page.items.find((u) => u.slug === params.universe)
     if (universe) {
       const { activeUniverse, setActiveUniverse } = useUniverseStore.getState()
+      // Never on a preload: hovering a link into another universe (an Ohio
+      // incident on a Michigan member's page) preloads its route, and writing
+      // the store then switched the page under the cursor to that universe,
+      // hiding the "in Ohio" chip and re-scoping every query on the page.
       // Compared field by field, not by id: the store is persisted, so a
       // universe renamed since the last visit would keep its old name and slug.
       if (
-        activeUniverse?.id !== universe.id ||
-        activeUniverse.name !== universe.name ||
-        activeUniverse.slug !== universe.slug
+        !preload &&
+        (activeUniverse?.id !== universe.id ||
+          activeUniverse.name !== universe.name ||
+          activeUniverse.slug !== universe.slug)
       ) {
         setActiveUniverse({ id: universe.id, name: universe.name, slug: universe.slug })
       }

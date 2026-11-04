@@ -3,7 +3,7 @@ import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { useUniverseStore } from '@/stores/universe'
 
-export type RecentEntityType = 'member' | 'set' | 'alliance' | 'incident' | 'source' | 'municipality' | 'research'
+export type RecentEntityType = 'member' | 'set' | 'alliance' | 'rap_group' | 'incident' | 'case' | 'source' | 'municipality' | 'research'
 
 export interface RecentEntity {
   type: RecentEntityType

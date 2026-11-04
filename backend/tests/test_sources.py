@@ -245,18 +245,30 @@ async def _cited_source(client: AsyncClient, token: str, universe_id: str) -> tu
     for name in ("Cited One", "Cited Two"):
         resp = await client.post(
             "/api/v1/members/",
-            json={"universe_id": universe_id, "nickname": name, "source_ids": [source_id]},
+            json={"universe_id": universe_id, "nickname": name},
             headers=auth,
         )
         assert resp.status_code == 201, resp.text
         member_ids.append(resp.json()["id"])
     resp = await client.post(
         "/api/v1/incidents/",
-        json={"universe_id": universe_id, "type": "SHOOTING", "source_ids": [source_id]},
+        json={"universe_id": universe_id, "type": "SHOOTING"},
         headers=auth,
     )
     assert resp.status_code == 201, resp.text
-    return source_id, resp.json()["id"], member_ids[0]
+    incident_id = resp.json()["id"]
+    items = [
+        {"source_id": source_id, "entity_type": "member", "entity_id": m} for m in member_ids
+    ] + [{"source_id": source_id, "entity_type": "incident", "entity_id": incident_id}]
+    batch = await client.post(
+        "/api/v1/citations/batch",
+        params={"universe_id": universe_id},
+        json={"items": items},
+        headers=auth,
+    )
+    assert batch.status_code == 200, batch.text
+    assert len(batch.json()["created"]) == 3
+    return source_id, incident_id, member_ids[0]
 
 
 async def test_list_sources_carries_citation_counts(client: AsyncClient, db_session: AsyncSession):
@@ -265,23 +277,23 @@ async def test_list_sources_carries_citation_counts(client: AsyncClient, db_sess
     source_id, _, _ = await _cited_source(client, token, universe_id)
     resp = await client.get(
         "/api/v1/sources/",
-        params={"universe_id": universe_id, "limit": 1000},
+        params={"universe_id": universe_id, "limit": 200},
         headers={"Authorization": f"Bearer {token}"},
     )
     assert resp.status_code == 200
     row = next(r for r in resp.json()["items"] if r["id"] == source_id)
-    assert row["incident_count"] == 1
-    assert row["member_count"] == 2
-    assert row["set_count"] == 0
+    assert row["counts"]["incident"] == 1
+    assert row["counts"]["member"] == 2
+    assert row["counts"]["set"] == 0
+    assert row["counts"]["total"] == 3
     assert row["publication"] == "Example Daily"
 
 
 async def test_delete_cited_source(client: AsyncClient, db_session: AsyncSession):
-    """A source that is cited can still be deleted; the citations go with it.
+    """A cited source is refused with its counts; `force` detaches it everywhere.
 
-    Regression: incident_source and member_source have no ON DELETE, and
-    delete_source removed only the source row, so the delete failed on the
-    foreign key for any source anything cited.
+    Since citations moved to one table (2026-10-04) a source is RESTRICTed
+    while cited, so a delete cannot silently strip a record of its evidence.
     """
     token = await _admin_token(client, db_session)
     universe_id = await _make_universe(client, token)
@@ -291,14 +303,24 @@ async def test_delete_cited_source(client: AsyncClient, db_session: AsyncSession
     resp = await client.delete(
         f"/api/v1/sources/{source_id}", params={"universe_id": universe_id}, headers=auth
     )
+    assert resp.status_code == 409, resp.text
+    body = resp.json()
+    assert body["code"] == "source_in_use"
+    assert body["counts"]["incident"] == 1 and body["counts"]["member"] == 2
+
+    resp = await client.delete(
+        f"/api/v1/sources/{source_id}",
+        params={"universe_id": universe_id, "force": True},
+        headers=auth,
+    )
     assert resp.status_code == 204, resp.text
     incident = await client.get(
         f"/api/v1/incidents/{incident_id}", params={"universe_id": universe_id}, headers=auth
     )
     assert incident.status_code == 200
-    assert incident.json()["source_ids"] == []
+    assert incident.json()["citations"] == []
     member = await client.get(
         f"/api/v1/members/{member_id}", params={"universe_id": universe_id}, headers=auth
     )
     assert member.status_code == 200
-    assert member.json()["source_ids"] == []
+    assert member.json()["citations"] == []

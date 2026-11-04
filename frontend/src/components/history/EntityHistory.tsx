@@ -43,6 +43,7 @@ const ENTITY_NOUN: Record<string, string> = {
 const LINK_TITLE: Record<string, string> = {
   sets: 'Sets',
   sources: 'Sources',
+  cited_by: 'Cited by',
   participants: 'Participants',
   set_participants: 'Set participants',
   gangs: 'Gangs',
@@ -81,6 +82,10 @@ function EntityLink({ id, labels }: { id: string; labels: Labels }) {
       return <Link from="/$universe" to="/$universe/sources/$id" params={{ id }} className={linkClass}>{l.label}</Link>
     case 'municipality':
       return <Link from="/$universe" to="/$universe/municipalities/$id" params={{ id }} className={linkClass}>{l.label}</Link>
+    case 'rap_group':
+      return <Link from="/$universe" to="/$universe/rap-groups/$id" params={param} className={linkClass}>{l.label}</Link>
+    case 'court_case':
+      return <Link from="/$universe" to="/$universe/cases/$id" params={param} className={linkClass}>{l.label}</Link>
     default:
       return <span className="text-zinc-200">{l.label}</span>
   }

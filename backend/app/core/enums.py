@@ -46,6 +46,27 @@ class AllianceStatus(str, Enum):
     DORMANT = "DORMANT"
 
 
+class RapGroupStatus(str, Enum):
+    ACTIVE = "ACTIVE"
+    DISBANDED = "DISBANDED"
+
+
+class RapGroupKind(str, Enum):
+    """A rap group is a set of artists; a label is a company they sign to."""
+
+    GROUP = "GROUP"
+    LABEL = "LABEL"
+
+
+class RapGroupRole(str, Enum):
+    """SIGNED is an artist signed to a label."""
+
+    FOUNDER = "FOUNDER"
+    MEMBER = "MEMBER"
+    SIGNED = "SIGNED"
+    AFFILIATE = "AFFILIATE"
+
+
 class IncidentType(str, Enum):
     SHOOTING = "SHOOTING"
     MURDER = "MURDER"
@@ -56,6 +77,7 @@ class IncidentType(str, Enum):
     KIDNAPPING = "KIDNAPPING"
     ROBBERY = "ROBBERY"
     CRASH = "CRASH"
+    OVERDOSE = "OVERDOSE"
 
 
 class ParticipantRole(str, Enum):
@@ -149,12 +171,20 @@ class MunicipalityKind(str, Enum):
 
     DISTRICT partitions its city (Detroit's ZIP codes), so districts can be
     drawn together; NEIGHBORHOOD is a named area whose outline may overlap
-    districts, and is drawn on its own layer.
+    districts, and is drawn on its own layer. HOUSING_PROJECT is a public
+    housing estate (the Brewster Homes, the Jeffries): an overlay like a
+    neighborhood, kept apart because a project is not a neighborhood.
     """
 
     CITY = "CITY"
     DISTRICT = "DISTRICT"
     NEIGHBORHOOD = "NEIGHBORHOOD"
+    HOUSING_PROJECT = "HOUSING_PROJECT"
+
+
+# Sub-areas drawn over the districts rather than partitioning the city: each
+# one records which districts it lies in (municipality_overlap).
+OVERLAY_KINDS = frozenset({MunicipalityKind.NEIGHBORHOOD, MunicipalityKind.HOUSING_PROJECT})
 
 
 class MediaKind(str, Enum):
@@ -178,3 +208,52 @@ class CustodySystem(str, Enum):
     IDOC = "IDOC"  # Illinois Department of Corrections
     COOK_COUNTY_JAIL = "COOK_COUNTY_JAIL"  # Cook County Sheriff booking number
     RICHMOND_COUNTY_JAIL = "RICHMOND_COUNTY_JAIL"  # Augusta, Webster Detention Center
+
+
+class CourtJurisdiction(str, Enum):
+    """Which legal system a court case belongs to, stored as VARCHAR.
+
+    It decides how a docket number is normalised and which fields the form
+    offers (a French assize trial has no docket in the US sense), and nothing
+    else: every case is the same row whatever the system.
+    """
+
+    US_FEDERAL = "US_FEDERAL"
+    US_STATE = "US_STATE"
+    FR = "FR"
+    OTHER = "OTHER"
+
+
+class CourtCaseKind(str, Enum):
+    """What sort of proceeding a court case is, stored as VARCHAR."""
+
+    CRIMINAL = "CRIMINAL"
+    CIVIL = "CIVIL"  # habeas petitions, civil-rights suits
+    MAGISTRATE = "MAGISTRATE"  # a complaint or a warrant, before any indictment
+    APPEAL = "APPEAL"
+
+
+class CaseDisposition(str, Enum):
+    """Where one defendant's part of a case stands, stored as VARCHAR.
+
+    The status words the research has always used for defendant tables. A
+    participant whose defendant row reads ACQUITTED, in a case covering that
+    incident, has `incident_participant.acquitted` set by the mirror in
+    `app.crud.court_case`.
+    """
+
+    PENDING = "PENDING"
+    PLEADED = "PLEADED"
+    CONVICTED = "CONVICTED"
+    ACQUITTED = "ACQUITTED"
+    DISMISSED = "DISMISSED"
+    DIED = "DIED"
+
+
+class NoteKind(str, Enum):
+    """What a research note is for: where it sits in the research triage."""
+
+    INBOX = "INBOX"
+    FOR_YOU = "FOR_YOU"
+    PARKED = "PARKED"
+    REFERENCE = "REFERENCE"

@@ -17,6 +17,7 @@ import { useDebounce } from '@/hooks/useDebounce'
 import { downloadCsv } from '@/lib/download'
 import { useAlliance, useAlliances, useDeleteAlliance } from '@/lib/queries'
 import type { AllianceListItem, AllianceStatus, UUID } from '@/lib/types'
+import { nonPrimaryVariantsText, variantExtras, variantsSearchText } from '@/lib/setDisplay'
 import { useUniverseStore } from '@/stores/universe'
 import { AllianceFormSheet, type AlliancesSearch, type AllianceSortKey } from './_app.$universe.alliances.index'
 import { GangPill, SetAvatar } from './_app.$universe.sets.index'
@@ -34,8 +35,10 @@ const DESC_FIRST: AllianceSortKey[] = ['set_count', 'member_count']
 
 const fold = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
 
+/** Every name slot, every gang and every emoji, so "HGH", "444" and a glyph all find the bloc. */
 function haystack(a: AllianceListItem): string {
-  return fold([a.name, a.gang_name, ...(a.aliases ?? [])].filter(Boolean).join(' '))
+  const gangs = a.gangs?.length ? a.gangs.map((g) => g.name) : [a.gang_name]
+  return fold([a.name, variantsSearchText(a.name_variants), ...gangs, ...(a.emojis ?? [])].filter(Boolean).join(' '))
 }
 
 const plural = (n: number, word: string) => `${n.toLocaleString()} ${word}${n === 1 ? '' : 's'}`
@@ -52,11 +55,17 @@ function Count({ n, icon: Icon, label }: { n: number; icon: typeof Users; label:
 }
 
 function AllianceName({ alliance }: { alliance: AllianceListItem }) {
-  const aliases = (alliance.aliases ?? []).filter(Boolean).join(' · ')
+  // The primary's other slots first ("Hustle Gutta Hogg · HGH" under "444"), then the other variants.
+  const primary = alliance.name_variants?.find((v) => v.is_primary)
+  const extras = primary ? variantExtras(primary).map((e) => e.value) : []
+  const aka = [...extras, nonPrimaryVariantsText(alliance.name_variants)].filter(Boolean).join(' · ')
   return (
     <span className="block min-w-0">
-      <span className="block truncate font-medium text-white transition-colors group-hover:text-violet-300">{alliance.name}</span>
-      {aliases && <span className="block truncate text-[11px] text-zinc-500">{aliases}</span>}
+      <span className="flex items-center gap-1.5">
+        {alliance.emojis?.[0] && <span className="shrink-0 text-sm leading-none" aria-hidden>{alliance.emojis[0]}</span>}
+        <span className="block truncate font-medium text-white transition-colors group-hover:text-violet-300">{alliance.name}</span>
+      </span>
+      {aka && <span className="block truncate text-[11px] text-zinc-500">{aka}</span>}
     </span>
   )
 }
@@ -382,7 +391,9 @@ function AlliancesPage() {
                   <span className="mt-0.5 flex items-center gap-3">
                     <Count n={a.set_count} icon={Shield} label="set" />
                     <Count n={a.member_count} icon={Users} label="member" />
-                    {a.gang_name && <span className="truncate text-[11px] text-zinc-400">{a.gang_name}</span>}
+                    {(a.gangs?.length ? a.gangs.map((g) => g.name).join(', ') : a.gang_name) && (
+                      <span className="truncate text-[11px] text-zinc-400">{a.gangs?.length ? a.gangs.map((g) => g.name).join(', ') : a.gang_name}</span>
+                    )}
                   </span>
                 </span>
                 <AllianceStatusBadge status={a.status} />
@@ -434,7 +445,9 @@ function AlliancesPage() {
                     </Link>
                   </td>
                   <td className="hidden px-3 py-2 md:table-cell">
-                    {a.gang_name ? <GangPill name={a.gang_name} /> : <span className="text-xs text-zinc-600" aria-label="None">-</span>}
+                    {a.gangs?.length ? (
+                      <span className="flex flex-wrap gap-1">{a.gangs.map((g) => <GangPill key={g.id} name={g.name} slug={g.slug} color={g.color} />)}</span>
+                    ) : <span className="text-xs text-zinc-600" aria-label="None">-</span>}
                   </td>
                   <td className="px-3 py-2 text-right"><Count n={a.set_count} icon={Shield} label="set" /></td>
                   <td className="px-3 py-2 text-right"><Count n={a.member_count} icon={Users} label="current member" /></td>

@@ -1,6 +1,7 @@
 import { createFileRoute, Link, Outlet, redirect, useNavigate, useRouter } from '@tanstack/react-router'
 import {
   AlertTriangle,
+  Gavel,
   CalendarDays,
   Clock,
   FileText,
@@ -11,6 +12,7 @@ import {
   MapPin,
   Menu,
   Network,
+  Mic,
   NotebookText,
   ScrollText,
   ShieldQuestion,
@@ -61,8 +63,10 @@ const NAV_ITEMS = [
   { to: '/$universe/sets', icon: Shield, label: 'Sets' },
   { to: '/$universe/alliances', icon: Network, label: 'Alliances' },
   { to: '/$universe/gangs', icon: Flag, label: 'Gangs' },
+  { to: '/$universe/rap-groups', icon: Mic, label: 'Rap groups & labels' },
   { to: '/$universe/members', icon: Users, label: 'Members' },
   { to: '/$universe/incidents', icon: AlertTriangle, label: 'Incidents' },
+  { to: '/$universe/cases', icon: Gavel, label: 'Court cases' },
   { to: '/$universe/sources', icon: FileText, label: 'Sources' },
   { to: '/$universe/municipalities', icon: MapPin, label: 'Municipalities' },
   { to: '/$universe/map', icon: Map, label: 'Map' },

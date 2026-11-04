@@ -2,10 +2,14 @@ import Lightbox from 'yet-another-react-lightbox'
 import Captions from 'yet-another-react-lightbox/plugins/captions'
 import 'yet-another-react-lightbox/styles.css'
 import 'yet-another-react-lightbox/plugins/captions.css'
-import type { MediaWithUrls } from '@/lib/types'
+import type { MediaOwner, MediaWithUrls } from '@/lib/types'
+import { OwnerLink, PhotoPeople } from './PhotoPeople'
+
+/** A photo to show; `owner` is set when it belongs to another page than the one open. */
+export type LightboxItem = MediaWithUrls & { owner?: MediaOwner }
 
 interface PhotoLightboxProps {
-  items: MediaWithUrls[]
+  items: LightboxItem[]
   index: number
   open: boolean
   onClose: () => void
@@ -20,7 +24,18 @@ export function PhotoLightbox({ items, index, open, onClose }: PhotoLightboxProp
       // Rendered by the Captions plugin below the image. Without the plugin
       // the field is silently ignored, which is how captions used to vanish
       // between the tile and the viewer.
-      description: m.caption ?? undefined,
+      description:
+        m.caption || m.people.length > 0 || m.owner ? (
+          <div className="space-y-1">
+            {m.caption && <p>{m.caption}</p>}
+            <PhotoPeople people={m.people} onNavigate={onClose} />
+            {m.owner && (
+              <p>
+                On <OwnerLink owner={m.owner} onNavigate={onClose} />
+              </p>
+            )}
+          </div>
+        ) : undefined,
       width: m.width ?? undefined,
       height: m.height ?? undefined,
     }))

@@ -1,11 +1,12 @@
 import { useState } from 'react'
 import { Captions, Star, Trash2, Loader2 } from 'lucide-react'
-import { useMedia, useUpdateMedia, useDeleteMedia } from '@/lib/queries'
+import { useMedia, useUpdateMedia, useDeleteMedia, useSetMediaPeople } from '@/lib/queries'
 import type { MediaEntityType, MediaWithUrls, UUID } from '@/lib/types'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { EmptyState } from '@/components/EmptyState'
 import { PhotoUploadDropzone } from './PhotoUploadDropzone'
-import { PhotoCaptionDialog } from './PhotoCaptionDialog'
+import { PhotoCaptionDialog, type PhotoEdits } from './PhotoCaptionDialog'
+import { PhotoPeople } from './PhotoPeople'
 import { PhotoLightbox } from './PhotoLightbox'
 
 interface PhotoGalleryProps {
@@ -20,10 +21,12 @@ export function PhotoGallery({ entityType, entityId, universeId, hideUpload }: P
   const { data: items, isLoading } = useMedia(entityType, entityId, universeId)
   const updateMedia = useUpdateMedia(entityType, entityId, universeId)
   const deleteMedia = useDeleteMedia(entityType, entityId, universeId)
+  const setPeople = useSetMediaPeople(entityType, entityId, universeId)
 
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null)
   const [confirmDeleteId, setConfirmDeleteId] = useState<UUID | null>(null)
   const [captionTargetId, setCaptionTargetId] = useState<UUID | null>(null)
+  const [saving, setSaving] = useState(false)
 
   const photos = items ?? []
   const confirmTarget = photos.find((m) => m.id === confirmDeleteId)
@@ -34,6 +37,27 @@ export function PhotoGallery({ entityType, entityId, universeId, hideUpload }: P
   const pendingVars = updateMedia.isPending ? updateMedia.variables : undefined
   const captionPendingId = pendingVars?.caption !== undefined ? pendingVars.id : null
   const primaryPendingId = pendingVars?.is_primary !== undefined ? pendingVars.id : null
+
+  // The dialog saves the caption and the tagged people with separate requests,
+  // one after the other; on a failure the global handler toasts and the dialog
+  // stays open with the draft intact, so nothing typed is lost.
+  async function saveEdits(edits: PhotoEdits) {
+    if (!captionTarget) return
+    setSaving(true)
+    try {
+      if (edits.caption !== undefined) {
+        await updateMedia.mutateAsync({ id: captionTarget.id, caption: edits.caption })
+      }
+      if (edits.people) {
+        await setPeople.mutateAsync({ id: captionTarget.id, people: edits.people })
+      }
+      setCaptionTargetId(null)
+    } catch {
+      // Already toasted by the QueryClient's mutation onError.
+    } finally {
+      setSaving(false)
+    }
+  }
 
   // Photos first, uploader after: the dropzone is taller than a row of photos,
   // and above them it pushed the thing people came to see below the fold.
@@ -56,17 +80,19 @@ export function PhotoGallery({ entityType, entityId, universeId, hideUpload }: P
       ) : (
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
           {photos.map((m, i) => (
-            <PhotoTile
-              key={m.id}
-              media={m}
-              onClick={() => setLightboxIndex(i)}
-              onSetPrimary={() => updateMedia.mutate({ id: m.id, is_primary: true })}
-              onEditCaption={() => setCaptionTargetId(m.id)}
-              onDelete={() => setConfirmDeleteId(m.id)}
-              setPrimaryPending={primaryPendingId === m.id}
-              captionPending={captionPendingId === m.id}
-              deletePending={deleteMedia.isPending && deleteMedia.variables === m.id}
-            />
+            <div key={m.id} className="min-w-0 space-y-1.5">
+              <PhotoTile
+                media={m}
+                onClick={() => setLightboxIndex(i)}
+                onSetPrimary={() => updateMedia.mutate({ id: m.id, is_primary: true })}
+                onEditCaption={() => setCaptionTargetId(m.id)}
+                onDelete={() => setConfirmDeleteId(m.id)}
+                setPrimaryPending={primaryPendingId === m.id}
+                captionPending={captionPendingId === m.id || (saving && captionTargetId === m.id)}
+                deletePending={deleteMedia.isPending && deleteMedia.variables === m.id}
+              />
+              <PhotoPeople people={m.people} className="line-clamp-2 px-0.5 text-xs leading-snug text-zinc-400" />
+            </div>
           ))}
         </div>
       )}
@@ -82,17 +108,10 @@ export function PhotoGallery({ entityType, entityId, universeId, hideUpload }: P
 
       <PhotoCaptionDialog
         media={captionTarget}
+        universeId={universeId}
         open={captionTargetId !== null}
-        pending={captionPendingId !== null}
-        onSave={(caption) => {
-          if (!captionTarget) return
-          updateMedia.mutate(
-            { id: captionTarget.id, caption },
-            // On error the global mutation handler toasts and the dialog stays
-            // open with the draft intact, so nothing typed is lost.
-            { onSuccess: () => setCaptionTargetId(null) },
-          )
-        }}
+        pending={saving}
+        onSave={saveEdits}
         onCancel={() => setCaptionTargetId(null)}
       />
 

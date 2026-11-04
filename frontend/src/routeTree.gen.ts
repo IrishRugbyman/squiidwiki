@@ -26,19 +26,23 @@ import { Route as AppUniverseAnomaliesRouteImport } from './routes/_app.$univers
 import { Route as AppUniverseSourcesIndexRouteImport } from './routes/_app.$universe.sources.index'
 import { Route as AppUniverseSetsIndexRouteImport } from './routes/_app.$universe.sets.index'
 import { Route as AppUniverseResearchIndexRouteImport } from './routes/_app.$universe.research.index'
+import { Route as AppUniverseRapGroupsIndexRouteImport } from './routes/_app.$universe.rap-groups.index'
 import { Route as AppUniverseMunicipalitiesIndexRouteImport } from './routes/_app.$universe.municipalities.index'
 import { Route as AppUniverseMembersIndexRouteImport } from './routes/_app.$universe.members.index'
 import { Route as AppUniverseIncidentsIndexRouteImport } from './routes/_app.$universe.incidents.index'
 import { Route as AppUniverseGangsIndexRouteImport } from './routes/_app.$universe.gangs.index'
+import { Route as AppUniverseCasesIndexRouteImport } from './routes/_app.$universe.cases.index'
 import { Route as AppUniverseAlliancesIndexRouteImport } from './routes/_app.$universe.alliances.index'
 import { Route as AppUniverseSourcesIdRouteImport } from './routes/_app.$universe.sources.$id'
 import { Route as AppUniverseSetsIdRouteImport } from './routes/_app.$universe.sets.$id'
 import { Route as AppUniverseResearchIdRouteImport } from './routes/_app.$universe.research.$id'
+import { Route as AppUniverseRapGroupsIdRouteImport } from './routes/_app.$universe.rap-groups.$id'
 import { Route as AppUniverseMunicipalitiesMapRouteImport } from './routes/_app.$universe.municipalities.map'
 import { Route as AppUniverseMunicipalitiesIdRouteImport } from './routes/_app.$universe.municipalities.$id'
 import { Route as AppUniverseMembersIdRouteImport } from './routes/_app.$universe.members.$id'
 import { Route as AppUniverseIncidentsIdRouteImport } from './routes/_app.$universe.incidents.$id'
 import { Route as AppUniverseGangsIdRouteImport } from './routes/_app.$universe.gangs.$id'
+import { Route as AppUniverseCasesIdRouteImport } from './routes/_app.$universe.cases.$id'
 import { Route as AppUniverseAlliancesIdRouteImport } from './routes/_app.$universe.alliances.$id'
 
 const LoginRoute = LoginRouteImport.update({
@@ -134,6 +138,16 @@ const AppUniverseResearchIndexRoute =
     path: '/research/',
     getParentRoute: () => AppUniverseRoute,
   } as any)
+const AppUniverseRapGroupsIndexRoute =
+  AppUniverseRapGroupsIndexRouteImport.update({
+    id: '/rap-groups/',
+    path: '/rap-groups/',
+    getParentRoute: () => AppUniverseRoute,
+  } as any).lazy(() =>
+    import('./routes/_app.$universe.rap-groups.index.lazy').then(
+      (d) => d.Route,
+    ),
+  )
 const AppUniverseMunicipalitiesIndexRoute =
   AppUniverseMunicipalitiesIndexRouteImport.update({
     id: '/municipalities/',
@@ -162,6 +176,13 @@ const AppUniverseGangsIndexRoute = AppUniverseGangsIndexRouteImport.update({
 } as any).lazy(() =>
   import('./routes/_app.$universe.gangs.index.lazy').then((d) => d.Route),
 )
+const AppUniverseCasesIndexRoute = AppUniverseCasesIndexRouteImport.update({
+  id: '/cases/',
+  path: '/cases/',
+  getParentRoute: () => AppUniverseRoute,
+} as any).lazy(() =>
+  import('./routes/_app.$universe.cases.index.lazy').then((d) => d.Route),
+)
 const AppUniverseAlliancesIndexRoute =
   AppUniverseAlliancesIndexRouteImport.update({
     id: '/alliances/',
@@ -174,7 +195,9 @@ const AppUniverseSourcesIdRoute = AppUniverseSourcesIdRouteImport.update({
   id: '/sources/$id',
   path: '/sources/$id',
   getParentRoute: () => AppUniverseRoute,
-} as any)
+} as any).lazy(() =>
+  import('./routes/_app.$universe.sources.$id.lazy').then((d) => d.Route),
+)
 const AppUniverseSetsIdRoute = AppUniverseSetsIdRouteImport.update({
   id: '/sets/$id',
   path: '/sets/$id',
@@ -187,6 +210,13 @@ const AppUniverseResearchIdRoute = AppUniverseResearchIdRouteImport.update({
   path: '/research/$id',
   getParentRoute: () => AppUniverseRoute,
 } as any)
+const AppUniverseRapGroupsIdRoute = AppUniverseRapGroupsIdRouteImport.update({
+  id: '/rap-groups/$id',
+  path: '/rap-groups/$id',
+  getParentRoute: () => AppUniverseRoute,
+} as any).lazy(() =>
+  import('./routes/_app.$universe.rap-groups.$id.lazy').then((d) => d.Route),
+)
 const AppUniverseMunicipalitiesMapRoute =
   AppUniverseMunicipalitiesMapRouteImport.update({
     id: '/municipalities/map',
@@ -218,6 +248,13 @@ const AppUniverseGangsIdRoute = AppUniverseGangsIdRouteImport.update({
 } as any).lazy(() =>
   import('./routes/_app.$universe.gangs.$id.lazy').then((d) => d.Route),
 )
+const AppUniverseCasesIdRoute = AppUniverseCasesIdRouteImport.update({
+  id: '/cases/$id',
+  path: '/cases/$id',
+  getParentRoute: () => AppUniverseRoute,
+} as any).lazy(() =>
+  import('./routes/_app.$universe.cases.$id.lazy').then((d) => d.Route),
+)
 const AppUniverseAlliancesIdRoute = AppUniverseAlliancesIdRouteImport.update({
   id: '/alliances/$id',
   path: '/alliances/$id',
@@ -241,19 +278,23 @@ export interface FileRoutesByFullPath {
   '/admin/users': typeof AppAdminUsersRoute
   '/$universe/': typeof AppUniverseIndexRoute
   '/$universe/alliances/$id': typeof AppUniverseAlliancesIdRoute
+  '/$universe/cases/$id': typeof AppUniverseCasesIdRoute
   '/$universe/gangs/$id': typeof AppUniverseGangsIdRoute
   '/$universe/incidents/$id': typeof AppUniverseIncidentsIdRoute
   '/$universe/members/$id': typeof AppUniverseMembersIdRoute
   '/$universe/municipalities/$id': typeof AppUniverseMunicipalitiesIdRoute
   '/$universe/municipalities/map': typeof AppUniverseMunicipalitiesMapRoute
+  '/$universe/rap-groups/$id': typeof AppUniverseRapGroupsIdRoute
   '/$universe/research/$id': typeof AppUniverseResearchIdRoute
   '/$universe/sets/$id': typeof AppUniverseSetsIdRoute
   '/$universe/sources/$id': typeof AppUniverseSourcesIdRoute
   '/$universe/alliances/': typeof AppUniverseAlliancesIndexRoute
+  '/$universe/cases/': typeof AppUniverseCasesIndexRoute
   '/$universe/gangs/': typeof AppUniverseGangsIndexRoute
   '/$universe/incidents/': typeof AppUniverseIncidentsIndexRoute
   '/$universe/members/': typeof AppUniverseMembersIndexRoute
   '/$universe/municipalities/': typeof AppUniverseMunicipalitiesIndexRoute
+  '/$universe/rap-groups/': typeof AppUniverseRapGroupsIndexRoute
   '/$universe/research/': typeof AppUniverseResearchIndexRoute
   '/$universe/sets/': typeof AppUniverseSetsIndexRoute
   '/$universe/sources/': typeof AppUniverseSourcesIndexRoute
@@ -272,19 +313,23 @@ export interface FileRoutesByTo {
   '/admin/users': typeof AppAdminUsersRoute
   '/$universe': typeof AppUniverseIndexRoute
   '/$universe/alliances/$id': typeof AppUniverseAlliancesIdRoute
+  '/$universe/cases/$id': typeof AppUniverseCasesIdRoute
   '/$universe/gangs/$id': typeof AppUniverseGangsIdRoute
   '/$universe/incidents/$id': typeof AppUniverseIncidentsIdRoute
   '/$universe/members/$id': typeof AppUniverseMembersIdRoute
   '/$universe/municipalities/$id': typeof AppUniverseMunicipalitiesIdRoute
   '/$universe/municipalities/map': typeof AppUniverseMunicipalitiesMapRoute
+  '/$universe/rap-groups/$id': typeof AppUniverseRapGroupsIdRoute
   '/$universe/research/$id': typeof AppUniverseResearchIdRoute
   '/$universe/sets/$id': typeof AppUniverseSetsIdRoute
   '/$universe/sources/$id': typeof AppUniverseSourcesIdRoute
   '/$universe/alliances': typeof AppUniverseAlliancesIndexRoute
+  '/$universe/cases': typeof AppUniverseCasesIndexRoute
   '/$universe/gangs': typeof AppUniverseGangsIndexRoute
   '/$universe/incidents': typeof AppUniverseIncidentsIndexRoute
   '/$universe/members': typeof AppUniverseMembersIndexRoute
   '/$universe/municipalities': typeof AppUniverseMunicipalitiesIndexRoute
+  '/$universe/rap-groups': typeof AppUniverseRapGroupsIndexRoute
   '/$universe/research': typeof AppUniverseResearchIndexRoute
   '/$universe/sets': typeof AppUniverseSetsIndexRoute
   '/$universe/sources': typeof AppUniverseSourcesIndexRoute
@@ -306,19 +351,23 @@ export interface FileRoutesById {
   '/_app/admin/users': typeof AppAdminUsersRoute
   '/_app/$universe/': typeof AppUniverseIndexRoute
   '/_app/$universe/alliances/$id': typeof AppUniverseAlliancesIdRoute
+  '/_app/$universe/cases/$id': typeof AppUniverseCasesIdRoute
   '/_app/$universe/gangs/$id': typeof AppUniverseGangsIdRoute
   '/_app/$universe/incidents/$id': typeof AppUniverseIncidentsIdRoute
   '/_app/$universe/members/$id': typeof AppUniverseMembersIdRoute
   '/_app/$universe/municipalities/$id': typeof AppUniverseMunicipalitiesIdRoute
   '/_app/$universe/municipalities/map': typeof AppUniverseMunicipalitiesMapRoute
+  '/_app/$universe/rap-groups/$id': typeof AppUniverseRapGroupsIdRoute
   '/_app/$universe/research/$id': typeof AppUniverseResearchIdRoute
   '/_app/$universe/sets/$id': typeof AppUniverseSetsIdRoute
   '/_app/$universe/sources/$id': typeof AppUniverseSourcesIdRoute
   '/_app/$universe/alliances/': typeof AppUniverseAlliancesIndexRoute
+  '/_app/$universe/cases/': typeof AppUniverseCasesIndexRoute
   '/_app/$universe/gangs/': typeof AppUniverseGangsIndexRoute
   '/_app/$universe/incidents/': typeof AppUniverseIncidentsIndexRoute
   '/_app/$universe/members/': typeof AppUniverseMembersIndexRoute
   '/_app/$universe/municipalities/': typeof AppUniverseMunicipalitiesIndexRoute
+  '/_app/$universe/rap-groups/': typeof AppUniverseRapGroupsIndexRoute
   '/_app/$universe/research/': typeof AppUniverseResearchIndexRoute
   '/_app/$universe/sets/': typeof AppUniverseSetsIndexRoute
   '/_app/$universe/sources/': typeof AppUniverseSourcesIndexRoute
@@ -340,19 +389,23 @@ export interface FileRouteTypes {
     | '/admin/users'
     | '/$universe/'
     | '/$universe/alliances/$id'
+    | '/$universe/cases/$id'
     | '/$universe/gangs/$id'
     | '/$universe/incidents/$id'
     | '/$universe/members/$id'
     | '/$universe/municipalities/$id'
     | '/$universe/municipalities/map'
+    | '/$universe/rap-groups/$id'
     | '/$universe/research/$id'
     | '/$universe/sets/$id'
     | '/$universe/sources/$id'
     | '/$universe/alliances/'
+    | '/$universe/cases/'
     | '/$universe/gangs/'
     | '/$universe/incidents/'
     | '/$universe/members/'
     | '/$universe/municipalities/'
+    | '/$universe/rap-groups/'
     | '/$universe/research/'
     | '/$universe/sets/'
     | '/$universe/sources/'
@@ -371,19 +424,23 @@ export interface FileRouteTypes {
     | '/admin/users'
     | '/$universe'
     | '/$universe/alliances/$id'
+    | '/$universe/cases/$id'
     | '/$universe/gangs/$id'
     | '/$universe/incidents/$id'
     | '/$universe/members/$id'
     | '/$universe/municipalities/$id'
     | '/$universe/municipalities/map'
+    | '/$universe/rap-groups/$id'
     | '/$universe/research/$id'
     | '/$universe/sets/$id'
     | '/$universe/sources/$id'
     | '/$universe/alliances'
+    | '/$universe/cases'
     | '/$universe/gangs'
     | '/$universe/incidents'
     | '/$universe/members'
     | '/$universe/municipalities'
+    | '/$universe/rap-groups'
     | '/$universe/research'
     | '/$universe/sets'
     | '/$universe/sources'
@@ -404,19 +461,23 @@ export interface FileRouteTypes {
     | '/_app/admin/users'
     | '/_app/$universe/'
     | '/_app/$universe/alliances/$id'
+    | '/_app/$universe/cases/$id'
     | '/_app/$universe/gangs/$id'
     | '/_app/$universe/incidents/$id'
     | '/_app/$universe/members/$id'
     | '/_app/$universe/municipalities/$id'
     | '/_app/$universe/municipalities/map'
+    | '/_app/$universe/rap-groups/$id'
     | '/_app/$universe/research/$id'
     | '/_app/$universe/sets/$id'
     | '/_app/$universe/sources/$id'
     | '/_app/$universe/alliances/'
+    | '/_app/$universe/cases/'
     | '/_app/$universe/gangs/'
     | '/_app/$universe/incidents/'
     | '/_app/$universe/members/'
     | '/_app/$universe/municipalities/'
+    | '/_app/$universe/rap-groups/'
     | '/_app/$universe/research/'
     | '/_app/$universe/sets/'
     | '/_app/$universe/sources/'
@@ -548,6 +609,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppUniverseResearchIndexRouteImport
       parentRoute: typeof AppUniverseRoute
     }
+    '/_app/$universe/rap-groups/': {
+      id: '/_app/$universe/rap-groups/'
+      path: '/rap-groups'
+      fullPath: '/$universe/rap-groups/'
+      preLoaderRoute: typeof AppUniverseRapGroupsIndexRouteImport
+      parentRoute: typeof AppUniverseRoute
+    }
     '/_app/$universe/municipalities/': {
       id: '/_app/$universe/municipalities/'
       path: '/municipalities'
@@ -576,6 +644,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppUniverseGangsIndexRouteImport
       parentRoute: typeof AppUniverseRoute
     }
+    '/_app/$universe/cases/': {
+      id: '/_app/$universe/cases/'
+      path: '/cases'
+      fullPath: '/$universe/cases/'
+      preLoaderRoute: typeof AppUniverseCasesIndexRouteImport
+      parentRoute: typeof AppUniverseRoute
+    }
     '/_app/$universe/alliances/': {
       id: '/_app/$universe/alliances/'
       path: '/alliances'
@@ -602,6 +677,13 @@ declare module '@tanstack/react-router' {
       path: '/research/$id'
       fullPath: '/$universe/research/$id'
       preLoaderRoute: typeof AppUniverseResearchIdRouteImport
+      parentRoute: typeof AppUniverseRoute
+    }
+    '/_app/$universe/rap-groups/$id': {
+      id: '/_app/$universe/rap-groups/$id'
+      path: '/rap-groups/$id'
+      fullPath: '/$universe/rap-groups/$id'
+      preLoaderRoute: typeof AppUniverseRapGroupsIdRouteImport
       parentRoute: typeof AppUniverseRoute
     }
     '/_app/$universe/municipalities/map': {
@@ -639,6 +721,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppUniverseGangsIdRouteImport
       parentRoute: typeof AppUniverseRoute
     }
+    '/_app/$universe/cases/$id': {
+      id: '/_app/$universe/cases/$id'
+      path: '/cases/$id'
+      fullPath: '/$universe/cases/$id'
+      preLoaderRoute: typeof AppUniverseCasesIdRouteImport
+      parentRoute: typeof AppUniverseRoute
+    }
     '/_app/$universe/alliances/$id': {
       id: '/_app/$universe/alliances/$id'
       path: '/alliances/$id'
@@ -656,19 +745,23 @@ interface AppUniverseRouteChildren {
   AppUniverseTimelineRoute: typeof AppUniverseTimelineRoute
   AppUniverseIndexRoute: typeof AppUniverseIndexRoute
   AppUniverseAlliancesIdRoute: typeof AppUniverseAlliancesIdRoute
+  AppUniverseCasesIdRoute: typeof AppUniverseCasesIdRoute
   AppUniverseGangsIdRoute: typeof AppUniverseGangsIdRoute
   AppUniverseIncidentsIdRoute: typeof AppUniverseIncidentsIdRoute
   AppUniverseMembersIdRoute: typeof AppUniverseMembersIdRoute
   AppUniverseMunicipalitiesIdRoute: typeof AppUniverseMunicipalitiesIdRoute
   AppUniverseMunicipalitiesMapRoute: typeof AppUniverseMunicipalitiesMapRoute
+  AppUniverseRapGroupsIdRoute: typeof AppUniverseRapGroupsIdRoute
   AppUniverseResearchIdRoute: typeof AppUniverseResearchIdRoute
   AppUniverseSetsIdRoute: typeof AppUniverseSetsIdRoute
   AppUniverseSourcesIdRoute: typeof AppUniverseSourcesIdRoute
   AppUniverseAlliancesIndexRoute: typeof AppUniverseAlliancesIndexRoute
+  AppUniverseCasesIndexRoute: typeof AppUniverseCasesIndexRoute
   AppUniverseGangsIndexRoute: typeof AppUniverseGangsIndexRoute
   AppUniverseIncidentsIndexRoute: typeof AppUniverseIncidentsIndexRoute
   AppUniverseMembersIndexRoute: typeof AppUniverseMembersIndexRoute
   AppUniverseMunicipalitiesIndexRoute: typeof AppUniverseMunicipalitiesIndexRoute
+  AppUniverseRapGroupsIndexRoute: typeof AppUniverseRapGroupsIndexRoute
   AppUniverseResearchIndexRoute: typeof AppUniverseResearchIndexRoute
   AppUniverseSetsIndexRoute: typeof AppUniverseSetsIndexRoute
   AppUniverseSourcesIndexRoute: typeof AppUniverseSourcesIndexRoute
@@ -681,19 +774,23 @@ const AppUniverseRouteChildren: AppUniverseRouteChildren = {
   AppUniverseTimelineRoute: AppUniverseTimelineRoute,
   AppUniverseIndexRoute: AppUniverseIndexRoute,
   AppUniverseAlliancesIdRoute: AppUniverseAlliancesIdRoute,
+  AppUniverseCasesIdRoute: AppUniverseCasesIdRoute,
   AppUniverseGangsIdRoute: AppUniverseGangsIdRoute,
   AppUniverseIncidentsIdRoute: AppUniverseIncidentsIdRoute,
   AppUniverseMembersIdRoute: AppUniverseMembersIdRoute,
   AppUniverseMunicipalitiesIdRoute: AppUniverseMunicipalitiesIdRoute,
   AppUniverseMunicipalitiesMapRoute: AppUniverseMunicipalitiesMapRoute,
+  AppUniverseRapGroupsIdRoute: AppUniverseRapGroupsIdRoute,
   AppUniverseResearchIdRoute: AppUniverseResearchIdRoute,
   AppUniverseSetsIdRoute: AppUniverseSetsIdRoute,
   AppUniverseSourcesIdRoute: AppUniverseSourcesIdRoute,
   AppUniverseAlliancesIndexRoute: AppUniverseAlliancesIndexRoute,
+  AppUniverseCasesIndexRoute: AppUniverseCasesIndexRoute,
   AppUniverseGangsIndexRoute: AppUniverseGangsIndexRoute,
   AppUniverseIncidentsIndexRoute: AppUniverseIncidentsIndexRoute,
   AppUniverseMembersIndexRoute: AppUniverseMembersIndexRoute,
   AppUniverseMunicipalitiesIndexRoute: AppUniverseMunicipalitiesIndexRoute,
+  AppUniverseRapGroupsIndexRoute: AppUniverseRapGroupsIndexRoute,
   AppUniverseResearchIndexRoute: AppUniverseResearchIndexRoute,
   AppUniverseSetsIndexRoute: AppUniverseSetsIndexRoute,
   AppUniverseSourcesIndexRoute: AppUniverseSourcesIndexRoute,

@@ -10,13 +10,6 @@ from sqlmodel import Field, SQLModel
 from app.core.enums import MemberStatus, SetRank
 
 
-class MemberSource(SQLModel, table=True):
-    __tablename__ = "member_source"
-
-    member_id: uuid.UUID = Field(foreign_key="member.id", primary_key=True)
-    source_id: uuid.UUID = Field(foreign_key="source.id", primary_key=True)
-
-
 class MemberSet(SQLModel, table=True):
     """One spell of a member belonging to a set.
 
@@ -53,7 +46,11 @@ class MemberAlias(SQLModel, table=True):
     alias: str
     from_date: dict | None = Field(default=None, sa_column=Column(JSONB))
     until_date: dict | None = Field(default=None, sa_column=Column(JSONB))
-    source_id: uuid.UUID | None = Field(default=None, foreign_key="source.id")
+    # SET NULL: a source can be deleted without losing the row it backed.
+    source_id: uuid.UUID | None = Field(
+        default=None,
+        sa_column=Column(sa.Uuid(), sa.ForeignKey("source.id", ondelete="SET NULL"), nullable=True),
+    )
     created_at: datetime = Field(
         sa_type=DateTime(timezone=True), default_factory=lambda: datetime.now(UTC)
     )
@@ -83,7 +80,16 @@ class MemberIncarceration(SQLModel, table=True):
     )
     life_sentence: bool = False
     facility: str | None = None
+    # As the custody record gives it (an OTIS court file number, a docket with
+    # the court in brackets). The case it names, once there is one, is
+    # `court_case_id`; this text stays as reported.
     case_id: str | None = None
+    court_case_id: uuid.UUID | None = Field(
+        default=None,
+        sa_column=Column(
+            sa.Uuid(), ForeignKey("court_case.id", ondelete="SET NULL"), nullable=True, index=True
+        ),
+    )
     notes: str | None = None
     created_at: datetime = Field(
         sa_type=DateTime(timezone=True), default_factory=lambda: datetime.now(UTC)
@@ -139,7 +145,11 @@ class MemberCustodyId(SQLModel, table=True):
     member_id: uuid.UUID = Field(foreign_key="member.id", index=True)
     system: str = Field(sa_column=Column(String, nullable=False))
     number: str = Field(sa_column=Column(String, nullable=False, index=True))
-    source_id: uuid.UUID | None = Field(default=None, foreign_key="source.id")
+    # SET NULL: a source can be deleted without losing the row it backed.
+    source_id: uuid.UUID | None = Field(
+        default=None,
+        sa_column=Column(sa.Uuid(), sa.ForeignKey("source.id", ondelete="SET NULL"), nullable=True),
+    )
     # The mugshot that system served, when one was pulled. SET NULL so deleting
     # the photo never takes the number with it.
     photo_media_id: uuid.UUID | None = Field(

@@ -1,12 +1,21 @@
 # Import order matters: tables must be defined before tables that reference them.
 from app.models.alliance import (
     Alliance,
+    AllianceGang,
+    AllianceLineage,
     AllianceMunicipality,
     AllianceRelationship,
     AllianceSet,
 )
 from app.models.auth import AuditLog, User, UserUniverseAccess
-from app.models.business import Business, BusinessMember, BusinessSet, BusinessSource
+from app.models.business import Business, BusinessMember, BusinessSet
+from app.models.citation import Citation
+from app.models.court_case import (
+    CourtCase,
+    CourtCaseDefendant,
+    CourtCaseIncident,
+    CourtCaseSet,
+)
 from app.models.gang import Gang, GangCard
 from app.models.gang_set import (
     GangSet,
@@ -14,25 +23,23 @@ from app.models.gang_set import (
     SetLineage,
     SetMunicipality,
     SetRelationship,
-    SetSource,
 )
 from app.models.incident import (
     Incident,
     IncidentParticipant,
     IncidentSetParticipant,
-    IncidentSource,
 )
-from app.models.media import Media
+from app.models.media import Media, MediaMember
 from app.models.member import (
     Member,
     MemberAlias,
     MemberCustodyId,
     MemberIncarceration,
     MemberSet,
-    MemberSource,
 )
-from app.models.municipality import Municipality, MunicipalityOverlap, MunicipalitySource
-from app.models.research_note import ResearchNote
+from app.models.municipality import Municipality, MunicipalityOverlap
+from app.models.rap_group import RapGroup, RapGroupMember, RapGroupRelationship
+from app.models.research_note import ResearchNote, ResearchNotePin
 from app.models.source import Source
 from app.models.universe import Universe
 
@@ -42,35 +49,42 @@ __all__ = [
     "AuditLog",
     "Universe",
     "Municipality",
-    "MunicipalitySource",
     "MunicipalityOverlap",
     "Source",
+    "Citation",
     "Gang",
     "GangCard",
     "Alliance",
+    "AllianceGang",
+    "AllianceLineage",
     "AllianceMunicipality",
     "AllianceRelationship",
     "AllianceSet",
     "Business",
     "BusinessMember",
     "BusinessSet",
-    "BusinessSource",
     "GangSet",
     "SetLineage",
     "SetGang",
     "SetMunicipality",
     "SetRelationship",
-    "SetSource",
     "Member",
     "MemberAlias",
     "MemberCustodyId",
     "MemberIncarceration",
     "MemberSet",
-    "MemberSource",
     "Incident",
     "IncidentParticipant",
     "IncidentSetParticipant",
-    "IncidentSource",
     "ResearchNote",
+    "ResearchNotePin",
     "Media",
+    "MediaMember",
+    "RapGroup",
+    "RapGroupMember",
+    "RapGroupRelationship",
+    "CourtCase",
+    "CourtCaseDefendant",
+    "CourtCaseIncident",
+    "CourtCaseSet",
 ]

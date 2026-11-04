@@ -13,11 +13,22 @@ record a researcher chose as canonical is never silently rewritten):
 - set spells: moved; an open spell in a set ``keep`` already has an open spell
   in is dropped (one open spell per member and set is a unique index), and a
   moved spell loses ``is_primary`` when ``keep`` already has an open primary.
-- source citations, business links: unioned.
+- citations: moved through the ORM, so each one is audited and History shows
+  it arrive. Where both cite the same source, ``keep``'s citation stays and
+  takes ``drop``'s locator, quote, note or reading date only where its own is
+  empty.
+- business links, rap group memberships, research-note pins: unioned, ``keep``'s
+  row standing where both have one.
+- photo tags (``media_member``): moved; a tag ``keep`` already has is dropped,
+  and so is a tag of ``keep`` on a photo that is now its own (a photo never
+  tags its owner).
+- court case defendants: moved; where both were charged in the same case,
+  ``keep``'s row stays (reported). The acquittal mirror is then re-applied to
+  every incident the move touched (``sync_acquitted``).
 - aliases (``member_alias`` rows), incarcerations, custody ids, photos: moved;
   a custody id ``keep`` already holds (same system and number) is dropped, and
   moved photos lose ``is_primary`` when ``keep`` has a primary photo.
-- sets founded by ``drop``: re-pointed at ``keep``.
+- sets and alliances founded by ``drop``: re-pointed at ``keep``.
 - family: ``drop``'s relatives are added to ``keep``'s, every other member's
   family JSON that names ``drop`` is rewritten to name ``keep``, and a link
   between the two of them disappears (nobody is their own sibling).
@@ -41,18 +52,22 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.audit import load_link_rows, record_link_change
 from app.core.enums import MemberStatus
 from app.crud.member import INVERSE_REL, _family_ids, _set_family_ids
+from app.models.alliance import Alliance
 from app.models.business import BusinessMember
+from app.models.citation import Citation
+from app.models.court_case import CourtCaseDefendant, CourtCaseIncident
 from app.models.gang_set import GangSet
 from app.models.incident import IncidentParticipant
-from app.models.media import Media
+from app.models.media import Media, MediaMember
 from app.models.member import (
     Member,
     MemberAlias,
     MemberCustodyId,
     MemberIncarceration,
     MemberSet,
-    MemberSource,
 )
+from app.models.rap_group import RapGroupMember
+from app.models.research_note import ResearchNotePin
 
 # Columns a caller may ask to take from the dropped record instead of the kept one.
 PREFERABLE_FIELDS = (
@@ -72,6 +87,12 @@ PREFERABLE_FIELDS = (
 
 _SPELL_FIELDS = ["set_id", "rank", "is_primary", "from_date", "until_date"]
 _PARTICIPANT_FIELDS = ["member_id", "role", "outcome", "acquitted", "notes"]
+# A citation's own content, filled from drop's where keep's is empty.
+_CITATION_FIELDS = ("locator", "quote", "note", "accessed_at")
+
+
+async def _rows(session: AsyncSession, stmt) -> list:
+    return list((await session.execute(stmt)).scalars().all())
 
 
 def _empty(field: str, value) -> bool:
@@ -99,10 +120,14 @@ def _merge_names(keep: Member, drop: Member) -> list[str]:
 
 async def _load(session: AsyncSession, member_id: uuid.UUID, universe_id: uuid.UUID) -> Member:
     m = (
-        await session.execute(select(Member).where(Member.id == member_id, Member.universe_id == universe_id))
+        await session.execute(
+            select(Member).where(Member.id == member_id, Member.universe_id == universe_id)
+        )
     ).scalar_one_or_none()
     if m is None:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, f"Member {member_id} not found in this universe")
+        raise HTTPException(
+            status.HTTP_404_NOT_FOUND, f"Member {member_id} not found in this universe"
+        )
     return m
 
 
@@ -115,11 +140,14 @@ async def merge_members(
     dry_run: bool = False,
 ) -> dict:
     if keep_id == drop_id:
-        raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, "Cannot merge a member into itself")
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_CONTENT, "Cannot merge a member into itself"
+        )
     bad = [f for f in (prefer or []) if f not in PREFERABLE_FIELDS]
     if bad:
         raise HTTPException(
-            status.HTTP_422_UNPROCESSABLE_CONTENT, f"Cannot prefer {', '.join(bad)}: not a mergeable column"
+            status.HTTP_422_UNPROCESSABLE_CONTENT,
+            f"Cannot prefer {', '.join(bad)}: not a mergeable column",
         )
     keep = await _load(session, keep_id, universe_id)
     drop = await _load(session, drop_id, universe_id)
@@ -146,7 +174,9 @@ async def merge_members(
                 unique_takeovers[field] = dv
             else:
                 setattr(keep, field, dv)
-        report["fields"].append({"field": field, "kept": dv if take else kv, "discarded": kv if take else dv})
+        report["fields"].append(
+            {"field": field, "kept": dv if take else kv, "discarded": kv if take else dv}
+        )
     if unique_takeovers:
         drop.bop_register_number = None
         session.add(drop)
@@ -163,14 +193,23 @@ async def merge_members(
 
     # ── Incident participations ──────────────────────────────────────────────
     drop_parts = (
-        (await session.execute(select(IncidentParticipant).where(IncidentParticipant.member_id == drop.id)))
+        (
+            await session.execute(
+                select(IncidentParticipant).where(IncidentParticipant.member_id == drop.id)
+            )
+        )
         .scalars()
         .all()
     )
+    # Incidents whose acquittal mirror may read differently after the move;
+    # the court cases section adds the incidents its moved cases cover.
+    touched_incidents = {p.incident_id for p in drop_parts}
     keep_incidents = set(
         (
             await session.execute(
-                select(IncidentParticipant.incident_id).where(IncidentParticipant.member_id == keep.id)
+                select(IncidentParticipant.incident_id).where(
+                    IncidentParticipant.member_id == keep.id
+                )
             )
         )
         .scalars()
@@ -210,7 +249,9 @@ async def merge_members(
             after=after,
         )
     report["moved"]["incident_participations"] = moved_parts
-    killed = [p for p in drop_parts if p.outcome == "KILLED" and p.incident_id not in keep_incidents]
+    killed = [
+        p for p in drop_parts if p.outcome == "KILLED" and p.incident_id not in keep_incidents
+    ]
     if killed and keep.status != MemberStatus.DEAD:
         report["conflicts"].append(
             {
@@ -231,7 +272,9 @@ async def merge_members(
     keep_has_primary = any(r["is_primary"] for r in sets_before)
     moved_spells = 0
     for spell in (
-        (await session.execute(select(MemberSet).where(MemberSet.member_id == drop.id))).scalars().all()
+        (await session.execute(select(MemberSet).where(MemberSet.member_id == drop.id)))
+        .scalars()
+        .all()
     ):
         if spell.until_date is None and spell.set_id in keep_open_sets:
             report["conflicts"].append(
@@ -263,33 +306,41 @@ async def merge_members(
     )
     report["moved"]["set_spells"] = moved_spells
 
-    # ── Sources (union) ──────────────────────────────────────────────────────
-    src_before = await load_link_rows(session, MemberSource, MemberSource.member_id == keep.id, ["source_id"])
-    have = {r["source_id"] for r in src_before}
-    drop_sources = (
-        (await session.execute(select(MemberSource.source_id).where(MemberSource.member_id == drop.id)))
-        .scalars()
-        .all()
-    )
-    new_sources = [s for s in drop_sources if s not in have]
-    await session.execute(delete(MemberSource).where(MemberSource.member_id == drop.id))
-    for sid in new_sources:
-        session.add(MemberSource(member_id=keep.id, source_id=sid))
+    # ── Citations ────────────────────────────────────────────────────────────
+    # Through the ORM, never a bulk UPDATE: the audit listeners only see ORM
+    # writes, and History reads citation snapshots.
+    keep_cites = {
+        c.source_id: c
+        for c in await _rows(session, select(Citation).where(Citation.member_id == keep.id))
+    }
+    next_pos = max((c.position for c in keep_cites.values()), default=-1) + 1
+    cites_moved = 0
+    for c in await _rows(
+        session, select(Citation).where(Citation.member_id == drop.id).order_by(Citation.position)
+    ):
+        mine = keep_cites.get(c.source_id)
+        if mine is None:
+            c.member_id = keep.id
+            c.position = next_pos
+            next_pos += 1
+            session.add(c)
+            cites_moved += 1
+            continue
+        for f in _CITATION_FIELDS:
+            if _empty(f, getattr(mine, f)) and not _empty(f, getattr(c, f)):
+                setattr(mine, f, getattr(c, f))
+        session.add(mine)
+        await session.delete(c)
     await session.flush()
-    record_link_change(
-        session,
-        entity_type="member",
-        entity_id=keep.id,
-        link="sources",
-        key="source_id",
-        before=src_before,
-        after=src_before + [{"source_id": s} for s in new_sources],
-    )
-    report["moved"]["sources"] = len(new_sources)
+    report["moved"]["citations"] = cites_moved
 
     # ── Businesses (union) ───────────────────────────────────────────────────
     keep_biz = set(
-        (await session.execute(select(BusinessMember.business_id).where(BusinessMember.member_id == keep.id)))
+        (
+            await session.execute(
+                select(BusinessMember.business_id).where(BusinessMember.member_id == keep.id)
+            )
+        )
         .scalars()
         .all()
     )
@@ -299,7 +350,9 @@ async def merge_members(
         .scalars()
         .all()
     ):
-        cond = (BusinessMember.business_id == bm.business_id) & (BusinessMember.member_id == drop.id)
+        cond = (BusinessMember.business_id == bm.business_id) & (
+            BusinessMember.member_id == drop.id
+        )
         if bm.business_id in keep_biz:
             await session.execute(delete(BusinessMember).where(cond))
         else:
@@ -307,9 +360,104 @@ async def merge_members(
             biz_moved += 1
     report["moved"]["businesses"] = biz_moved
 
+    # ── Rap groups (union) ───────────────────────────────────────────────────
+    # The key is (group, member), so a moved row is a new row: delete and add,
+    # which the audit log records as the member leaving one record for the other.
+    keep_groups = set(
+        (
+            await session.execute(
+                select(RapGroupMember.rap_group_id).where(RapGroupMember.member_id == keep.id)
+            )
+        )
+        .scalars()
+        .all()
+    )
+    groups_moved = 0
+    for gm in await _rows(
+        session, select(RapGroupMember).where(RapGroupMember.member_id == drop.id)
+    ):
+        if gm.rap_group_id not in keep_groups:
+            session.add(RapGroupMember(**{**gm.model_dump(), "member_id": keep.id}))
+            groups_moved += 1
+        await session.delete(gm)
+    await session.flush()
+    report["moved"]["rap_groups"] = groups_moved
+
+    # ── Research-note pins (union) ───────────────────────────────────────────
+    keep_notes = set(
+        (
+            await session.execute(
+                select(ResearchNotePin.note_id).where(ResearchNotePin.member_id == keep.id)
+            )
+        )
+        .scalars()
+        .all()
+    )
+    pins_moved = 0
+    for pin in await _rows(
+        session, select(ResearchNotePin).where(ResearchNotePin.member_id == drop.id)
+    ):
+        if pin.note_id in keep_notes:
+            await session.execute(delete(ResearchNotePin).where(ResearchNotePin.id == pin.id))
+        else:
+            await session.execute(
+                update(ResearchNotePin)
+                .where(ResearchNotePin.id == pin.id)
+                .values(member_id=keep.id)
+            )
+            pins_moved += 1
+    report["moved"]["note_pins"] = pins_moved
+
+    # ── Court cases ──────────────────────────────────────────────────────────
+    keep_cases = {
+        d.court_case_id: d
+        for d in await _rows(
+            session, select(CourtCaseDefendant).where(CourtCaseDefendant.member_id == keep.id)
+        )
+    }
+    drop_defs = await _rows(
+        session, select(CourtCaseDefendant).where(CourtCaseDefendant.member_id == drop.id)
+    )
+    defs_moved = 0
+    for d in drop_defs:
+        if d.court_case_id in keep_cases:
+            report["conflicts"].append(
+                {
+                    "kind": "court_case_defendant",
+                    "id": d.court_case_id,
+                    "message": "Both were defendants in this case; the kept member's row stays.",
+                    "discarded": {
+                        "disposition": d.disposition,
+                        "sentence_months": d.sentence_months,
+                    },
+                }
+            )
+            await session.delete(d)
+        else:
+            d.member_id = keep.id
+            session.add(d)
+            defs_moved += 1
+    await session.flush()
+    report["moved"]["court_cases"] = defs_moved
+    case_ids = {d.court_case_id for d in drop_defs}
+    if case_ids:
+        touched_incidents |= set(
+            (
+                await session.execute(
+                    select(CourtCaseIncident.incident_id).where(
+                        CourtCaseIncident.court_case_id.in_(case_ids)
+                    )
+                )
+            )
+            .scalars()
+            .all()
+        )
+
     # ── Straight moves ───────────────────────────────────────────────────────
     for label, model in (("aliases", MemberAlias), ("incarcerations", MemberIncarceration)):
-        res = await session.execute(update(model).where(model.member_id == drop.id).values(member_id=keep.id))
+        res = await session.execute(
+            update(model).where(model.member_id == drop.id).values(member_id=keep.id)
+        )
         report["moved"][label] = res.rowcount
 
     keep_custody = {
@@ -345,13 +493,50 @@ async def merge_members(
     photo_values: dict = {"member_id": keep.id}
     if keep_has_photo:
         photo_values["is_primary"] = False
-    res = await session.execute(update(Media).where(Media.member_id == drop.id).values(**photo_values))
+    res = await session.execute(
+        update(Media).where(Media.member_id == drop.id).values(**photo_values)
+    )
     report["moved"]["photos"] = res.rowcount
+
+    # Photo tags: a composite key again, so delete and add. Run after the photos
+    # move, so a tag of keep on what is now keep's own photo can be dropped.
+    own_photos = select(Media.id).where(Media.member_id == keep.id)
+    for tag in await _rows(
+        session,
+        select(MediaMember).where(
+            MediaMember.member_id == keep.id, MediaMember.media_id.in_(own_photos)
+        ),
+    ):
+        await session.delete(tag)
+    keep_tagged = set(
+        (
+            await session.execute(
+                select(MediaMember.media_id).where(MediaMember.member_id == keep.id)
+            )
+        )
+        .scalars()
+        .all()
+    )
+    own = set((await session.execute(own_photos)).scalars().all())
+    tags_moved = 0
+    for tag in await _rows(session, select(MediaMember).where(MediaMember.member_id == drop.id)):
+        if tag.media_id not in keep_tagged and tag.media_id not in own:
+            session.add(MediaMember(**{**tag.model_dump(), "member_id": keep.id}))
+            tags_moved += 1
+        await session.delete(tag)
+    await session.flush()
+    report["moved"]["photo_tags"] = tags_moved
 
     res = await session.execute(
         update(GangSet).where(GangSet.founder_id == drop.id).values(founder_id=keep.id)
     )
     report["moved"]["sets_founded"] = res.rowcount
+    # Alliances are audited, so through the ORM.
+    founded = await _rows(session, select(Alliance).where(Alliance.founder_id == drop.id))
+    for a in founded:
+        a.founder_id = keep.id
+        session.add(a)
+    report["moved"]["alliances_founded"] = len(founded)
 
     # ── Family ───────────────────────────────────────────────────────────────
     drop_s, keep_s = str(drop.id), str(keep.id)
@@ -363,7 +548,9 @@ async def merge_members(
     relatives = (
         (
             await session.execute(
-                select(Member).where(Member.universe_id == universe_id, Member.id.notin_([keep.id, drop.id]))
+                select(Member).where(
+                    Member.universe_id == universe_id, Member.id.notin_([keep.id, drop.id])
+                )
             )
         )
         .scalars()
@@ -398,6 +585,9 @@ async def merge_members(
         after=[{"member_id": drop.id, "display_name": drop.display_name, "slug": drop.slug}],
     )
     await session.flush()
+    from app.crud.court_case import sync_acquitted
+
+    await sync_acquitted(session, touched_incidents)
     await session.delete(drop)
     await session.flush()
 

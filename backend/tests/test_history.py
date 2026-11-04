@@ -195,12 +195,43 @@ async def test_incident_participants_show_on_member_history(
             "type": "SHOOTING",
             "date": {"year": 2022, "precision": "Y"},
             "participants": [{"member_id": m["id"], "role": "VICTIM", "outcome": "INJURED"}],
-            "source_ids": [src["id"]],
         },
+    )
+    cite = await _post(
+        client,
+        h,
+        f"/api/v1/citations/?universe_id={uni}",
+        {"source_id": src["id"], "entity_type": "incident", "entity_id": inc["id"]},
     )
     page = (await _history(client, h, uni, "incident", inc["id"])).json()
     assert {e["link"] for e in page["items"] if e["link"]} == {"participants", "sources"}
     assert page["labels"][src["id"]]["label"] == "Test Article"
+
+    # Editing the citation shows the changed field; reordering alone shows nothing.
+    r = await client.patch(
+        f"/api/v1/citations/{cite['id']}?universe_id={uni}", json={"locator": "p. 4"}, headers=h
+    )
+    assert r.status_code == 200, r.text
+    r = await client.delete(f"/api/v1/citations/{cite['id']}?universe_id={uni}", headers=h)
+    assert r.status_code == 204, r.text
+    sources = [
+        e
+        for e in (await _history(client, h, uni, "incident", inc["id"])).json()["items"]
+        if e["link"] == "sources"
+    ]
+    # Newest first: removed, changed, added.
+    assert [bool(e["removed"]) for e in sources] == [True, False, False]
+    assert sources[1]["changed"] == [
+        {"key": src["id"], "from": {"locator": None}, "to": {"locator": "p. 4"}}
+    ]
+    assert sources[2]["added"] == [{"source_id": src["id"]}]
+    assert all(e["is_self"] and e["entity_id"] == inc["id"] for e in sources)
+
+    # The source's own history names the record it was cited on.
+    page = (await _history(client, h, uni, "source", src["id"])).json()
+    cited = [e for e in page["items"] if e["link"] == "cited_by"]
+    assert [e["added"] for e in cited if e["added"]] == [[{"record_id": inc["id"]}]]
+    assert page["labels"][inc["id"]]["type"] == "incident"
 
     page = (await _history(client, h, uni, "member", m["id"])).json()
     via = [e for e in page["items"] if e["link"] == "participants"]

@@ -8,17 +8,24 @@ audit_log stores two kinds of row (see app/core/audit.py):
   snapshot with the previous snapshot of the same entity. An UPDATE that
   changed nothing visible (only `updated_at`) diffs to nothing and is dropped.
 * **link changes**, written by `record_link_change` from the sync functions of
-  join tables (a member's sets and sources, an incident's participants, a set's
+  join tables (a member's sets, an incident's participants, a set's
   gangs and alliances, ...): already a delta, with `_related` naming every far
   side. An entity's history includes the link rows written on it *and* the ones
   written on other entities that name it, so a set's history shows "Member A
   was added to this set" and a member's shows the incidents they were put in.
+
+Sources are the exception. A citation is a row of its own, written through the
+ORM, so it is snapshotted like any audited table (entity_type "citation", the
+whole row on create, update and delete). `_citation_entry` turns those
+snapshots into the same link shape: "Sources" on the cited record's history,
+"Cited by" on the source's.
 
 Because empty updates are dropped after the diff, filtering and paging happen
 in Python over the entity's full history. One entity's history is tens to a
 few hundred rows, so that is cheaper than it sounds and keeps the counts right.
 """
 
+import contextlib
 import uuid
 from dataclasses import dataclass, field
 
@@ -30,11 +37,15 @@ from app.core.audit import LINK_MARKER
 from app.core.enums import AuditAction
 from app.models.alliance import Alliance
 from app.models.auth import AuditLog, User
+from app.models.business import Business
+from app.models.citation import CITATION_TARGETS, TARGET_COLUMN
+from app.models.court_case import CourtCase
 from app.models.gang import Gang
 from app.models.gang_set import GangSet
 from app.models.incident import Incident
 from app.models.member import Member
 from app.models.municipality import Municipality
+from app.models.rap_group import RapGroup
 from app.models.source import Source
 
 # API name -> (audit_log entity_type / table name, model)
@@ -63,6 +74,10 @@ _TEXT_FIELDS = {
     "card_description",
 }
 _LONG_TEXT = 120
+
+# A citation's own fields worth showing; `position` is list order, not content.
+_CITATION_FIELDS = ("locator", "quote", "note", "accessed_at")
+_CITATION_TARGET_COLUMNS = tuple(column for _, column, _ in CITATION_TARGETS)
 
 
 @dataclass
@@ -134,6 +149,8 @@ async def entity_history(
 ) -> list[HistoryEntry]:
     """Every visible change to one entity, newest first. `entity_type` is the API name."""
     table, _ = HISTORY_ENTITIES[entity_type]
+    # The citation column that names this entity: source_id on a source's page.
+    cite_column = "source_id" if entity_type == "source" else TARGET_COLUMN[entity_type]
     rows = (
         (
             await session.execute(
@@ -142,6 +159,8 @@ async def entity_history(
                     or_(
                         (AuditLog.entity_type == table) & (AuditLog.entity_id == entity_id),
                         AuditLog.diff_json["_related"].op("@>")(cast([str(entity_id)], JSONB)),
+                        (AuditLog.entity_type == "citation")
+                        & (AuditLog.diff_json[cite_column].astext == str(entity_id)),
                     )
                 )
                 .order_by(AuditLog.created_at, AuditLog.id)
@@ -154,8 +173,14 @@ async def entity_history(
     entries: list[HistoryEntry] = []
     prev_snapshot: dict | None = None
     seen_snapshot = False
+    citations: dict[uuid.UUID, dict] = {}  # citation id -> its last snapshot
     for row in rows:
         diff = row.diff_json or {}
+        if row.entity_type == "citation":
+            entry = _citation_entry(row, diff, citations, entity_type, entity_id)
+            if entry is not None:
+                entries.append(entry)
+            continue
         is_self = row.entity_type == table and row.entity_id == entity_id
         base = dict(
             id=row.id,
@@ -211,6 +236,58 @@ async def entity_history(
     return entries
 
 
+def _citation_entry(
+    row: AuditLog,
+    diff: dict,
+    citations: dict[uuid.UUID, dict],
+    entity_type: str,
+    entity_id: uuid.UUID,
+) -> HistoryEntry | None:
+    """One citation snapshot as a link entry on `entity_id`'s history, or None.
+
+    On a record's page the far side is the source; on a source's page it is the
+    record, under `record_id`. A create adds it, a delete removes it, and an
+    update shows the citation fields that changed. A reorder changes only
+    `position` and shows nothing.
+    """
+    prev = citations.get(row.entity_id)
+    citations[row.entity_id] = diff
+    if entity_type == "source":
+        link, key = "cited_by", "record_id"
+        far = next((diff[c] for c in _CITATION_TARGET_COLUMNS if diff.get(c)), None)
+    else:
+        link, key = "sources", "source_id"
+        far = diff.get("source_id")
+    if far is None:
+        return None
+    action = row.action.value if isinstance(row.action, AuditAction) else str(row.action)
+    entry = HistoryEntry(
+        id=row.id,
+        created_at=row.created_at,
+        action=action,
+        actor_id=row.user_id,
+        entity_type=entity_type,
+        entity_id=entity_id,
+        is_self=True,
+        link=link,
+        link_key=key,
+    )
+    view = {key: far, **{f: diff.get(f) for f in _CITATION_FIELDS if not _is_empty(diff.get(f))}}
+    if action == AuditAction.CREATE.value:
+        entry.added = [view]
+    elif action == AuditAction.DELETE.value:
+        entry.removed = [view]
+        citations.pop(row.entity_id, None)
+    else:
+        if prev is None:
+            return None  # no earlier snapshot to compare with
+        old = {f: prev.get(f) for f in _CITATION_FIELDS if prev.get(f) != diff.get(f)}
+        if not old:
+            return None
+        entry.changed = [{"key": str(far), "from": old, "to": {f: diff.get(f) for f in old}}]
+    return entry
+
+
 # ---------------------------------------------------------------------------
 # Labels: turn the UUIDs an entry mentions into names the page can link.
 # ---------------------------------------------------------------------------
@@ -221,10 +298,8 @@ def collect_ids(entries: list[HistoryEntry]) -> set[uuid.UUID]:
 
     def visit(v):
         if isinstance(v, str) and len(v) == 36:
-            try:
+            with contextlib.suppress(ValueError):
                 found.add(uuid.UUID(v))
-            except ValueError:
-                pass
         elif isinstance(v, uuid.UUID):
             found.add(v)
         elif isinstance(v, dict):
@@ -267,7 +342,14 @@ async def resolve_labels(session: AsyncSession, ids: set[uuid.UUID]) -> dict[str
     out: dict[str, dict] = {}
     for m in (await session.execute(select(Member).where(Member.id.in_(ids)))).scalars():
         out[str(m.id)] = {"type": "member", "label": m.display_name, "slug": m.slug}
-    for model, typ in ((GangSet, "set"), (Alliance, "alliance"), (Gang, "gang")):
+    named = (
+        (GangSet, "set"),
+        (Alliance, "alliance"),
+        (Gang, "gang"),
+        (RapGroup, "rap_group"),
+        (CourtCase, "court_case"),
+    )
+    for model, typ in named:
         stmt = select(model.id, model.name, model.slug).where(model.id.in_(ids))
         for i, name, slug in (await session.execute(stmt)).all():
             out[str(i)] = {"type": typ, "label": name, "slug": slug}
@@ -283,6 +365,10 @@ async def resolve_labels(session: AsyncSession, ids: set[uuid.UUID]) -> dict[str
         )
     ).all():
         out[str(i)] = {"type": "municipality", "label": name, "slug": None}
+    for i, name in (
+        await session.execute(select(Business.id, Business.name).where(Business.id.in_(ids)))
+    ).all():
+        out[str(i)] = {"type": "business", "label": name, "slug": None}
     return out
 
 
@@ -290,4 +376,4 @@ async def resolve_actors(session: AsyncSession, ids: set[uuid.UUID]) -> dict[uui
     if not ids:
         return {}
     rows = await session.execute(select(User.id, User.email).where(User.id.in_(ids)))
-    return {i: email for i, email in rows.all()}
+    return dict(rows.all())

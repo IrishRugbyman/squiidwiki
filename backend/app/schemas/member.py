@@ -5,7 +5,8 @@ from typing import Annotated, Any, Optional
 
 from pydantic import AfterValidator, BaseModel, computed_field, model_validator
 
-from app.core.enums import CustodySystem, MemberStatus, SetRank
+from app.core.enums import CustodySystem, MemberStatus, RapGroupRole, SetRank
+from app.schemas.citation import CitationRead
 from app.schemas.common import FuzzyDateField
 
 _BOP_REGISTER_NUMBER = re.compile(r"^(\d{5})-?(\d{3})$")
@@ -89,7 +90,6 @@ class MemberCreate(BaseModel):
     family: Optional[dict[str, Any]] = None
     social_media: Optional[dict[str, Any]] = None
     death_incident_id: Optional[uuid.UUID] = None
-    source_ids: list[uuid.UUID] = []
 
     @model_validator(mode="after")
     def _fix_primary(self) -> "MemberCreate":
@@ -116,7 +116,6 @@ class MemberUpdate(BaseModel):
     family: Optional[dict[str, Any]] = None
     social_media: Optional[dict[str, Any]] = None
     death_incident_id: Optional[uuid.UUID] = None
-    source_ids: Optional[list[uuid.UUID]] = None
 
     @model_validator(mode="after")
     def _fix_primary(self) -> "MemberUpdate":
@@ -132,6 +131,15 @@ def _ensure_single_primary(affiliations: list[MemberSetAffiliationIn]) -> None:
     primaries = [a for a in affiliations if a.is_primary]
     if not primaries:
         affiliations[0].is_primary = True
+
+
+class MemberRapGroupRef(BaseModel):
+    """A rap group or label as a member's page lists it."""
+
+    id: uuid.UUID
+    slug: Optional[str] = None
+    name: str
+    role: RapGroupRole
 
 
 class MemberRead(BaseModel):
@@ -151,6 +159,8 @@ class MemberRead(BaseModel):
     aliases: Optional[list[str]]
     biography: str
     affiliations: list[MemberSetAffiliationOut] = []
+    # Rap groups and labels, by position. Not sets: never an affiliation.
+    rap_groups: list[MemberRapGroupRef] = []
     primary_set_id: Optional[uuid.UUID] = None
     primary_set_name: Optional[str] = None
     primary_set_slug: Optional[str] = None
@@ -180,10 +190,13 @@ class MemberKilledInSummary(BaseModel):
     date: FuzzyDateField = None
     municipality_id: Optional[uuid.UUID] = None
     municipality_name: Optional[str] = None
+    # The incident's universe, which may not be the member's: he can be killed
+    # away from home. The card links to the incident under this slug.
+    universe_slug: Optional[str] = None
 
 
 class MemberReadDetail(MemberRead):
-    source_ids: list[uuid.UUID]
+    citations: list[CitationRead] = []
     alliance_name: Optional[str] = None
     alliance_slug: Optional[str] = None
     aliases_detail: list["MemberAliasRead"] = []
@@ -200,6 +213,7 @@ class MemberListItem(BaseModel):
     display_name: str
     status: MemberStatus
     affiliations: list[MemberSetAffiliationOut] = []
+    rap_groups: list[MemberRapGroupRef] = []
     primary_set_id: Optional[uuid.UUID] = None
     primary_set_name: Optional[str] = None
     primary_set_slug: Optional[str] = None
@@ -278,6 +292,9 @@ class MemberIncarcerationCreate(BaseModel):
     life_sentence: bool = False
     facility: Optional[str] = None
     case_id: Optional[str] = None
+    # The court case this spell was served for; case_id stays as the custody
+    # record wrote it.
+    court_case_id: Optional[uuid.UUID] = None
     notes: Optional[str] = None
 
 
@@ -289,6 +306,7 @@ class MemberIncarcerationUpdate(BaseModel):
     life_sentence: Optional[bool] = None
     facility: Optional[str] = None
     case_id: Optional[str] = None
+    court_case_id: Optional[uuid.UUID] = None
     notes: Optional[str] = None
 
 
@@ -304,6 +322,7 @@ class MemberIncarcerationRead(BaseModel):
     life_sentence: bool
     facility: Optional[str]
     case_id: Optional[str]
+    court_case_id: Optional[uuid.UUID] = None
     notes: Optional[str]
     created_at: datetime
 

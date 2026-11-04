@@ -48,7 +48,26 @@ def best_score(q: str, *columns: ColumnElement) -> ColumnElement:
     return scores[0] if len(scores) == 1 else sa.func.greatest(*scores)
 
 
-def ranked_select(model, where: ColumnElement, substring: ColumnElement, score: ColumnElement, *tiebreak):
+def name_variant_values(table: str) -> ColumnElement:
+    """The names and initials in a ``name_variants`` column, space-joined.
+
+    Sets and alliances hold their names in slots (``name``, ``initials``,
+    ``number``). Casting the JSON to text would score the key names too, so a
+    query like "num" would match every row; score the slot values only.
+    """
+
+    def slot(key: str) -> str:
+        return (
+            "(SELECT coalesce(string_agg(v #>> '{}', ' '), '') FROM jsonb_path_query("
+            f"{table}.name_variants, '$[*].{key} ? (@.type() == \"string\")') v)"
+        )
+
+    return sa.literal_column(f"({slot('name')} || ' ' || {slot('initials')})")
+
+
+def ranked_select(
+    model, where: ColumnElement, substring: ColumnElement, score: ColumnElement, *tiebreak
+):
     """SELECT ``model`` rows matching ``substring`` or scoring >= the threshold.
 
     Substring hits come first, then near-misses by descending score, then

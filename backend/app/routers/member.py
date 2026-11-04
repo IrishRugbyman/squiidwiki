@@ -9,12 +9,14 @@ from app.auth.dependencies import CurrentUser, require_global_role
 from app.core.csv_export import to_csv_response
 from app.core.database import get_session
 from app.core.enums import GlobalRole, MemberStatus
+from app.crud import citation as citation_crud
 from app.crud import member as crud
 from app.crud import member_merge as merge_crud
 from app.crud.stats import refresh_materialized_views
 from app.models.alliance import Alliance
 from app.models.incident import Incident
 from app.models.municipality import Municipality
+from app.models.universe import Universe
 from app.schemas.common import CursorPage
 from app.schemas.member import (
     AffiliationEnd,
@@ -130,7 +132,9 @@ async def similar_members(
     rows = await crud.find_similar_members(
         session, universe_id, name.strip(), threshold=threshold, exclude_id=exclude_id, limit=limit
     )
-    return [MemberSimilar(member=MemberListItem.model_validate(m), score=round(s, 3)) for m, s in rows]
+    return [
+        MemberSimilar(member=MemberListItem.model_validate(m), score=round(s, 3)) for m, s in rows
+    ]
 
 
 @router.get("/release-events", response_model=list[MemberReleaseEvent])
@@ -160,7 +164,7 @@ async def get_member(
 
     await crud.attach_primary_photos(session, [obj])
 
-    source_ids = await crud.list_member_source_ids(session, obj.id)
+    citations = await citation_crud.list_citations(session, "member", obj.id)
     aliases_detail = await crud.list_member_aliases(session, obj.id)
     incarcerations = await crud.list_member_incarcerations(session, obj.id)
     custody_ids = await crud.list_member_custody_ids(session, obj.id)
@@ -168,6 +172,7 @@ async def get_member(
 
     aff_map = await crud.load_member_affiliations(session, [obj.id])
     crud._attach_affiliations(obj, aff_map.get(obj.id, []))
+    await crud.attach_rap_groups(session, [obj])
 
     alliance_name = alliance_slug = None
     if obj.alliance_id:
@@ -189,8 +194,10 @@ async def get_member(
                     Incident.date,
                     Incident.municipality_id,
                     Municipality.name,
+                    Universe.slug,
                 )
                 .select_from(Incident)
+                .join(Universe, Universe.id == Incident.universe_id)
                 .outerjoin(Municipality, Municipality.id == Incident.municipality_id)
                 .where(Incident.id == obj.death_incident_id)
             )
@@ -202,6 +209,7 @@ async def get_member(
                 date=row[2],
                 municipality_id=row[3],
                 municipality_name=row[4],
+                universe_slug=row[5],
             )
 
     affiliations: list[MemberSetAffiliationOut] = getattr(obj, "affiliations", [])
@@ -221,6 +229,7 @@ async def get_member(
         bop_register_number=obj.bop_register_number,
         biography=obj.biography,
         affiliations=affiliations,
+        rap_groups=getattr(obj, "rap_groups", []),
         primary_set_id=primary.set_id if primary else None,
         primary_set_name=primary.set_name if primary else None,
         primary_set_slug=primary.set_slug if primary else None,
@@ -242,7 +251,7 @@ async def get_member(
     )
     return MemberReadDetail(
         **base.model_dump(),
-        source_ids=source_ids,
+        citations=citations,
         alliance_name=alliance_name,
         alliance_slug=alliance_slug,
         aliases_detail=[MemberAliasRead.model_validate(a) for a in aliases_detail],
