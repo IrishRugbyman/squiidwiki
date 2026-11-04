@@ -130,6 +130,14 @@ prison sentence, with the Status block attached to the single most recent spell
 still running, so concurrent sentences yield one projected release rather than
 three.
 
+**Re-importing is safe.** The form writes the spells through
+`POST /members/{id}/incarcerations/import`, which writes only what the member
+does not hold: a spell matches one on file with the same court file, first notes
+line (the offense) and dates, and matching is by count, so a second import of the
+same profile writes nothing while three identical felony-firearm counts stay
+three. Never post OTIS spells one by one to `/incarcerations`: that route writes
+whatever it is sent.
+
 **Probation is not imported, and this table holds no supervision.** OTIS covers
 probationers as well as prisoners, and a profile can carry probation sentences
 and no prison time at all - in which case the correct import result is zero

@@ -860,6 +860,12 @@ export interface MdocSpell {
   notes: string | null
 }
 
+/** `POST /members/{id}/incarcerations/import`: what was written, and how many were already on file. */
+export interface MemberIncarcerationImportResult {
+  created: MemberIncarcerationRead[]
+  matched: number
+}
+
 export interface MdocProfile {
   legal_name: string
   dob: FuzzyDateValue

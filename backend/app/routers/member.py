@@ -27,6 +27,8 @@ from app.schemas.member import (
     MemberCustodyIdRead,
     MemberCustodyIdUpdate,
     MemberIncarcerationCreate,
+    MemberIncarcerationImport,
+    MemberIncarcerationImportResult,
     MemberIncarcerationRead,
     MemberIncarcerationUpdate,
     MemberKilledInSummary,
@@ -468,6 +470,29 @@ async def create_member_incarceration(
     if obj is None:
         raise HTTPException(404)
     return await crud.create_member_incarceration(session, id, data)
+
+
+@router.post("/{id}/incarcerations/import", response_model=MemberIncarcerationImportResult)
+async def import_member_incarcerations(
+    id: uuid.UUID,
+    universe_id: uuid.UUID,
+    data: MemberIncarcerationImport,
+    _: CurrentUser,
+    session: Annotated[AsyncSession, Depends(get_session)],
+):
+    """Write the spells of one custody record (an OTIS import) that are not on file.
+
+    Safe to repeat: a spell matching one the member holds (same court file,
+    offense line and dates) is counted, not written again, and matching is by
+    count, so identical counts OTIS lists separately stay separate.
+    """
+    obj = await crud.get_member(session, id, universe_id)
+    if obj is None:
+        raise HTTPException(404)
+    created, matched = await crud.import_member_incarcerations(session, id, data.spells)
+    return MemberIncarcerationImportResult(
+        created=[MemberIncarcerationRead.model_validate(c) for c in created], matched=matched
+    )
 
 
 @router.patch("/{id}/incarcerations/{spell_id}", response_model=MemberIncarcerationRead)

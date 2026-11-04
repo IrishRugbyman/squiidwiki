@@ -14,7 +14,7 @@ import { FuzzyDateInput } from '@/components/FuzzyDateInput'
 import {
   useCreateMember, useUpdateMember, useBatchCitations,
   useAllSets, useAlliances, useGangs, useMember, useMemberSearch,
-  useMdocLookup, useMdocImportPhoto, useMemberIncarcerations,
+  useMdocLookup, useMdocImportPhoto, useMemberIncarcerations, useImportMemberIncarcerations,
   useCreateSet, useCreateAlliance, useCreateGang,
 } from '@/lib/queries'
 import { useDebounce } from '@/hooks/useDebounce'
@@ -507,6 +507,7 @@ function MemberFormSheetInner({ universeId, open, onClose, initial, defaultSetId
   const [error, setError] = useState<string | null>(null)
   const mdocLookup = useMdocLookup()
   const mdocImportPhoto = useMdocImportPhoto()
+  const importSpells = useImportMemberIncarcerations(universeId)
   const [mdocQuery, setMdocQuery] = useState('')
   // The spells the backend derived from OTIS's sentence rows, held until the
   // member exists to hang them on. One per prison sentence, so a discharged
@@ -654,31 +655,25 @@ function MemberFormSheetInner({ universeId, open, onClose, initial, defaultSetId
    */
   async function flushMdocPending(memberId: string) {
     if (!mdocPending) return
-    // Skip anything already on record. Court file numbers are what makes a
-    // re-import safe: the same OTIS profile imported twice would otherwise
-    // duplicate every spell. A spell OTIS gives no court file for cannot be
-    // matched, so it is imported and the count below says so.
-    const onRecord = new Set(
-      (existingIncarcerations.data ?? []).map((s) => s.case_id).filter(Boolean) as string[]
-    )
-    const toImport = mdocPending.spells.filter((s) => !s.case_id || !onRecord.has(s.case_id))
-    const skipped = mdocPending.spells.length - toImport.length
-    if (skipped > 0) {
-      toast.info(skipped === 1 ? 'Skipped 1 sentence already on record' : `Skipped ${skipped} sentences already on record`)
-    }
-    // Sequential, not Promise.all: spells arrive in the order OTIS lists them,
-    // and the list view orders by created_at.
-    let saved = 0
-    for (const spell of toImport) {
+    // The server decides what is already on record (same court file, offense
+    // line and dates, matched by count), so the same OTIS profile imported
+    // twice writes nothing the second time. This used to be decided here from
+    // the cached spell list, which the import itself never refreshed: a second
+    // import within the cache's five minutes saw the pre-import list and
+    // re-posted every sentence, and a fresh list skipped a new count on a
+    // court file already on record.
+    if (mdocPending.spells.length > 0) {
       try {
-        await api.post(`/members/${memberId}/incarcerations?universe_id=${universeId}`, spell)
-        saved += 1
+        const { created, matched } = await importSpells.mutateAsync({ memberId, spells: mdocPending.spells })
+        if (matched > 0) {
+          toast.info(matched === 1 ? 'Skipped 1 sentence already on record' : `Skipped ${matched} sentences already on record`)
+        }
+        if (created.length > 0) {
+          toast.success(created.length === 1 ? 'Imported MDOC incarceration record' : `Imported ${created.length} MDOC incarceration records`)
+        }
       } catch (e) {
-        toast.error(e instanceof Error ? `Couldn't save MDOC incarceration: ${e.message}` : "Couldn't save MDOC incarceration")
+        toast.error(e instanceof Error ? `Couldn't save MDOC incarcerations: ${e.message}` : "Couldn't save MDOC incarcerations")
       }
-    }
-    if (saved > 0) {
-      toast.success(saved === 1 ? 'Imported MDOC incarceration record' : `Imported ${saved} MDOC incarceration records`)
     }
     if (mdocPending.photo_url) {
       // Server-side fetch, which also avoids CORS on the MDOC URL. The photo
@@ -795,7 +790,7 @@ function MemberFormSheetInner({ universeId, open, onClose, initial, defaultSetId
             </p>
             {isEdit && existingSpellCount > 0 && (
               <p className="text-xs text-zinc-500">
-                {existingSpellCount === 1 ? '1 incarceration record' : `${existingSpellCount} incarceration records`} already on this member. Sentences matching one by court file number are skipped.
+                {existingSpellCount === 1 ? '1 incarceration record' : `${existingSpellCount} incarceration records`} already on this member. Sentences already on record (same court file, offense and dates) are skipped.
               </p>
             )}
             <div className="flex gap-2">

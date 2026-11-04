@@ -38,6 +38,8 @@ import type {
   IncidentRead,
   IncidentReadDetail,
   MdocProfile,
+  MdocSpell,
+  MemberIncarcerationImportResult,
   MediaEntityType,
   MunicipalityKind,
   MediaWithUrls,
@@ -1081,6 +1083,22 @@ export const useMdocImportPhoto = () =>
     mutationFn: (body: { photo_url: string; member_id: UUID; universe_id: UUID }) =>
       api.post('/mdoc/import-photo', body),
   })
+
+// Writes only the spells the member does not hold yet, matched by court file,
+// offense line and dates, and by count: re-importing a profile writes nothing,
+// and two identical counts OTIS lists separately stay two. The server decides,
+// because the client's cached list of spells is what let re-imports duplicate.
+export const useImportMemberIncarcerations = (universeId: UUID) => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ memberId, spells }: { memberId: UUID; spells: MdocSpell[] }) =>
+      api.post<MemberIncarcerationImportResult>(
+        `/members/${memberId}/incarcerations/import?universe_id=${universeId}`,
+        { spells },
+      ),
+    onSuccess: (_data, { memberId }) => qc.invalidateQueries({ queryKey: ['members', memberId] }),
+  })
+}
 
 export const useUniverseReleaseEvents = (universeId: UUID | null, year: number) =>
   useQuery({

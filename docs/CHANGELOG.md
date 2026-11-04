@@ -6,6 +6,32 @@ here ships, its line comes out of that file.
 
 ---
 
+## 2026-11-04 - Re-importing an OTIS profile no longer duplicates its spells
+
+Production held 103 groups of identical spells: same member, court file, offense
+line and dates, one sentence four times where OTIS lists it once. The member form
+decided what was already on record from its cached list of the member's spells
+(`['members', id, 'incarcerations']`, fresh for five minutes) and posted the rest
+one at a time with a bare `api.post` that never refreshed that cache. Saving the
+form refetched it in parallel with the first post, so it kept the pre-import list;
+the member page did the same and showed no new spells, and importing again inside
+those five minutes posted every sentence again. The same set-of-court-files check
+also skipped a genuinely new count on a file already on record.
+
+- `POST /members/{id}/incarcerations/import` (`import_member_incarcerations`)
+  decides on the server, under a lock on the member row: it matches by count on
+  `incarceration_match_key` (court file, first notes line, from and to dates),
+  so a repeat import writes nothing and identical counts stay separate. The form
+  uses it and invalidates the member's queries afterwards.
+- `$PY -m app.scripts.dedupe_incarcerations [--db test] [--go]` deletes the
+  extras. A sentence's legitimate number of copies is the most any one import
+  batch wrote (writes more than `--batch-gap` seconds apart are separate
+  imports); the oldest copies are kept, groups whose copies differ are left
+  alone, and groups that keep several rows are listed for checking against OTIS
+  (`--keep-one` collapses them). Deletions go to `audit_log` and a JSON backup.
+
+---
+
 ## 2026-10-04 - Incidents can move to another universe
 
 An incident belongs to the universe it happened in, and a state that gets its own

@@ -1,4 +1,5 @@
 import uuid
+from collections import Counter
 from datetime import UTC, datetime
 
 import sqlalchemy as sa
@@ -774,9 +775,37 @@ async def list_member_incarcerations(
     return result.scalars().all()
 
 
-async def create_member_incarceration(
+def _date_key(d) -> tuple | None:
+    """A FuzzyDate (model or stored dict) reduced to what makes two dates equal."""
+    if d is None:
+        return None
+    if not isinstance(d, dict):
+        d = d.model_dump()
+    precision = d.get("precision") or "UNKNOWN"
+    precision = getattr(precision, "value", precision)
+    if precision == "UNKNOWN" and d.get("year") is None:
+        return None
+    return (d.get("year"), d.get("month"), d.get("day"), precision)
+
+
+def incarceration_match_key(case_id, notes, from_date, to_date) -> tuple:
+    """What makes two spells the same sentence: court file, first notes line, dates.
+
+    The first notes line is the offense ("Offense: ..." on an OTIS import), so
+    two counts of one court file stay apart; the later lines (sentence, MCL,
+    discharge reason) are left out because they are what a re-check updates.
+    Shared with `app.scripts.dedupe_incarcerations`, which uses it to find the
+    duplicates the old client-side check let through.
+    """
+    case = (case_id or "").strip().upper() or None
+    first = (notes or "").split("\n", 1)[0].strip() or None
+    return (case, first, _date_key(from_date), _date_key(to_date))
+
+
+async def _add_member_incarceration(
     session: AsyncSession, member_id: uuid.UUID, data: MemberIncarcerationCreate
 ) -> MemberIncarceration:
+    """Stage one spell and link it to its case. Flushes; the caller commits."""
     obj = MemberIncarceration(
         member_id=member_id,
         from_date=_fuzzy_to_dict(data.from_date),
@@ -794,15 +823,70 @@ async def create_member_incarceration(
         notes=data.notes,
     )
     session.add(obj)
+    await session.flush()
     if obj.court_case_id is None:
         # Find or make the case its court file names (app.services.court_case_links).
         from app.services.court_case_links import link_spell
 
-        await session.flush()
         await link_spell(session, obj)
+    return obj
+
+
+async def create_member_incarceration(
+    session: AsyncSession, member_id: uuid.UUID, data: MemberIncarcerationCreate
+) -> MemberIncarceration:
+    obj = await _add_member_incarceration(session, member_id, data)
     await session.commit()
     await session.refresh(obj)
     return obj
+
+
+async def import_member_incarcerations(
+    session: AsyncSession, member_id: uuid.UUID, spells: list[MemberIncarcerationCreate]
+) -> tuple[list[MemberIncarceration], int]:
+    """Write the spells of one custody record that the member does not hold yet.
+
+    Returns (created, matched). Idempotent: importing the same OTIS profile
+    twice writes nothing the second time. Matching counts rather than sets,
+    because OTIS lists a separate row for every count and two counts can be
+    identical (three felony-firearm counts on one court file are three
+    sentences): two incoming against one on file writes one more, never zero
+    and never two.
+
+    This used to live in the member form, which skipped a sentence when its
+    court file was in its cached list of the member's spells. That cache was
+    not refreshed by the import itself, so a second import within the cache's
+    lifetime saw the pre-import list and re-posted every sentence.
+
+    The member row is locked for the duration, so two imports racing (a double
+    submit) cannot both see the spells missing.
+    """
+    await session.execute(select(Member.id).where(Member.id == member_id).with_for_update())
+    existing = (
+        (
+            await session.execute(
+                select(MemberIncarceration).where(MemberIncarceration.member_id == member_id)
+            )
+        )
+        .scalars()
+        .all()
+    )
+    on_file = Counter(
+        incarceration_match_key(s.case_id, s.notes, s.from_date, s.to_date) for s in existing
+    )
+    created: list[MemberIncarceration] = []
+    matched = 0
+    for data in spells:
+        key = incarceration_match_key(data.case_id, data.notes, data.from_date, data.to_date)
+        if on_file[key] > 0:
+            on_file[key] -= 1
+            matched += 1
+            continue
+        created.append(await _add_member_incarceration(session, member_id, data))
+    await session.commit()
+    for obj in created:
+        await session.refresh(obj)
+    return created, matched
 
 
 async def update_member_incarceration(
