@@ -666,3 +666,83 @@ MDOC OTIS, GDC), told apart only by a person's name in the title.
 **Decision.** Citations, not link rows, so a record can say where in a document
 its claim sits and what the document supports; and no backward compatibility,
 per the project's rule that a refactor updates every caller in the same change.
+
+
+---
+
+## 2026-11-03 - Fuzzy name search, a duplicate check, and full-text search
+
+Name search was `ILIKE '%q%'`, so one wrong letter found nothing, and a second record
+for someone already on file (the same name with a different last syllable) went in
+unnoticed. Member, set, alliance and source search now keep the substring match and
+add a pg_trgm `word_similarity` match at 0.5 or above, substring hits first and the
+rest by score; queries under three characters stay substring-only. Member search also
+scores `member_alias` rows. The threshold and the pairs it was calibrated on are in
+`app/core/fuzzy.py`. `/sets/search` now goes through `search_gang_sets` (it had been
+a shim over the list filter, which stays substring-only); it and alliance search
+score the variants' names and initials (`fuzzy.name_variant_values`), not their JSON
+keys. Source search (`/sources/search`, the picker and the palette) keeps the citation
+rebuild's ranking and URL pinning and adds the near-misses on the title after the
+substring hits; the source list's `?q=` filter stays substring-only.
+
+`GET /members/similar?name=` returns members whose nickname, legal name or alias is
+close to a name, with scores (1.0 is exact). The member form shows them under the
+name fields as "Possible duplicate"; nothing blocks the save. The `wiki` CLI can call
+the same endpoint before `member new`.
+
+`GET /search/text?q=` is full-text search (`websearch_to_tsquery`, english stemming)
+over member biographies, set bios, alliance descriptions, incident narratives and
+source titles + notes, ranked, with snippets returned as plain-text runs rather than
+HTML. ⌘K shows them as a "Mentioned in" group under the name matches. Migration
+`3c7f32fad6eb` adds the GIN expression indexes it uses, and a trigram index on
+`member_alias.alias`.
+
+---
+
+## 2026-11-03 - A History tab on every entity page, and an anomaly report
+
+**History.** `audit_log` had recorded every write since the first schema, but only
+the global Audit Log page read it, and only as raw row snapshots: finding who put a
+member in a set meant querying it by hand, and could not be answered at all,
+because join rows were never logged. `GET /history/{member|set|alliance|incident|source}/{id}`
+(admin only, like `/audit/`) returns one entity's changes newest first, paginated,
+with the actor's email and column-level old -> new. The listeners store a whole-row
+snapshot, so the diff is computed against the previous snapshot of the same entity,
+and a save that changed nothing visible is dropped.
+
+Join rows are the other half. Their sync functions replace every row with a Core
+DELETE and re-insert on each save, so a row-level listener would log "added" for
+every unchanged link on every edit and miss every delete. Instead each sync reads
+the rows first and calls `record_link_change` (`app/core/audit.py`), which writes
+one audit row on the owner only when the list actually changed: added, removed,
+and changed rows, plus `_related`, every far-side id. That covers a member's sets
+(including ending a spell), an incident's participants and set participants, a
+set's gangs and alliances, and an alliance's sets. Sources need none of it: since
+the citation rebuild each citation is a row written through the ORM and already
+snapshotted, so History reads those snapshots (`_citation_entry`) as "Sources" on the
+cited record and "Cited by" on the source, a reorder alone showing nothing; that
+part of the history reaches back to 2026-10-04. A GIN index on `diff_json -> '_related'` (migration `8ee2386f30c6`) lets the
+far side read them, so a set's History shows "Member A was added to this set" and a
+member's shows the incidents they were put in. Other link history starts with this
+change: nothing older was recorded.
+
+The tab is on the member, set, alliance, incident and source pages, for admins.
+Long text (biography, bio, description, narrative, notes) renders as a red/green
+word diff, everything else as old -> new, ids as links. The panel is its own lazy
+chunk; the main bundle grew by 0.4 kB gzipped.
+
+**Anomalies.** `wiki check` compares case files with the database; nothing looked
+for rows that contradict each other. `GET /admin/anomalies?universe_id=...` (admin,
+`kind=` repeatable to run a subset) runs the checks in `app/crud/anomalies.py`,
+plain functions over one load of the universe that a CLI can call directly:
+a member in a non-reserved set with nothing citing them (no citation, no
+citation on any incident they are in; `member_set` has no source column, so the link
+itself cannot be asked), DEAD with no date of death and no death incident, a
+participant in an incident after their death, or before their birth, an EXTINCT set
+in an incident in the last two years (sets have no extinction date), a death
+incident on a member who is not DEAD, a KILLED row on a member who is not DEAD,
+killed in two incidents, died before being born, and a set spell that ends before it
+starts. Every date comparison goes through the FuzzyDate's span (a Y date is the
+whole year, approximate widens it by a year each side) and reports only when the
+spans do not overlap. The page is `/$universe/anomalies`, in the admin part of the
+sidebar, grouped by check with links to both records.

@@ -1,14 +1,14 @@
 import { matchedVariantLabel } from '@/lib/setDisplay'
 import { useNavigate } from '@tanstack/react-router'
 import { useSwitchUniverse } from '@/hooks/useSwitchUniverse'
-import { AlertTriangle, Clock, FileText, Gavel, Globe, MapPin, Mic, Network, Plus, Shield, Users } from 'lucide-react'
+import { AlertTriangle, Clock, FileText, Gavel, Globe, MapPin, Mic, Network, Plus, Shield, TextSearch, Users } from 'lucide-react'
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '@/lib/api'
 import { useDebounce } from '@/hooks/useDebounce'
 import {
   useAllianceSearch, useCourtCaseSearch, useIncidentSearch, useMemberSearch, useMunicipalitySearch,
-  useRapGroupSearch, useSetSearch, useSourceSearch, useCreateUniverse,
+  useRapGroupSearch, useSetSearch, useSourceSearch, useTextSearch, useCreateUniverse,
 } from '@/lib/queries'
 import { useUniverseStore, type Universe } from '@/stores/universe'
 import { useAuthStore } from '@/stores/auth'
@@ -29,6 +29,7 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Button } from '@/components/ui/button'
 import type { FuzzyDateValue } from '@/components/FuzzyDate'
+import type { TextSearchHit } from '@/lib/types'
 
 // ─── Universe creation sheet (moved here from UniverseSwitcher) ───────────────
 
@@ -125,6 +126,34 @@ function groupHeading(label: string, total: number): string {
   return total > GROUP_CAP ? `${label} · ${total} matches` : label
 }
 
+// ─── Full-text hits ───────────────────────────────────────────────────────────
+
+const TEXT_HIT_PATH: Record<TextSearchHit['entity_type'], (h: TextSearchHit) => string> = {
+  member: (h) => `/members/${h.slug ?? h.id}`,
+  set: (h) => `/sets/${h.slug ?? h.id}`,
+  alliance: (h) => `/alliances/${h.slug ?? h.id}`,
+  incident: (h) => `/incidents/${h.id}`,
+  source: (h) => `/sources/${h.id}`,
+}
+
+const TEXT_HIT_KIND: Record<TextSearchHit['entity_type'], string> = {
+  member: 'bio',
+  set: 'set bio',
+  alliance: 'alliance',
+  incident: 'narrative',
+  source: 'source',
+}
+
+function Snippet({ segments }: { segments: TextSearchHit['snippet'] }) {
+  return (
+    <span className="line-clamp-2 text-[10px] leading-tight text-zinc-500">
+      {segments.map((s, i) =>
+        s.hit ? <mark key={i} className="rounded-sm bg-violet-500/20 px-0.5 text-zinc-200">{s.text}</mark> : <span key={i}>{s.text}</span>,
+      )}
+    </span>
+  )
+}
+
 // ─── Global command palette ───────────────────────────────────────────────────
 
 interface GlobalCommandPaletteProps {
@@ -162,6 +191,7 @@ export function GlobalCommandPalette({ open, onClose }: GlobalCommandPaletteProp
   const { data: caseResults } = useCourtCaseSearch(universeId, dq)
   const { data: sourceResults } = useSourceSearch(universeId, dq)
   const { data: municipalityResults } = useMunicipalitySearch(universeId, dq)
+  const { data: textResults } = useTextSearch(universeId, dq)
 
   const searching = dq.length >= 2
   const hasResults = searching && (
@@ -172,7 +202,8 @@ export function GlobalCommandPalette({ open, onClose }: GlobalCommandPaletteProp
     (incidentResults?.length ?? 0) > 0 ||
     (caseResults?.length ?? 0) > 0 ||
     (sourceResults?.length ?? 0) > 0 ||
-    (municipalityResults?.length ?? 0) > 0
+    (municipalityResults?.length ?? 0) > 0 ||
+    (textResults?.length ?? 0) > 0
   )
 
   function go(href: string) {
@@ -326,6 +357,26 @@ export function GlobalCommandPalette({ open, onClose }: GlobalCommandPaletteProp
                   <FileText className="mr-2 h-3.5 w-3.5 shrink-0 text-zinc-400" />
                   <span className="truncate">{src.title}</span>
                   <span className="ml-auto text-[10px] text-zinc-400">{src.reliability}</span>
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          )}
+
+          {/* Full-text matches in prose: after the name matches, which are the
+              likelier target. Labelled by where the words were found. */}
+          {searching && (textResults?.length ?? 0) > 0 && (
+            <CommandGroup heading="Mentioned in">
+              {textResults!.map((h) => (
+                <CommandItem key={`text-${h.entity_type}-${h.id}`} value={`text-${h.entity_type}-${h.id}`} onSelect={() => go(inUniverse(TEXT_HIT_PATH[h.entity_type](h)))}>
+                  <TextSearch className="mr-2 h-3.5 w-3.5 shrink-0 self-start text-zinc-400" />
+                  <span className="flex min-w-0 flex-col">
+                    <span className="truncate">
+                      {h.label}
+                      {h.date && <span className="ml-1.5 text-[10px] text-zinc-400">{fmtDate(h.date)}</span>}
+                    </span>
+                    <Snippet segments={h.snippet} />
+                  </span>
+                  <span className="ml-auto shrink-0 self-start pl-2 text-[10px] text-zinc-400">{TEXT_HIT_KIND[h.entity_type]}</span>
                 </CommandItem>
               ))}
             </CommandGroup>

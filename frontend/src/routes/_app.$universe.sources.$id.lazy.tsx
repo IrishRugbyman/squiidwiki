@@ -6,6 +6,7 @@ import { lazy, Suspense, useMemo, useState } from 'react'
 import { Breadcrumbs } from '@/components/Breadcrumbs'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { CopyButton } from '@/components/CopyButton'
+import { DetailViewTabs, HistoryPanel, type DetailView } from '@/components/history/HistoryPanel'
 import { ErrorState } from '@/components/ErrorState'
 import { FuzzyDate } from '@/components/FuzzyDate'
 import { LinkifiedText } from '@/components/LinkifiedText'
@@ -200,6 +201,10 @@ function SourceDetailPage() {
   const [citing, setCiting] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [tab, setTab] = useState<Tab | null>(null)
+  const [view, setView] = useState<DetailView>('overview')
+  // History reads the audit log, which is admin-only like the Audit Log page.
+  const isAdmin = user?.global_role === 'ADMIN'
+  const showHistory = isAdmin && view === 'history'
 
   useRecordRecent(source ? { type: 'source', id: source.id, slug: null, label: source.title } : null)
   useEditShortcut(() => source && setEditing(true))
@@ -266,7 +271,10 @@ function SourceDetailPage() {
           )}
         </header>
 
-        {tabs.length === 0 ? (
+        {isAdmin && <div className="mb-4"><DetailViewTabs value={view} onChange={setView} /></div>}
+        {showHistory ? (
+          <HistoryPanel entityType="source" entityId={source.id} universeId={universe.id} />
+        ) : tabs.length === 0 ? (
           <p className="rounded-lg border border-dashed border-zinc-800 px-4 py-6 text-center text-sm text-zinc-500">
             Nothing cites this source yet. <button type="button" className="text-violet-400 hover:underline" onClick={() => setCiting(true)}>Cite it on records…</button>
           </p>

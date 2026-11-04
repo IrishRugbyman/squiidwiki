@@ -7,6 +7,8 @@ from sqlalchemy import delete
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import func, select
 
+from app.core import fuzzy
+from app.core.audit import record_link_change
 from app.core.enums import SetRelationshipType
 from app.core.slug import slugify
 from app.crud.media import delete_media
@@ -124,6 +126,15 @@ async def _sync_alliance_sets(
         ).scalars()
     )
     dropped = current - set(wanted)
+    record_link_change(
+        session,
+        entity_type="alliance",
+        entity_id=alliance_id,
+        link="sets",
+        key="set_id",
+        before=[{"set_id": sid} for sid in current],
+        after=[{"set_id": sid} for sid in wanted],
+    )
     if dropped:
         await session.execute(
             delete(AllianceSet).where(
@@ -457,17 +468,23 @@ async def list_alliance_set_ids(session: AsyncSession, alliance_id: uuid.UUID) -
 async def search_alliances(session: AsyncSession, universe_id: uuid.UUID, q: str) -> list[Alliance]:
     """Match any slot of any name variant, or an emoji, as sets are searched."""
     pattern = f"%{q}%"
-    result = await session.execute(
-        select(Alliance)
-        .where(
-            Alliance.universe_id == universe_id,
-            Alliance.name.ilike(pattern)
-            | sa.cast(Alliance.name_variants, sa.Text).ilike(pattern)
-            | sa.cast(Alliance.emojis, sa.Text).ilike(pattern),
+    variants = sa.cast(Alliance.name_variants, sa.Text)
+    emojis = sa.cast(Alliance.emojis, sa.Text)
+    substring = Alliance.name.ilike(pattern) | variants.ilike(pattern) | emojis.ilike(pattern)
+    where = Alliance.universe_id == universe_id
+    if not fuzzy.use_fuzzy(q):
+        result = await session.execute(
+            select(Alliance).where(where, substring).order_by(Alliance.name)
         )
-        .order_by(Alliance.name)
+        return list(result.scalars().all())
+    stmt = fuzzy.ranked_select(
+        Alliance,
+        where,
+        substring,
+        fuzzy.best_score(q, Alliance.name, fuzzy.name_variant_values("alliance")),
+        Alliance.name,
     )
-    return list(result.scalars().all())
+    return list((await session.execute(stmt)).scalars().all())
 
 
 # ─── Alliance relationships ───────────────────────────────────────────────────

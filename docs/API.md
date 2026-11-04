@@ -126,7 +126,8 @@ POST   /api/v1/members/                          Create
 GET    /api/v1/members/{id}?universe_id=         Get (includes citations)
 PATCH  /api/v1/members/{id}?universe_id=         Update
 DELETE /api/v1/members/{id}?universe_id=         Delete (Admin)
-GET    /api/v1/members/search?universe_id=&q=    Trigram search on nickname/legal_name
+GET    /api/v1/members/search?universe_id=&q=    Substring, then trigram near-misses, on nickname/legal_name/aliases
+GET    /api/v1/members/similar?universe_id=&name=[&exclude_id=&threshold=0.5&limit=10]  Possible duplicates with scores (0..1)
 GET    /api/v1/members/{id}/stats?universe_id=   Kill/shooting stats
 ```
 
@@ -187,7 +188,7 @@ incident, set, alliance, court case, municipality, business). There is no
 GET    /api/v1/sources/?universe_id=&q=&kind=&reliability=&publication=&uncited=&sort=&order=&offset=&limit=
                                               {items, total, facets{kind, reliability}}; &format=csv for all rows
 POST   /api/v1/sources/                       Create; 409 duplicate_url / lookup_source (body: existing_id)
-GET    /api/v1/sources/search?universe_id=&q= Ranked over title, publication, URL; a pasted URL pins its match
+GET    /api/v1/sources/search?universe_id=&q= Ranked over title, publication, URL, then trigram near-misses on the title; a pasted URL pins its match
 GET    /api/v1/sources/lookup?universe_id=&url=
                                               {exact, lookup{source, suggested_locator}, same_host}
 GET    /api/v1/sources/{id}?universe_id=      With counts per record type
@@ -199,6 +200,7 @@ PATCH  /api/v1/sources/bulk?universe_id=      {ids, reliability?, kind?}
 POST   /api/v1/sources/{id}/merge?universe_id= {into_id} (Admin)
 DELETE /api/v1/sources/{id}?universe_id=&force=
                                               Admin; 409 source_in_use with counts unless force
+GET    /api/v1/search/text?universe_id=&q=[&types=member|set|alliance|incident|source&limit=20]  Full-text over bios, narratives, source notes
 ```
 
 ## Citations

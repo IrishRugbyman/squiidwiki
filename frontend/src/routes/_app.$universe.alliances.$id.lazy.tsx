@@ -1,11 +1,12 @@
 import { createLazyFileRoute, Link, useNavigate } from '@tanstack/react-router'
 import {
-  Activity, Copy, Download, GitFork, Image as ImageIcon, ListTree, MapPin, MoreHorizontal, Network, Pencil, Plus, Search,
+  Activity, Copy, Download, GitFork, History as HistoryIcon, Image as ImageIcon, ListTree, MapPin, MoreHorizontal, Network, Pencil, Plus, Search,
   Shield, ShieldAlert, Swords, Trash2, UserPlus, Users, X,
 } from 'lucide-react'
 import { lazy, Suspense, useEffect, useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import { Breadcrumbs } from '@/components/Breadcrumbs'
+import { HistoryPanel } from '@/components/history/HistoryPanel'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { CopyButton } from '@/components/CopyButton'
 import { DetailRow, IncidentRow, IncidentsYearStrip, None, PanelHeading, StatStrip } from '@/components/detail/DetailParts'
@@ -167,7 +168,9 @@ function AllianceDetailPage() {
   const user = useAuthStore((s) => s.user)
   const navigate = useNavigate()
 
-  const tab: AllianceTabKey = search.tab ?? 'overview'
+  // History reads the audit log, which is admin-only like the Audit Log page.
+  const canSeeHistory = user?.global_role === 'ADMIN'
+  const tab: AllianceTabKey = search.tab === 'history' && !canSeeHistory ? 'overview' : (search.tab ?? 'overview')
   const setTab = (next: AllianceTabKey) =>
     navigate({ from: '/$universe', to: '/$universe/alliances/$id', params: { id }, search: (s) => ({ ...s, tab: next === 'overview' ? undefined : next }), replace: true })
 
@@ -194,12 +197,13 @@ function AllianceDetailPage() {
       if (t && (t.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(t.tagName))) return
       const idx = Number(e.key) - 1
       if (!Number.isInteger(idx) || idx < 0 || idx >= ALLIANCE_TAB_KEYS.length) return
+      if (ALLIANCE_TAB_KEYS[idx] === 'history' && !canSeeHistory) return
       e.preventDefault()
       navigate({ from: '/$universe', to: '/$universe/alliances/$id', params: { id }, search: (s) => ({ ...s, tab: idx === 0 ? undefined : ALLIANCE_TAB_KEYS[idx] }), replace: true })
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [id, navigate])
+  }, [id, navigate, canSeeHistory])
 
   const [editing, setEditing] = useState(false)
   const [duplicating, setDuplicating] = useState(false)
@@ -393,6 +397,9 @@ function AllianceDetailPage() {
                 </TabsTrigger>
                 <TabsTrigger value="media" title={`Media (${tabNumber('media')})`}><ImageIcon className="mr-1.5 h-3.5 w-3.5" />Media</TabsTrigger>
                 <TabsTrigger value="activity" title={`Activity (${tabNumber('activity')})`}><Activity className="mr-1.5 h-3.5 w-3.5" />Activity</TabsTrigger>
+                {canSeeHistory && (
+                  <TabsTrigger value="history" title={`History (${tabNumber('history')})`}><HistoryIcon className="mr-1.5 h-3.5 w-3.5" />History</TabsTrigger>
+                )}
               </TabsList>
             </div>
 
@@ -664,6 +671,12 @@ function AllianceDetailPage() {
               <ActivityFeed entries={activity ?? []} loading={activityLoading}
                 emptyDescription={`Edits to ${alliance.name}, its sets and the members tagged to it will appear here.`} />
             </TabsContent>
+
+            {canSeeHistory && (
+              <TabsContent value="history" className="mt-4">
+                <HistoryPanel entityType="alliance" entityId={alliance.id} universeId={universeId} />
+              </TabsContent>
+            )}
           </Tabs>
 
           {/* Mounted only while open: each loads the universe's pickers. */}

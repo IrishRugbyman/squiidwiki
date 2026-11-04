@@ -234,6 +234,14 @@ class MemberListItem(BaseModel):
     is_snitch: bool = False
 
 
+class MemberSimilar(BaseModel):
+    """A possible duplicate: a member whose name is close to the one asked about."""
+
+    member: MemberListItem
+    # word_similarity, 0..1; 1.0 is an exact name, nickname or alias match.
+    score: float
+
+
 class MemberIncarcerationCreate(BaseModel):
     from_date: FuzzyDateField = None
     # When the spell ended. Set means historical; see the model for why that is

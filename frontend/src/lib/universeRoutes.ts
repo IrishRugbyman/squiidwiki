@@ -8,6 +8,7 @@
  *  universe called "members" and is redirected into the active universe. */
 export const SCOPED_SECTIONS = [
   'alliances',
+  'anomalies',
   'calendar',
   'cases',
   'gangs',

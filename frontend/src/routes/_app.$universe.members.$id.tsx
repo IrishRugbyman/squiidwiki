@@ -14,6 +14,7 @@ import { CitationsPanel } from '@/components/sources/CitationsPanel'
 import { ErrorState } from '@/components/ErrorState'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { Breadcrumbs } from '@/components/Breadcrumbs'
+import { DetailViewTabs, HistoryPanel, type DetailView } from '@/components/history/HistoryPanel'
 import { CopyButton } from '@/components/CopyButton'
 import { ShareImageButton } from '@/components/share/ShareImageButton'
 import { ageFromFuzzyDates, currentAffiliations, primaryAffiliation, timeAgo } from '@/lib/utils'
@@ -520,6 +521,7 @@ function MemberDetailPage() {
   const updateMember = useUpdateMember(memberUuid ?? '', universe?.id ?? '')
 
   const [editing, setEditing] = useState(false)
+  const [view, setView] = useState<DetailView>('overview')
   const [duplicating, setDuplicating] = useState(false)
   const [addingIncarceration, setAddingIncarceration] = useState(false)
   const [incarcerationDraft, setIncarcerationDraft] = useState<IncarcerationDraft>(EMPTY_INCARCERATION_DRAFT)
@@ -589,6 +591,8 @@ function MemberDetailPage() {
   }
 
   const isAdmin = user?.global_role === 'ADMIN'
+  // History reads the audit log, which is admin-only like the Audit Log page.
+  const showHistory = isAdmin && view === 'history'
   const primaryAff = member ? primaryAffiliation(member.affiliations) : null
   const otherCurrentAffs = member
     ? currentAffiliations(member.affiliations).filter((a) => a.set_id !== primaryAff?.set_id)
@@ -744,6 +748,13 @@ function MemberDetailPage() {
             </Link>
           )}
 
+          {isAdmin && <DetailViewTabs value={view} onChange={setView} />}
+          {showHistory && (
+            <HistoryPanel entityType="member" entityId={member.id} universeId={universe?.id ?? null} />
+          )}
+          {/* The overview stays mounted while History is open, so an
+              in-progress bio edit survives a look at the history. */}
+          <div className={showHistory ? 'hidden' : 'space-y-5'}>
           {/* Biography — inline under hero */}
           {editingBio ? (
             <div className="space-y-2">
@@ -1349,6 +1360,8 @@ function MemberDetailPage() {
                 )}
               </div>
             )}
+          </div>
+
           </div>
 
           {/* Dialogs */}

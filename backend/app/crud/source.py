@@ -13,6 +13,7 @@ import sqlalchemy as sa
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import func, select
 
+from app.core import fuzzy
 from app.core.enums import SourceReliability
 from app.core.errors import ApiError
 from app.core.sources import (
@@ -345,6 +346,9 @@ async def search_sources(
     """Best matches first, over title, publication and URL.
 
     A pasted URL puts its exact match, or its custody lookup source, first.
+    Substring matches come before near-misses: a title whose words are within
+    a trigram `word_similarity` of the query (see app/core/fuzzy.py), so one
+    wrong letter still finds the article.
     """
     q = q.strip()
     pinned: list[Source] = []
@@ -355,10 +359,16 @@ async def search_sources(
             canonical = await lookup_source(session, universe_id, system.value)
             if canonical is not None and canonical not in pinned:
                 pinned.insert(0, canonical)
+    substring = _text_clause(q)
+    match, ordering = substring, [_rank_expr(q).desc()]
+    if fuzzy.use_fuzzy(q):
+        near = fuzzy.word_score(q, Source.title)
+        match = substring | (near >= fuzzy.FUZZY_THRESHOLD)
+        ordering = [sa.case((substring, 1), else_=0).desc(), near.desc(), *ordering]
     rows = await session.execute(
         select(Source)
-        .where(Source.universe_id == universe_id, _text_clause(q))
-        .order_by(_rank_expr(q).desc(), Source.created_at.desc())
+        .where(Source.universe_id == universe_id, match)
+        .order_by(*ordering, Source.created_at.desc())
         .limit(limit)
     )
     seen = {s.id for s in pinned}

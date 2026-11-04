@@ -15,6 +15,7 @@ import {
   Mic,
   NotebookText,
   ScrollText,
+  ShieldQuestion,
   Search,
   Shield,
   Users,
@@ -282,6 +283,9 @@ function AppLayout() {
             {ADMIN_NAV_ITEMS.map((item) => (
               <NavLink key={item.to} {...item} onClick={() => setSidebarOpen(false)} />
             ))}
+            {universeSlug && (
+              <NavLink to="/$universe/anomalies" icon={ShieldQuestion} label="Anomalies" universe={universeSlug} onClick={() => setSidebarOpen(false)} />
+            )}
           </>
         )}
       </nav>

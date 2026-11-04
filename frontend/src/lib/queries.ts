@@ -24,9 +24,12 @@ import type {
   AllianceRelationshipItem,
   AllianceRead,
   AllianceReadDetail,
+  AnomalyReport,
   AuditLogRead,
   CursorPage,
   GangListItem,
+  HistoryEntityType,
+  HistoryPage,
   GangDetail,
   GangRead,
   GangWrite,
@@ -60,6 +63,8 @@ import type {
   SetLineageKind,
   SetListItem,
   SetRead,
+  TextSearchHit,
+  MemberSimilar,
   SetReadDetail,
   SetReadDetailFull,
   SetRelationshipType,
@@ -848,6 +853,29 @@ export const useMemberSearch = (universeId: UUID | null, q: string) =>
     placeholderData: keepPreviousData,
   })
 
+// Full-text search over prose (biographies, narratives, source notes). Needs 3+
+// characters: shorter queries are all stop words or noise.
+export const useTextSearch = (universeId: UUID | null, q: string) =>
+  useQuery({
+    queryKey: ['search', 'text', universeId, q],
+    queryFn: () => api.get<TextSearchHit[]>(`/search/text?universe_id=${universeId}&q=${encodeURIComponent(q)}&limit=10`),
+    enabled: !!universeId && q.trim().length >= 3,
+    placeholderData: keepPreviousData,
+  })
+
+// Members whose name is close to `name`: the duplicate check on the create form.
+export const useSimilarMembers = (universeId: UUID | null, name: string, excludeId?: UUID) =>
+  useQuery({
+    queryKey: ['members', 'similar', universeId, name, excludeId ?? null],
+    queryFn: () =>
+      api.get<MemberSimilar[]>(
+        `/members/similar?universe_id=${universeId}&name=${encodeURIComponent(name)}` +
+          (excludeId ? `&exclude_id=${excludeId}` : ''),
+      ),
+    enabled: !!universeId && name.trim().length >= 3,
+    staleTime: 30_000,
+  })
+
 export const useMember = (id: UUID, universeId: UUID | null) =>
   useQuery({
     queryKey: ['members', id],
@@ -1613,6 +1641,35 @@ export const useAuditLogs = (filters: {
       return api.get<OffsetPage<AuditLogRead>>(`/audit/?${params}`)
     },
     staleTime: 10_000,
+  })
+
+// ─── Entity history / anomalies (admin) ───────────────────────────────────────
+
+// Audit-log history of one entity, its link changes included. Fetched only
+// while the History tab is open.
+export const useEntityHistory = (
+  entityType: HistoryEntityType,
+  entityId: UUID,
+  universeId: UUID | null,
+  offset: number,
+  enabled: boolean,
+) =>
+  useQuery({
+    queryKey: ['history', entityType, entityId, offset],
+    queryFn: () =>
+      api.get<HistoryPage>(
+        `/history/${entityType}/${entityId}?universe_id=${universeId}&offset=${offset}&limit=25`,
+      ),
+    enabled: enabled && !!universeId && !!entityId,
+    placeholderData: keepPreviousData,
+  })
+
+export const useAnomalies = (universeId: UUID | null) =>
+  useQuery({
+    queryKey: ['anomalies', universeId],
+    queryFn: () => api.get<AnomalyReport>(`/admin/anomalies?universe_id=${universeId}`),
+    enabled: !!universeId,
+    staleTime: 30_000,
   })
 
 // ─── Users (admin) ────────────────────────────────────────────────────────────

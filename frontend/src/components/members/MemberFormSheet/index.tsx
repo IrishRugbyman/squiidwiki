@@ -29,6 +29,7 @@ import type { FuzzyDateValue } from '@/components/FuzzyDate'
 import { AffiliationCombobox, type ComboboxItem } from './pickers/AffiliationCombobox'
 import { setPickerItems } from '@/lib/setPicker'
 import { PhotoSection, flushPhotoQueue } from './sections/PhotoSection'
+import { PossibleDuplicates } from './sections/PossibleDuplicates'
 import { MemberStatusBadge } from '@/components/StatusBadge'
 
 // ─── Status styling ───────────────────────────────────────────────────────────
@@ -926,6 +927,12 @@ function MemberFormSheetInner({ universeId, open, onClose, initial, defaultSetId
                 <Input id="m-legal" value={legalName} onChange={(e) => setLegalName(e.target.value)} placeholder="Full legal name" />
               </div>
             </div>
+            <PossibleDuplicates
+              universeId={universeId}
+              nickname={nicknameUnknown ? '' : nickname}
+              legalName={legalName}
+              excludeId={initial?.id}
+            />
             <div className="space-y-1.5">
               <Label htmlFor="m-aliases">Aliases <span className="text-zinc-400">(comma-separated)</span></Label>
               <Input id="m-aliases" value={aliases} onChange={(e) => setAliases(e.target.value)} placeholder="e.g. Big L, Lucky" />

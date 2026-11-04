@@ -1,6 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router'
 
-export const ALLIANCE_TAB_KEYS = ['overview', 'sets', 'members', 'incidents', 'relationships', 'media', 'activity'] as const
+export const ALLIANCE_TAB_KEYS = ['overview', 'sets', 'members', 'incidents', 'relationships', 'media', 'activity', 'history'] as const
 export type AllianceTabKey = typeof ALLIANCE_TAB_KEYS[number]
 
 export interface AllianceSearch {

@@ -33,6 +33,7 @@ from app.schemas.member import (
     MemberReadDetail,
     MemberReleaseEvent,
     MemberSetAffiliationOut,
+    MemberSimilar,
     MemberStats,
     MemberUpdate,
 )
@@ -105,6 +106,31 @@ async def search_members(
     if len(q.strip()) < 2:
         return []
     return await crud.search_members(session, universe_id, q)
+
+
+@router.get("/similar", response_model=list[MemberSimilar])
+async def similar_members(
+    universe_id: uuid.UUID,
+    name: str,
+    _: CurrentUser,
+    session: Annotated[AsyncSession, Depends(get_session)],
+    threshold: float = Query(0.5, ge=0.1, le=1.0),
+    exclude_id: uuid.UUID | None = None,
+    limit: int = Query(10, ge=1, le=50),
+):
+    """Possible duplicates of ``name`` (nickname, legal name or alias), best first.
+
+    For the moment before a create: a name one syllable off an existing member
+    returns that member with its score. ``exclude_id`` leaves out the member being edited.
+    """
+    if len(name.strip()) < 3:
+        return []
+    rows = await crud.find_similar_members(
+        session, universe_id, name.strip(), threshold=threshold, exclude_id=exclude_id, limit=limit
+    )
+    return [
+        MemberSimilar(member=MemberListItem.model_validate(m), score=round(s, 3)) for m, s in rows
+    ]
 
 
 @router.get("/release-events", response_model=list[MemberReleaseEvent])

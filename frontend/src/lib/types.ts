@@ -1162,6 +1162,94 @@ export interface UserUniverseAccessItem {
   granted: boolean
 }
 
+// GET /search/text: full-text hits over biographies, set bios, alliance
+// descriptions, incident narratives and source titles + notes.
+export type TextSearchEntity = 'member' | 'set' | 'alliance' | 'incident' | 'source'
+
+export interface TextSearchHit {
+  entity_type: TextSearchEntity
+  id: UUID
+  label: string
+  slug: string | null
+  date: FuzzyDateValue | null
+  rank: number
+  // The matched passage as runs; `hit` marks the matched words. Plain text,
+  // never HTML.
+  snippet: { text: string; hit: boolean }[]
+}
+
+// GET /members/similar: a possible duplicate and how close its name is (0..1).
+export interface MemberSimilar {
+  member: MemberListItem
+  score: number
+}
+
+// Entity history (GET /history/{type}/{id}) — admin only
+export type HistoryEntityType = 'member' | 'set' | 'alliance' | 'incident' | 'source'
+
+export interface HistoryFieldChange {
+  field: string
+  old: unknown
+  new: unknown
+  /** scalar: old -> new. text: long prose, diffed word by word. opaque: a blob shown as "changed". */
+  kind: 'scalar' | 'text' | 'opaque'
+}
+
+export interface HistoryLinkChanged {
+  key: string
+  from: Record<string, unknown>
+  to: Record<string, unknown>
+}
+
+export interface HistoryEntry {
+  id: UUID
+  created_at: string
+  action: AuditAction
+  actor: { id: UUID; email: string | null } | null
+  /** The entity the audit row was written on; differs from the page's entity when is_self is false. */
+  entity_type: string
+  entity_id: UUID
+  is_self: boolean
+  link: string | null
+  link_key: string | null
+  added: Record<string, unknown>[]
+  removed: Record<string, unknown>[]
+  changed: HistoryLinkChanged[]
+  changes: HistoryFieldChange[]
+  baseline: boolean
+}
+
+export interface HistoryLabel {
+  type: string
+  label: string
+  slug: string | null
+}
+
+export interface HistoryPage {
+  items: HistoryEntry[]
+  total: number
+  labels: Record<string, HistoryLabel>
+}
+
+// Data anomalies (GET /admin/anomalies) — admin only
+export interface Anomaly {
+  kind: string
+  entity_type: 'member' | 'set' | 'incident'
+  entity_id: UUID
+  slug: string | null
+  display_name: string
+  message: string
+  related_type: string | null
+  related_id: UUID | null
+  related_label: string | null
+}
+
+export interface AnomalyReport {
+  universe_id: UUID
+  checks: { kind: string; title: string; count: number }[]
+  items: Anomaly[]
+}
+
 // Court cases
 
 export type CourtJurisdiction = 'US_FEDERAL' | 'US_STATE' | 'FR' | 'OTHER'

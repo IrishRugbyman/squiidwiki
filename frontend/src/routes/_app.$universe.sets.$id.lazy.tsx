@@ -1,5 +1,5 @@
 import { createLazyFileRoute, Link, useNavigate } from '@tanstack/react-router'
-import { Activity, Copy, Download, GitFork, Image as ImageIcon, ListTree, MapPin, MoreHorizontal, Pencil, Plus, Search, ShieldAlert, Swords, Trash2, UserPlus, Users, X } from 'lucide-react'
+import { Activity, Copy, Download, GitFork, History as HistoryIcon, Image as ImageIcon, ListTree, MapPin, MoreHorizontal, Pencil, Plus, Search, ShieldAlert, Swords, Trash2, UserPlus, Users, X } from 'lucide-react'
 import { useEffect, useMemo, useState, lazy, Suspense } from 'react'
 import { toast } from 'sonner'
 import {
@@ -28,6 +28,7 @@ import { ShareImageButton } from '@/components/share/ShareImageButton'
 import { currentAffiliations, fuzzyDateSortKey, timeAgo, UNDATED_SORT_KEY } from '@/lib/utils'
 import { downloadText } from '@/lib/download'
 import { DetailHeaderSkeleton } from '@/components/skeletons'
+import { HistoryPanel } from '@/components/history/HistoryPanel'
 import { Skeleton } from '@/components/ui/skeleton'
 import { GangPill, SetAvatar, SetFormSheet } from './_app.$universe.sets.index'
 import { TAB_KEYS, type TabKey } from './_app.$universe.sets.$id'
@@ -428,9 +429,16 @@ function SetDetailPage() {
 
   // System sets have no relationships or media, so their tabs, and the number
   // keys that reach them, are left out rather than opening a blank panel.
+  // History reads the audit log, which is admin-only like the Audit Log page.
+  const canSeeHistory = user?.global_role === 'ADMIN'
   const visibleTabs = useMemo<readonly TabKey[]>(
-    () => TAB_KEYS.filter((k) => !isReserved || (k !== 'relationships' && k !== 'media')),
-    [isReserved],
+    () =>
+      TAB_KEYS.filter(
+        (k) =>
+          (!isReserved || (k !== 'relationships' && k !== 'media')) &&
+          (k !== 'history' || canSeeHistory),
+      ),
+    [isReserved, canSeeHistory],
   )
   const tab: TabKey = search.tab && visibleTabs.includes(search.tab) ? search.tab : 'overview'
   const setTab = (next: TabKey) => navigate({ from: '/$universe', to: '/$universe/sets/$id', params: { id }, search: (s) => ({ ...s, tab: next === 'overview' ? undefined : next }), replace: true })
@@ -746,6 +754,9 @@ function SetDetailPage() {
                   <TabsTrigger value="media" title={`Media (${tabNumber('media')})`}><ImageIcon className="mr-1.5 h-3.5 w-3.5" />Media</TabsTrigger>
                 )}
                 <TabsTrigger value="activity" title={`Activity (${tabNumber('activity')})`}><Activity className="mr-1.5 h-3.5 w-3.5" />Activity</TabsTrigger>
+                {canSeeHistory && (
+                  <TabsTrigger value="history" title={`History (${tabNumber('history')})`}><HistoryIcon className="mr-1.5 h-3.5 w-3.5" />History</TabsTrigger>
+                )}
               </TabsList>
             </div>
 
@@ -1084,6 +1095,13 @@ function SetDetailPage() {
             <TabsContent value="activity" className="mt-4">
               <ActivityFeed entries={activityData ?? []} loading={activityLoading} emptyDescription={`Edits to ${set.name} or any of its members will appear here.`} />
             </TabsContent>
+            {canSeeHistory && (
+              <TabsContent value="history" className="mt-4">
+                {tab === 'history' && (
+                  <HistoryPanel entityType="set" entityId={set.id} universeId={universe?.id ?? null} />
+                )}
+              </TabsContent>
+            )}
           </Tabs>
 
           {universe && <SetFormSheet universeId={universe.id} open={editing} onClose={() => setEditing(false)} initial={set} />}

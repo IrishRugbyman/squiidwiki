@@ -168,10 +168,20 @@ async def search_sets(
     _: CurrentUser,
     session: Annotated[AsyncSession, Depends(get_session)],
 ):
-    """Backwards-compat shim. New callers should use GET /sets/?q= instead."""
+    """Name search for the command palette and pickers: substring hits first,
+    then trigram near-misses by score (see app/core/fuzzy.py). The list page's
+    ``GET /sets/?q=`` filter stays substring-only.
+    """
     if len(q.strip()) < 2:
         return []
-    items, _total = await crud.list_gang_sets(session, universe_id, offset=0, limit=200, q=q)
+    ranked = (await crud.search_gang_sets(session, universe_id, q.strip()))[:200]
+    if not ranked:
+        return []
+    order = {s.id: i for i, s in enumerate(ranked)}
+    items, _total = await crud.list_gang_sets(
+        session, universe_id, offset=0, limit=len(ranked), ids=list(order)
+    )
+    items.sort(key=lambda o: order[o.id])
     return [_to_list_item(o) for o in items]
 
 

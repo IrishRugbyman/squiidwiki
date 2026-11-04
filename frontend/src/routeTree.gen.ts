@@ -22,6 +22,7 @@ import { Route as AppAdminGangsRouteImport } from './routes/_app.admin.gangs'
 import { Route as AppUniverseTimelineRouteImport } from './routes/_app.$universe.timeline'
 import { Route as AppUniverseMapRouteImport } from './routes/_app.$universe.map'
 import { Route as AppUniverseCalendarRouteImport } from './routes/_app.$universe.calendar'
+import { Route as AppUniverseAnomaliesRouteImport } from './routes/_app.$universe.anomalies'
 import { Route as AppUniverseSourcesIndexRouteImport } from './routes/_app.$universe.sources.index'
 import { Route as AppUniverseSetsIndexRouteImport } from './routes/_app.$universe.sets.index'
 import { Route as AppUniverseResearchIndexRouteImport } from './routes/_app.$universe.research.index'
@@ -110,6 +111,13 @@ const AppUniverseCalendarRoute = AppUniverseCalendarRouteImport.update({
   path: '/calendar',
   getParentRoute: () => AppUniverseRoute,
 } as any)
+const AppUniverseAnomaliesRoute = AppUniverseAnomaliesRouteImport.update({
+  id: '/anomalies',
+  path: '/anomalies',
+  getParentRoute: () => AppUniverseRoute,
+} as any).lazy(() =>
+  import('./routes/_app.$universe.anomalies.lazy').then((d) => d.Route),
+)
 const AppUniverseSourcesIndexRoute = AppUniverseSourcesIndexRouteImport.update({
   id: '/sources/',
   path: '/sources/',
@@ -262,6 +270,7 @@ export interface FileRoutesByFullPath {
   '/audit': typeof AppAuditRoute
   '/profile': typeof AppProfileRoute
   '/universes': typeof AppUniversesRoute
+  '/$universe/anomalies': typeof AppUniverseAnomaliesRoute
   '/$universe/calendar': typeof AppUniverseCalendarRoute
   '/$universe/map': typeof AppUniverseMapRoute
   '/$universe/timeline': typeof AppUniverseTimelineRoute
@@ -296,6 +305,7 @@ export interface FileRoutesByTo {
   '/profile': typeof AppProfileRoute
   '/universes': typeof AppUniversesRoute
   '/': typeof AppIndexRoute
+  '/$universe/anomalies': typeof AppUniverseAnomaliesRoute
   '/$universe/calendar': typeof AppUniverseCalendarRoute
   '/$universe/map': typeof AppUniverseMapRoute
   '/$universe/timeline': typeof AppUniverseTimelineRoute
@@ -333,6 +343,7 @@ export interface FileRoutesById {
   '/_app/profile': typeof AppProfileRoute
   '/_app/universes': typeof AppUniversesRoute
   '/_app/': typeof AppIndexRoute
+  '/_app/$universe/anomalies': typeof AppUniverseAnomaliesRoute
   '/_app/$universe/calendar': typeof AppUniverseCalendarRoute
   '/_app/$universe/map': typeof AppUniverseMapRoute
   '/_app/$universe/timeline': typeof AppUniverseTimelineRoute
@@ -370,6 +381,7 @@ export interface FileRouteTypes {
     | '/audit'
     | '/profile'
     | '/universes'
+    | '/$universe/anomalies'
     | '/$universe/calendar'
     | '/$universe/map'
     | '/$universe/timeline'
@@ -404,6 +416,7 @@ export interface FileRouteTypes {
     | '/profile'
     | '/universes'
     | '/'
+    | '/$universe/anomalies'
     | '/$universe/calendar'
     | '/$universe/map'
     | '/$universe/timeline'
@@ -440,6 +453,7 @@ export interface FileRouteTypes {
     | '/_app/profile'
     | '/_app/universes'
     | '/_app/'
+    | '/_app/$universe/anomalies'
     | '/_app/$universe/calendar'
     | '/_app/$universe/map'
     | '/_app/$universe/timeline'
@@ -565,6 +579,13 @@ declare module '@tanstack/react-router' {
       path: '/calendar'
       fullPath: '/$universe/calendar'
       preLoaderRoute: typeof AppUniverseCalendarRouteImport
+      parentRoute: typeof AppUniverseRoute
+    }
+    '/_app/$universe/anomalies': {
+      id: '/_app/$universe/anomalies'
+      path: '/anomalies'
+      fullPath: '/$universe/anomalies'
+      preLoaderRoute: typeof AppUniverseAnomaliesRouteImport
       parentRoute: typeof AppUniverseRoute
     }
     '/_app/$universe/sources/': {
@@ -718,6 +739,7 @@ declare module '@tanstack/react-router' {
 }
 
 interface AppUniverseRouteChildren {
+  AppUniverseAnomaliesRoute: typeof AppUniverseAnomaliesRoute
   AppUniverseCalendarRoute: typeof AppUniverseCalendarRoute
   AppUniverseMapRoute: typeof AppUniverseMapRoute
   AppUniverseTimelineRoute: typeof AppUniverseTimelineRoute
@@ -746,6 +768,7 @@ interface AppUniverseRouteChildren {
 }
 
 const AppUniverseRouteChildren: AppUniverseRouteChildren = {
+  AppUniverseAnomaliesRoute: AppUniverseAnomaliesRoute,
   AppUniverseCalendarRoute: AppUniverseCalendarRoute,
   AppUniverseMapRoute: AppUniverseMapRoute,
   AppUniverseTimelineRoute: AppUniverseTimelineRoute,

@@ -9,6 +9,8 @@ from sqlalchemy import case, delete
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import func, select
 
+from app.core import fuzzy
+from app.core.audit import load_link_rows, record_link_change
 from app.core.enums import SetRelationshipType, SetStatus
 from app.core.fuzzy_date import FuzzyDate
 from app.core.slug import slugify
@@ -200,6 +202,18 @@ async def _sync_set_gangs(session: AsyncSession, obj: GangSet, gang_ids: list[uu
                 status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
                 detail=f"gang_ids not in this universe: {', '.join(missing)}",
             )
+    before = await load_link_rows(
+        session, SetGang, SetGang.set_id == obj.id, ["gang_id", "position"]
+    )
+    record_link_change(
+        session,
+        entity_type="sets",
+        entity_id=obj.id,
+        link="gangs",
+        key="gang_id",
+        before=before,
+        after=[{"gang_id": g, "position": i} for i, g in enumerate(gang_ids)],
+    )
     await session.execute(delete(SetGang).where(SetGang.set_id == obj.id))
     await session.flush()
     for position, gang_id in enumerate(gang_ids):
@@ -237,7 +251,19 @@ async def _sync_set_alliances(
                 status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
                 detail=f"alliance_ids not in this universe: {', '.join(missing)}",
             )
-    before = set(await list_set_alliance_ids(session, obj.id))
+    before_rows = await load_link_rows(
+        session, AllianceSet, AllianceSet.set_id == obj.id, ["alliance_id", "position"]
+    )
+    before = {r["alliance_id"] for r in before_rows}
+    record_link_change(
+        session,
+        entity_type="sets",
+        entity_id=obj.id,
+        link="alliances",
+        key="alliance_id",
+        before=before_rows,
+        after=[{"alliance_id": a, "position": i} for i, a in enumerate(alliance_ids)],
+    )
     await session.execute(delete(AllianceSet).where(AllianceSet.set_id == obj.id))
     await session.flush()
     for position, alliance_id in enumerate(alliance_ids):
@@ -403,8 +429,11 @@ def _apply_set_filters(
     gang_id: FilterId = None,
     municipality_id: FilterId = None,
     reserved: bool | None = None,
+    ids: list[uuid.UUID] | None = None,
 ):
     stmt = stmt.where(GangSet.universe_id == universe_id)
+    if ids is not None:
+        stmt = stmt.where(GangSet.id.in_(ids))
     # None: everything. False: the real sets only. True: the system sets only.
     if reserved is not None:
         stmt = stmt.where(GangSet.is_reserved.is_(reserved))
@@ -452,6 +481,7 @@ async def list_gang_sets(
     gang_id: FilterId = None,
     municipality_id: FilterId = None,
     reserved: bool | None = None,
+    ids: list[uuid.UUID] | None = None,
     sort: SortKey = "name",
     order: SortOrder = "asc",
 ) -> tuple[list[GangSet], int]:
@@ -470,6 +500,7 @@ async def list_gang_sets(
         gang_id=gang_id,
         municipality_id=municipality_id,
         reserved=reserved,
+        ids=ids,
     )
     total = (await session.execute(count_stmt)).scalar_one()
 
@@ -507,6 +538,7 @@ async def list_gang_sets(
         gang_id=gang_id,
         municipality_id=municipality_id,
         reserved=reserved,
+        ids=ids,
     )
 
     sort_cols: dict[str, sa.sql.ColumnElement] = {
@@ -1170,12 +1202,20 @@ async def get_set_max_updated_at(session: AsyncSession, set_id: uuid.UUID) -> da
 
 async def search_gang_sets(session: AsyncSession, universe_id: uuid.UUID, q: str) -> list[GangSet]:
     pattern = f"%{q}%"
-    result = await session.execute(
-        select(GangSet).where(
-            GangSet.universe_id == universe_id,
-            GangSet.name.ilike(pattern) | sa.cast(GangSet.name_variants, sa.Text).ilike(pattern),
-        )
+    variants = sa.cast(GangSet.name_variants, sa.Text)
+    substring = GangSet.name.ilike(pattern) | variants.ilike(pattern)
+    where = GangSet.universe_id == universe_id
+    if not fuzzy.use_fuzzy(q):
+        result = await session.execute(select(GangSet).where(where, substring))
+        return result.scalars().all()
+    stmt = fuzzy.ranked_select(
+        GangSet,
+        where,
+        substring,
+        fuzzy.best_score(q, GangSet.name, fuzzy.name_variant_values("sets")),
+        GangSet.name,
     )
+    result = await session.execute(stmt)
     return result.scalars().all()
 
 
