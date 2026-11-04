@@ -386,3 +386,50 @@ async def test_allies_made_by_joining_an_alliance_reach_history(
         r["set_id"] if e["is_self"] else e["entity_id"] for e in allies for r in e["added"]
     )
     assert got == sorted([elder["id"], joiner["id"]])
+
+
+async def test_deleting_a_gang_reaches_the_history_of_its_sets_and_alliances(
+    client: AsyncClient, db_session: AsyncSession
+):
+    """Deleting a gang changes each set's and alliance's gang list and its
+    gang_id mirror, and each member's gang_id: all of it on their History."""
+    h = await _admin(client, db_session)
+    uni = await _universe(client, h)
+    g1 = await _post(client, h, "/api/v1/gangs/", {"universe_id": uni, "name": f"First {_uid()}"})
+    g2 = await _post(client, h, "/api/v1/gangs/", {"universe_id": uni, "name": f"Second {_uid()}"})
+    s = await _post(
+        client,
+        h,
+        "/api/v1/sets/",
+        {"universe_id": uni, "name": f"Crew {_uid()}", "gang_ids": [g1["id"], g2["id"]]},
+    )
+    a = await _post(
+        client,
+        h,
+        "/api/v1/alliances/",
+        {"universe_id": uni, "name": f"Bloc {_uid()}", "gang_ids": [g1["id"]]},
+    )
+    m = await _post(
+        client,
+        h,
+        "/api/v1/members/",
+        {"universe_id": uni, "nickname": f"Followup {_uid()}", "gang_id": g1["id"]},
+    )
+    resp = await client.delete(f"/api/v1/gangs/{g1['id']}?universe_id={uni}", headers=h)
+    assert resp.status_code == 204, resp.text
+
+    items = await _history(client, h, uni, "set", s["id"])
+    gangs = _links(items, "gangs")[0]  # newest first
+    assert [r["gang_id"] for r in gangs["removed"]] == [g1["id"]]
+    assert gangs["changed"] == [{"key": g2["id"], "from": {"position": 1}, "to": {"position": 0}}]
+    mirror = [c for e in items for c in e["changes"] if c["field"] == "gang_id"]
+    assert mirror and mirror[0]["old"] == g1["id"] and mirror[0]["new"] == g2["id"]
+
+    items = await _history(client, h, uni, "alliance", a["id"])
+    assert [r["gang_id"] for r in _links(items, "gangs")[0]["removed"]] == [g1["id"]]
+    mirror = [c for e in items for c in e["changes"] if c["field"] == "gang_id"]
+    assert mirror and mirror[0]["old"] == g1["id"] and mirror[0]["new"] is None
+
+    items = await _history(client, h, uni, "member", m["id"])
+    mirror = [c for e in items for c in e["changes"] if c["field"] == "gang_id"]
+    assert mirror and mirror[0]["old"] == g1["id"] and mirror[0]["new"] is None
