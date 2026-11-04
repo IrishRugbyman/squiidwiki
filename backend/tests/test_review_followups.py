@@ -523,3 +523,149 @@ async def test_business_member_and_set_edits_are_recorded(
     on_set = _links(await _history(client, h, uni, "set", s["id"]), "sets")
     assert [e["entity_id"] for e in on_set] == [b["id"], b["id"]]
     assert on_set[0]["removed"] == [{"set_id": s["id"]}]
+
+
+# --- 4. FuzzyDate validation --------------------------------------------------
+
+_IMPOSSIBLE = [
+    # Not on the calendar.
+    {"year": 2021, "month": 2, "day": 29, "precision": "YMD"},  # 2021 is not a leap year
+    {"year": 1900, "month": 2, "day": 29, "precision": "YMD"},  # nor is 1900
+    {"year": 2020, "month": 2, "day": 30, "precision": "YMD"},
+    {"year": 2020, "month": 4, "day": 31, "precision": "YMD"},
+    {"year": 2020, "month": 1, "day": 32, "precision": "YMD"},
+    {"year": 2020, "month": 1, "day": 0, "precision": "YMD"},
+    {"year": 2020, "month": 13, "precision": "YM"},
+    {"year": 2020, "month": 0, "precision": "YM"},
+    {"year": 0, "precision": "Y"},
+    {"year": 10000, "precision": "Y"},
+    {"month": 2, "day": 30, "precision": "UNKNOWN"},
+    # A day means nothing without its month.
+    {"year": 2020, "day": 5, "precision": "UNKNOWN"},
+    # The precision says which parts are known, so it must match them: no part
+    # it claims may be missing, and no part finer than it may be there.
+    {"year": 2020, "month": 5, "precision": "YMD"},
+    {"year": 2020, "precision": "YM"},
+    {"month": 5, "precision": "YM"},
+    {"precision": "Y"},
+    {"year": 2020, "month": 5, "precision": "Y"},
+    {"year": 2020, "month": 5, "day": 5, "precision": "Y"},
+    {"year": 2020, "month": 5, "day": 5, "precision": "YM"},
+]
+
+_POSSIBLE = [
+    {"year": 2020, "month": 2, "day": 29, "precision": "YMD"},
+    {"year": 2000, "month": 2, "day": 29, "precision": "YMD"},
+    {"year": 2019, "month": 12, "day": 31, "precision": "YMD"},
+    {"year": 2019, "month": 4, "day": 30, "precision": "YMD"},
+    {"year": 2019, "month": 11, "precision": "YM"},
+    {"year": 1999, "precision": "Y", "approx": True},
+    {"precision": "UNKNOWN"},
+    {},
+    # UNKNOWN keeps what is known without claiming it (the death sync copies
+    # no date from one): a year alone, or a day and month with no year, where
+    # 29 February may be right.
+    {"year": 2015, "precision": "UNKNOWN"},
+    {"month": 2, "day": 29, "precision": "UNKNOWN"},
+    {"circa_text": "early 1990s", "precision": "UNKNOWN"},
+]
+
+
+@pytest.mark.parametrize("date", _IMPOSSIBLE)
+def test_fuzzy_date_refuses_an_impossible_date(date: dict):
+    from pydantic import ValidationError
+
+    from app.core.fuzzy_date import FuzzyDate
+
+    with pytest.raises(ValidationError):
+        FuzzyDate(**date)
+
+
+@pytest.mark.parametrize("date", _POSSIBLE)
+def test_fuzzy_date_accepts_a_real_date(date: dict):
+    from app.core.fuzzy_date import FuzzyDate
+
+    fd = FuzzyDate(**date)
+    fd.display()
+    fd.to_sortable_date()
+
+
+def test_fuzzy_date_validation_survives_python_O():
+    """`assert` is stripped under `python -O`; the validation must not be."""
+    import subprocess
+    import sys
+    from pathlib import Path
+
+    code = (
+        "from pydantic import ValidationError\n"
+        "from app.core.fuzzy_date import FuzzyDate\n"
+        "try:\n"
+        "    FuzzyDate(year=2020, precision='YMD')\n"
+        "except ValidationError:\n"
+        "    raise SystemExit(0)\n"
+        "raise SystemExit(1)\n"
+    )
+    backend = Path(__file__).resolve().parents[1]
+    result = subprocess.run(
+        [sys.executable, "-O", "-c", code], cwd=backend, capture_output=True, text=True
+    )
+    assert result.returncode == 0, result.stderr
+
+
+async def test_impossible_dates_are_a_422_on_every_entity(
+    client: AsyncClient, db_session: AsyncSession
+):
+    """A FuzzyDate is validated wherever one is written: a member's birth and
+    death, an incident's date, a court case's filing, a business's founding,
+    a set's membership, a spell in custody; on create and on update."""
+    h = await _admin(client, db_session)
+    uni = await _universe(client, h)
+    q = f"?universe_id={uni}"
+    bad = {"year": 2021, "month": 2, "day": 29, "precision": "YMD"}
+    loose = {"year": 2021, "month": 2, "precision": "Y"}
+    good = {"year": 2020, "month": 2, "day": 29, "precision": "YMD"}
+
+    mid = await _member(client, h, uni, f"Followup {_uid()}")
+    s = await _post(client, h, "/api/v1/sets/", {"universe_id": uni, "name": f"Crew {_uid()}"})
+    incident = await _post(client, h, "/api/v1/incidents/", {"universe_id": uni, "type": "FIGHT"})
+    case = await _post(
+        client,
+        h,
+        "/api/v1/court-cases/",
+        {
+            "universe_id": uni,
+            "name": f"People v. Nobody {_uid()}",
+            "jurisdiction": "US_STATE",
+            "court": "Example Circuit Court",
+        },
+    )
+    shop = await _post(
+        client,
+        h,
+        "/api/v1/businesses/",
+        {"universe_id": uni, "name": f"Shop {_uid()}", "business_type": "NIGHTLIFE"},
+    )
+    writes = [
+        ("POST", "/api/v1/members/", lambda d: {"universe_id": uni, "nickname": "X", "dob": d}),
+        ("PATCH", f"/api/v1/members/{mid}{q}", lambda d: {"date_of_death": d}),
+        (
+            "PATCH",
+            f"/api/v1/members/{mid}{q}",
+            lambda d: {"affiliations": [{"set_id": s["id"], "from_date": d}]},
+        ),
+        ("POST", f"/api/v1/members/{mid}/incarcerations{q}", lambda d: {"from_date": d}),
+        ("POST", "/api/v1/incidents/", lambda d: {"universe_id": uni, "type": "FIGHT", "date": d}),
+        ("PATCH", f"/api/v1/incidents/{incident['id']}{q}", lambda d: {"date": d}),
+        ("PATCH", f"/api/v1/court-cases/{case['id']}{q}", lambda d: {"filed_at": d}),
+        ("PATCH", f"/api/v1/businesses/{shop['id']}{q}", lambda d: {"founded_at": d}),
+    ]
+    for method, path, body in writes:
+        for date in (bad, loose):
+            code, text_ = await _status(
+                db_session, client.request(method, path, json=body(date), headers=h)
+            )
+            assert code == 422, (method, path, date, code, text_)
+        code, text_ = await _status(
+            db_session, client.request(method, path, json=body(good), headers=h)
+        )
+        assert code in (200, 201), (method, path, code, text_)
