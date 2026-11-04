@@ -261,3 +261,128 @@ async def test_patching_a_required_field_to_null_is_a_422(
     code, body = await _status(db_session, client.patch(path, json={field: None}, headers=h))
     assert code == 422, (kind, field, code, body)
     assert field in body
+
+
+# --- 3. join-table changes reach History --------------------------------------
+
+
+async def _history(client: AsyncClient, h: dict, uni: str, kind: str, eid: str) -> list[dict]:
+    resp = await client.get(f"/api/v1/history/{kind}/{eid}?universe_id={uni}", headers=h)
+    assert resp.status_code == 200, resp.text
+    return resp.json()["items"]
+
+
+def _links(items: list[dict], link: str) -> list[dict]:
+    return [e for e in items if e["link"] == link]
+
+
+async def _link_rows(session: AsyncSession, entity_type: str, eid: str) -> list[dict]:
+    """The link-change audit rows written on one entity, oldest first."""
+    from sqlalchemy import text
+
+    rows = (
+        await session.execute(
+            text(
+                "SELECT diff_json FROM audit_log WHERE entity_type = :t AND entity_id = :i "
+                "AND diff_json ? '_link' ORDER BY created_at, id"
+            ),
+            {"t": entity_type, "i": eid},
+        )
+    ).scalars()
+    return list(rows)
+
+
+async def test_set_ally_and_enemy_edits_reach_history(
+    client: AsyncClient, db_session: AsyncSession
+):
+    """Every join-table sync calls record_link_change (backend/CLAUDE.md). A
+    set's allies and enemies are a join table, so editing them shows on its
+    History, and on the other set's through _related."""
+    h = await _admin(client, db_session)
+    uni = await _universe(client, h)
+
+    async def crew() -> str:
+        return (
+            await _post(client, h, "/api/v1/sets/", {"universe_id": uni, "name": f"Crew {_uid()}"})
+        )["id"]
+
+    me, friend, foe = await crew(), await crew(), await crew()
+    resp = await client.patch(
+        f"/api/v1/sets/{me}?universe_id={uni}",
+        json={"friend_ids": [friend], "enemy_ids": [foe]},
+        headers=h,
+    )
+    assert resp.status_code == 200, resp.text
+    items = await _history(client, h, uni, "set", me)
+    assert [r["set_id"] for e in _links(items, "allies") for r in e["added"]] == [friend]
+    assert [r["set_id"] for e in _links(items, "enemies") for r in e["added"]] == [foe]
+    # The other side sees it too.
+    theirs = _links(await _history(client, h, uni, "set", foe), "enemies")
+    assert len(theirs) == 1 and theirs[0]["entity_id"] == me
+
+    # The ally turns enemy: off one list, onto the other.
+    resp = await client.patch(
+        f"/api/v1/sets/{me}?universe_id={uni}",
+        json={"friend_ids": [], "enemy_ids": [foe, friend]},
+        headers=h,
+    )
+    assert resp.status_code == 200, resp.text
+    items = await _history(client, h, uni, "set", me)
+    assert [r["set_id"] for e in _links(items, "allies") for r in e["removed"]] == [friend]
+    newest_enemies = _links(items, "enemies")[0]  # newest first
+    assert [r["set_id"] for r in newest_enemies["added"]] == [friend]
+
+    # A save that changes nothing records nothing.
+    before = len(await _history(client, h, uni, "set", me))
+    resp = await client.patch(
+        f"/api/v1/sets/{me}?universe_id={uni}",
+        json={"friend_ids": [], "enemy_ids": [foe, friend]},
+        headers=h,
+    )
+    assert resp.status_code == 200, resp.text
+    assert len(await _history(client, h, uni, "set", me)) == before
+
+
+async def test_allies_made_by_joining_an_alliance_reach_history(
+    client: AsyncClient, db_session: AsyncSession
+):
+    """Joining an alliance befriends its sets (CLAUDE.md). Those allies are
+    written to the same join table, so they reach History the same way, whether
+    the set joins (set PATCH) or the alliance takes it in (alliance PATCH)."""
+    h = await _admin(client, db_session)
+    uni = await _universe(client, h)
+    bloc = await _post(
+        client, h, "/api/v1/alliances/", {"universe_id": uni, "name": f"Bloc {_uid()}"}
+    )
+    elder = await _post(
+        client,
+        h,
+        "/api/v1/sets/",
+        {"universe_id": uni, "name": f"Elder {_uid()}", "alliance_ids": [bloc["id"]]},
+    )
+    joiner = await _post(client, h, "/api/v1/sets/", {"universe_id": uni, "name": f"J {_uid()}"})
+    resp = await client.patch(
+        f"/api/v1/sets/{joiner['id']}?universe_id={uni}",
+        json={"alliance_ids": [bloc["id"]]},
+        headers=h,
+    )
+    assert resp.status_code == 200, resp.text
+    allies = _links(await _history(client, h, uni, "set", joiner["id"]), "allies")
+    assert [r["set_id"] for e in allies for r in e["added"]] == [elder["id"]]
+    assert _links(await _history(client, h, uni, "set", elder["id"]), "allies")
+
+    # From the alliance's side: its set_ids gain a set.
+    late = await _post(client, h, "/api/v1/sets/", {"universe_id": uni, "name": f"L {_uid()}"})
+    resp = await client.patch(
+        f"/api/v1/alliances/{bloc['id']}?universe_id={uni}",
+        json={"set_ids": [elder["id"], joiner["id"], late["id"]]},
+        headers=h,
+    )
+    assert resp.status_code == 200, resp.text
+    # Each new pair is recorded once, on one of its sets; the other sees it
+    # through _related, filtered to the rows about itself.
+    allies = _links(await _history(client, h, uni, "set", late["id"]), "allies")
+    got = sorted(
+        r["set_id"] if e["is_self"] else e["entity_id"] for e in allies for r in e["added"]
+    )
+    assert got == sorted([elder["id"], joiner["id"]])

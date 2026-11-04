@@ -143,9 +143,23 @@ async def _sync_set_relationships(
         )
     )
 
+    current = existing.scalars().all()
+    record_relationship_change(
+        session,
+        set_id,
+        before=[
+            {
+                "set_id": r.set_b_id if r.set_a_id == set_id else r.set_a_id,
+                "type": r.relationship_type,
+            }
+            for r in current
+        ],
+        after=[{"set_id": b if a == set_id else a, "type": t} for (a, b), t in desired.items()],
+    )
+
     seen: set[tuple[uuid.UUID, uuid.UUID]] = set()
     stale = False
-    for rel in existing.scalars().all():
+    for rel in current:
         key = (rel.set_a_id, rel.set_b_id)
         want = desired.get(key)
         if want is not None and want == rel.relationship_type and key not in seen:
@@ -179,8 +193,52 @@ async def _sync_alliance_auto_allies(
         )
     )
     sibling_ids = result.scalars().all()
-    for sibling_id in sibling_ids:
-        await befriend_alliance_pair(session, set_id, sibling_id)
+    befriended = [
+        sibling_id
+        for sibling_id in sibling_ids
+        if await befriend_alliance_pair(session, set_id, sibling_id) is not None
+    ]
+    record_relationship_change(
+        session,
+        set_id,
+        before=[],
+        after=[{"set_id": s, "type": SetRelationshipType.FRIEND} for s in befriended],
+    )
+
+
+def record_relationship_change(
+    session: AsyncSession, set_id: uuid.UUID, *, before: list[dict], after: list[dict]
+) -> None:
+    """Record a change to a set's current allies and enemies on its History.
+
+    `set_relationships` is not an audited table, so like every join-table sync
+    the writer records the change itself (backend/CLAUDE.md). Rows are
+    {"set_id": <the other set>, "type": FRIEND | ENEMY}; they are written as
+    two link lists on the set, "allies" and "enemies", keyed by set_id, the
+    names `app.scripts.backfill_alliance_allies` already writes. The other set
+    sees the change through `_related`, so it is recorded once, on `set_id`.
+    """
+    for link, rel_type in (
+        ("allies", SetRelationshipType.FRIEND),
+        ("enemies", SetRelationshipType.ENEMY),
+    ):
+        record_link_change(
+            session,
+            entity_type="sets",
+            entity_id=set_id,
+            link=link,
+            key="set_id",
+            before=[
+                {"set_id": r["set_id"], "relationship_type": rel_type.value}
+                for r in before
+                if r["type"] == rel_type
+            ],
+            after=[
+                {"set_id": r["set_id"], "relationship_type": rel_type.value}
+                for r in after
+                if r["type"] == rel_type
+            ],
+        )
 
 
 async def befriend_alliance_pair(
