@@ -6,6 +6,7 @@ from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import func, select
 
+from app.core.audit import record_link_change
 from app.core.enums import RapGroupKind, RapGroupStatus, SetRelationshipType
 from app.core.slug import slugify
 from app.crud import incident as incident_crud
@@ -108,6 +109,28 @@ async def _sync_members(
         .scalars()
         .all()
     }
+    fields = ["member_id", "role", "since", "until", "position"]
+    # rap_group_member is audited row by row, but a deleted row is logged as
+    # {"deleted": true} under no id of its own, so History records the list
+    # on the group like every other join table (backend/CLAUDE.md).
+    record_link_change(
+        session,
+        entity_type="rap_group",
+        entity_id=group.id,
+        link="members",
+        key="member_id",
+        before=[{f: getattr(r, f) for f in fields} for r in current.values()],
+        after=[
+            {
+                "member_id": m.member_id,
+                "role": m.role,
+                "since": _fuzzy_to_dict(m.since),
+                "until": _fuzzy_to_dict(m.until),
+                "position": position,
+            }
+            for position, m in enumerate(members)
+        ],
+    )
     wanted = {m.member_id for m in members}
     for member_id, row in current.items():
         if member_id not in wanted:
@@ -190,6 +213,29 @@ async def _sync_relationships(
         .scalars()
         .all()
     )
+
+    def _other(a: uuid.UUID, b: uuid.UUID) -> uuid.UUID:
+        return b if a == group.id else a
+
+    for link, rel_type in (
+        ("allies", SetRelationshipType.FRIEND),
+        ("enemies", SetRelationshipType.ENEMY),
+    ):
+        record_link_change(
+            session,
+            entity_type="rap_group",
+            entity_id=group.id,
+            link=link,
+            key="rap_group_id",
+            before=[
+                {"rap_group_id": _other(r.rap_group_a_id, r.rap_group_b_id)}
+                for r in existing
+                if r.relationship_type == rel_type
+            ],
+            after=[
+                {"rap_group_id": _other(a, b)} for (a, b), t in desired.items() if t == rel_type
+            ],
+        )
     kept: set[tuple[uuid.UUID, uuid.UUID]] = set()
     for rel in existing:
         key = (rel.rap_group_a_id, rel.rap_group_b_id)

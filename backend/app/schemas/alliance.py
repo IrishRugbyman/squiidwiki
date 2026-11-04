@@ -6,7 +6,7 @@ from pydantic import BaseModel, model_validator
 
 from app.core.enums import AllianceStatus, SetLineageKind, SetRelationshipType
 from app.schemas.citation import CitationRead
-from app.schemas.common import FuzzyDateField
+from app.schemas.common import FuzzyDateField, refuse_null
 from app.schemas.gang_set import IncidentsPerYear
 from app.schemas.names import (
     NameVariant,
@@ -53,6 +53,7 @@ class AllianceCreate(BaseModel):
 
 
 class AllianceUpdate(BaseModel):
+    _required = refuse_null("status")
     model_config = {"extra": "forbid"}
 
     # Derived from the primary name variant, never set on its own: a rename is

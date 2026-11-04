@@ -11,6 +11,7 @@ from app.core import fuzzy
 from app.core.audit import load_link_rows, record_link_change
 from app.core.enums import SetRelationshipType
 from app.core.slug import slugify
+from app.crud.gang_set import record_relationship_change
 from app.crud.media import delete_media
 from app.models.alliance import (
     Alliance,
@@ -184,6 +185,7 @@ async def _sync_alliance_friend_relationships(
         select(AllianceSet.set_id).where(AllianceSet.alliance_id == alliance_id)
     )
     set_ids = result.scalars().all()
+    befriended: dict[uuid.UUID, list[uuid.UUID]] = {}
     for i, a_id in enumerate(set_ids):
         for b_id in set_ids[i + 1 :]:
             a, b = (a_id, b_id) if a_id < b_id else (b_id, a_id)
@@ -201,6 +203,15 @@ async def _sync_alliance_friend_relationships(
                         set_a_id=a, set_b_id=b, relationship_type=SetRelationshipType.FRIEND
                     )
                 )
+                befriended.setdefault(a_id, []).append(b_id)
+    # On the History of each pair's first set; the other sees it through _related.
+    for set_id, others in befriended.items():
+        record_relationship_change(
+            session,
+            set_id,
+            before=[],
+            after=[{"set_id": o, "type": SetRelationshipType.FRIEND} for o in others],
+        )
 
 
 async def _sync_alliance_gangs(

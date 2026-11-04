@@ -7,6 +7,7 @@ from sqlalchemy import delete
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import func, select
 
+from app.core.audit import load_link_rows, record_link_change
 from app.core.slug import slugify
 from app.crud.media import attach_primary_photos_sets
 from app.models.alliance import Alliance, AllianceGang
@@ -486,46 +487,75 @@ async def _renumber(session: AsyncSession, model, owner) -> uuid.UUID | None:
     return rows[0][0] if rows else None
 
 
+async def _detach_gang(
+    session: AsyncSession, gang_id: uuid.UUID, link_model, owner_col, owner_model, entity_type: str
+) -> None:
+    """Drop a deleted gang from every set's (or alliance's) gang list.
+
+    The rest of each list is renumbered from 0 and its new first gang mirrored
+    into the owner's gang_id; an owner whose mirror names the gang with no
+    join row (written before the join table) is cleared too. The list change
+    is recorded as the owner's "gangs" link, like `_sync_set_gangs` and
+    `_sync_alliance_gangs` record it.
+    """
+    owner_ids = set(
+        (await session.execute(select(owner_col).where(link_model.gang_id == gang_id))).scalars()
+    )
+    before = {
+        oid: await load_link_rows(session, link_model, owner_col == oid, ["gang_id", "position"])
+        for oid in owner_ids
+    }
+    await session.execute(delete(link_model).where(link_model.gang_id == gang_id))
+    owners = (
+        (
+            await session.execute(
+                select(owner_model).where(
+                    owner_model.id.in_(owner_ids) | (owner_model.gang_id == gang_id)
+                )
+            )
+        )
+        .scalars()
+        .all()
+    )
+    for owner in owners:
+        next_gang = None
+        if owner.id in owner_ids:
+            next_gang = await _renumber(session, link_model, owner_col == owner.id)
+            record_link_change(
+                session,
+                entity_type=entity_type,
+                entity_id=owner.id,
+                link="gangs",
+                key="gang_id",
+                before=before[owner.id],
+                after=await load_link_rows(
+                    session, link_model, owner_col == owner.id, ["gang_id", "position"]
+                ),
+            )
+        if owner.gang_id != next_gang:
+            owner.gang_id = next_gang
+            session.add(owner)
+
+
 async def delete_gang(session: AsyncSession, id: uuid.UUID, universe_id: uuid.UUID) -> bool:
     obj = await get_gang(session, id, universe_id)
     if obj is None:
         return False
-    # Detach references (FK is ON DELETE SET NULL, but we explicitly clear so
-    # audit listeners observe the change).
+    # Detach references (FK is ON DELETE SET NULL, but we clear them here so
+    # the History of every set, alliance and member shows the change). The
+    # mirror columns are written through the ORM, which the audit listeners
+    # snapshot; the join rows are recorded with record_link_change, as every
+    # join-table sync does (backend/CLAUDE.md).
     # A set that claims this gang among others keeps the others, and whichever
     # is next in line becomes its primary (the mirror in sets.gang_id).
-    affected = list(
-        (await session.execute(select(SetGang.set_id).where(SetGang.gang_id == id))).scalars()
-    )
-    await session.execute(delete(SetGang).where(SetGang.gang_id == id))
-    for set_id in affected:
-        next_gang = await _renumber(session, SetGang, SetGang.set_id == set_id)
-        await session.execute(
-            GangSet.__table__.update().where(GangSet.id == set_id).values(gang_id=next_gang)
-        )
-    await session.execute(
-        GangSet.__table__.update().where(GangSet.gang_id == id).values(gang_id=None)
-    )
+    await _detach_gang(session, id, SetGang, SetGang.set_id, GangSet, "sets")
     # Alliances the same way: the next gang in line becomes the primary.
-    affected_alliances = list(
-        (
-            await session.execute(
-                select(AllianceGang.alliance_id).where(AllianceGang.gang_id == id)
-            )
-        ).scalars()
-    )
-    await session.execute(delete(AllianceGang).where(AllianceGang.gang_id == id))
-    for alliance_id in affected_alliances:
-        next_gang = await _renumber(session, AllianceGang, AllianceGang.alliance_id == alliance_id)
-        await session.execute(
-            Alliance.__table__.update().where(Alliance.id == alliance_id).values(gang_id=next_gang)
-        )
-    await session.execute(
-        Alliance.__table__.update().where(Alliance.gang_id == id).values(gang_id=None)
-    )
-    await session.execute(
-        Member.__table__.update().where(Member.gang_id == id).values(gang_id=None)
-    )
+    await _detach_gang(session, id, AllianceGang, AllianceGang.alliance_id, Alliance, "alliance")
+    members = (await session.execute(select(Member).where(Member.gang_id == id))).scalars().all()
+    for m in members:
+        m.gang_id = None
+        session.add(m)
+    await session.flush()
     await session.delete(obj)
     await session.commit()
     return True

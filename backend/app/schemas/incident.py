@@ -2,7 +2,7 @@ import uuid
 from datetime import datetime
 from typing import Optional
 
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 
 from app.core.enums import (
     IncidentType,
@@ -11,7 +11,7 @@ from app.core.enums import (
     ParticipantRole,
 )
 from app.schemas.citation import CitationRead
-from app.schemas.common import FuzzyDateField
+from app.schemas.common import FuzzyDateField, refuse_null
 
 
 class ParticipantCreate(BaseModel):
@@ -66,7 +66,41 @@ class SetParticipantRead(BaseModel):
     set_slug: Optional[str] = None
 
 
-class IncidentCreate(BaseModel):
+def _once_each(items: list | None, key: str, what: str) -> list | None:
+    """Refuse a list naming the same member (or set) twice.
+
+    incident_participant is keyed on (incident_id, member_id) and
+    incident_set_participant on (incident_id, set_id): one role and one
+    outcome each. A second row for the same one is bad input, which the
+    database would only report as a primary-key violation (a 500).
+    """
+    if not items:
+        return items
+    seen: set = set()
+    twice: list[str] = []
+    for item in items:
+        value = getattr(item, key)
+        if value in seen and str(value) not in twice:
+            twice.append(str(value))
+        seen.add(value)
+    if twice:
+        raise ValueError(f"{what} listed more than once: {', '.join(twice)}")
+    return items
+
+
+class _ParticipantLists(BaseModel):
+    @field_validator("participants", check_fields=False)
+    @classmethod
+    def _members_once(cls, v):
+        return _once_each(v, "member_id", "member")
+
+    @field_validator("set_participants", check_fields=False)
+    @classmethod
+    def _sets_once(cls, v):
+        return _once_each(v, "set_id", "set")
+
+
+class IncidentCreate(_ParticipantLists):
     universe_id: uuid.UUID
     type: IncidentType
     date: FuzzyDateField = None
@@ -80,7 +114,8 @@ class IncidentCreate(BaseModel):
     set_participants: list[SetParticipantCreate] = []
 
 
-class IncidentUpdate(BaseModel):
+class IncidentUpdate(_ParticipantLists):
+    _required = refuse_null("type", "verified")
     type: Optional[IncidentType] = None
     date: FuzzyDateField = None
     municipality_id: Optional[uuid.UUID] = None

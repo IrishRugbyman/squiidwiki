@@ -1,3 +1,4 @@
+import calendar
 import datetime
 from typing import Optional
 
@@ -16,12 +17,44 @@ class FuzzyDate(BaseModel):
 
     @model_validator(mode="after")
     def validate_fields(self) -> "FuzzyDate":
-        if self.precision == DatePrecision.YMD:
-            assert self.year and self.month and self.day, "YMD requires year, month, day"
-        elif self.precision == DatePrecision.YM:
-            assert self.year and self.month, "YM requires year and month"
-        elif self.precision == DatePrecision.Y:
-            assert self.year, "Y requires year"
+        """The parts must make a date on the calendar, and match the precision.
+
+        Raises ValueError (a 422 in a request), never `assert`, which
+        `python -O` strips. The precision says which parts are known: Y is a
+        year alone, YM a year and month, YMD all three, and none of them may
+        carry a part finer than it claims, since display and the sortable
+        date read the precision and would silently drop it. UNKNOWN claims
+        nothing, so it may keep whatever parts are known (a year, or a day
+        and month with no year), as long as they could be a real date.
+        """
+        year, month, day, precision = self.year, self.month, self.day, self.precision
+        if year is not None and not 1 <= year <= 9999:
+            raise ValueError(f"year {year} is out of range (1-9999)")
+        if month is not None and not 1 <= month <= 12:
+            raise ValueError(f"month {month} is not a month (1-12)")
+        if day is not None:
+            if month is None:
+                raise ValueError("a day needs its month")
+            # With no year, 29 February may be right: check against a leap year.
+            last = calendar.monthrange(year if year is not None else 2000, month)[1]
+            if not 1 <= day <= last:
+                when = f"{year}-{month:02d}" if year is not None else f"month {month}"
+                raise ValueError(f"day {day} does not exist in {when} (1-{last})")
+        needs = {
+            DatePrecision.YMD: ("year", "month", "day"),
+            DatePrecision.YM: ("year", "month"),
+            DatePrecision.Y: ("year",),
+        }.get(precision)
+        if needs is not None:
+            missing = [f for f in needs if getattr(self, f) is None]
+            if missing:
+                raise ValueError(f"precision {precision.value} requires {', '.join(missing)}")
+            extra = [f for f in ("month", "day") if f not in needs and getattr(self, f) is not None]
+            if extra:
+                raise ValueError(
+                    f"precision {precision.value} cannot carry {' or '.join(extra)}; "
+                    "use a finer precision or leave it out"
+                )
         return self
 
     def to_sortable_date(self) -> Optional[datetime.date]:

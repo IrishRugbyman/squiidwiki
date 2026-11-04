@@ -6,7 +6,7 @@ from pydantic import BaseModel, Field, computed_field
 
 from app.core.enums import SourceReliability
 from app.core.sources import SourceKind, domain_of
-from app.schemas.common import FuzzyDateField
+from app.schemas.common import FuzzyDateField, refuse_null
 
 
 class SourceCreate(BaseModel):
@@ -28,6 +28,7 @@ class SourceCreate(BaseModel):
 
 
 class SourceUpdate(BaseModel):
+    _required = refuse_null("url", "title", "reliability", "kind")
     url: Optional[str] = None
     title: Optional[str] = None
     publication: Optional[str] = None

@@ -4,6 +4,8 @@ from typing import Optional
 
 from pydantic import BaseModel, field_validator
 
+from app.schemas.common import refuse_null
+
 # The frontend puts the universe slug first in every URL (/michigan/members/x),
 # beside its own top-level pages. A universe slugged like one of those would be
 # unreachable or would swallow the page, and old links (/members/x) are told
@@ -51,6 +53,7 @@ class UniverseCreate(BaseModel):
 
 
 class UniverseUpdate(BaseModel):
+    _required = refuse_null("name", "slug")
     name: Optional[str] = None
     slug: Optional[str] = None
     description: Optional[str] = None

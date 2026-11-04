@@ -5,6 +5,7 @@ from typing import Literal, Optional
 from pydantic import BaseModel
 
 from app.core.enums import NoteKind
+from app.schemas.common import refuse_null
 
 PinKind = Literal["member", "set", "incident", "alliance"]
 
@@ -32,6 +33,7 @@ class ResearchNoteCreate(BaseModel):
 
 
 class ResearchNoteUpdate(BaseModel):
+    _required = refuse_null("title", "content", "kind")
     title: Optional[str] = None
     content: Optional[str] = None
     kind: Optional[NoteKind] = None

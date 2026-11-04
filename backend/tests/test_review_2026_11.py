@@ -473,9 +473,11 @@ async def test_backfill_alliance_allies_writes_only_approved_pairs(
     x, y = sorted((s1, s2))
     assert sorted(await rows()) == sorted(enemy_only + [(x, y, "FRIEND")])
 
-    # On both sets' History, as an "allies" link.
-    for me, other in ((s1, s2), (s2, s1)):
+    # On both sets' History, as an "allies" link, newest first. Joining the
+    # alliance recorded one already on the set that joined second (s2 gained
+    # s1); the backfill's is on top of it.
+    for me, other, earlier in ((s1, s2, 0), (s2, s1, 1)):
         page = await _history(client, h, uni, "set", str(me))
         allies = [e for e in page["items"] if e["link"] == "allies" and e["is_self"]]
-        assert len(allies) == 1
+        assert len(allies) == 1 + earlier
         assert [r["set_id"] for r in allies[0]["added"]] == [str(other)]

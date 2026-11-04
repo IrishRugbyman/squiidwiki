@@ -5,6 +5,7 @@ from pydantic import BaseModel, field_validator
 
 from app.core.enums import MunicipalityKind
 from app.schemas.citation import CitationRead
+from app.schemas.common import refuse_null
 
 
 def _clean_aliases(v: Optional[list[str]]) -> Optional[list[str]]:
@@ -39,6 +40,7 @@ class MunicipalityCreate(BaseModel):
 
 
 class MunicipalityUpdate(BaseModel):
+    _required = refuse_null("name")
     name: Optional[str] = None
     parent_id: Optional[uuid.UUID] = None
     kind: Optional[MunicipalityKind] = None

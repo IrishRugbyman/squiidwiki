@@ -1,0 +1,671 @@
+"""Regression tests for the follow-ups to the 2026-11 correctness review.
+
+Each test states the documented contract or HTTP rule it checks. All names
+and numbers are invented.
+"""
+
+import uuid
+
+import pytest
+from httpx import AsyncClient
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.auth.crud import create_user
+from app.core.audit import attach_audit_listeners
+from app.core.enums import GlobalRole
+
+# The ASGI test client skips the lifespan, where the audit listeners attach.
+attach_audit_listeners()
+
+
+def _uid() -> str:
+    return uuid.uuid4().hex[:8]
+
+
+async def _admin(client: AsyncClient, session: AsyncSession) -> dict:
+    email = f"followup_{_uid()}@example.com"
+    await create_user(session, email, "adminpass", GlobalRole.ADMIN)
+    resp = await client.post("/api/v1/auth/login", json={"email": email, "password": "adminpass"})
+    return {"Authorization": f"Bearer {resp.json()['access_token']}"}
+
+
+async def _post(client: AsyncClient, h: dict, path: str, body: dict) -> dict:
+    resp = await client.post(path, json=body, headers=h)
+    assert resp.status_code == 201, resp.text
+    return resp.json()
+
+
+async def _universe(client: AsyncClient, h: dict) -> str:
+    return (
+        await _post(
+            client, h, "/api/v1/universes/", {"name": f"Uni {_uid()}", "slug": f"uni-{_uid()}"}
+        )
+    )["id"]
+
+
+async def _status(session: AsyncSession, call) -> tuple[int, str]:
+    """Status of a request, with an unhandled server error counted as a 500.
+
+    The ASGI transport re-raises what the app did not handle, and a failed
+    flush leaves the shared session unusable for the tests after this one.
+    """
+    try:
+        resp = await call
+    except Exception as e:  # noqa: BLE001 - the point is to see any crash
+        await session.rollback()
+        return 500, repr(e)
+    return resp.status_code, resp.text
+
+
+async def _member(client: AsyncClient, h: dict, uni: str, nickname: str) -> str:
+    return (await _post(client, h, "/api/v1/members/", {"universe_id": uni, "nickname": nickname}))[
+        "id"
+    ]
+
+
+# --- 1. duplicate participants ------------------------------------------------
+
+
+async def test_the_same_member_twice_in_an_incident_is_a_422(
+    client: AsyncClient, db_session: AsyncSession
+):
+    """A member takes part in an incident once (incident_participant's key is
+    incident + member), with one role and one outcome. Listing him twice is bad
+    input, so a 422 that says so, on create and on update, and nothing written."""
+    h = await _admin(client, db_session)
+    uni = await _universe(client, h)
+    twice = await _member(client, h, uni, "Followup Twice")
+    once = await _member(client, h, uni, "Followup Once")
+    participants = [
+        {"member_id": twice, "role": "SHOOTER", "outcome": "UNHARMED"},
+        {"member_id": once, "role": "VICTIM", "outcome": "INJURED"},
+        {"member_id": twice, "role": "VICTIM", "outcome": "KILLED"},
+    ]
+
+    code, body = await _status(
+        db_session,
+        client.post(
+            "/api/v1/incidents/",
+            json={"universe_id": uni, "type": "SHOOTING", "participants": participants},
+            headers=h,
+        ),
+    )
+    assert code == 422, body
+    assert twice in body and "more than once" in body
+
+    incident = await _post(
+        client,
+        h,
+        "/api/v1/incidents/",
+        {"universe_id": uni, "type": "SHOOTING", "participants": participants[:2]},
+    )
+    code, body = await _status(
+        db_session,
+        client.patch(
+            f"/api/v1/incidents/{incident['id']}?universe_id={uni}",
+            json={"participants": participants},
+            headers=h,
+        ),
+    )
+    assert code == 422, body
+    assert twice in body and "more than once" in body
+
+    got = (
+        await client.get(f"/api/v1/incidents/{incident['id']}?universe_id={uni}", headers=h)
+    ).json()
+    assert sorted(p["member_id"] for p in got["participants"]) == sorted([twice, once])
+    # The refused edit marked nobody dead.
+    member = (await client.get(f"/api/v1/members/{twice}?universe_id={uni}", headers=h)).json()
+    assert member["status"] != "DEAD"
+
+
+async def test_the_same_set_twice_in_an_incident_is_a_422(
+    client: AsyncClient, db_session: AsyncSession
+):
+    """incident_set_participant is keyed on incident + set the same way."""
+    h = await _admin(client, db_session)
+    uni = await _universe(client, h)
+    s = await _post(client, h, "/api/v1/sets/", {"universe_id": uni, "name": f"Crew {_uid()}"})
+    sets = [
+        {"set_id": s["id"], "role": "SHOOTER"},
+        {"set_id": s["id"], "role": "VICTIM"},
+    ]
+    code, body = await _status(
+        db_session,
+        client.post(
+            "/api/v1/incidents/",
+            json={"universe_id": uni, "type": "SHOOTING", "set_participants": sets},
+            headers=h,
+        ),
+    )
+    assert code == 422, body
+    assert s["id"] in body
+
+    incident = await _post(client, h, "/api/v1/incidents/", {"universe_id": uni, "type": "FIGHT"})
+    code, body = await _status(
+        db_session,
+        client.patch(
+            f"/api/v1/incidents/{incident['id']}?universe_id={uni}",
+            json={"set_participants": sets},
+            headers=h,
+        ),
+    )
+    assert code == 422, body
+
+
+# --- 2. null into a NOT NULL column -------------------------------------------
+
+
+async def _make(client: AsyncClient, h: dict, db_session: AsyncSession, uni: str, kind: str) -> str:
+    """Create one record of `kind` and return the path a PATCH goes to."""
+    q = f"?universe_id={uni}"
+    if kind == "incident":
+        i = await _post(client, h, "/api/v1/incidents/", {"universe_id": uni, "type": "FIGHT"})
+        return f"/api/v1/incidents/{i['id']}{q}"
+    if kind == "member":
+        return f"/api/v1/members/{await _member(client, h, uni, f'Followup {_uid()}')}{q}"
+    if kind == "set":
+        s = await _post(client, h, "/api/v1/sets/", {"universe_id": uni, "name": f"Crew {_uid()}"})
+        return f"/api/v1/sets/{s['id']}{q}"
+    if kind == "alliance":
+        a = await _post(
+            client, h, "/api/v1/alliances/", {"universe_id": uni, "name": f"Bloc {_uid()}"}
+        )
+        return f"/api/v1/alliances/{a['id']}{q}"
+    if kind == "gang":
+        g = await _post(client, h, "/api/v1/gangs/", {"universe_id": uni, "name": f"G {_uid()}"})
+        return f"/api/v1/gangs/{g['id']}{q}"
+    if kind == "universe":
+        return f"/api/v1/universes/{uni}"
+    if kind == "municipality":
+        m = await _post(
+            client, h, "/api/v1/municipalities/", {"universe_id": uni, "name": f"Town {_uid()}"}
+        )
+        return f"/api/v1/municipalities/{m['id']}{q}"
+    if kind == "source":
+        s = await _post(
+            client,
+            h,
+            "/api/v1/sources/",
+            {"universe_id": uni, "url": f"https://example.com/{_uid()}", "title": "A page"},
+        )
+        return f"/api/v1/sources/{s['id']}{q}"
+    if kind == "research":
+        n = await _post(client, h, "/api/v1/research/", {"universe_id": uni, "title": "A note"})
+        return f"/api/v1/research/{n['id']}{q}"
+    if kind == "business":
+        b = await _post(
+            client,
+            h,
+            "/api/v1/businesses/",
+            {"universe_id": uni, "name": f"Shop {_uid()}", "business_type": "NIGHTLIFE"},
+        )
+        return f"/api/v1/businesses/{b['id']}{q}"
+    if kind == "media":
+        from app.models.media import Media
+
+        mid = await _member(client, h, uni, f"Followup {_uid()}")
+        m = Media(
+            universe_id=uuid.UUID(uni),
+            member_id=uuid.UUID(mid),
+            kind="EXTERNAL_URL",
+            external_url="https://example.com/photo.jpg",
+        )
+        db_session.add(m)
+        await db_session.commit()
+        return f"/api/v1/media/{m.id}{q}"
+    raise AssertionError(kind)
+
+
+# PATCH fields whose column is NOT NULL and whose update wrote a null into it
+# (a 500). Null is not a value these columns can hold, and nothing documents
+# it as "reset to the default", so a PATCH sending it is bad input: a 422
+# naming the field. Fields whose update already reads null as "no change" or
+# "empty list" (municipality kind, citation source, court case and defendant
+# fields, a spell's life_sentence) are not listed: they never failed.
+NOT_NULL_FIELDS = [
+    ("incident", "type"),
+    ("incident", "verified"),
+    ("member", "nickname_unknown"),
+    ("member", "is_rapper"),
+    ("member", "is_snitch"),
+    ("member", "status"),
+    ("member", "biography"),
+    ("set", "status"),
+    ("alliance", "status"),
+    ("gang", "name"),
+    ("universe", "name"),
+    ("universe", "slug"),
+    ("municipality", "name"),
+    ("source", "url"),
+    ("source", "title"),
+    ("source", "reliability"),
+    ("source", "kind"),
+    ("research", "title"),
+    ("research", "content"),
+    ("research", "kind"),
+    ("business", "name"),
+    ("business", "business_type"),
+    ("business", "status"),
+    ("media", "is_primary"),
+]
+
+
+@pytest.mark.parametrize(("kind", "field"), NOT_NULL_FIELDS)
+async def test_patching_a_required_field_to_null_is_a_422(
+    client: AsyncClient, db_session: AsyncSession, kind: str, field: str
+):
+    h = await _admin(client, db_session)
+    uni = await _universe(client, h)
+    path = await _make(client, h, db_session, uni, kind)
+    code, body = await _status(db_session, client.patch(path, json={field: None}, headers=h))
+    assert code == 422, (kind, field, code, body)
+    assert field in body
+
+
+# --- 3. join-table changes reach History --------------------------------------
+
+
+async def _history(client: AsyncClient, h: dict, uni: str, kind: str, eid: str) -> list[dict]:
+    resp = await client.get(f"/api/v1/history/{kind}/{eid}?universe_id={uni}", headers=h)
+    assert resp.status_code == 200, resp.text
+    return resp.json()["items"]
+
+
+def _links(items: list[dict], link: str) -> list[dict]:
+    return [e for e in items if e["link"] == link]
+
+
+async def _link_rows(session: AsyncSession, entity_type: str, eid: str) -> list[dict]:
+    """The link-change audit rows written on one entity, oldest first."""
+    from sqlalchemy import text
+
+    rows = (
+        await session.execute(
+            text(
+                "SELECT diff_json FROM audit_log WHERE entity_type = :t AND entity_id = :i "
+                "AND diff_json ? '_link' ORDER BY created_at, id"
+            ),
+            {"t": entity_type, "i": eid},
+        )
+    ).scalars()
+    return list(rows)
+
+
+async def test_set_ally_and_enemy_edits_reach_history(
+    client: AsyncClient, db_session: AsyncSession
+):
+    """Every join-table sync calls record_link_change (backend/CLAUDE.md). A
+    set's allies and enemies are a join table, so editing them shows on its
+    History, and on the other set's through _related."""
+    h = await _admin(client, db_session)
+    uni = await _universe(client, h)
+
+    async def crew() -> str:
+        return (
+            await _post(client, h, "/api/v1/sets/", {"universe_id": uni, "name": f"Crew {_uid()}"})
+        )["id"]
+
+    me, friend, foe = await crew(), await crew(), await crew()
+    resp = await client.patch(
+        f"/api/v1/sets/{me}?universe_id={uni}",
+        json={"friend_ids": [friend], "enemy_ids": [foe]},
+        headers=h,
+    )
+    assert resp.status_code == 200, resp.text
+    items = await _history(client, h, uni, "set", me)
+    assert [r["set_id"] for e in _links(items, "allies") for r in e["added"]] == [friend]
+    assert [r["set_id"] for e in _links(items, "enemies") for r in e["added"]] == [foe]
+    # The other side sees it too.
+    theirs = _links(await _history(client, h, uni, "set", foe), "enemies")
+    assert len(theirs) == 1 and theirs[0]["entity_id"] == me
+
+    # The ally turns enemy: off one list, onto the other.
+    resp = await client.patch(
+        f"/api/v1/sets/{me}?universe_id={uni}",
+        json={"friend_ids": [], "enemy_ids": [foe, friend]},
+        headers=h,
+    )
+    assert resp.status_code == 200, resp.text
+    items = await _history(client, h, uni, "set", me)
+    assert [r["set_id"] for e in _links(items, "allies") for r in e["removed"]] == [friend]
+    newest_enemies = _links(items, "enemies")[0]  # newest first
+    assert [r["set_id"] for r in newest_enemies["added"]] == [friend]
+
+    # A save that changes nothing records nothing.
+    before = len(await _history(client, h, uni, "set", me))
+    resp = await client.patch(
+        f"/api/v1/sets/{me}?universe_id={uni}",
+        json={"friend_ids": [], "enemy_ids": [foe, friend]},
+        headers=h,
+    )
+    assert resp.status_code == 200, resp.text
+    assert len(await _history(client, h, uni, "set", me)) == before
+
+
+async def test_allies_made_by_joining_an_alliance_reach_history(
+    client: AsyncClient, db_session: AsyncSession
+):
+    """Joining an alliance befriends its sets (CLAUDE.md). Those allies are
+    written to the same join table, so they reach History the same way, whether
+    the set joins (set PATCH) or the alliance takes it in (alliance PATCH)."""
+    h = await _admin(client, db_session)
+    uni = await _universe(client, h)
+    bloc = await _post(
+        client, h, "/api/v1/alliances/", {"universe_id": uni, "name": f"Bloc {_uid()}"}
+    )
+    elder = await _post(
+        client,
+        h,
+        "/api/v1/sets/",
+        {"universe_id": uni, "name": f"Elder {_uid()}", "alliance_ids": [bloc["id"]]},
+    )
+    joiner = await _post(client, h, "/api/v1/sets/", {"universe_id": uni, "name": f"J {_uid()}"})
+    resp = await client.patch(
+        f"/api/v1/sets/{joiner['id']}?universe_id={uni}",
+        json={"alliance_ids": [bloc["id"]]},
+        headers=h,
+    )
+    assert resp.status_code == 200, resp.text
+    allies = _links(await _history(client, h, uni, "set", joiner["id"]), "allies")
+    assert [r["set_id"] for e in allies for r in e["added"]] == [elder["id"]]
+    assert _links(await _history(client, h, uni, "set", elder["id"]), "allies")
+
+    # From the alliance's side: its set_ids gain a set.
+    late = await _post(client, h, "/api/v1/sets/", {"universe_id": uni, "name": f"L {_uid()}"})
+    resp = await client.patch(
+        f"/api/v1/alliances/{bloc['id']}?universe_id={uni}",
+        json={"set_ids": [elder["id"], joiner["id"], late["id"]]},
+        headers=h,
+    )
+    assert resp.status_code == 200, resp.text
+    # Each new pair is recorded once, on one of its sets; the other sees it
+    # through _related, filtered to the rows about itself.
+    allies = _links(await _history(client, h, uni, "set", late["id"]), "allies")
+    got = sorted(
+        r["set_id"] if e["is_self"] else e["entity_id"] for e in allies for r in e["added"]
+    )
+    assert got == sorted([elder["id"], joiner["id"]])
+
+
+async def test_deleting_a_gang_reaches_the_history_of_its_sets_and_alliances(
+    client: AsyncClient, db_session: AsyncSession
+):
+    """Deleting a gang changes each set's and alliance's gang list and its
+    gang_id mirror, and each member's gang_id: all of it on their History."""
+    h = await _admin(client, db_session)
+    uni = await _universe(client, h)
+    g1 = await _post(client, h, "/api/v1/gangs/", {"universe_id": uni, "name": f"First {_uid()}"})
+    g2 = await _post(client, h, "/api/v1/gangs/", {"universe_id": uni, "name": f"Second {_uid()}"})
+    s = await _post(
+        client,
+        h,
+        "/api/v1/sets/",
+        {"universe_id": uni, "name": f"Crew {_uid()}", "gang_ids": [g1["id"], g2["id"]]},
+    )
+    a = await _post(
+        client,
+        h,
+        "/api/v1/alliances/",
+        {"universe_id": uni, "name": f"Bloc {_uid()}", "gang_ids": [g1["id"]]},
+    )
+    m = await _post(
+        client,
+        h,
+        "/api/v1/members/",
+        {"universe_id": uni, "nickname": f"Followup {_uid()}", "gang_id": g1["id"]},
+    )
+    resp = await client.delete(f"/api/v1/gangs/{g1['id']}?universe_id={uni}", headers=h)
+    assert resp.status_code == 204, resp.text
+
+    items = await _history(client, h, uni, "set", s["id"])
+    gangs = _links(items, "gangs")[0]  # newest first
+    assert [r["gang_id"] for r in gangs["removed"]] == [g1["id"]]
+    assert gangs["changed"] == [{"key": g2["id"], "from": {"position": 1}, "to": {"position": 0}}]
+    mirror = [c for e in items for c in e["changes"] if c["field"] == "gang_id"]
+    assert mirror and mirror[0]["old"] == g1["id"] and mirror[0]["new"] == g2["id"]
+
+    items = await _history(client, h, uni, "alliance", a["id"])
+    assert [r["gang_id"] for r in _links(items, "gangs")[0]["removed"]] == [g1["id"]]
+    mirror = [c for e in items for c in e["changes"] if c["field"] == "gang_id"]
+    assert mirror and mirror[0]["old"] == g1["id"] and mirror[0]["new"] is None
+
+    items = await _history(client, h, uni, "member", m["id"])
+    mirror = [c for e in items for c in e["changes"] if c["field"] == "gang_id"]
+    assert mirror and mirror[0]["old"] == g1["id"] and mirror[0]["new"] is None
+
+
+async def test_rap_group_member_and_relationship_edits_are_recorded(
+    client: AsyncClient, db_session: AsyncSession
+):
+    """Rap groups have no History tab yet, but their join-table syncs record
+    like every other: on the group, and on the member's History by _related."""
+    h = await _admin(client, db_session)
+    uni = await _universe(client, h)
+    rapper = await _member(client, h, uni, f"Followup {_uid()}")
+    other = await _post(
+        client, h, "/api/v1/rap-groups/", {"universe_id": uni, "name": f"Rg {_uid()}"}
+    )
+    rival = await _post(
+        client, h, "/api/v1/rap-groups/", {"universe_id": uni, "name": f"Rg {_uid()}"}
+    )
+    group = await _post(
+        client,
+        h,
+        "/api/v1/rap-groups/",
+        {
+            "universe_id": uni,
+            "name": f"Rg {_uid()}",
+            "members": [{"member_id": rapper, "role": "FOUNDER"}],
+            "friend_ids": [other["id"]],
+            "enemy_ids": [rival["id"]],
+        },
+    )
+    rows = await _link_rows(db_session, "rap_group", group["id"])
+    by_link = {r["_link"]: r for r in rows}
+    assert [r["member_id"] for r in by_link["members"]["added"]] == [rapper]
+    assert by_link["members"]["added"][0]["role"] == "FOUNDER"
+    assert [r["rap_group_id"] for r in by_link["allies"]["added"]] == [other["id"]]
+    assert [r["rap_group_id"] for r in by_link["enemies"]["added"]] == [rival["id"]]
+
+    resp = await client.patch(
+        f"/api/v1/rap-groups/{group['id']}?universe_id={uni}",
+        json={"members": [{"member_id": rapper, "role": "MEMBER"}], "enemy_ids": []},
+        headers=h,
+    )
+    assert resp.status_code == 200, resp.text
+    rows = await _link_rows(db_session, "rap_group", group["id"])
+    assert [r["_link"] for r in rows[-2:]] == ["members", "enemies"]
+    assert rows[-2]["changed"] == [
+        {"key": rapper, "from": {"role": "FOUNDER"}, "to": {"role": "MEMBER"}}
+    ]
+    assert [r["rap_group_id"] for r in rows[-1]["removed"]] == [rival["id"]]
+
+    on_member = _links(await _history(client, h, uni, "member", rapper), "members")
+    assert {e["entity_id"] for e in on_member} == {group["id"]}
+
+
+async def test_business_member_and_set_edits_are_recorded(
+    client: AsyncClient, db_session: AsyncSession
+):
+    """The same for businesses: their members and sets are join tables."""
+    h = await _admin(client, db_session)
+    uni = await _universe(client, h)
+    owner = await _member(client, h, uni, f"Followup {_uid()}")
+    s = await _post(client, h, "/api/v1/sets/", {"universe_id": uni, "name": f"Crew {_uid()}"})
+    b = await _post(
+        client,
+        h,
+        "/api/v1/businesses/",
+        {
+            "universe_id": uni,
+            "name": f"Shop {_uid()}",
+            "business_type": "NIGHTLIFE",
+            "members": [{"member_id": owner, "role": "OWNER"}],
+            "set_ids": [s["id"]],
+        },
+    )
+    rows = await _link_rows(db_session, "business", b["id"])
+    by_link = {r["_link"]: r for r in rows}
+    assert by_link["members"]["added"] == [{"member_id": owner, "role": "OWNER"}]
+    assert by_link["sets"]["added"] == [{"set_id": s["id"]}]
+
+    resp = await client.patch(
+        f"/api/v1/businesses/{b['id']}?universe_id={uni}",
+        json={"members": [{"member_id": owner, "role": "FRONT"}], "set_ids": []},
+        headers=h,
+    )
+    assert resp.status_code == 200, resp.text
+    rows = await _link_rows(db_session, "business", b["id"])
+    assert [r["_link"] for r in rows[-2:]] == ["members", "sets"]
+    assert rows[-1]["removed"] == [{"set_id": s["id"]}]
+
+    on_set = _links(await _history(client, h, uni, "set", s["id"]), "sets")
+    assert [e["entity_id"] for e in on_set] == [b["id"], b["id"]]
+    assert on_set[0]["removed"] == [{"set_id": s["id"]}]
+
+
+# --- 4. FuzzyDate validation --------------------------------------------------
+
+_IMPOSSIBLE = [
+    # Not on the calendar.
+    {"year": 2021, "month": 2, "day": 29, "precision": "YMD"},  # 2021 is not a leap year
+    {"year": 1900, "month": 2, "day": 29, "precision": "YMD"},  # nor is 1900
+    {"year": 2020, "month": 2, "day": 30, "precision": "YMD"},
+    {"year": 2020, "month": 4, "day": 31, "precision": "YMD"},
+    {"year": 2020, "month": 1, "day": 32, "precision": "YMD"},
+    {"year": 2020, "month": 1, "day": 0, "precision": "YMD"},
+    {"year": 2020, "month": 13, "precision": "YM"},
+    {"year": 2020, "month": 0, "precision": "YM"},
+    {"year": 0, "precision": "Y"},
+    {"year": 10000, "precision": "Y"},
+    {"month": 2, "day": 30, "precision": "UNKNOWN"},
+    # A day means nothing without its month.
+    {"year": 2020, "day": 5, "precision": "UNKNOWN"},
+    # The precision says which parts are known, so it must match them: no part
+    # it claims may be missing, and no part finer than it may be there.
+    {"year": 2020, "month": 5, "precision": "YMD"},
+    {"year": 2020, "precision": "YM"},
+    {"month": 5, "precision": "YM"},
+    {"precision": "Y"},
+    {"year": 2020, "month": 5, "precision": "Y"},
+    {"year": 2020, "month": 5, "day": 5, "precision": "Y"},
+    {"year": 2020, "month": 5, "day": 5, "precision": "YM"},
+]
+
+_POSSIBLE = [
+    {"year": 2020, "month": 2, "day": 29, "precision": "YMD"},
+    {"year": 2000, "month": 2, "day": 29, "precision": "YMD"},
+    {"year": 2019, "month": 12, "day": 31, "precision": "YMD"},
+    {"year": 2019, "month": 4, "day": 30, "precision": "YMD"},
+    {"year": 2019, "month": 11, "precision": "YM"},
+    {"year": 1999, "precision": "Y", "approx": True},
+    {"precision": "UNKNOWN"},
+    {},
+    # UNKNOWN keeps what is known without claiming it (the death sync copies
+    # no date from one): a year alone, or a day and month with no year, where
+    # 29 February may be right.
+    {"year": 2015, "precision": "UNKNOWN"},
+    {"month": 2, "day": 29, "precision": "UNKNOWN"},
+    {"circa_text": "early 1990s", "precision": "UNKNOWN"},
+]
+
+
+@pytest.mark.parametrize("date", _IMPOSSIBLE)
+def test_fuzzy_date_refuses_an_impossible_date(date: dict):
+    from pydantic import ValidationError
+
+    from app.core.fuzzy_date import FuzzyDate
+
+    with pytest.raises(ValidationError):
+        FuzzyDate(**date)
+
+
+@pytest.mark.parametrize("date", _POSSIBLE)
+def test_fuzzy_date_accepts_a_real_date(date: dict):
+    from app.core.fuzzy_date import FuzzyDate
+
+    fd = FuzzyDate(**date)
+    fd.display()
+    fd.to_sortable_date()
+
+
+def test_fuzzy_date_validation_survives_python_O():
+    """`assert` is stripped under `python -O`; the validation must not be."""
+    import subprocess
+    import sys
+    from pathlib import Path
+
+    code = (
+        "from pydantic import ValidationError\n"
+        "from app.core.fuzzy_date import FuzzyDate\n"
+        "try:\n"
+        "    FuzzyDate(year=2020, precision='YMD')\n"
+        "except ValidationError:\n"
+        "    raise SystemExit(0)\n"
+        "raise SystemExit(1)\n"
+    )
+    backend = Path(__file__).resolve().parents[1]
+    result = subprocess.run(
+        [sys.executable, "-O", "-c", code], cwd=backend, capture_output=True, text=True
+    )
+    assert result.returncode == 0, result.stderr
+
+
+async def test_impossible_dates_are_a_422_on_every_entity(
+    client: AsyncClient, db_session: AsyncSession
+):
+    """A FuzzyDate is validated wherever one is written: a member's birth and
+    death, an incident's date, a court case's filing, a business's founding,
+    a set's membership, a spell in custody; on create and on update."""
+    h = await _admin(client, db_session)
+    uni = await _universe(client, h)
+    q = f"?universe_id={uni}"
+    bad = {"year": 2021, "month": 2, "day": 29, "precision": "YMD"}
+    loose = {"year": 2021, "month": 2, "precision": "Y"}
+    good = {"year": 2020, "month": 2, "day": 29, "precision": "YMD"}
+
+    mid = await _member(client, h, uni, f"Followup {_uid()}")
+    s = await _post(client, h, "/api/v1/sets/", {"universe_id": uni, "name": f"Crew {_uid()}"})
+    incident = await _post(client, h, "/api/v1/incidents/", {"universe_id": uni, "type": "FIGHT"})
+    case = await _post(
+        client,
+        h,
+        "/api/v1/court-cases/",
+        {
+            "universe_id": uni,
+            "name": f"People v. Nobody {_uid()}",
+            "jurisdiction": "US_STATE",
+            "court": "Example Circuit Court",
+        },
+    )
+    shop = await _post(
+        client,
+        h,
+        "/api/v1/businesses/",
+        {"universe_id": uni, "name": f"Shop {_uid()}", "business_type": "NIGHTLIFE"},
+    )
+    writes = [
+        ("POST", "/api/v1/members/", lambda d: {"universe_id": uni, "nickname": "X", "dob": d}),
+        ("PATCH", f"/api/v1/members/{mid}{q}", lambda d: {"date_of_death": d}),
+        (
+            "PATCH",
+            f"/api/v1/members/{mid}{q}",
+            lambda d: {"affiliations": [{"set_id": s["id"], "from_date": d}]},
+        ),
+        ("POST", f"/api/v1/members/{mid}/incarcerations{q}", lambda d: {"from_date": d}),
+        ("POST", "/api/v1/incidents/", lambda d: {"universe_id": uni, "type": "FIGHT", "date": d}),
+        ("PATCH", f"/api/v1/incidents/{incident['id']}{q}", lambda d: {"date": d}),
+        ("PATCH", f"/api/v1/court-cases/{case['id']}{q}", lambda d: {"filed_at": d}),
+        ("PATCH", f"/api/v1/businesses/{shop['id']}{q}", lambda d: {"founded_at": d}),
+    ]
+    for method, path, body in writes:
+        for date in (bad, loose):
+            code, text_ = await _status(
+                db_session, client.request(method, path, json=body(date), headers=h)
+            )
+            assert code == 422, (method, path, date, code, text_)
+        code, text_ = await _status(
+            db_session, client.request(method, path, json=body(good), headers=h)
+        )
+        assert code in (200, 201), (method, path, code, text_)
