@@ -433,3 +433,93 @@ async def test_deleting_a_gang_reaches_the_history_of_its_sets_and_alliances(
     items = await _history(client, h, uni, "member", m["id"])
     mirror = [c for e in items for c in e["changes"] if c["field"] == "gang_id"]
     assert mirror and mirror[0]["old"] == g1["id"] and mirror[0]["new"] is None
+
+
+async def test_rap_group_member_and_relationship_edits_are_recorded(
+    client: AsyncClient, db_session: AsyncSession
+):
+    """Rap groups have no History tab yet, but their join-table syncs record
+    like every other: on the group, and on the member's History by _related."""
+    h = await _admin(client, db_session)
+    uni = await _universe(client, h)
+    rapper = await _member(client, h, uni, f"Followup {_uid()}")
+    other = await _post(
+        client, h, "/api/v1/rap-groups/", {"universe_id": uni, "name": f"Rg {_uid()}"}
+    )
+    rival = await _post(
+        client, h, "/api/v1/rap-groups/", {"universe_id": uni, "name": f"Rg {_uid()}"}
+    )
+    group = await _post(
+        client,
+        h,
+        "/api/v1/rap-groups/",
+        {
+            "universe_id": uni,
+            "name": f"Rg {_uid()}",
+            "members": [{"member_id": rapper, "role": "FOUNDER"}],
+            "friend_ids": [other["id"]],
+            "enemy_ids": [rival["id"]],
+        },
+    )
+    rows = await _link_rows(db_session, "rap_group", group["id"])
+    by_link = {r["_link"]: r for r in rows}
+    assert [r["member_id"] for r in by_link["members"]["added"]] == [rapper]
+    assert by_link["members"]["added"][0]["role"] == "FOUNDER"
+    assert [r["rap_group_id"] for r in by_link["allies"]["added"]] == [other["id"]]
+    assert [r["rap_group_id"] for r in by_link["enemies"]["added"]] == [rival["id"]]
+
+    resp = await client.patch(
+        f"/api/v1/rap-groups/{group['id']}?universe_id={uni}",
+        json={"members": [{"member_id": rapper, "role": "MEMBER"}], "enemy_ids": []},
+        headers=h,
+    )
+    assert resp.status_code == 200, resp.text
+    rows = await _link_rows(db_session, "rap_group", group["id"])
+    assert [r["_link"] for r in rows[-2:]] == ["members", "enemies"]
+    assert rows[-2]["changed"] == [
+        {"key": rapper, "from": {"role": "FOUNDER"}, "to": {"role": "MEMBER"}}
+    ]
+    assert [r["rap_group_id"] for r in rows[-1]["removed"]] == [rival["id"]]
+
+    on_member = _links(await _history(client, h, uni, "member", rapper), "members")
+    assert {e["entity_id"] for e in on_member} == {group["id"]}
+
+
+async def test_business_member_and_set_edits_are_recorded(
+    client: AsyncClient, db_session: AsyncSession
+):
+    """The same for businesses: their members and sets are join tables."""
+    h = await _admin(client, db_session)
+    uni = await _universe(client, h)
+    owner = await _member(client, h, uni, f"Followup {_uid()}")
+    s = await _post(client, h, "/api/v1/sets/", {"universe_id": uni, "name": f"Crew {_uid()}"})
+    b = await _post(
+        client,
+        h,
+        "/api/v1/businesses/",
+        {
+            "universe_id": uni,
+            "name": f"Shop {_uid()}",
+            "business_type": "NIGHTLIFE",
+            "members": [{"member_id": owner, "role": "OWNER"}],
+            "set_ids": [s["id"]],
+        },
+    )
+    rows = await _link_rows(db_session, "business", b["id"])
+    by_link = {r["_link"]: r for r in rows}
+    assert by_link["members"]["added"] == [{"member_id": owner, "role": "OWNER"}]
+    assert by_link["sets"]["added"] == [{"set_id": s["id"]}]
+
+    resp = await client.patch(
+        f"/api/v1/businesses/{b['id']}?universe_id={uni}",
+        json={"members": [{"member_id": owner, "role": "FRONT"}], "set_ids": []},
+        headers=h,
+    )
+    assert resp.status_code == 200, resp.text
+    rows = await _link_rows(db_session, "business", b["id"])
+    assert [r["_link"] for r in rows[-2:]] == ["members", "sets"]
+    assert rows[-1]["removed"] == [{"set_id": s["id"]}]
+
+    on_set = _links(await _history(client, h, uni, "set", s["id"]), "sets")
+    assert [e["entity_id"] for e in on_set] == [b["id"], b["id"]]
+    assert on_set[0]["removed"] == [{"set_id": s["id"]}]

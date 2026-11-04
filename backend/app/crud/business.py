@@ -5,6 +5,7 @@ import sqlalchemy as sa
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import func, select
 
+from app.core.audit import load_link_rows, record_link_change
 from app.core.slug import slugify
 from app.models.business import Business, BusinessMember, BusinessSet
 from app.models.member import Member
@@ -36,6 +37,20 @@ async def _unique_slug(
 
 
 async def _sync_business_members(session: AsyncSession, business_id: uuid.UUID, members) -> None:
+    record_link_change(
+        session,
+        entity_type="business",
+        entity_id=business_id,
+        link="members",
+        key="member_id",
+        before=await load_link_rows(
+            session,
+            BusinessMember,
+            BusinessMember.business_id == business_id,
+            ["member_id", "role"],
+        ),
+        after=[{"member_id": m.member_id, "role": m.role} for m in members],
+    )
     await session.execute(
         BusinessMember.__table__.delete().where(BusinessMember.business_id == business_id)
     )
@@ -46,6 +61,17 @@ async def _sync_business_members(session: AsyncSession, business_id: uuid.UUID, 
 async def _sync_business_sets(
     session: AsyncSession, business_id: uuid.UUID, set_ids: list[uuid.UUID]
 ) -> None:
+    record_link_change(
+        session,
+        entity_type="business",
+        entity_id=business_id,
+        link="sets",
+        key="set_id",
+        before=await load_link_rows(
+            session, BusinessSet, BusinessSet.business_id == business_id, ["set_id"]
+        ),
+        after=[{"set_id": sid} for sid in set_ids],
+    )
     await session.execute(
         BusinessSet.__table__.delete().where(BusinessSet.business_id == business_id)
     )
