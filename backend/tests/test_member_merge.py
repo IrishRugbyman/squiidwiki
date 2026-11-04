@@ -357,3 +357,216 @@ async def test_merge_moves_what_would_cascade_away(client: AsyncClient, db_sessi
     # drop's tag on other's photo moved to keep; keep's tag on what is now its own photo is gone.
     assert (theirs.id, uuid.UUID(keep["id"])) in tags
     assert all(m != drops.id for m, _ in tags)
+
+
+# ── Incarceration spells ─────────────────────────────────────────────────────
+# Two records of one person, each imported from OTIS, hold the same sentences.
+# The merge folds a spell into the kept record's matching one (court file,
+# offense line, start date, by count) instead of moving a second copy across.
+# Every court file and offense below is invented; the expected values are typed
+# by hand, not produced by the code under test.
+
+FIREARM = "Offense: Weapons - Felony Firearms"
+DRUG = "Offense: Controlled Substance-Delivery/Manf."
+
+
+def _ymd(y: int, m: int, d: int) -> dict:
+    return {"year": y, "month": m, "day": d, "precision": "YMD", "approx": False}
+
+
+MAR_1_2099 = {**_ymd(2099, 3, 1), "circa_text": None}
+NOV_1_2098 = {**_ymd(2098, 11, 1), "circa_text": None}
+DEC_15_2098 = {**_ymd(2098, 12, 15), "circa_text": None}
+
+
+async def _spell(w: World, member: dict, **body) -> dict:
+    return await w.post(f"/api/v1/members/{member['id']}/incarcerations?universe_id={w.uni}", body)
+
+
+async def _spells(w: World, member: dict) -> list[dict]:
+    resp = await w.get(f"/api/v1/members/{member['id']}/incarcerations")
+    assert resp.status_code == 200, resp.text
+    return resp.json()
+
+
+def _firearm(**kw) -> dict:
+    return {
+        "case_id": "2099-000001-FC",
+        "notes": FIREARM,
+        "from_date": _ymd(2099, 3, 1),
+        **kw,
+    }
+
+
+def _drug(**kw) -> dict:
+    return {
+        "case_id": "2098-000002-FH",
+        "notes": DRUG,
+        "from_date": _ymd(2098, 5, 1),
+        **kw,
+    }
+
+
+async def test_merge_folds_a_sentence_both_records_hold(
+    client: AsyncClient, db_session: AsyncSession
+):
+    w = await _world(client, db_session)
+    keep = await w.member(nickname="Pellow")
+    drop = await w.member(nickname="Pelloe")
+    kept = await _spell(w, keep, **_firearm())
+    await _spell(w, drop, **_firearm())
+
+    resp = await w.merge(keep["id"], drop["id"])
+    assert resp.status_code == 200, resp.text
+    rows = await _spells(w, keep)
+    assert [r["id"] for r in rows] == [kept["id"]]
+
+    report = resp.json()
+    assert report["moved"]["incarcerations"] == 0
+    assert report["moved"]["incarcerations_matched"] == 1
+    assert report["spell_differences"] == []
+    assert report["spell_fills"] == []
+
+
+async def test_merge_matches_spells_by_count(client: AsyncClient, db_session: AsyncSession):
+    """One firearm count on the kept record, two identical ones on the other: two stay."""
+    w = await _world(client, db_session)
+    keep = await w.member(nickname="Dunmore")
+    drop = await w.member(nickname="Dunmoor")
+    kept = await _spell(w, keep, **_firearm())
+    await _spell(w, drop, **_firearm())
+    second = await _spell(w, drop, **_firearm())
+
+    report = (await w.merge(keep["id"], drop["id"])).json()
+    rows = await _spells(w, keep)
+    assert len(rows) == 2
+    assert {r["notes"] for r in rows} == {FIREARM}
+    assert {r["id"] for r in rows} == {kept["id"], second["id"]}
+    assert (report["moved"]["incarcerations"], report["moved"]["incarcerations_matched"]) == (1, 1)
+
+
+async def test_merge_never_overwrites_a_spell_and_reports_the_difference(
+    client: AsyncClient, db_session: AsyncSession
+):
+    w = await _world(client, db_session)
+    keep = await w.member(nickname="Garrow")
+    drop = await w.member(nickname="Garrowe")
+    kept = await _spell(w, keep, **_drug(to_date=_ymd(2098, 11, 1)))
+    dropped = await _spell(w, drop, **_drug(to_date=_ymd(2098, 12, 15)))
+    expected = [
+        {
+            "spell_id": kept["id"],
+            "dropped_spell_id": dropped["id"],
+            "field": "to_date",
+            "kept": NOV_1_2098,
+            "dropped": DEC_15_2098,
+        }
+    ]
+
+    preview = (await w.merge(keep["id"], drop["id"], dry_run=True)).json()
+    assert len(await _spells(w, drop)) == 1  # the dry run changed nothing
+
+    report = (await w.merge(keep["id"], drop["id"])).json()
+    rows = await _spells(w, keep)
+    assert [(r["id"], r["to_date"]) for r in rows] == [(kept["id"], NOV_1_2098)]
+    assert report["spell_differences"] == expected
+    assert preview["spell_differences"] == expected
+
+
+async def test_merge_fills_a_spell_gap_from_the_dropped_record(
+    client: AsyncClient, db_session: AsyncSession
+):
+    w = await _world(client, db_session)
+    keep = await w.member(nickname="Ferrin")
+    drop = await w.member(nickname="Ferrinn")
+    case = await w.post(
+        "/api/v1/court-cases/",
+        {
+            "name": f"People v. Test {_uid()}",
+            "jurisdiction": "US_STATE",
+            "court": "Test Circuit Court",
+        },
+    )
+    kept = await _spell(w, keep, **_drug())
+    dropped = await _spell(
+        w,
+        drop,
+        **_drug(
+            to_date=_ymd(2098, 11, 1),
+            facility="Test Correctional Facility",
+            court_case_id=case["id"],
+        ),
+    )
+    assert kept["court_case_id"] is None
+
+    report = (await w.merge(keep["id"], drop["id"])).json()
+    rows = await _spells(w, keep)
+    assert len(rows) == 1
+    got = rows[0]
+    assert got["id"] == kept["id"]
+    assert (got["to_date"], got["facility"], got["court_case_id"]) == (
+        NOV_1_2098,
+        "Test Correctional Facility",
+        case["id"],
+    )
+
+    assert report["spell_differences"] == []
+    assert sorted((f["field"], f["value"]) for f in report["spell_fills"]) == [
+        ("court_case_id", case["id"]),
+        ("facility", "Test Correctional Facility"),
+        ("to_date", NOV_1_2098),
+    ]
+    assert {(f["spell_id"], f["dropped_spell_id"]) for f in report["spell_fills"]} == {
+        (kept["id"], dropped["id"])
+    }
+
+
+async def test_merge_keeps_the_kept_spells_court_case(
+    client: AsyncClient, db_session: AsyncSession
+):
+    w = await _world(client, db_session)
+    keep = await w.member(nickname="Holloway")
+    drop = await w.member(nickname="Hollowey")
+    cases = [
+        await w.post(
+            "/api/v1/court-cases/",
+            {
+                "name": f"People v. Test {_uid()}",
+                "jurisdiction": "US_STATE",
+                "court": "Test Circuit Court",
+            },
+        )
+        for _ in range(2)
+    ]
+    kept = await _spell(w, keep, **_drug(court_case_id=cases[0]["id"]))
+    dropped = await _spell(w, drop, **_drug(court_case_id=cases[1]["id"]))
+
+    report = (await w.merge(keep["id"], drop["id"])).json()
+    assert [r["court_case_id"] for r in await _spells(w, keep)] == [cases[0]["id"]]
+    assert report["spell_differences"] == [
+        {
+            "spell_id": kept["id"],
+            "dropped_spell_id": dropped["id"],
+            "field": "court_case_id",
+            "kept": cases[0]["id"],
+            "dropped": cases[1]["id"],
+        }
+    ]
+
+
+async def test_merge_moves_spells_that_match_nothing(client: AsyncClient, db_session: AsyncSession):
+    w = await _world(client, db_session)
+    keep = await w.member(nickname="Tarrant")
+    drop = await w.member(nickname="Tarrent")
+    kept = await _spell(w, keep, **_firearm())
+    moved = [
+        await _spell(w, drop, **_drug()),  # another court file
+        await _spell(w, drop, **_firearm(notes="Offense: Carrying Concealed Weapon")),
+        await _spell(w, drop, **_firearm(from_date=_ymd(2099, 4, 1))),  # another start
+    ]
+
+    report = (await w.merge(keep["id"], drop["id"])).json()
+    rows = await _spells(w, keep)
+    assert {r["id"] for r in rows} == {kept["id"], *(m["id"] for m in moved)}
+    assert (report["moved"]["incarcerations"], report["moved"]["incarcerations_matched"]) == (3, 0)
+    assert report["spell_differences"] == []

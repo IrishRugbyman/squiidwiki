@@ -25,7 +25,12 @@ record a researcher chose as canonical is never silently rewritten):
 - court case defendants: moved; where both were charged in the same case,
   ``keep``'s row stays (reported). The acquittal mirror is then re-applied to
   every incident the move touched (``sync_acquitted``).
-- aliases (``member_alias`` rows), incarcerations, custody ids, photos: moved;
+- incarcerations: a spell ``keep`` already holds (court file, offense line and
+  start date, matched by count, as an OTIS re-import matches) is folded into
+  ``keep``'s copy: only ``keep``'s empty fields are filled, ``court_case_id``
+  included, and every filled field that disagrees is reported in
+  ``spell_differences``, never overwritten. Any other spell moves.
+- aliases (``member_alias`` rows), custody ids, photos: moved;
   a custody id ``keep`` already holds (same system and number) is dropped, and
   moved photos lose ``is_primary`` when ``keep`` has a primary photo.
 - sets and alliances founded by ``drop``: re-pointed at ``keep``.
@@ -51,7 +56,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.audit import load_link_rows, record_link_change
 from app.core.enums import MemberStatus
-from app.crud.member import INVERSE_REL, _family_ids, _set_family_ids
+from app.crud.member import (
+    INVERSE_REL,
+    _family_ids,
+    _reconcile,
+    _set_family_ids,
+    index_spells,
+    take_matching_spell,
+)
 from app.models.alliance import Alliance
 from app.models.business import BusinessMember
 from app.models.citation import Citation
@@ -68,6 +80,7 @@ from app.models.member import (
 )
 from app.models.rap_group import RapGroupMember
 from app.models.research_note import ResearchNotePin
+from app.schemas.member import MemberIncarcerationCreate
 
 # Columns a caller may ask to take from the dropped record instead of the kept one.
 PREFERABLE_FIELDS = (
@@ -131,6 +144,77 @@ async def _load(session: AsyncSession, member_id: uuid.UUID, universe_id: uuid.U
     return m
 
 
+async def _merge_incarcerations(
+    session: AsyncSession, keep: Member, drop: Member, report: dict
+) -> None:
+    """Fold drop's spells into keep's copies of them, and move the rest.
+
+    Two records of one person each imported from OTIS hold the same sentences,
+    so moving every spell across would leave each one twice. A spell of drop's
+    matches one of keep's the way a re-import does (`take_matching_spell`:
+    court file, offense line, start date, by count, so two identical counts on
+    drop against one on keep fold one and move one). A match is never an
+    overwrite: keep's empty fields are filled from drop's, a filled one that
+    disagrees is left and reported in `spell_differences`, and drop's copy is
+    deleted. An unmatched spell moves as it is.
+    """
+    keep_rows = await _rows(
+        session,
+        select(MemberIncarceration)
+        .where(MemberIncarceration.member_id == keep.id)
+        .order_by(MemberIncarceration.created_at, MemberIncarceration.id),
+    )
+    drop_rows = await _rows(
+        session,
+        select(MemberIncarceration)
+        .where(MemberIncarceration.member_id == drop.id)
+        .order_by(MemberIncarceration.created_at, MemberIncarceration.id),
+    )
+    on_file = index_spells(keep_rows)
+    moved = matched = 0
+    for spell in drop_rows:
+        data = MemberIncarcerationCreate.model_validate(spell, from_attributes=True)
+        row = take_matching_spell(on_file, data)
+        if row is None:
+            spell.member_id = keep.id
+            session.add(spell)
+            moved += 1
+            continue
+        matched += 1
+        filled, differences = _reconcile(row, data)
+        if spell.court_case_id is not None:
+            if row.court_case_id is None:
+                row.court_case_id = spell.court_case_id
+                filled.append(
+                    {"spell_id": row.id, "field": "court_case_id", "value": spell.court_case_id}
+                )
+            elif row.court_case_id != spell.court_case_id:
+                differences.append(
+                    {
+                        "spell_id": row.id,
+                        "field": "court_case_id",
+                        "on_file": row.court_case_id,
+                        "incoming": spell.court_case_id,
+                    }
+                )
+        session.add(row)
+        report["spell_fills"].extend({**f, "dropped_spell_id": spell.id} for f in filled)
+        report["spell_differences"].extend(
+            {
+                "spell_id": d["spell_id"],
+                "dropped_spell_id": spell.id,
+                "field": d["field"],
+                "kept": d["on_file"],
+                "dropped": d["incoming"],
+            }
+            for d in differences
+        )
+        await session.delete(spell)
+    await session.flush()
+    report["moved"]["incarcerations"] = moved
+    report["moved"]["incarcerations_matched"] = matched
+
+
 async def merge_members(
     session: AsyncSession,
     universe_id: uuid.UUID,
@@ -157,6 +241,8 @@ async def merge_members(
         "fields": [],
         "moved": {},
         "conflicts": [],
+        "spell_fills": [],
+        "spell_differences": [],
         "dry_run": dry_run,
     }
     prefer_set = set(prefer or [])
@@ -453,12 +539,14 @@ async def merge_members(
             .all()
         )
 
+    # ── Incarcerations ───────────────────────────────────────────────────────
+    await _merge_incarcerations(session, keep, drop, report)
+
     # ── Straight moves ───────────────────────────────────────────────────────
-    for label, model in (("aliases", MemberAlias), ("incarcerations", MemberIncarceration)):
-        res = await session.execute(
-            update(model).where(model.member_id == drop.id).values(member_id=keep.id)
-        )
-        report["moved"][label] = res.rowcount
+    res = await session.execute(
+        update(MemberAlias).where(MemberAlias.member_id == drop.id).values(member_id=keep.id)
+    )
+    report["moved"]["aliases"] = res.rowcount
 
     keep_custody = {
         (s, n)
