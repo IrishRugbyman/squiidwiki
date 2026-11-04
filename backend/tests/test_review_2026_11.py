@@ -154,8 +154,8 @@ async def test_deleting_a_gang_makes_the_next_one_position_zero(
 async def test_joining_an_alliance_befriends_its_secondary_members(
     client: AsyncClient, db_session: AsyncSession
 ):
-    """"Joining an alliance befriends its sets", and an alliance's sets are every
-    membership, not only the sets holding it as primary."""
+    """Joining an alliance befriends its sets (CLAUDE.md), and an alliance's sets
+    are every membership, not only the sets holding it as primary."""
     h = await _admin(client, db_session)
     uni = await _universe(client, h)
     primary = await _post(client, h, "/api/v1/alliances/", {"universe_id": uni, "name": "Elm"})
@@ -289,3 +289,18 @@ async def test_editing_a_source_url_into_a_lookup_system_is_a_409(
         headers=h,
     )
     assert resp.status_code == 200, resp.text
+
+
+# --- name variants ------------------------------------------------------------
+
+
+async def test_blank_name_variant_is_refused(client: AsyncClient, db_session: AsyncSession):
+    """A variant must fill at least one slot, and a slot holding only spaces is
+    empty: it displays as "", which would make an unnamed set or alliance."""
+    h = await _admin(client, db_session)
+    uni = await _universe(client, h)
+    for path in ("/api/v1/sets/", "/api/v1/alliances/"):
+        resp = await client.post(
+            path, json={"universe_id": uni, "name_variants": [{"name": "   "}]}, headers=h
+        )
+        assert resp.status_code == 422, (path, resp.text)

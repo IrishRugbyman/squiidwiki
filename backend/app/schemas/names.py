@@ -30,7 +30,8 @@ class NameVariant(BaseModel):
 
     @model_validator(mode="after")
     def _at_least_one_field(self):
-        if not (self.name or self.initials or self.number):
+        # Stripped, as the display reads them: a slot of spaces shows as "".
+        if not any((s or "").strip() for s in (self.name, self.initials, self.number)):
             raise ValueError("name_variants entry must have at least one of name/initials/number")
         # Slots the variant does not fill are dropped, and a list of one is
         # stored as that slot.
