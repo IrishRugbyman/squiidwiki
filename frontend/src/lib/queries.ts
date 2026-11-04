@@ -65,6 +65,7 @@ import type {
   SetRead,
   TextSearchHit,
   MemberSimilar,
+  MemberMergeReport,
   SetReadDetail,
   SetReadDetailFull,
   SetRelationshipType,
@@ -989,6 +990,21 @@ export const useDeleteMember = (universeId: UUID) => {
   return useMutation({
     mutationFn: (id: UUID) => api.delete(`/members/${id}?universe_id=${universeId}`),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['members'] }) },
+  })
+}
+
+// Merge `dropId` into `keepId` (admin). dryRun runs it and rolls back: the preview.
+export const useMergeMembers = (universeId: UUID) => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (v: { keepId: UUID; dropId: UUID; prefer: string[]; dryRun: boolean }) =>
+      api.post<MemberMergeReport>(`/members/${v.keepId}/merge?universe_id=${universeId}`, {
+        drop_id: v.dropId,
+        prefer: v.prefer,
+        dry_run: v.dryRun,
+      }),
+    // A merge touches members, incidents, sets, sources and stats: refetch everything.
+    onSuccess: (_r, v) => { if (!v.dryRun) qc.invalidateQueries() },
   })
 }
 

@@ -1250,6 +1250,17 @@ export interface AnomalyReport {
   items: Anomaly[]
 }
 
+// POST /members/{keep}/merge: what a merge did (or, with dry_run, would do).
+export interface MemberMergeReport {
+  keep: { id: UUID; display_name: string; slug: string | null }
+  drop: { id: UUID; display_name: string; slug: string | null }
+  // Columns that differed: the value that stands and the one that goes.
+  fields: { field: string; kept: unknown; discarded: unknown }[]
+  moved: Record<string, number>
+  conflicts: { kind: string; id: UUID | null; message: string; discarded: unknown }[]
+  dry_run: boolean
+}
+
 // Court cases
 
 export type CourtJurisdiction = 'US_FEDERAL' | 'US_STATE' | 'FR' | 'OTHER'

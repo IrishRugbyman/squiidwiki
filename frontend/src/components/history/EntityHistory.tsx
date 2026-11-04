@@ -48,6 +48,7 @@ const LINK_TITLE: Record<string, string> = {
   set_participants: 'Set participants',
   gangs: 'Gangs',
   alliances: 'Alliances',
+  merged: 'Merged in (record deleted)',
 }
 
 function humanize(field: string): string {
@@ -172,10 +173,17 @@ function RowDetails({ row, keyField, labels }: { row: Record<string, unknown>; k
   )
 }
 
-function Party({ id, entry, labels, self }: { id: string; entry: HistoryEntry; labels: Labels; self: { type: string; id: string } }) {
+function Party({ id, entry, labels, self, fallback }: { id: string; entry: HistoryEntry; labels: Labels; self: { type: string; id: string }; fallback?: string }) {
   // On a row written by another entity every far side is this page's entity.
   if (!entry.is_self || id === self.id) return <span className="text-zinc-200">this {ENTITY_NOUN[self.type] ?? 'entity'}</span>
+  // A far side that no longer exists (a merged-in record) keeps the name stored on the row.
+  if (!labels[id] && fallback) return <span className="text-zinc-200">{fallback}</span>
   return <EntityLink id={id} labels={labels} />
+}
+
+/** A link row without the label fields it carries for a deleted far side. */
+function detailFields(r: Record<string, unknown>): Record<string, unknown> {
+  return Object.fromEntries(Object.entries(r).filter(([k]) => k !== 'display_name' && k !== 'slug'))
 }
 
 function LinkChanges({ entry, labels, self }: { entry: HistoryEntry; labels: Labels; self: { type: string; id: string } }) {
@@ -187,8 +195,8 @@ function LinkChanges({ entry, labels, self }: { entry: HistoryEntry; labels: Lab
         <li key={`a-${String(r[key])}`}>
           <span className="mr-1.5 font-semibold text-emerald-400">+</span>
           <span className="text-zinc-400">{title}: </span>
-          <Party id={String(r[key])} entry={entry} labels={labels} self={self} />
-          <RowDetails row={r} keyField={key} labels={labels} />
+          <Party id={String(r[key])} entry={entry} labels={labels} self={self} fallback={typeof r.display_name === 'string' ? r.display_name : undefined} />
+          <RowDetails row={detailFields(r)} keyField={key} labels={labels} />
         </li>
       ))}
       {entry.removed.map((r) => (

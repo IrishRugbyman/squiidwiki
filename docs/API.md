@@ -128,6 +128,7 @@ PATCH  /api/v1/members/{id}?universe_id=         Update
 DELETE /api/v1/members/{id}?universe_id=         Delete (Admin)
 GET    /api/v1/members/search?universe_id=&q=    Substring, then trigram near-misses, on nickname/legal_name/aliases
 GET    /api/v1/members/similar?universe_id=&name=[&exclude_id=&threshold=0.5&limit=10]  Possible duplicates with scores (0..1)
+POST   /api/v1/members/{keep_id}/merge?universe_id=   Admin. Body {drop_id, prefer?: [column], dry_run?}: fold drop into keep, delete drop; returns a report
 GET    /api/v1/members/{id}/stats?universe_id=   Kill/shooting stats
 ```
 
