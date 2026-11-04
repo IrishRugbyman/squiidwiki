@@ -70,6 +70,8 @@ def lookup_system(url: str | None) -> LookupSystem | None:
         return LookupSystem.BOP
     if host == "mdocweb.state.mi.us" and path.startswith("/otis2"):
         return LookupSystem.MDOC_OTIS
+    if host == "mdoc-offendersearch.michigan.gov":  # OTIS since 2026-10-31
+        return LookupSystem.MDOC_OTIS
     if host == "services.gdc.ga.gov" and path.startswith("/gdc/offenderquery"):
         return LookupSystem.GDC
     return None

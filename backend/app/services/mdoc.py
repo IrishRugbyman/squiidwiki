@@ -21,6 +21,15 @@ and slice between known labels" hack is gone, and the page exposes far more
 than it used to - aliases, marks/scars/tattoos, SID, and full per-sentence
 detail including court file number, county and conviction type.
 
+**The move of 2026-10-31.** OTIS left ``mdocweb.state.mi.us/OTIS2`` for
+``mdoc-offendersearch.michigan.gov``, and the old address now redirects. Two
+things broke at once and failed silently, with no error and no rows: a POST to
+the old address is redirected as a GET, which drops the form, and the search
+form gained an ASP.NET anti-forgery token (``__RequestVerificationToken``)
+that must be posted back with the search. ``_open_search`` handles both: it
+reads the token off the search page and returns the host that page was
+actually served from, so the POSTs follow the site if it moves again.
+
 **Reaching OTIS at all.** mdocweb.state.mi.us sits behind Cloudflare, which
 403s this server's Helsinki IP on every path. Set ``MDOC_PROXY`` (or pass
 ``proxy=``) to route through a SOCKS5 proxy that egresses somewhere unblocked -
@@ -45,8 +54,9 @@ from app.core.config import settings
 from app.core.enums import DatePrecision
 from app.core.fuzzy_date import FuzzyDate
 
-BASE_URL = "https://mdocweb.state.mi.us/OTIS2"
-ALLOWED_HOSTS = {"mdocweb.state.mi.us"}
+BASE_URL = "https://mdoc-offendersearch.michigan.gov"
+# The old host is kept for photo links stored before OTIS moved (2026-10-31).
+ALLOWED_HOSTS = {"mdoc-offendersearch.michigan.gov", "mdocweb.state.mi.us"}
 HTTP_TIMEOUT = httpx.Timeout(40.0, connect=15.0)
 
 # OTIS returns the search form rather than an error for a session it doesn't
@@ -676,6 +686,37 @@ def _configured_proxy() -> str | None:
     return settings.mdoc_proxy or None
 
 
+_TOKEN_RE = re.compile(r'<input[^>]*name="__RequestVerificationToken"[^>]*value="([^"]+)"', re.I)
+
+
+def search_token(html: str) -> str | None:
+    """The anti-forgery token the search form must post back, or None."""
+    m = _TOKEN_RE.search(html)
+    return m.group(1) if m else None
+
+
+async def _open_search(client: httpx.AsyncClient) -> tuple[str, str]:
+    """GET the search page and return (base URL it was served from, token).
+
+    The base is taken from where the GET landed, not from ``BASE_URL``, because
+    a redirect turns a POST into a GET and silently drops the form: that is how
+    the move of 2026-10-31 broke every lookup without raising anything. A page
+    with no token means the form changed again, and that is raised rather than
+    searched past, since a search without it returns the bare form, which reads
+    as "no matches".
+    """
+    page = await client.get(f"{BASE_URL}/Search")
+    page.raise_for_status()
+    token = search_token(page.text)
+    if not token:
+        raise MdocFetchError(
+            f"The OTIS search page ({page.url}, {_title_of(page.text)!r}) carries no "
+            "anti-forgery token; the form has changed and the lookup code needs updating."
+        )
+    base = str(page.url.copy_with(query=None, fragment=None)).rsplit("/Search", 1)[0]
+    return base, token
+
+
 def _title_of(html: str) -> str:
     m = re.search(r"<title>(.*?)</title>", html, re.S | re.I)
     return _clean(m.group(1)) or "" if m else ""
@@ -711,12 +752,17 @@ async def _load_profile_once(number: str, proxy: str | None) -> str:
         headers={"User-Agent": USER_AGENT},
     ) as client:
         try:
-            await client.get(f"{BASE_URL}/Search")
+            base, token = await _open_search(client)
             results = await client.post(
-                f"{BASE_URL}/Search",
-                data={**BLANK_SEARCH, "MDOCNumber": number, "action:Search": "Search"},
+                f"{base}/Search",
+                data={
+                    **BLANK_SEARCH,
+                    "MDOCNumber": number,
+                    "action:Search": "Search",
+                    "__RequestVerificationToken": token,
+                },
             )
-            profile = await client.post(f"{BASE_URL}/Results", data={"action:LoadProfile": number})
+            profile = await client.post(f"{base}/Results", data={"action:LoadProfile": number})
         except httpx.HTTPError as e:
             # A transport failure, not an HTTP status: almost always the proxy.
             # Not retried - a proxy that is down stays down, and the message
@@ -810,7 +856,7 @@ async def search_mdoc(
 ) -> list[MdocSearchResult]:
     """Search OTIS by name and return every result row, following pagination.
 
-    OTIS pages 20 rows at a time. `max_pages` caps that at 200 rows by default,
+    OTIS pages 25 rows at a time. `max_pages` caps that at 250 rows by default,
     because a bare surname can return hundreds and each page is a round trip
     through the proxy. When the cap is hit the list is simply short - it is
     logged in no way OTIS can tell us about, so **check `len()` against what you
@@ -832,14 +878,15 @@ async def search_mdoc(
         headers={"User-Agent": USER_AGENT},
     ) as client:
         try:
-            await client.get(f"{BASE_URL}/Search")
+            base, token = await _open_search(client)
             resp = await client.post(
-                f"{BASE_URL}/Search",
+                f"{base}/Search",
                 data={
                     **BLANK_SEARCH,
                     "LastName": last_name,
                     "FirstName": first_name,
                     "action:Search": "Search",
+                    "__RequestVerificationToken": token,
                 },
             )
             resp.raise_for_status()
@@ -857,7 +904,7 @@ async def search_mdoc(
                 out.extend(fresh)
                 if not has_next:
                     break
-                resp = await client.post(f"{BASE_URL}/Results", data={"action:Pagination": "Next"})
+                resp = await client.post(f"{base}/Results", data={"action:Pagination": "Next"})
                 resp.raise_for_status()
         except httpx.HTTPError as e:
             raise MdocFetchError(

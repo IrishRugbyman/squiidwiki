@@ -469,7 +469,15 @@ import httpx  # noqa: E402
 
 from app.services import mdoc as mdoc_service  # noqa: E402
 
-SEARCH_FORM = "<html><head><title>OTIS Offender Search - OTIS</title></head><body></body></html>"
+SEARCH_FORM = (
+    "<html><head><title>OTIS Offender Search - OTIS</title></head><body>"
+    '<form action="/Search" method="post">'
+    '<input name="__RequestVerificationToken" type="hidden" value="tok-123" />'
+    "</form></body></html>"
+)
+SEARCH_FORM_NO_TOKEN = (
+    "<html><head><title>OTIS Offender Search - OTIS</title></head><body></body></html>"
+)
 RESULTS = "<html><head><title>Results Page - OTIS</title></head><body></body></html>"
 RUNTIME_ERROR = "<html><head><title>Runtime Error</title></head><body></body></html>"
 
@@ -478,9 +486,12 @@ class _StubClient:
     """Stands in for httpx.AsyncClient. `posts` is consumed in order:
     the search POST first, then the LoadProfile POST."""
 
-    def __init__(self, posts, *, raise_on_get=None, **kwargs):
+    def __init__(self, posts, *, raise_on_get=None, search_page=None, landed=None, **kwargs):
         self._posts = list(posts)
         self._raise_on_get = raise_on_get
+        self._search_page = search_page or SEARCH_FORM
+        # Where the GET ends up after redirects; None means where it was sent.
+        self._landed = landed
         self.requested = []
 
     async def __aenter__(self):
@@ -492,7 +503,9 @@ class _StubClient:
     async def get(self, url, **kwargs):
         if self._raise_on_get:
             raise self._raise_on_get
-        return httpx.Response(200, text=SEARCH_FORM, request=httpx.Request("GET", url))
+        return httpx.Response(
+            200, text=self._search_page, request=httpx.Request("GET", self._landed or url)
+        )
 
     async def post(self, url, data=None, **kwargs):
         self.requested.append((url, data))
@@ -504,14 +517,16 @@ class _StubClient:
         return resp
 
 
-def _install(monkeypatch, posts, raise_on_get=None):
+def _install(monkeypatch, posts, raise_on_get=None, search_page=None, landed=None):
     """Every attempt sees the same responses. Retry delays are zeroed so a test
     of the give-up path does not spend the real backoff sleeping."""
     holder = {"clients": 0}
 
     def factory(**kwargs):
         holder["clients"] += 1
-        holder["client"] = _StubClient(posts, raise_on_get=raise_on_get, **kwargs)
+        holder["client"] = _StubClient(
+            posts, raise_on_get=raise_on_get, search_page=search_page, landed=landed, **kwargs
+        )
         return holder["client"]
 
     monkeypatch.setattr(mdoc_service.httpx, "AsyncClient", factory)
@@ -770,3 +785,63 @@ class TestSearch:
         _install(monkeypatch, [], raise_on_get=httpx.ConnectError("nope"))
         with pytest.raises(mdoc_service.MdocFetchError, match="MDOC_PROXY"):
             await mdoc_service.search_mdoc(last_name="Perkins", proxy="socks5://x:1")
+
+
+class TestSearchSession:
+    """The move of 2026-10-31: the search must post back the form's token, to
+    the host the search page was served from, or OTIS returns the bare form,
+    which parses as no matches."""
+
+    @pytest.mark.asyncio
+    async def test_search_posts_the_forms_token(self, monkeypatch):
+        holder = _install(monkeypatch, [httpx.Response(200, text=_results_page(ROWS_P2, total=1))])
+        await mdoc_service.search_mdoc(last_name="Perkins", proxy="socks5://x:1")
+        _, data = holder["client"].requested[0]
+        assert data["__RequestVerificationToken"] == "tok-123"
+        assert data["LastName"] == "Perkins"
+
+    @pytest.mark.asyncio
+    async def test_posts_follow_the_host_the_search_page_came_from(self, monkeypatch):
+        holder = _install(
+            monkeypatch,
+            [
+                httpx.Response(200, text=_results_page(ROWS_P1, total=3, next_page=True)),
+                httpx.Response(200, text=_results_page(ROWS_P2, total=3)),
+            ],
+            landed="https://otis.moved.example/Search",
+        )
+        await mdoc_service.search_mdoc(last_name="Perkins", proxy="socks5://x:1")
+        urls = [u for u, _ in holder["client"].requested]
+        assert urls == [
+            "https://otis.moved.example/Search",
+            "https://otis.moved.example/Results",
+        ]
+
+    @pytest.mark.asyncio
+    async def test_a_search_page_without_a_token_is_an_error_not_an_empty_result(self, monkeypatch):
+        holder = _install(monkeypatch, [], search_page=SEARCH_FORM_NO_TOKEN)
+        with pytest.raises(mdoc_service.MdocFetchError, match="anti-forgery token"):
+            await mdoc_service.search_mdoc(last_name="Perkins", proxy="socks5://x:1")
+        assert holder["client"].requested == []
+
+    @pytest.mark.asyncio
+    async def test_profile_walk_posts_the_token_and_follows_the_host(
+        self, monkeypatch, profile_html
+    ):
+        holder = _install(
+            monkeypatch,
+            [httpx.Response(200, text=RESULTS), httpx.Response(200, text=profile_html)],
+            landed="https://otis.moved.example/Search",
+        )
+        await mdoc_service.fetch_mdoc_profile("111222", proxy="socks5://x:1")
+        (search_url, search_data), (profile_url, _) = holder["client"].requested
+        assert search_url == "https://otis.moved.example/Search"
+        assert search_data["__RequestVerificationToken"] == "tok-123"
+        assert search_data["MDOCNumber"] == "111222"
+        assert profile_url == "https://otis.moved.example/Results"
+
+    @pytest.mark.asyncio
+    async def test_profile_walk_without_a_token_is_an_error(self, monkeypatch):
+        _install(monkeypatch, [], search_page=SEARCH_FORM_NO_TOKEN)
+        with pytest.raises(mdoc_service.MdocFetchError, match="anti-forgery token"):
+            await mdoc_service.fetch_mdoc_profile("111222", proxy="socks5://x:1")

@@ -33,6 +33,7 @@ def test_normalise_url_strips_only_tracking_params():
             LookupSystem.BOP,
         ),
         ("https://mdocweb.state.mi.us/OTIS2", LookupSystem.MDOC_OTIS),
+        ("https://mdoc-offendersearch.michigan.gov/Search", LookupSystem.MDOC_OTIS),
         (
             "https://mdocweb.state.mi.us/OTIS2/otis2profile.aspx?mdocNumber=123456",
             LookupSystem.MDOC_OTIS,
