@@ -922,6 +922,36 @@ def _agrees(row: MemberIncarceration, data: MemberIncarcerationCreate) -> bool:
     )
 
 
+def index_spells(rows) -> dict[tuple, list[MemberIncarceration]]:
+    """Rows on file grouped by `incarceration_match_key`, in the order given.
+
+    Each group is a list, not a set member: identical counts are separate
+    sentences, and `take_matching_spell` consumes one per match.
+    """
+    on_file: dict[tuple, list[MemberIncarceration]] = {}
+    for row in rows:
+        on_file.setdefault(
+            incarceration_match_key(row.case_id, row.notes, row.from_date), []
+        ).append(row)
+    return on_file
+
+
+def take_matching_spell(
+    on_file: dict[tuple, list[MemberIncarceration]], data: MemberIncarcerationCreate
+) -> MemberIncarceration | None:
+    """Remove and return the row on file that `data` is a copy of, or None.
+
+    Among identical counts, take the one whose dates agree, so a served count
+    pairs with its own row rather than with its still-open twin.
+    """
+    candidates = on_file.get(incarceration_match_key(data.case_id, data.notes, data.from_date))
+    if not candidates:
+        return None
+    row = next((r for r in candidates if _agrees(r, data)), candidates[0])
+    candidates.remove(row)
+    return row
+
+
 async def import_member_incarcerations(
     session: AsyncSession, member_id: uuid.UUID, spells: list[MemberIncarcerationCreate]
 ) -> tuple[list[MemberIncarceration], int, list[dict], list[dict]]:
@@ -957,25 +987,17 @@ async def import_member_incarcerations(
         .scalars()
         .all()
     )
-    on_file: dict[tuple, list[MemberIncarceration]] = {}
-    for row in existing:
-        on_file.setdefault(
-            incarceration_match_key(row.case_id, row.notes, row.from_date), []
-        ).append(row)
+    on_file = index_spells(existing)
 
     created: list[MemberIncarceration] = []
     matched = 0
     filled: list[dict] = []
     differences: list[dict] = []
     for data in spells:
-        candidates = on_file.get(incarceration_match_key(data.case_id, data.notes, data.from_date))
-        if not candidates:
+        row = take_matching_spell(on_file, data)
+        if row is None:
             created.append(await _add_member_incarceration(session, member_id, data))
             continue
-        # Among identical counts, take the one whose dates agree, so a served
-        # count pairs with its own row rather than with its still-open twin.
-        row = next((r for r in candidates if _agrees(r, data)), candidates[0])
-        candidates.remove(row)
         matched += 1
         row_filled, row_differences = _reconcile(row, data)
         if row_filled:

@@ -1281,6 +1281,10 @@ export interface MemberMergeReport {
   fields: { field: string; kept: unknown; discarded: unknown }[]
   moved: Record<string, number>
   conflicts: { kind: string; id: UUID | null; message: string; discarded: unknown }[]
+  // Spells both records held, folded into the kept copy: gaps filled from the
+  // dropped copy, and fields where the two disagree (the kept value stands).
+  spell_fills: { spell_id: UUID; dropped_spell_id: UUID; field: string; value: unknown }[]
+  spell_differences: { spell_id: UUID; dropped_spell_id: UUID; field: string; kept: unknown; dropped: unknown }[]
   dry_run: boolean
 }
 

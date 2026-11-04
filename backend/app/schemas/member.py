@@ -273,12 +273,34 @@ class MemberMergeConflict(BaseModel):
     discarded: Any = None
 
 
+class MemberMergeSpellFill(BaseModel):
+    """A field the kept spell lacked, filled from the dropped record's copy."""
+
+    spell_id: uuid.UUID
+    dropped_spell_id: uuid.UUID
+    field: str
+    value: Any = None
+
+
+class MemberMergeSpellDifference(BaseModel):
+    """A field where the two copies of one spell disagree. The kept value stands."""
+
+    spell_id: uuid.UUID
+    dropped_spell_id: uuid.UUID
+    field: str
+    kept: Any = None
+    dropped: Any = None
+
+
 class MemberMergeReport(BaseModel):
     keep: MemberMergeRef
     drop: MemberMergeRef
     fields: list[MemberMergeField]
     moved: dict[str, int]
     conflicts: list[MemberMergeConflict]
+    # Spells both records held, folded into the kept copy (see member_merge).
+    spell_fills: list[MemberMergeSpellFill] = []
+    spell_differences: list[MemberMergeSpellDifference] = []
     dry_run: bool
 
 

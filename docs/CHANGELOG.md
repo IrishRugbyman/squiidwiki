@@ -6,6 +6,25 @@ here ships, its line comes out of that file.
 
 ---
 
+## 2026-11-04 - Merging two records no longer doubles their incarceration spells
+
+`POST /members/{keep}/merge` moved every spell of `drop` onto `keep` unmatched, so
+merging two records of one person that were each imported from OTIS left every
+sentence twice. The merge now matches spells the way a re-import does
+(`index_spells` / `take_matching_spell` in `crud/member.py`, shared with
+`import_member_incarcerations`): court file, offense line and start date, by count,
+so two identical counts on `drop` against one on `keep` fold one and move one. A
+matched spell is folded into `keep`'s copy and never overwrites it: only empty fields
+are filled (`court_case_id` included), and every filled field that disagrees stays as
+`keep` has it and is listed in the report's `spell_differences` (`spell_id`,
+`dropped_spell_id`, `field`, `kept`, `dropped`); fills are in `spell_fills`.
+`moved.incarcerations` counts the spells moved, `moved.incarcerations_matched` the
+ones folded. The merge dialog lists the disagreements under "Incarceration spells
+that disagree". Nothing references a spell by id and spells are not audited, so a
+folded copy is simply deleted.
+
+---
+
 ## 2026-11-04 - Re-importing an OTIS profile is safe, and never overwrites
 
 A latent duplication path, found in the code: the member form decided which OTIS

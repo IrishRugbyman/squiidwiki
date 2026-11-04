@@ -36,11 +36,22 @@ const MOVED_LABEL: Record<string, string> = {
   photo_tags: 'photo tags',
   aliases: 'alias records',
   incarcerations: 'incarceration records',
+  incarcerations_matched: 'incarceration records folded into the same sentence on file',
   custody_ids: 'custody numbers',
   photos: 'photos',
   sets_founded: 'sets founded',
   alliances_founded: 'alliances founded',
   family_links_repointed: "relatives' family links",
+}
+
+const SPELL_FIELD_LABEL: Record<string, string> = {
+  to_date: 'end date',
+  earliest_release_date: 'earliest release',
+  max_discharge_date: 'max discharge',
+  facility: 'facility',
+  notes: 'notes',
+  life_sentence: 'life sentence',
+  court_case_id: 'court case',
 }
 
 function isFuzzy(v: unknown): v is FuzzyDateValue {
@@ -225,6 +236,22 @@ export function MergeMemberDialog({ member, universeId, universeSlug, open, onCl
                     ? <p className="text-zinc-500">Nothing else to move.</p>
                     : <p className="text-zinc-300">{moved.map(([k, n]) => `${n} ${MOVED_LABEL[k] ?? k}`).join(' · ')}</p>}
                 </div>
+
+                {report.spell_differences.length > 0 && (
+                  <div className="space-y-1">
+                    <p className="text-xs uppercase tracking-wider text-zinc-400">Incarceration spells that disagree</p>
+                    <p className="text-[11px] text-zinc-500">Both records hold these sentences. The kept spell's value stands; check the other one by hand.</p>
+                    <div className="divide-y divide-zinc-800 rounded border border-zinc-800">
+                      {report.spell_differences.map((d) => (
+                        <div key={`${d.spell_id}-${d.dropped_spell_id}-${d.field}`} className="grid grid-cols-[7rem_1fr_1fr] gap-2 px-3 py-1.5 text-xs">
+                          <span className="text-zinc-400">{SPELL_FIELD_LABEL[d.field] ?? d.field}</span>
+                          <span className="text-emerald-300"><Val v={d.kept} /></span>
+                          <span className="text-zinc-500 line-through decoration-zinc-600"><Val v={d.dropped} /></span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
                 {report.conflicts.length > 0 && (
                   <div className="space-y-1 rounded border border-amber-500/30 bg-amber-500/5 p-3">
