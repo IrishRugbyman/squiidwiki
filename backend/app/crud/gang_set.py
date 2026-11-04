@@ -156,9 +156,15 @@ async def _sync_set_relationships(
 async def _sync_alliance_auto_allies(
     session: AsyncSession, set_id: uuid.UUID, alliance_id: uuid.UUID
 ) -> None:
-    """Create FRIEND relationships between set_id and all other sets in alliance_id."""
+    """Create FRIEND relationships between set_id and all other sets in alliance_id.
+
+    Every member of the alliance counts, through `alliance_set`: reading the
+    `sets.alliance_id` mirror would skip sets holding this alliance second.
+    """
     result = await session.execute(
-        select(GangSet.id).where(GangSet.alliance_id == alliance_id, GangSet.id != set_id)
+        select(AllianceSet.set_id).where(
+            AllianceSet.alliance_id == alliance_id, AllianceSet.set_id != set_id
+        )
     )
     sibling_ids = result.scalars().all()
     for sibling_id in sibling_ids:

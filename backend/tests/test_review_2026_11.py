@@ -146,3 +146,47 @@ async def test_deleting_a_gang_makes_the_next_one_position_zero(
         )
     ).scalar_one()
     assert position == 0
+
+
+# --- alliance_set: joining befriends every set in the alliance ----------------
+
+
+async def test_joining_an_alliance_befriends_its_secondary_members(
+    client: AsyncClient, db_session: AsyncSession
+):
+    """"Joining an alliance befriends its sets", and an alliance's sets are every
+    membership, not only the sets holding it as primary."""
+    h = await _admin(client, db_session)
+    uni = await _universe(client, h)
+    primary = await _post(client, h, "/api/v1/alliances/", {"universe_id": uni, "name": "Elm"})
+    shared = await _post(client, h, "/api/v1/alliances/", {"universe_id": uni, "name": "Oak"})
+    # In Oak only as its second alliance.
+    elder = await _post(
+        client,
+        h,
+        "/api/v1/sets/",
+        {
+            "universe_id": uni,
+            "name": f"Elder {_uid()}",
+            "alliance_ids": [primary["id"], shared["id"]],
+        },
+    )
+    newcomer = await _post(
+        client,
+        h,
+        "/api/v1/sets/",
+        {"universe_id": uni, "name": f"New {_uid()}", "alliance_ids": [shared["id"]]},
+    )
+    got = (await client.get(f"/api/v1/sets/{newcomer['id']}?universe_id={uni}", headers=h)).json()
+    assert elder["id"] in got["friend_ids"]
+
+    # The same through an edit.
+    late = await _post(client, h, "/api/v1/sets/", {"universe_id": uni, "name": f"Late {_uid()}"})
+    resp = await client.patch(
+        f"/api/v1/sets/{late['id']}?universe_id={uni}",
+        json={"alliance_ids": [shared["id"]]},
+        headers=h,
+    )
+    assert resp.status_code == 200, resp.text
+    got = (await client.get(f"/api/v1/sets/{late['id']}?universe_id={uni}", headers=h)).json()
+    assert elder["id"] in got["friend_ids"]
