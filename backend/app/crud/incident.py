@@ -35,6 +35,22 @@ def _fuzzy_to_dict(fd) -> dict | None:
     return fd.model_dump()
 
 
+def _sortable_date(fd) -> datetime | None:
+    """The date an incident sorts by, or None when it has no year.
+
+    FuzzyDate checks which parts a precision needs but not that they make a
+    calendar date, so 30 February or month 13 got this far and crashed here
+    with a 500. They are bad input: a 422.
+    """
+    if fd is None:
+        return None
+    try:
+        sd = fd.to_sortable_date()
+    except ValueError as e:
+        raise HTTPException(422, detail=f"date is not a calendar date: {e}") from None
+    return datetime(sd.year, sd.month, sd.day) if sd is not None else None
+
+
 async def _check_universe(
     session: AsyncSession,
     universe_id: uuid.UUID,
@@ -245,13 +261,7 @@ async def create_incident(
     session: AsyncSession, data: IncidentCreate, actor_id: uuid.UUID
 ) -> Incident:
     fd = data.date
-    sortable = None
-    if fd is not None:
-        sd = fd.to_sortable_date()
-        if sd is not None:
-            from datetime import datetime
-
-            sortable = datetime(sd.year, sd.month, sd.day)
+    sortable = _sortable_date(fd)
 
     await _check_universe(session, data.universe_id, data.municipality_id, data.set_participants)
     dump = data.model_dump(exclude={"date", "participants", "set_participants"})
@@ -357,14 +367,7 @@ async def update_incident(
     if "date" in data.model_fields_set:
         fd = data.date
         dump["date"] = _fuzzy_to_dict(fd)
-        if fd is not None:
-            sd = fd.to_sortable_date()
-            if sd is not None:
-                dump["sortable_date"] = datetime(sd.year, sd.month, sd.day)
-            else:
-                dump["sortable_date"] = None
-        else:
-            dump["sortable_date"] = None
+        dump["sortable_date"] = _sortable_date(fd)
     for k, v in dump.items():
         setattr(obj, k, v)
     obj.updated_at = datetime.now(UTC)

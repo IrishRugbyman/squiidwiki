@@ -81,3 +81,24 @@ async def test_death_sync_copies_no_date_below_year_precision(
     assert member["status"] == "DEAD"
     assert member["death_incident_id"] == incident["id"]
     assert member["date_of_death"] is None
+
+
+# --- FuzzyDate ----------------------------------------------------------------
+
+
+async def test_impossible_fuzzy_date_is_a_422(client: AsyncClient, db_session: AsyncSession):
+    """A FuzzyDate naming a day or month that does not exist is bad input, so a
+    422, not a crash when the sortable date is computed from it."""
+    h = await _admin(client, db_session)
+    uni = await _universe(client, h)
+    for date in (
+        {"year": 2020, "month": 2, "day": 30, "precision": "YMD"},
+        {"year": 2020, "month": 13, "precision": "YM"},
+        {"year": 2020, "month": 0, "precision": "YM"},
+    ):
+        resp = await client.post(
+            "/api/v1/incidents/",
+            json={"universe_id": uni, "type": "SHOOTING", "date": date},
+            headers=h,
+        )
+        assert resp.status_code == 422, (date, resp.text)
