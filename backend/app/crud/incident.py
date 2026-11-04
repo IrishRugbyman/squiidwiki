@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select
 
 from app.core.audit import load_link_rows, record_link_change
-from app.core.enums import MemberStatus, ParticipantOutcome
+from app.core.enums import DatePrecision, MemberStatus, ParticipantOutcome
 from app.models.alliance import AllianceSet
 from app.models.gang_set import GangSet
 from app.models.incident import (
@@ -218,7 +218,13 @@ async def _sync_killed_participants(
     members = result.scalars().all()
 
     incident_date = incident.date
-    incident_has_date = bool(incident_date and incident_date.get("year"))
+    # At least year precision: a year filed under precision UNKNOWN is not a
+    # date the incident itself sorts by (no sortable_date), so it dates no one.
+    incident_has_date = bool(
+        incident_date
+        and incident_date.get("year")
+        and incident_date.get("precision") != DatePrecision.UNKNOWN
+    )
 
     now = datetime.now(UTC)
     for m in members:
