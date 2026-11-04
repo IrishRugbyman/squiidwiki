@@ -190,3 +190,60 @@ async def test_joining_an_alliance_befriends_its_secondary_members(
     assert resp.status_code == 200, resp.text
     got = (await client.get(f"/api/v1/sets/{late['id']}?universe_id={uni}", headers=h)).json()
     assert elder["id"] in got["friend_ids"]
+
+
+# --- join-table audit ---------------------------------------------------------
+
+
+async def test_alliance_gang_and_territory_changes_reach_history(
+    client: AsyncClient, db_session: AsyncSession
+):
+    """Every join-table sync calls record_link_change, so an alliance's gangs
+    and territories show on its History tab like a set's gangs do."""
+    h = await _admin(client, db_session)
+    uni = await _universe(client, h)
+    gang = await _post(client, h, "/api/v1/gangs/", {"universe_id": uni, "name": f"G {_uid()}"})
+    city = await _post(
+        client, h, "/api/v1/municipalities/", {"universe_id": uni, "name": f"City {_uid()}"}
+    )
+    a = await _post(client, h, "/api/v1/alliances/", {"universe_id": uni, "name": f"A {_uid()}"})
+    resp = await client.patch(
+        f"/api/v1/alliances/{a['id']}?universe_id={uni}",
+        json={"gang_ids": [gang["id"]], "territory_ids": [city["id"]]},
+        headers=h,
+    )
+    assert resp.status_code == 200, resp.text
+    page = await _history(client, h, uni, "alliance", a["id"])
+    by_link = {e["link"]: e for e in page["items"] if e["link"]}
+    assert [r["gang_id"] for r in by_link["gangs"]["added"]] == [gang["id"]]
+    assert [r["municipality_id"] for r in by_link["territories"]["added"]] == [city["id"]]
+
+
+async def test_set_territory_changes_reach_history(client: AsyncClient, db_session: AsyncSession):
+    h = await _admin(client, db_session)
+    uni = await _universe(client, h)
+    city = await _post(
+        client, h, "/api/v1/municipalities/", {"universe_id": uni, "name": f"City {_uid()}"}
+    )
+    area = await _post(
+        client,
+        h,
+        "/api/v1/municipalities/",
+        {"universe_id": uni, "name": f"Area {_uid()}", "parent_id": city["id"]},
+    )
+    s = await _post(
+        client,
+        h,
+        "/api/v1/sets/",
+        {"universe_id": uni, "name": f"Crew {_uid()}", "municipality_id": city["id"]},
+    )
+    resp = await client.patch(
+        f"/api/v1/sets/{s['id']}?universe_id={uni}",
+        json={"territory_ids": [area["id"]]},
+        headers=h,
+    )
+    assert resp.status_code == 200, resp.text
+    page = await _history(client, h, uni, "set", s["id"])
+    links = [e for e in page["items"] if e["link"] == "territories"]
+    assert len(links) == 1
+    assert [r["municipality_id"] for r in links[0]["added"]] == [area["id"]]

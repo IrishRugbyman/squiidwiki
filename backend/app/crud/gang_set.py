@@ -58,6 +58,18 @@ async def _unique_slug(
 async def _sync_set_municipalities(
     session: AsyncSession, set_id: uuid.UUID, territory_ids: list[uuid.UUID]
 ) -> None:
+    before = await load_link_rows(
+        session, SetMunicipality, SetMunicipality.set_id == set_id, ["municipality_id"]
+    )
+    record_link_change(
+        session,
+        entity_type="sets",
+        entity_id=set_id,
+        link="territories",
+        key="municipality_id",
+        before=before,
+        after=[{"municipality_id": m} for m in territory_ids],
+    )
     await session.execute(
         SetMunicipality.__table__.delete().where(SetMunicipality.set_id == set_id)
     )

@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import func, select
 
 from app.core import fuzzy
-from app.core.audit import record_link_change
+from app.core.audit import load_link_rows, record_link_change
 from app.core.enums import SetRelationshipType
 from app.core.slug import slugify
 from app.crud.media import delete_media
@@ -59,6 +59,21 @@ async def _unique_slug(
 async def _sync_alliance_municipalities(
     session: AsyncSession, alliance_id: uuid.UUID, territory_ids: list[uuid.UUID]
 ) -> None:
+    before = await load_link_rows(
+        session,
+        AllianceMunicipality,
+        AllianceMunicipality.alliance_id == alliance_id,
+        ["municipality_id"],
+    )
+    record_link_change(
+        session,
+        entity_type="alliance",
+        entity_id=alliance_id,
+        link="territories",
+        key="municipality_id",
+        before=before,
+        after=[{"municipality_id": m} for m in territory_ids],
+    )
     await session.execute(
         AllianceMunicipality.__table__.delete().where(
             AllianceMunicipality.alliance_id == alliance_id
@@ -206,6 +221,18 @@ async def _sync_alliance_gangs(
         missing = [str(g) for g in gang_ids if g not in found]
         if missing:
             raise HTTPException(422, detail=f"gang_ids not in this universe: {', '.join(missing)}")
+    before = await load_link_rows(
+        session, AllianceGang, AllianceGang.alliance_id == obj.id, ["gang_id", "position"]
+    )
+    record_link_change(
+        session,
+        entity_type="alliance",
+        entity_id=obj.id,
+        link="gangs",
+        key="gang_id",
+        before=before,
+        after=[{"gang_id": g, "position": i} for i, g in enumerate(gang_ids)],
+    )
     await session.execute(delete(AllianceGang).where(AllianceGang.alliance_id == obj.id))
     await session.flush()
     for position, gang_id in enumerate(gang_ids):
