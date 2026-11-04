@@ -1087,6 +1087,28 @@ export interface UniverseAnalytics {
 }
 
 // Media
+
+/** A member who appears in a photo; `position` null means the order is unknown. */
+export interface MediaPerson {
+  member_id: UUID
+  slug: string | null
+  nickname: string | null
+  legal_name: string | null
+  /** The nickname, or the legal name when the nickname is unknown. */
+  display_name: string
+  position: number | null
+}
+
+export type MediaOwnerType = 'member' | 'set' | 'incident' | 'alliance' | 'rap_group' | 'municipality' | 'source'
+
+/** The entity a photo belongs to. An incident has no name, so `name` is a label. */
+export interface MediaOwner {
+  type: MediaOwnerType
+  id: UUID
+  name: string
+  slug: string | null
+}
+
 export interface MediaWithUrls {
   id: UUID
   universe_id: UUID
@@ -1110,6 +1132,12 @@ export interface MediaWithUrls {
   created_at: string
   url: string | null
   thumb_url: string | null
+  people: MediaPerson[]
+}
+
+/** A photo a member is tagged in that belongs to another entity. */
+export interface MediaAppearance extends MediaWithUrls {
+  owner: MediaOwner
 }
 
 // Users

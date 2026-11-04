@@ -56,6 +56,9 @@ import { useAuthStore } from '@/stores/auth'
 import { MemberFormSheet, familyDictToEntries, ROLE_LABEL, ROLE_LABEL_PLURAL } from './_app.$universe.members.index'
 import type { FamilyRole } from './_app.$universe.members.index'
 import { AddFamilyRelativeDialog } from '@/components/AddFamilyRelativeDialog'
+const AppearsInStrip = lazy(() =>
+  import('@/components/media/AppearsInStrip').then((m) => ({ default: m.AppearsInStrip })),
+)
 const PhotoGallery = lazy(() =>
   import('@/components/media/PhotoGallery').then((m) => ({ default: m.PhotoGallery })),
 )
@@ -902,6 +905,13 @@ function MemberDetailPage() {
                     <PhotoGallery entityType="member" entityId={member.id} universeId={universe.id} />
                   </Suspense>
                 </section>
+              )}
+
+              {/* Photos on other pages this member is tagged in; the strip renders nothing when there are none. */}
+              {universe && (
+                <Suspense fallback={null}>
+                  <AppearsInStrip memberId={member.id} universeId={universe.id} />
+                </Suspense>
               )}
             </div>
 

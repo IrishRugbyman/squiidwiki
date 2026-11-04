@@ -38,6 +38,7 @@ import type {
   MediaEntityType,
   MunicipalityKind,
   MediaWithUrls,
+  MediaAppearance,
   MemberAliasRead,
   MemberIncarcerationRead,
   MemberListItem,
@@ -1789,6 +1790,7 @@ export const useUpdateMedia = (
     },
     onError: (_e, _v, ctx) => { if (ctx?.prev) restoreSnapshot(qc, ctx.prev) },
     onSettled: () => {
+      qc.invalidateQueries({ queryKey: ['media', 'appears-in'] })
       qc.invalidateQueries({ queryKey: mediaQueryKey(entityType, entityId) })
       qc.invalidateQueries({ queryKey: [`${entityType}s`] })
     },
@@ -1823,6 +1825,7 @@ export const useDeleteMedia = (
     },
     onError: (_e, _id, ctx) => { if (ctx?.prev) restoreSnapshot(qc, ctx.prev) },
     onSettled: () => {
+      qc.invalidateQueries({ queryKey: ['media', 'appears-in'] })
       qc.invalidateQueries({ queryKey: mediaQueryKey(entityType, entityId) })
       qc.invalidateQueries({ queryKey: [`${entityType}s`] })
     },
@@ -1938,4 +1941,33 @@ export const useSentencings = (universeId: UUID | null) =>
     queryKey: ['court-cases', 'sentencings', universeId],
     queryFn: () => api.get<SentencingEvent[]>(`/court-cases/sentencings?universe_id=${universeId}`),
     enabled: !!universeId,
+  })
+
+/** The members tagged in a photo, replaced wholesale (`position` null = order unknown). */
+export const useSetMediaPeople = (
+  entityType: MediaEntityType,
+  entityId: UUID,
+  universeId: UUID,
+) => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, people }: { id: UUID; people: { member_id: UUID; position: number | null }[] }) =>
+      api.put<MediaWithUrls>(`/media/${id}/people`, { universe_id: universeId, people }),
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: mediaQueryKey(entityType, entityId) })
+      // A tag changes which pages show the photo: every member's "Appears in" strip.
+      qc.invalidateQueries({ queryKey: ['media', 'appears-in'] })
+    },
+  })
+}
+
+/** Photos a member is tagged in that are not his own, with the entity each belongs to. */
+export const useMediaAppearsIn = (memberId: UUID | null, universeId: UUID | null) =>
+  useQuery({
+    queryKey: ['media', 'appears-in', memberId],
+    queryFn: () =>
+      api.get<MediaAppearance[]>(`/media/appears-in?member_id=${memberId}&universe_id=${universeId}`),
+    enabled: !!universeId && !!memberId,
+    // Signed URLs expire — refetch before they go stale.
+    staleTime: 30 * 60_000,
   })

@@ -1,8 +1,8 @@
 import uuid
 from datetime import datetime
-from typing import Optional
+from typing import Literal, Optional
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from app.core.enums import MediaKind
 
@@ -10,6 +10,30 @@ from app.core.enums import MediaKind
 class MediaUpdate(BaseModel):
     caption: Optional[str] = None
     is_primary: Optional[bool] = None
+
+
+class MediaPerson(BaseModel):
+    """A member who appears in a photo; `position` null means the order is unknown."""
+
+    member_id: uuid.UUID
+    slug: Optional[str] = None
+    nickname: Optional[str] = None
+    legal_name: Optional[str] = None
+    # What the UI shows: the nickname, or the legal name when the nickname is unknown.
+    display_name: str
+    position: Optional[int] = None
+
+
+class MediaPersonInput(BaseModel):
+    member_id: uuid.UUID
+    position: Optional[int] = Field(default=None, ge=0)
+
+
+class MediaPeopleSet(BaseModel):
+    """The complete set of members in a photo: it replaces what is on file."""
+
+    universe_id: uuid.UUID
+    people: list[MediaPersonInput] = Field(max_length=60)
 
 
 class MediaRead(BaseModel):
@@ -45,3 +69,26 @@ class MediaReadWithUrls(MediaRead):
 
     url: Optional[str] = None
     thumb_url: Optional[str] = None
+    people: list[MediaPerson] = Field(default_factory=list)
+
+
+MediaOwnerType = Literal[
+    "member", "set", "incident", "alliance", "rap_group", "municipality", "source"
+]
+
+
+class MediaOwner(BaseModel):
+    """The entity a photo belongs to, so the UI can link back to its page.
+
+    An incident has no name, so `name` is a label from its date and place;
+    incidents, municipalities and sources have no slug.
+    """
+
+    type: MediaOwnerType
+    id: uuid.UUID
+    name: str
+    slug: Optional[str] = None
+
+
+class MediaAppearance(MediaReadWithUrls):
+    owner: MediaOwner

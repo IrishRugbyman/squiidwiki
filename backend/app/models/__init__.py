@@ -29,7 +29,7 @@ from app.models.incident import (
     IncidentParticipant,
     IncidentSetParticipant,
 )
-from app.models.media import Media
+from app.models.media import Media, MediaMember
 from app.models.member import (
     Member,
     MemberAlias,
@@ -79,6 +79,7 @@ __all__ = [
     "ResearchNote",
     "ResearchNotePin",
     "Media",
+    "MediaMember",
     "RapGroup",
     "RapGroupMember",
     "RapGroupRelationship",

@@ -20,6 +20,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - Endpoint: `https://2274e774b94707d729b8ca16df8c5fec.r2.cloudflarestorage.com`
 - Credentials live in `.env` (`R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`). Without them the upload endpoint throws 500 immediately.
 - Photos are supported on **members, sets, alliances, incidents and municipalities**: the `media` table has one FK per entity and a CHECK that exactly one is set (`source_id` has no UI). **Municipality photos always live in prod**, like municipalities themselves: `routers/media.py` routes `municipality_id` to the prod session and prod universe whatever the DB mode, and their R2 keys always start `prod/`.
+- **People in a photo** (`media_member`, migration `53921e33fe68`, 2026-10-13): a photo keeps its one owner and can also be linked to the members who appear in it, with `position` left to right or null when the order is unknown. `PUT /media/{id}/people` replaces the list (the photo's own member, duplicates and other universes are refused); `GET /media/appears-in?member_id=` feeds the member page's "Appears in" strip, each item carrying its owner for the back-link. Research writes it with `wiki media tag`, which merges. Municipality photos can be tagged only in prod mode.
 - For the `media.kind` SQLModel typing quirk and the `attach_primary_photos()` Pydantic v2 workaround, see `backend/CLAUDE.md`.
 
 ## Hard rules

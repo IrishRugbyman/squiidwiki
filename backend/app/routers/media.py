@@ -7,11 +7,19 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.dependencies import CurrentUser, require_global_role
 from app.core import storage
-from app.core.database import get_prod_session, get_session, resolve_prod_universe
+from app.core.database import get_db_mode, get_prod_session, get_session, resolve_prod_universe
 from app.core.enums import GlobalRole, MediaKind
+from app.core.errors import ApiError
 from app.crud import media as crud
 from app.models.media import Media
-from app.schemas.media import MediaRead, MediaReadWithUrls, MediaUpdate
+from app.schemas.media import (
+    MediaAppearance,
+    MediaPeopleSet,
+    MediaPerson,
+    MediaRead,
+    MediaReadWithUrls,
+    MediaUpdate,
+)
 
 router = APIRouter(prefix="/media", tags=["media"])
 
@@ -19,17 +27,25 @@ MAX_UPLOAD_BYTES = 10 * 1024 * 1024  # 10 MB
 ALLOWED_CONTENT_TYPES = {"image/jpeg", "image/png", "image/webp", "image/gif"}
 
 
-async def _attach_signed_urls(media: Media) -> MediaReadWithUrls:
-    base = MediaRead.model_validate(media)
+async def _signed_urls(media: Media) -> dict[str, str | None]:
     if media.kind == MediaKind.EXTERNAL_URL:
-        return MediaReadWithUrls(
-            **base.model_dump(),
-            url=media.external_url,
-            thumb_url=media.external_url,
-        )
+        return {"url": media.external_url, "thumb_url": media.external_url}
     url = await storage.signed_get_url(media.r2_key) if media.r2_key else None
     thumb_url = await storage.signed_get_url(media.thumb_r2_key) if media.thumb_r2_key else url
-    return MediaReadWithUrls(**base.model_dump(), url=url, thumb_url=thumb_url)
+    return {"url": url, "thumb_url": thumb_url}
+
+
+async def _attach_signed_urls(
+    media: Media, people: list[MediaPerson] | None = None
+) -> MediaReadWithUrls:
+    base = MediaRead.model_validate(media)
+    return MediaReadWithUrls(**base.model_dump(), **await _signed_urls(media), people=people or [])
+
+
+async def _with_people(session: AsyncSession, items: list[Media]) -> list[MediaReadWithUrls]:
+    """Signed reads of `items`, each with the members tagged in it (one query for all)."""
+    people = await crud.people_for(session, [m.id for m in items])
+    return [await _attach_signed_urls(m, people[m.id]) for m in items]
 
 
 def _validate_attach_query(**ids: Optional[uuid.UUID]) -> None:
@@ -154,7 +170,7 @@ async def list_media(
     _validate_attach_query(**ids)
     session, universe_id = await _scope(municipality_id, universe_id, session, prod_session)
     items = await crud.list_media(session, universe_id, **ids)
-    return [await _attach_signed_urls(m) for m in items]
+    return await _with_people(session, items)
 
 
 @router.get("/proxy")
@@ -180,6 +196,26 @@ async def proxy_media(url: str, _: CurrentUser) -> Response:
     )
 
 
+@router.get("/appears-in", response_model=list[MediaAppearance])
+async def media_appears_in(
+    member_id: uuid.UUID,
+    universe_id: uuid.UUID,
+    _: CurrentUser,
+    session: Annotated[AsyncSession, Depends(get_session)],
+):
+    """Photos a member is tagged in that are not his own, each with its owner.
+
+    Read from the active DB: tags are only ever written beside the members they
+    name (see `set_media_people`), so that is where they are.
+    """
+    appearances = await crud.list_appearances(session, universe_id, member_id)
+    people = await crud.people_for(session, [m.id for m, _owner in appearances])
+    return [
+        MediaAppearance(**(await _attach_signed_urls(m, people[m.id])).model_dump(), owner=owner)
+        for m, owner in appearances
+    ]
+
+
 @router.get("/{id}", response_model=MediaReadWithUrls)
 async def get_media(
     id: uuid.UUID,
@@ -192,7 +228,7 @@ async def get_media(
     obj = await crud.get_media(session, id, universe_id)
     if obj is None:
         raise HTTPException(404)
-    return await _attach_signed_urls(obj)
+    return (await _with_people(session, [obj]))[0]
 
 
 @router.patch("/{id}", response_model=MediaReadWithUrls)
@@ -208,7 +244,35 @@ async def update_media(
     obj = await crud.update_media(session, id, universe_id, data)
     if obj is None:
         raise HTTPException(404)
-    return await _attach_signed_urls(obj)
+    return (await _with_people(session, [obj]))[0]
+
+
+@router.put("/{id}/people", response_model=MediaReadWithUrls)
+async def set_media_people(
+    id: uuid.UUID,
+    data: MediaPeopleSet,
+    current_user: CurrentUser,
+    session: Annotated[AsyncSession, Depends(get_session)],
+    prod_session: Annotated[AsyncSession, Depends(get_prod_session)],
+):
+    """Replace the members who appear in a photo (any editor, like a caption).
+
+    Municipality photos live in prod whatever the DB mode, while the members live
+    in the active DB, so a link between them only exists when the two are the
+    same database: in test mode that is refused rather than written across.
+    """
+    session, universe_id = await _find(id, data.universe_id, session, prod_session)
+    obj = await crud.get_media(session, id, universe_id)
+    if obj is None:
+        raise HTTPException(404)
+    if obj.municipality_id is not None and get_db_mode() != "prod":
+        raise ApiError(
+            409,
+            "people_need_prod",
+            "Municipality photos live in the prod database; switch to prod to tag members in them.",
+        )
+    await crud.set_people(session, obj, data.people, current_user.id)
+    return (await _with_people(session, [obj]))[0]
 
 
 @router.delete("/{id}", status_code=204)

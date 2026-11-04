@@ -10,26 +10,42 @@ import {
 } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import type { MediaWithUrls } from '@/lib/types'
+import type { MediaWithUrls, UUID } from '@/lib/types'
 import { CAPTION_MAX_LENGTH, normalizeCaption } from './caption'
+import { draftsFrom, isOrdered, peoplePayload, samePeople, type PersonDraft } from './people'
+import { PhotoPeopleEditor } from './PhotoPeopleEditor'
+
+/** What a save changes: a field left out is untouched. */
+export interface PhotoEdits {
+  caption?: string | null
+  people?: { member_id: UUID; position: number | null }[]
+}
 
 interface PhotoCaptionDialogProps {
   /** The photo being captioned; null while the dialog is closed. */
   media: MediaWithUrls | null
+  universeId: UUID
   open: boolean
   pending: boolean
-  onSave: (caption: string | null) => void
+  onSave: (edits: PhotoEdits) => void
   onCancel: () => void
 }
 
-export function PhotoCaptionDialog({ media, open, pending, onSave, onCancel }: PhotoCaptionDialogProps) {
+export function PhotoCaptionDialog({ media, universeId, open, pending, onSave, onCancel }: PhotoCaptionDialogProps) {
   return (
     <Dialog open={open && media !== null} onOpenChange={(v) => !v && !pending && onCancel()}>
-      <DialogContent>
+      <DialogContent className="max-h-[90vh] overflow-y-auto">
         {media && (
           // Keyed by photo so re-opening on another tile re-seeds the draft
           // instead of carrying the previous photo's text across.
-          <CaptionForm key={media.id} media={media} pending={pending} onSave={onSave} onCancel={onCancel} />
+          <CaptionForm
+            key={media.id}
+            media={media}
+            universeId={universeId}
+            pending={pending}
+            onSave={onSave}
+            onCancel={onCancel}
+          />
         )}
       </DialogContent>
     </Dialog>
@@ -38,23 +54,40 @@ export function PhotoCaptionDialog({ media, open, pending, onSave, onCancel }: P
 
 interface CaptionFormProps {
   media: MediaWithUrls
+  universeId: UUID
   pending: boolean
-  onSave: (caption: string | null) => void
+  onSave: (edits: PhotoEdits) => void
   onCancel: () => void
 }
 
-function CaptionForm({ media, pending, onSave, onCancel }: CaptionFormProps) {
+function CaptionForm({ media, universeId, pending, onSave, onCancel }: CaptionFormProps) {
   const fieldId = useId()
   const [draft, setDraft] = useState(media.caption ?? '')
   const current = media.caption ?? null
   const next = normalizeCaption(draft)
-  const unchanged = next === current
   const thumbSrc = media.thumb_url ?? media.url
+
+  // A photo nobody is tagged in starts ordered, so the first tags read left to right.
+  const initialDrafts = draftsFrom(media.people)
+  const initialOrdered = media.people.length === 0 ? true : isOrdered(media.people)
+  const [people, setPeople] = useState<PersonDraft[]>(initialDrafts)
+  const [ordered, setOrdered] = useState(initialOrdered)
+  const [photoSetIds] = useState<ReadonlySet<UUID>>(() => new Set(media.set_id ? [media.set_id] : []))
+
+  const captionChanged = next !== current
+  const peopleChanged = !samePeople(people, ordered, initialDrafts, initialOrdered)
+  const unchanged = !captionChanged && !peopleChanged
+
+  /** Only what changed, so a caption-only edit sends no people and the reverse. */
+  const edits = (): PhotoEdits => ({
+    ...(captionChanged ? { caption: next } : {}),
+    ...(peopleChanged ? { people: peoplePayload(people, ordered) } : {}),
+  })
 
   const submit = (e: React.SyntheticEvent<HTMLFormElement>) => {
     e.preventDefault()
     if (unchanged || pending) return
-    onSave(next)
+    onSave(edits())
   }
 
   const onKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -62,7 +95,7 @@ function CaptionForm({ media, pending, onSave, onCancel }: CaptionFormProps) {
     // convention in the rest of the app's text fields.
     if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
       e.preventDefault()
-      if (!unchanged && !pending) onSave(next)
+      if (!unchanged && !pending) onSave(edits())
     }
   }
 
@@ -71,7 +104,8 @@ function CaptionForm({ media, pending, onSave, onCancel }: CaptionFormProps) {
       <DialogHeader>
         <DialogTitle>{current ? 'Edit caption' : 'Add caption'}</DialogTitle>
         <DialogDescription>
-          Shown under the photo in the gallery and the viewer. It is also the image's alt text.
+          Shown under the photo in the gallery and the viewer. It is also the image's alt text. Tagged people link to
+          their pages and show this photo on them.
         </DialogDescription>
       </DialogHeader>
 
@@ -103,6 +137,17 @@ function CaptionForm({ media, pending, onSave, onCancel }: CaptionFormProps) {
         </div>
       </div>
 
+      <PhotoPeopleEditor
+        universeId={universeId}
+        drafts={people}
+        ordered={ordered}
+        ownerMemberId={media.member_id}
+        photoSetIds={photoSetIds}
+        disabled={pending}
+        onDraftsChange={setPeople}
+        onOrderedChange={setOrdered}
+      />
+
       <div className="flex items-center justify-between gap-2 pt-1">
         <div>
           {current && (
@@ -112,7 +157,7 @@ function CaptionForm({ media, pending, onSave, onCancel }: CaptionFormProps) {
               size="sm"
               className="text-red-300 hover:text-red-200"
               disabled={pending}
-              onClick={() => onSave(null)}
+              onClick={() => onSave({ caption: null })}
             >
               Remove caption
             </Button>

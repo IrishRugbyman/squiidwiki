@@ -27,6 +27,7 @@ _AUDITED_TABLES = {
     "source",
     "citation",
     "media",
+    "media_member",
     "court_case",
     "court_case_defendant",
 }
@@ -44,9 +45,10 @@ def _json_safe(v):
 
 def _get_diff(target, state: str) -> dict:
     if state == "deleted":
-        # A deleted citation is only meaningful with what it linked: record the
-        # whole row, as a create does.
-        if getattr(target.__class__, "__tablename__", None) != "citation":
+        # A deleted citation or photo tag is only meaningful with what it linked
+        # (neither has an id of its own to look up): record the whole row, as a
+        # create does.
+        if getattr(target.__class__, "__tablename__", None) not in ("citation", "media_member"):
             return {"deleted": True}
     mapper = target.__class__.__mapper__  # type: ignore[attr-defined]
     return {
