@@ -102,3 +102,47 @@ async def test_impossible_fuzzy_date_is_a_422(client: AsyncClient, db_session: A
             headers=h,
         )
         assert resp.status_code == 422, (date, resp.text)
+
+
+# --- set_gang / alliance_gang primary mirroring -------------------------------
+
+
+async def test_deleting_a_gang_makes_the_next_one_position_zero(
+    client: AsyncClient, db_session: AsyncSession
+):
+    """Position 0 is the primary. Deleting a set's primary gang promotes the
+    next, so that gang is now at position 0 and its page lists the set as
+    primary; likewise for an alliance's gangs."""
+    h = await _admin(client, db_session)
+    uni = await _universe(client, h)
+    g1 = await _post(client, h, "/api/v1/gangs/", {"universe_id": uni, "name": f"First {_uid()}"})
+    g2 = await _post(client, h, "/api/v1/gangs/", {"universe_id": uni, "name": f"Second {_uid()}"})
+    s = await _post(
+        client,
+        h,
+        "/api/v1/sets/",
+        {"universe_id": uni, "name": f"Crew {_uid()}", "gang_ids": [g1["id"], g2["id"]]},
+    )
+    a = await _post(
+        client,
+        h,
+        "/api/v1/alliances/",
+        {"universe_id": uni, "name": f"Bloc {_uid()}", "gang_ids": [g1["id"], g2["id"]]},
+    )
+    resp = await client.delete(f"/api/v1/gangs/{g1['id']}?universe_id={uni}", headers=h)
+    assert resp.status_code == 204, resp.text
+
+    got = (await client.get(f"/api/v1/sets/{s['id']}?universe_id={uni}", headers=h)).json()
+    assert got["gang_id"] == g2["id"]
+    detail = (
+        await client.get(f"/api/v1/gangs/{g2['id']}/detail?universe_id={uni}", headers=h)
+    ).json()
+    row = next(x for x in detail["sets"] if x["id"] == s["id"])
+    assert row["is_primary"] is True
+
+    position = (
+        await db_session.execute(
+            text("SELECT position FROM alliance_gang WHERE alliance_id = :a"), {"a": a["id"]}
+        )
+    ).scalar_one()
+    assert position == 0
