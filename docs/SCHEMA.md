@@ -130,6 +130,18 @@ prison sentence, with the Status block attached to the single most recent spell
 still running, so concurrent sentences yield one projected release rather than
 three.
 
+**Re-importing is safe, and never overwrites.** The form writes the spells
+through `POST /members/{id}/incarcerations/import`. A spell matches a row on file
+with the same court file, first notes line (the offense) and `from_date`, by
+count, so a second import of the same profile writes no row while three
+identical felony-firearm counts stay three. A matched row is never overwritten:
+a field it lacks (`to_date`, a release date, the facility, the notes) is filled,
+and a filled field OTIS disagrees with is left alone and returned in
+`differences`. That matters because the rebuilt OTIS gives file-level discharge
+dates where the old site gave per-count ones, and the old ones are the plausible
+ones. Never post OTIS spells one by one to `/incarcerations`: that route writes
+whatever it is sent.
+
 **Probation is not imported, and this table holds no supervision.** OTIS covers
 probationers as well as prisoners, and a profile can carry probation sentences
 and no prison time at all - in which case the correct import result is zero

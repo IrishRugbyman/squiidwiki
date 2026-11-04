@@ -6,6 +6,33 @@ here ships, its line comes out of that file.
 
 ---
 
+## 2026-11-04 - Re-importing an OTIS profile is safe, and never overwrites
+
+A latent duplication path, found in the code: the member form decided which OTIS
+sentences were already on record from its cached list of the member's spells
+(`['members', id, 'incarcerations']`, fresh for five minutes) and posted the rest
+one at a time with a bare `api.post` that never refreshed that cache. Saving the
+form refetched the list in parallel with the first post, so it kept the
+pre-import state, and a second import inside those five minutes would have posted
+every sentence again. The same set-of-court-files check skipped a genuinely new
+count on a file already on record. (Production's groups of identical spells were
+checked against OTIS: they are separate counts OTIS lists the same number of
+times, not copies, and stay.)
+
+- `POST /members/{id}/incarcerations/import` (`import_member_incarcerations`)
+  decides on the server, under a lock on the member row. A spell matches a row
+  on file by court file, first notes line ("Offense: ...") and start date
+  (`incarceration_match_key`), by count, so identical counts stay separate.
+- A matched row is never overwritten. An empty end date, release date,
+  facility or note is filled from OTIS; a filled value OTIS disagrees with
+  (the rebuilt site gives file-level discharge dates where the old one gave
+  plausible per-count ones) is left as it is and returned in `differences`
+  for a person to check. The form says how many were left for review.
+- The form's write path is `writeMdocSpells` in `frontend/src/lib/mdocImport.ts`;
+  it invalidates the member's queries afterwards.
+
+---
+
 ## 2026-10-04 - Incidents can move to another universe
 
 An incident belongs to the universe it happened in, and a state that gets its own

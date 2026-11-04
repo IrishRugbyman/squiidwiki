@@ -10,6 +10,7 @@ from sqlmodel import select
 from app.core import fuzzy, storage
 from app.core.audit import load_link_rows, record_link_change
 from app.core.enums import CustodySystem, MediaKind
+from app.core.fuzzy_date import FuzzyDate
 from app.core.slug import slugify
 from app.models.alliance import AllianceSet
 from app.models.gang_set import GangSet
@@ -774,9 +775,37 @@ async def list_member_incarcerations(
     return result.scalars().all()
 
 
-async def create_member_incarceration(
+def _date_key(d) -> tuple | None:
+    """A FuzzyDate (model or stored dict) reduced to what makes two dates equal."""
+    if d is None:
+        return None
+    if not isinstance(d, dict):
+        d = d.model_dump()
+    precision = d.get("precision") or "UNKNOWN"
+    precision = getattr(precision, "value", precision)
+    if precision == "UNKNOWN" and d.get("year") is None:
+        return None
+    return (d.get("year"), d.get("month"), d.get("day"), precision)
+
+
+def incarceration_match_key(case_id, notes, from_date) -> tuple:
+    """What makes two spells the same sentence: court file, first notes line, start.
+
+    The first notes line is the offense ("Offense: ..." on an OTIS import), so
+    two counts of one court file stay apart. The end and release dates are left
+    out on purpose: they are what a re-check of OTIS brings back changed (the
+    rebuilt site gives file-level discharge dates where the old one gave one per
+    count), and a changed date must find its row, not make a second one.
+    """
+    case = (case_id or "").strip().upper() or None
+    first = (notes or "").split("\n", 1)[0].strip() or None
+    return (case, first, _date_key(from_date))
+
+
+async def _add_member_incarceration(
     session: AsyncSession, member_id: uuid.UUID, data: MemberIncarcerationCreate
 ) -> MemberIncarceration:
+    """Stage one spell and link it to its case. Flushes; the caller commits."""
     obj = MemberIncarceration(
         member_id=member_id,
         from_date=_fuzzy_to_dict(data.from_date),
@@ -794,15 +823,169 @@ async def create_member_incarceration(
         notes=data.notes,
     )
     session.add(obj)
+    await session.flush()
     if obj.court_case_id is None:
         # Find or make the case its court file names (app.services.court_case_links).
         from app.services.court_case_links import link_spell
 
-        await session.flush()
         await link_spell(session, obj)
+    return obj
+
+
+async def create_member_incarceration(
+    session: AsyncSession, member_id: uuid.UUID, data: MemberIncarcerationCreate
+) -> MemberIncarceration:
+    obj = await _add_member_incarceration(session, member_id, data)
     await session.commit()
     await session.refresh(obj)
     return obj
+
+
+# The fields an import compares on a matched row: a gap on file is filled, a
+# filled value that differs is reported and left alone. The match key's fields
+# (court file, offense line, start date) are not here: they agreed to match.
+_IMPORT_DATE_FIELDS = ("to_date", "earliest_release_date", "max_discharge_date")
+_IMPORT_TEXT_FIELDS = ("facility", "notes")
+
+
+def _date_json(d) -> dict | None:
+    """A FuzzyDate (model or stored dict) as the JSON the API returns."""
+    if d is None:
+        return None
+    if isinstance(d, dict):
+        return FuzzyDate.model_validate(d).model_dump(mode="json")
+    return d.model_dump(mode="json")
+
+
+def _reconcile(row: MemberIncarceration, data: MemberIncarcerationCreate):
+    """Fill the gaps on `row` from `data`; return (filled, differences).
+
+    Never overwrites. A value on file is the research's (or an older, better
+    reading of OTIS: the old site's per-count discharge dates are more
+    plausible than the rebuilt site's file-level ones), so a disagreement goes
+    back to the caller for a person to settle.
+    """
+    filled: list[dict] = []
+    differences: list[dict] = []
+    for field in _IMPORT_DATE_FIELDS:
+        incoming = getattr(data, field)
+        if incoming is None:
+            continue
+        if field != "to_date" and (row.life_sentence or data.life_sentence):
+            # A life term has no release dates (create_member_incarceration).
+            continue
+        on_file = getattr(row, field)
+        if on_file is None:
+            setattr(row, field, _fuzzy_to_dict(incoming))
+            filled.append({"spell_id": row.id, "field": field, "value": _date_json(incoming)})
+        elif _date_key(on_file) != _date_key(incoming):
+            differences.append(
+                {
+                    "spell_id": row.id,
+                    "field": field,
+                    "on_file": _date_json(on_file),
+                    "incoming": _date_json(incoming),
+                }
+            )
+    for field in _IMPORT_TEXT_FIELDS:
+        incoming = (getattr(data, field) or "").strip() or None
+        if incoming is None:
+            continue
+        on_file = getattr(row, field)
+        if not (on_file or "").strip():
+            setattr(row, field, incoming)
+            filled.append({"spell_id": row.id, "field": field, "value": incoming})
+        elif on_file.strip() != incoming:
+            differences.append(
+                {"spell_id": row.id, "field": field, "on_file": on_file, "incoming": incoming}
+            )
+    if data.life_sentence != row.life_sentence:
+        # A bool has no gap to fill, so any disagreement is for a person.
+        differences.append(
+            {
+                "spell_id": row.id,
+                "field": "life_sentence",
+                "on_file": row.life_sentence,
+                "incoming": data.life_sentence,
+            }
+        )
+    return filled, differences
+
+
+def _agrees(row: MemberIncarceration, data: MemberIncarcerationCreate) -> bool:
+    """True when matching `data` to `row` would report no difference."""
+    return all(
+        getattr(data, f) is None
+        or getattr(row, f) is None
+        or _date_key(getattr(row, f)) == _date_key(getattr(data, f))
+        for f in _IMPORT_DATE_FIELDS
+    )
+
+
+async def import_member_incarcerations(
+    session: AsyncSession, member_id: uuid.UUID, spells: list[MemberIncarcerationCreate]
+) -> tuple[list[MemberIncarceration], int, list[dict], list[dict]]:
+    """Write the spells of one custody record onto a member, never overwriting.
+
+    Returns (created, matched, filled, differences).
+
+    Each incoming spell is matched to a row on file by `incarceration_match_key`
+    (court file, offense line, start date), by count rather than as a set:
+    OTIS lists a row for every count and two counts can read the same (three
+    felony-firearm counts on one court file are three sentences), so two
+    incoming against one on file matches one and writes one. An unmatched spell
+    is written as a new row. A matched row is never overwritten: a field it
+    lacks is filled from OTIS, and a filled field OTIS disagrees with is left as
+    it is and reported in `differences` for a person to check.
+
+    This decision used to live in the member form, against a cached spell list
+    the import itself never refreshed, so a second import inside the cache's
+    five fresh minutes would have posted every sentence again.
+
+    The member row is locked for the duration, so two imports racing (a double
+    submit) cannot both see the spells missing.
+    """
+    await session.execute(select(Member.id).where(Member.id == member_id).with_for_update())
+    existing = (
+        (
+            await session.execute(
+                select(MemberIncarceration)
+                .where(MemberIncarceration.member_id == member_id)
+                .order_by(MemberIncarceration.created_at, MemberIncarceration.id)
+            )
+        )
+        .scalars()
+        .all()
+    )
+    on_file: dict[tuple, list[MemberIncarceration]] = {}
+    for row in existing:
+        on_file.setdefault(
+            incarceration_match_key(row.case_id, row.notes, row.from_date), []
+        ).append(row)
+
+    created: list[MemberIncarceration] = []
+    matched = 0
+    filled: list[dict] = []
+    differences: list[dict] = []
+    for data in spells:
+        candidates = on_file.get(incarceration_match_key(data.case_id, data.notes, data.from_date))
+        if not candidates:
+            created.append(await _add_member_incarceration(session, member_id, data))
+            continue
+        # Among identical counts, take the one whose dates agree, so a served
+        # count pairs with its own row rather than with its still-open twin.
+        row = next((r for r in candidates if _agrees(r, data)), candidates[0])
+        candidates.remove(row)
+        matched += 1
+        row_filled, row_differences = _reconcile(row, data)
+        if row_filled:
+            session.add(row)
+        filled.extend(row_filled)
+        differences.extend(row_differences)
+    await session.commit()
+    for obj in created:
+        await session.refresh(obj)
+    return created, matched, filled, differences
 
 
 async def update_member_incarceration(

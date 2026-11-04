@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { UserPlus, X } from 'lucide-react'
 import { toast } from 'sonner'
+import { useQueryClient } from '@tanstack/react-query'
 import { FacebookIcon, InstagramIcon, TwitterIcon } from '@/components/icons/SocialIcons'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -22,6 +23,7 @@ import { api } from '@/lib/api'
 import { currentAffiliations } from '@/lib/utils'
 import { normalizeHandle, splitSocial, SOCIAL_BASE, type SocialMap, type SocialPlatform } from '@/lib/social'
 import { memberStatusFromMdoc } from '@/lib/mdoc'
+import { summariseDifferences, writeMdocSpells } from '@/lib/mdocImport'
 import { UrlPasteBanner, useUrlPasteBanner } from '@/components/UrlPasteBanner'
 import { SourceFormSheet } from '@/routes/_app.$universe.sources.index'
 import type { MdocProfile, MdocSpell, MemberListItem, MemberRead, MemberStatus, SetRank } from '@/lib/types'
@@ -507,6 +509,7 @@ function MemberFormSheetInner({ universeId, open, onClose, initial, defaultSetId
   const [error, setError] = useState<string | null>(null)
   const mdocLookup = useMdocLookup()
   const mdocImportPhoto = useMdocImportPhoto()
+  const queryClient = useQueryClient()
   const [mdocQuery, setMdocQuery] = useState('')
   // The spells the backend derived from OTIS's sentence rows, held until the
   // member exists to hang them on. One per prison sentence, so a discharged
@@ -654,31 +657,37 @@ function MemberFormSheetInner({ universeId, open, onClose, initial, defaultSetId
    */
   async function flushMdocPending(memberId: string) {
     if (!mdocPending) return
-    // Skip anything already on record. Court file numbers are what makes a
-    // re-import safe: the same OTIS profile imported twice would otherwise
-    // duplicate every spell. A spell OTIS gives no court file for cannot be
-    // matched, so it is imported and the count below says so.
-    const onRecord = new Set(
-      (existingIncarcerations.data ?? []).map((s) => s.case_id).filter(Boolean) as string[]
-    )
-    const toImport = mdocPending.spells.filter((s) => !s.case_id || !onRecord.has(s.case_id))
-    const skipped = mdocPending.spells.length - toImport.length
-    if (skipped > 0) {
-      toast.info(skipped === 1 ? 'Skipped 1 sentence already on record' : `Skipped ${skipped} sentences already on record`)
-    }
-    // Sequential, not Promise.all: spells arrive in the order OTIS lists them,
-    // and the list view orders by created_at.
-    let saved = 0
-    for (const spell of toImport) {
+    // The server decides what is already on record (see writeMdocSpells), so the
+    // same OTIS profile imported twice writes nothing the second time.
+    if (mdocPending.spells.length > 0) {
       try {
-        await api.post(`/members/${memberId}/incarcerations?universe_id=${universeId}`, spell)
-        saved += 1
+        const { saved, skipped, filled, differences } = await writeMdocSpells(api.post, {
+          memberId,
+          universeId,
+          spells: mdocPending.spells,
+        })
+        if (skipped > 0) {
+          toast.info(
+            (skipped === 1 ? 'Skipped 1 sentence already on record' : `Skipped ${skipped} sentences already on record`) +
+              (filled > 0 ? `; filled ${filled} empty field${filled === 1 ? '' : 's'}` : ''),
+          )
+        }
+        if (saved > 0) {
+          toast.success(saved === 1 ? 'Imported MDOC incarceration record' : `Imported ${saved} MDOC incarceration records`)
+        }
+        if (differences.length > 0) {
+          // Never written: what is on file stays until someone checks OTIS by hand.
+          toast.warning(
+            `${differences.length} difference${differences.length === 1 ? '' : 's'} from OTIS left for review, nothing overwritten`,
+            { description: summariseDifferences(differences), duration: 20_000 },
+          )
+        }
       } catch (e) {
-        toast.error(e instanceof Error ? `Couldn't save MDOC incarceration: ${e.message}` : "Couldn't save MDOC incarceration")
+        toast.error(e instanceof Error ? `Couldn't save MDOC incarcerations: ${e.message}` : "Couldn't save MDOC incarcerations")
       }
-    }
-    if (saved > 0) {
-      toast.success(saved === 1 ? 'Imported MDOC incarceration record' : `Imported ${saved} MDOC incarceration records`)
+      // Refresh both the spell list this form reads and the member page, so
+      // neither keeps showing the pre-import state.
+      await queryClient.invalidateQueries({ queryKey: ['members', memberId] })
     }
     if (mdocPending.photo_url) {
       // Server-side fetch, which also avoids CORS on the MDOC URL. The photo
@@ -795,7 +804,7 @@ function MemberFormSheetInner({ universeId, open, onClose, initial, defaultSetId
             </p>
             {isEdit && existingSpellCount > 0 && (
               <p className="text-xs text-zinc-500">
-                {existingSpellCount === 1 ? '1 incarceration record' : `${existingSpellCount} incarceration records`} already on this member. Sentences matching one by court file number are skipped.
+                {existingSpellCount === 1 ? '1 incarceration record' : `${existingSpellCount} incarceration records`} already on this member. Sentences already on record (same court file, offense and dates) are skipped.
               </p>
             )}
             <div className="flex gap-2">

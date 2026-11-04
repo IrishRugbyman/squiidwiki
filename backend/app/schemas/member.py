@@ -3,7 +3,7 @@ import uuid
 from datetime import date, datetime
 from typing import Annotated, Any, Optional
 
-from pydantic import AfterValidator, BaseModel, computed_field, model_validator
+from pydantic import AfterValidator, BaseModel, Field, computed_field, model_validator
 
 from app.core.enums import CustodySystem, MemberStatus, RapGroupRole, SetRank
 from app.schemas.citation import CitationRead
@@ -298,6 +298,16 @@ class MemberIncarcerationCreate(BaseModel):
     notes: Optional[str] = None
 
 
+class MemberIncarcerationImport(BaseModel):
+    """A batch of spells from one custody record, written only where missing.
+
+    What the OTIS import sends: every spell `derive_spells` produced, as
+    `MemberIncarcerationCreate` bodies. See `import_member_incarcerations`.
+    """
+
+    spells: list[MemberIncarcerationCreate] = Field(max_length=500)
+
+
 class MemberIncarcerationUpdate(BaseModel):
     from_date: FuzzyDateField = None
     to_date: FuzzyDateField = None
@@ -325,6 +335,32 @@ class MemberIncarcerationRead(BaseModel):
     court_case_id: Optional[uuid.UUID] = None
     notes: Optional[str]
     created_at: datetime
+
+
+class MemberIncarcerationFill(BaseModel):
+    """A field a matched row lacked, filled from the custody record."""
+
+    spell_id: uuid.UUID
+    field: str
+    value: Any
+
+
+class MemberIncarcerationDifference(BaseModel):
+    """A field the custody record disagrees with. Not written: a person decides."""
+
+    spell_id: uuid.UUID
+    field: str
+    on_file: Any
+    incoming: Any
+
+
+class MemberIncarcerationImportResult(BaseModel):
+    """What an import wrote, matched, filled, and left for review."""
+
+    created: list[MemberIncarcerationRead]
+    matched: int
+    filled: list[MemberIncarcerationFill] = []
+    differences: list[MemberIncarcerationDifference] = []
 
 
 def normalise_custody_number(system: "CustodySystem", number: str) -> str:
