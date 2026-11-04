@@ -180,21 +180,32 @@ async def _sync_alliance_auto_allies(
     )
     sibling_ids = result.scalars().all()
     for sibling_id in sibling_ids:
-        a, b = (set_id, sibling_id) if set_id < sibling_id else (sibling_id, set_id)
-        existing = await session.execute(
-            select(SetRelationship).where(
-                SetRelationship.set_a_id == a,
-                SetRelationship.set_b_id == b,
-                # A link that was closed in the past must not block a new one.
-                SetRelationship.until_date.is_(None),
-            )
+        await befriend_alliance_pair(session, set_id, sibling_id)
+
+
+async def befriend_alliance_pair(
+    session: AsyncSession, x: uuid.UUID, y: uuid.UUID
+) -> SetRelationship | None:
+    """Make two sets of one alliance allies, unless they have a current link.
+
+    The pair is stored once, normalised to set_a_id < set_b_id. Returns the new
+    row, or None when an open link (ally or enemy) already stands. Used by the
+    alliance auto-ally sync and by `app.scripts.backfill_alliance_allies`.
+    """
+    a, b = (x, y) if x < y else (y, x)
+    existing = await session.execute(
+        select(SetRelationship).where(
+            SetRelationship.set_a_id == a,
+            SetRelationship.set_b_id == b,
+            # A link that was closed in the past must not block a new one.
+            SetRelationship.until_date.is_(None),
         )
-        if existing.scalar_one_or_none() is None:
-            session.add(
-                SetRelationship(
-                    set_a_id=a, set_b_id=b, relationship_type=SetRelationshipType.FRIEND
-                )
-            )
+    )
+    if existing.scalar_one_or_none() is not None:
+        return None
+    rel = SetRelationship(set_a_id=a, set_b_id=b, relationship_type=SetRelationshipType.FRIEND)
+    session.add(rel)
+    return rel
 
 
 async def _sync_set_gangs(session: AsyncSession, obj: GangSet, gang_ids: list[uuid.UUID]) -> None:

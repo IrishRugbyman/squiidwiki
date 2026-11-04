@@ -389,3 +389,93 @@ async def test_dropping_a_killed_outcome_only_unlinks_the_death(
     assert got["death_incident_id"] is None
     assert got["status"] == "DEAD"
     assert got["date_of_death"]["day"] == 3
+
+
+# --- backfill_alliance_allies -------------------------------------------------
+
+
+async def test_backfill_alliance_allies_writes_only_approved_pairs(
+    client: AsyncClient, db_session: AsyncSession
+):
+    """The backfill lists pairs of sets sharing an alliance with no relationship
+    row, writes nothing on a dry run or without an approval list, writes only
+    approved pairs with --go, and never touches a pair that has any row."""
+    from app.core.enums import SetRelationshipType
+    from app.models.gang_set import SetRelationship
+    from app.scripts.backfill_alliance_allies import backfill, pair_key, parse_key
+
+    h = await _admin(client, db_session)
+    uni = await _universe(client, h)
+    alliance = await _post(
+        client, h, "/api/v1/alliances/", {"universe_id": uni, "name": f"Bloc {_uid()}"}
+    )
+    ids = [
+        (
+            await _post(
+                client,
+                h,
+                "/api/v1/sets/",
+                {
+                    "universe_id": uni,
+                    "name": f"Crew {n} {_uid()}",
+                    "alliance_ids": [alliance["id"]],
+                },
+            )
+        )["id"]
+        for n in range(3)
+    ]
+    s1, s2, s3 = (uuid.UUID(i) for i in ids)
+    # Joining befriended them all; take the links away to make the gap, and
+    # make one pair enemies, as feuding sets of one alliance would be.
+    await db_session.execute(
+        text("DELETE FROM set_relationships WHERE set_a_id = ANY(:ids) OR set_b_id = ANY(:ids)"),
+        {"ids": [s1, s2, s3]},
+    )
+    a, b = sorted((s1, s3))
+    db_session.add(
+        SetRelationship(set_a_id=a, set_b_id=b, relationship_type=SetRelationshipType.ENEMY)
+    )
+    await db_session.commit()
+    universe_id = uuid.UUID(uni)
+
+    async def rows() -> list[tuple]:
+        return (
+            await db_session.execute(
+                text(
+                    "SELECT set_a_id, set_b_id, relationship_type::text FROM set_relationships "
+                    "WHERE set_a_id = ANY(:ids) AND set_b_id = ANY(:ids) ORDER BY 1, 2"
+                ),
+                {"ids": [s1, s2, s3]},
+            )
+        ).all()
+
+    enemy_only = [(a, b, "ENEMY")]
+    k12, k23, k13 = pair_key(s1, s2), pair_key(s2, s3), pair_key(s1, s3)
+
+    # Dry run: both gaps listed, the enemy pair is not, nothing written.
+    result = await backfill(db_session, approved={k12}, go=False, universe_id=universe_id)
+    assert {p.key for p in result.missing} == {k12, k23}
+    assert result.written == []
+    assert await rows() == enemy_only
+
+    # --go without an approval list: nothing written.
+    result = await backfill(db_session, approved=set(), go=True, universe_id=universe_id)
+    assert result.written == [] and {p.key for p in result.skipped} == {k12, k23}
+    assert await rows() == enemy_only
+
+    # Approved (typed in the other order), plus the enemy pair: only the gap
+    # that was approved becomes allies; the enemies stay enemies.
+    approved = {parse_key(f"{s2}:{s1}"), parse_key(f"{s3}:{s1}")}
+    result = await backfill(db_session, approved=approved, go=True, universe_id=universe_id)
+    assert [p.key for p in result.written] == [k12]
+    assert [p.key for p in result.skipped] == [k23]
+    assert result.not_missing == [k13]
+    x, y = sorted((s1, s2))
+    assert sorted(await rows()) == sorted(enemy_only + [(x, y, "FRIEND")])
+
+    # On both sets' History, as an "allies" link.
+    for me, other in ((s1, s2), (s2, s1)):
+        page = await _history(client, h, uni, "set", str(me))
+        allies = [e for e in page["items"] if e["link"] == "allies" and e["is_self"]]
+        assert len(allies) == 1
+        assert [r["set_id"] for r in allies[0]["added"]] == [str(other)]
