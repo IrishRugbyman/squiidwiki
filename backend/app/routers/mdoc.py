@@ -11,11 +11,15 @@ from app.schemas.mdoc import (
     MdocParseRequest,
     MdocPhotoImportRequest,
     MdocProfileResponse,
+    MdocSearchRequest,
+    MdocSearchResponse,
+    MdocSearchRowRead,
     MdocSentenceRead,
     MdocSpellRead,
 )
 from app.schemas.media import MediaReadWithUrls
 from app.services.mdoc import (
+    DEFAULT_STATUS,
     MdocFetchError,
     MdocParseError,
     MdocProfile,
@@ -24,6 +28,7 @@ from app.services.mdoc import (
     fetch_mdoc_profile,
     is_allowed_mdoc_url,
     parse_mdoc_html,
+    search_mdoc,
 )
 
 ALLOWED_IMAGE_TYPES = {"image/jpeg", "image/png", "image/webp", "image/gif"}
@@ -51,6 +56,39 @@ async def lookup_mdoc(body: MdocLookupRequest, _: CurrentUser):
     except MdocParseError as e:
         raise HTTPException(status_code=422, detail=str(e))
     return _to_response(profile)
+
+
+@router.post("/search", response_model=MdocSearchResponse)
+async def search_mdoc_offenders(body: MdocSearchRequest, _: CurrentUser):
+    """Search OTIS with any combination of its form fields.
+
+    Same proxy requirement and failure mapping as `/lookup`. A hit is a lead,
+    not an identification: load the profile by number to confirm it. The cap
+    on `max_pages` is the schema's; `truncated` says when it cut the walk short.
+    """
+    try:
+        outcome = await search_mdoc(
+            last_name=body.last_name,
+            first_name=body.first_name,
+            mdoc_number=body.mdoc_number,
+            sex=body.sex,
+            race=body.race,
+            age=body.age,
+            status=body.status or DEFAULT_STATUS,
+            tattoos=body.tattoos,
+            max_pages=body.max_pages,
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except MdocFetchError as e:
+        raise HTTPException(status_code=502, detail=f"Couldn't search OTIS: {e}")
+    except MdocParseError as e:
+        raise HTTPException(status_code=422, detail=str(e))
+    return MdocSearchResponse(
+        rows=[MdocSearchRowRead(**vars(r)) for r in outcome.rows],
+        total=outcome.total,
+        truncated=outcome.truncated,
+    )
 
 
 @router.post("/parse", response_model=MdocProfileResponse)

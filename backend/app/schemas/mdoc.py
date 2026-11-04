@@ -8,6 +8,8 @@ from app.schemas.common import FuzzyDateField
 
 # A saved OTIS profile page is a few hundred KB; this is headroom, not a target.
 MAX_PASTED_HTML_CHARS = 4_000_000
+# 20 pages x 25 rows = 500 rows, each page a round trip through the SOCKS proxy.
+MAX_SEARCH_PAGES = 20
 
 
 class MdocLookupRequest(BaseModel):
@@ -34,6 +36,26 @@ class MdocLookupRequest(BaseModel):
             )
         self.mdoc_number = m.group(0)
         return self
+
+
+class MdocSearchRequest(BaseModel):
+    """Every field of the OTIS search form, plus a cap on pages walked.
+
+    Enum values are checked by the service against its module constants
+    (`SEX_VALUES`, `RACE_VALUES`, `STATUS_VALUES`) and a bad one comes back as
+    400, as does a request naming none of name, MDOC number and tattoo text.
+    `status` left out means the service's `DEFAULT_STATUS`.
+    """
+
+    last_name: str = ""
+    first_name: str = ""
+    mdoc_number: str = ""
+    sex: str = "Either"
+    race: str = "All"
+    age: Optional[int] = Field(default=None, ge=1, le=129)
+    status: Optional[str] = None
+    tattoos: str = ""
+    max_pages: int = Field(default=10, ge=1, le=MAX_SEARCH_PAGES)
 
 
 class MdocParseRequest(BaseModel):
@@ -115,6 +137,30 @@ class MdocProfileResponse(BaseModel):
     # The sentences above, reshaped into incarceration spells. `sentences` is
     # what OTIS shows; this is what the wiki stores.
     spells: list[MdocSpellRead] = []
+
+
+class MdocSearchRowRead(BaseModel):
+    """One results-list row: a lead, not a profile. Look the number up for the rest."""
+
+    mdoc_number: str
+    last_name: Optional[str] = None
+    first_name: Optional[str] = None
+    dob: FuzzyDateField = None
+    sex: Optional[str] = None
+    race: Optional[str] = None
+    location: Optional[str] = None
+    status: Optional[str] = None
+    parole_board_date: FuzzyDateField = None
+    max_date: FuzzyDateField = None
+    date_paroled: FuzzyDateField = None
+
+
+class MdocSearchResponse(BaseModel):
+    rows: list[MdocSearchRowRead]
+    # OTIS's own "N matches found"; not trustworthy (it has said 0 for a real hit).
+    total: Optional[int] = None
+    # True when max_pages ran out while OTIS still had a next page.
+    truncated: bool = False
 
 
 class MdocPhotoImportRequest(BaseModel):

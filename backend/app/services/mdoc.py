@@ -8,7 +8,7 @@ break any code written against the old site:
    renders whoever the session last loaded, and serves the search form to
    anyone else. There is no permalink to a profile and no way to link one.
 2. **Reaching a profile takes three requests**, in order, on one cookie jar.
-   See ``fetch_mdoc_profile``. Posting ``action:LoadProfile`` without a search
+   See ``OtisSession.profile``. Posting ``action:LoadProfile`` without a search
    already in session bounces back to the form - verified, there is no shortcut.
 3. **The photo is inlined** as a ``data:`` URI in the profile HTML. The old
    ``ProfileImage.aspx`` endpoint is gone, so a mugshot can no longer be
@@ -30,6 +30,17 @@ that must be posted back with the search. ``_open_search`` handles both: it
 reads the token off the search page and returns the host that page was
 actually served from, so the POSTs follow the site if it moves again.
 
+**The profile re-skin of 2026-11-04.** The profile page changed markup again, with no
+change in content: section headings went from ``<h4>`` to ``<h2>`` (Marks stayed an
+``<h4>``), the Active/Inactive sentence headings from ``<h5>`` to ``<h3>``, and a
+probation sentence is announced by an ``<h4>`` with no id. The old parser found none of
+the ``<h4 id=...>`` headings and returned a profile with no status, facility or
+sentences, and a ``marks`` list that ran on through every heading after it, without
+raising. ``parse_mdoc_html`` now locates sections by id on ``<h2>``/``<h4>``, ends one at
+the next such heading, and raises ``MdocParseError`` when a section it reads is missing.
+A probationer's or parolee's Status block carries "Supervision Begin Date" and
+"Supervision Discharge Date" instead of release dates; those are not read.
+
 **Reaching OTIS at all.** mdocweb.state.mi.us sits behind Cloudflare, which
 403s this server's Helsinki IP on every path. Set ``MDOC_PROXY`` (or pass
 ``proxy=``) to route through a SOCKS5 proxy that egresses somewhere unblocked -
@@ -42,8 +53,10 @@ from __future__ import annotations
 import asyncio
 import base64
 import binascii
+import contextlib
 import datetime
 import re
+from collections.abc import AsyncIterator
 from dataclasses import dataclass, field, replace
 from urllib.parse import unquote_to_bytes, urlparse
 
@@ -70,9 +83,9 @@ USER_AGENT = (
     "(KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36"
 )
 
-# Every field the search form posts. OffenderStatus is the one that matters:
-# the form defaults to "Active Offenders", which silently omits anyone
-# discharged - which is most of the people we look up.
+# Every field the search form posts, blank. OffenderStatus is ignored when
+# searching by MDOC number (the only way this blank is used for a profile
+# walk); for a real search OtisSession.search sets it, see DEFAULT_STATUS.
 BLANK_SEARCH: dict[str, str] = {
     "LastName": "",
     "FirstName": "",
@@ -112,6 +125,27 @@ class MdocParseError(Exception):
 
 class MdocFetchError(Exception):
     """OTIS couldn't be reached, or didn't return the page we asked for."""
+
+
+class MdocHttpError(MdocFetchError):
+    """OTIS answered a search step with an HTTP error status.
+
+    ``status`` is kept because callers act on it: 401/403/429 mean stop (OTIS or
+    Cloudflare is refusing us), while a 5xx on one particular search term is that
+    term's problem (an apostrophe breaks OTIS's own query) and not a reason to stop.
+    """
+
+    def __init__(self, status: int, message: str) -> None:
+        super().__init__(message)
+        self.status = status
+
+
+class MdocBounced(MdocFetchError):
+    """A search step came back as the search form instead of the results page.
+
+    OTIS answers 200 with the form when it rejects a session, which reads as
+    "no matches" if nobody checks the title.
+    """
 
 
 @dataclass(frozen=True)
@@ -160,7 +194,11 @@ class MdocSearchResult:
     dob: FuzzyDate | None = None
     sex: str | None = None
     race: str | None = None
+    location: str | None = None
     status: str | None = None
+    parole_board_date: FuzzyDate | None = None
+    max_date: FuzzyDate | None = None
+    date_paroled: FuzzyDate | None = None
 
 
 @dataclass(frozen=True)
@@ -413,13 +451,24 @@ def _bio_field(soup: BeautifulSoup, suffix: str) -> str | None:
     return _value_beside(label.find_parent("td")) if label else None
 
 
+def _section_heading(soup: BeautifulSoup, section_id: str) -> Tag | None:
+    """The heading of one profile section: an <h2> (an <h4> for Marks) with that id."""
+    heading = soup.find(["h2", "h4"], id=section_id)
+    return heading if isinstance(heading, Tag) else None
+
+
+def _is_section_row(row: Tag) -> bool:
+    """True for a row that opens a section. A sentence's own "Sentence N" <h4> has no id."""
+    return row.find("h2") is not None or row.find("h4", id=True) is not None
+
+
 def _section_rows(soup: BeautifulSoup, section_id: str) -> list[Tag]:
-    """Every <tr> between one <h4 id=...> section heading and the next.
+    """Every <tr> between one section heading and the next.
 
     The page is one flat table, so sections aren't nested containers - they're
     delimited by their headings, and we walk siblings until the next one.
     """
-    heading = soup.find("h4", id=section_id)
+    heading = _section_heading(soup, section_id)
     if heading is None:
         return []
     start = heading.find_parent("tr")
@@ -427,7 +476,7 @@ def _section_rows(soup: BeautifulSoup, section_id: str) -> list[Tag]:
         return []
     rows: list[Tag] = []
     for sibling in start.find_next_siblings("tr"):
-        if sibling.find("h4"):
+        if _is_section_row(sibling):
             break
         rows.append(sibling)
     return rows
@@ -470,15 +519,16 @@ def _status_fields(soup: BeautifulSoup) -> dict[str, str]:
 def _parse_sentences(soup: BeautifulSoup, section_id: str, kind: str) -> list[MdocSentence]:
     """Read one sentences section.
 
-    Layout: an <h5> reading "Active" or "Inactive", then alternating rows - a
-    bare "Sentence N" marker followed by a row holding that sentence's tables.
+    Layout: an <h3> reading "Active" or "Inactive", then alternating rows - a
+    "Sentence N" marker (bare text in prison sections, an <h4> in probation)
+    followed by a row holding that sentence's tables.
     """
     sentences: list[MdocSentence] = []
     active = True
     pending = False
 
     for row in _section_rows(soup, section_id):
-        heading = row.find("h5")
+        heading = row.find("h3")
         if heading is not None:
             active = _clean(heading.get_text()) == "Active"
             pending = False
@@ -569,6 +619,26 @@ def _extract_photo(soup: BeautifulSoup) -> MdocPhoto | None:
     return None
 
 
+# Results-table header text (lower-cased) -> MdocSearchResult field. Columns are
+# located by their header, not by position: the table lost its MCL column at
+# some point before 2026-11 and a positional read then put the parole-board
+# date in `status` without any error.
+_RESULT_COLUMNS = {
+    "offender number": "mdoc_number",
+    "last name": "last_name",
+    "first name": "first_name",
+    "date of birth": "dob",
+    "sex": "sex",
+    "race": "race",
+    "location": "location",
+    "status": "status",
+    "parole board jurisdiction date": "parole_board_date",
+    "maximum date": "max_date",
+    "date paroled": "date_paroled",
+}
+_RESULT_DATE_FIELDS = {"dob", "parole_board_date", "max_date", "date_paroled"}
+
+
 def parse_mdoc_results(html: str) -> tuple[list[MdocSearchResult], int | None, bool]:
     """Parse an OTIS results page.
 
@@ -578,30 +648,39 @@ def parse_mdoc_results(html: str) -> tuple[list[MdocSearchResult], int | None, b
     **not trustworthy** - OTIS has reported 0 for a number whose profile then
     loaded perfectly well. It is returned for information; never branch on it.
     Trust the rows.
+
+    Raises ``MdocParseError`` when the page lists offenders but has no
+    recognisable header row, rather than guessing at column positions.
     """
     soup = BeautifulSoup(html, "html.parser")
+    buttons = soup.find_all("input", attrs={"name": "action:LoadProfile"})
+    columns: list[str | None] = []
+    if buttons:
+        header = soup.find("tr", class_="ResultsHeader")
+        if header is None:
+            raise MdocParseError("The OTIS results table has no header row; its layout changed")
+        columns = [
+            _RESULT_COLUMNS.get((_clean(td.get_text(" ", strip=True)) or "").lower())
+            for td in header.find_all("td")
+        ]
+        if "mdoc_number" not in columns:
+            raise MdocParseError("The OTIS results header has no 'Offender Number' column")
+
     rows: list[MdocSearchResult] = []
-    for btn in soup.find_all("input", attrs={"name": "action:LoadProfile"}):
+    for btn in buttons:
         number = _clean(btn.get("value"))
         if not number:
             continue
         tr = btn.find_parent("tr")
         cells = [_clean(td.get_text(" ", strip=True)) for td in tr.find_all("td")] if tr else []
-        # Column order is the results header: number, last, first, dob, sex,
-        # race, MCL, location, status, ... Short rows are padded rather than
-        # indexed defensively at every use.
-        padded = (cells + [None] * 9)[:9]
-        rows.append(
-            MdocSearchResult(
-                mdoc_number=number,
-                last_name=padded[1],
-                first_name=padded[2],
-                dob=_try_parse_date(padded[3]),
-                sex=padded[4],
-                race=padded[5],
-                status=padded[8],
+        values: dict[str, object] = {}
+        for field_name, text in zip(columns, cells, strict=False):
+            if field_name is None or field_name == "mdoc_number":
+                continue
+            values[field_name] = (
+                _try_parse_date(text) if field_name in _RESULT_DATE_FIELDS else text
             )
-        )
+        rows.append(MdocSearchResult(mdoc_number=number, **values))
 
     m = re.search(r"([\d,]+)\s+matches found", html)
     total = int(m.group(1).replace(",", "")) if m else None
@@ -619,6 +698,12 @@ def _normalize_name(s: str) -> str:
         last, rest = last.strip(), rest.strip()
         return f"{rest.title()} {last.title()}".strip() if rest else last.title()
     return s.title()
+
+
+# Sections the parser reads. A genuinely empty one renders a "none" row and parses
+# as empty; a missing heading means the layout moved, and is an error rather than
+# a profile with silently empty fields.
+_REQUIRED_SECTIONS = ("Status", "Aliases", "Marks", "Sentences", "Probation")
 
 
 def parse_mdoc_html(html: str, page_url: str | None = None) -> MdocProfile:
@@ -648,6 +733,12 @@ def parse_mdoc_html(html: str, page_url: str | None = None) -> MdocProfile:
     except ValueError as e:
         raise MdocParseError(f"Couldn't parse Date of Birth: {e}") from e
 
+    for section_id in _REQUIRED_SECTIONS:
+        if _section_heading(soup, section_id) is None:
+            raise MdocParseError(
+                f"The OTIS profile has no {section_id!r} section; the page layout changed "
+                "and the parser needs updating."
+            )
     status = _status_fields(soup)
 
     return MdocProfile(
@@ -738,181 +829,396 @@ class _OtisBounced(Exception):
 PROFILE_ATTEMPTS = 3
 PROFILE_RETRY_DELAYS = (0.6, 1.5)
 
+# The form's own vocabularies, verbatim: a value outside these is posted as-is
+# and OTIS answers with the bare form, which reads as "no matches".
+SEX_VALUES = ("Either", "Male", "Female")
+RACE_VALUES = (
+    "All",
+    "Native American",
+    "Asian",
+    "Black",
+    "Latino",
+    "Middle Eastern/North African",
+    "Pacific Islander",
+    "White",
+)
+STATUS_VALUES = (
+    "Active Offenders",
+    "All",
+    "Prison",
+    "Parole",
+    "Probation",
+    "Discharged",
+    "Abscond1",
+    "Abscond2",
+)
+DEFAULT_MAX_PAGES = 10
+# Live, 2026-11-04: the widest option, and the only one that returns discharged
+# offenders. "All" hides them and "Discharged" returns nothing. See OtisSession.search.
+DEFAULT_STATUS = "Active Offenders"
+OTIS_PAGE_SIZE = 25
 
-async def _load_profile_once(number: str, proxy: str | None) -> str:
-    """One full session walk on a clean cookie jar. Returns the profile HTML.
 
-    A fresh client per attempt is the point: what fails is the session, so
-    reusing its cookies would just reproduce the same rejection.
+@dataclass(frozen=True)
+class MdocSearchOutcome:
+    """What a search walked: the rows, OTIS's own count, and whether it stopped short.
+
+    ``total`` is the page's "N matches found" line (None when absent) and, as
+    ``parse_mdoc_results`` warns, is not trustworthy on its own. ``truncated``
+    is exact: True only when ``max_pages`` ran out while OTIS still offered a
+    next page, so the rows are a prefix of the result set.
     """
-    async with httpx.AsyncClient(
-        proxy=proxy,
-        timeout=HTTP_TIMEOUT,
-        follow_redirects=True,
-        headers={"User-Agent": USER_AGENT},
-    ) as client:
-        try:
-            base, token = await _open_search(client)
-            results = await client.post(
-                f"{base}/Search",
-                data={
-                    **BLANK_SEARCH,
-                    "MDOCNumber": number,
-                    "action:Search": "Search",
-                    "__RequestVerificationToken": token,
-                },
-            )
-            profile = await client.post(f"{base}/Results", data={"action:LoadProfile": number})
-        except httpx.HTTPError as e:
-            # A transport failure, not an HTTP status: almost always the proxy.
-            # Not retried - a proxy that is down stays down, and the message
-            # below is more use than three slow repeats of it.
-            raise MdocFetchError(
-                f"Couldn't reach OTIS ({e}). It 403s this server's own IP, so "
-                "MDOC_PROXY must point at a SOCKS5 proxy that egresses "
-                "elsewhere, with something actually listening on it "
-                "(infra/otis-tunnel.sh opens one)."
-            ) from e
 
-    # OTIS raises rather than 404s for a number that doesn't exist. Definitive,
-    # so it is raised straight out of the retry loop rather than retried.
-    if profile.status_code >= 500:
-        raise MdocFetchError(
-            f"OTIS has no offender with MDOC number {number} "
-            f"(it answered {profile.status_code} {_title_of(profile.text)!r})."
+    rows: list[MdocSearchResult]
+    total: int | None
+    truncated: bool
+
+
+def _check_choice(name: str, value: str, allowed: tuple[str, ...]) -> str:
+    if value not in allowed:
+        raise ValueError(f"{name} must be one of {', '.join(allowed)}; got {value!r}")
+    return value
+
+
+class OtisSession:
+    """One OTIS session: one cookie jar, one anti-forgery token, many requests.
+
+    Use as ``async with OtisSession() as otis:`` then ``await otis.search(...)``
+    and ``await otis.profile(number)``. The search page is fetched once on
+    entry, so several searches share one GET. OTIS holds the result set in
+    session state, so a ``profile`` call runs its own search by number first and
+    replaces whatever result list the session held: finish paging a search
+    before asking for profiles.
+
+    A session OTIS rejects is rebuilt from scratch (new client, new cookies,
+    new token) by ``profile``; ``search`` does not retry, because a rejected
+    search form parses as an honest-looking empty result only when the token is
+    missing, and that case raises in ``_open_search``.
+    """
+
+    def __init__(self, proxy: str | None = None) -> None:
+        self._proxy = proxy or _configured_proxy()
+        self._stack: contextlib.AsyncExitStack | None = None
+        self._client: httpx.AsyncClient | None = None
+        self._base = ""
+        self._token = ""
+
+    async def __aenter__(self) -> OtisSession:
+        await self._open()
+        return self
+
+    async def __aexit__(self, *exc) -> bool:
+        await self._close()
+        return False
+
+    async def _open(self) -> None:
+        stack = contextlib.AsyncExitStack()
+        try:
+            client = await stack.enter_async_context(
+                httpx.AsyncClient(
+                    proxy=self._proxy,
+                    timeout=HTTP_TIMEOUT,
+                    follow_redirects=True,
+                    headers={"User-Agent": USER_AGENT},
+                )
+            )
+            try:
+                self._base, self._token = await _open_search(client)
+            except httpx.HTTPError as e:
+                raise self._unreachable(e) from e
+        except BaseException:
+            await stack.aclose()
+            raise
+        self._stack, self._client = stack, client
+
+    async def _close(self) -> None:
+        stack, self._stack, self._client = self._stack, None, None
+        if stack is not None:
+            await stack.aclose()
+
+    @staticmethod
+    def _unreachable(e: Exception) -> MdocFetchError:
+        # A transport failure, not an HTTP status: almost always the proxy.
+        # Not retried - a proxy that is down stays down, and this message is
+        # more use than three slow repeats of it.
+        return MdocFetchError(
+            f"Couldn't reach OTIS ({e}). It 403s this server's own IP, so "
+            "MDOC_PROXY must point at a SOCKS5 proxy that egresses "
+            "elsewhere, with something actually listening on it "
+            "(infra/otis-tunnel.sh opens one)."
         )
-    if profile.status_code != 200 or PROFILE_TITLE not in _title_of(profile.text):
-        raise _OtisBounced(
-            f"({profile.status_code}, {_title_of(profile.text)!r}; the search "
-            f"step returned {_title_of(results.text)!r})"
+
+    def _http(self) -> httpx.AsyncClient:
+        if self._client is None:
+            raise RuntimeError("OtisSession is not open; use it as an async context manager")
+        return self._client
+
+    def _form(self, **fields: str) -> dict[str, str]:
+        return {
+            **BLANK_SEARCH,
+            **fields,
+            "action:Search": "Search",
+            "__RequestVerificationToken": self._token,
+        }
+
+    def _checked_results(self, resp: httpx.Response) -> str:
+        """The page text of a results page, or the error OTIS's answer amounts to."""
+        title = _title_of(resp.text)
+        if resp.status_code >= 400:
+            raise MdocHttpError(
+                resp.status_code, f"OTIS answered {resp.status_code} {title!r} to a search step"
+            )
+        if RESULTS_TITLE not in title:
+            raise MdocBounced(
+                f"OTIS returned {title!r} instead of the results page; it rejected the session"
+            )
+        return resp.text
+
+    async def search_pages(
+        self,
+        *,
+        last_name: str = "",
+        first_name: str = "",
+        mdoc_number: str = "",
+        sex: str = "Either",
+        race: str = "All",
+        age: int | str | None = None,
+        status: str = DEFAULT_STATUS,
+        tattoos: str = "",
+    ) -> AsyncIterator[tuple[list[MdocSearchResult], int | None, bool]]:
+        """Run the search form and yield ``(rows, total, has_next)`` one page at a time.
+
+        The next page is requested only when the caller asks for it, so a caller
+        can pace the requests, stop early, or cap the walk without a wasted
+        round trip. ``search`` is the usual way in; this is for callers that
+        need that control. Raises ``MdocHttpError`` for an HTTP error status and
+        ``MdocBounced`` when OTIS answers with the form instead of results.
+
+        Arguments and validation are those of ``search``.
+        """
+        last_name, first_name = last_name.strip(), first_name.strip()
+        mdoc_number, tattoos = str(mdoc_number or "").strip(), tattoos.strip()
+        _check_choice("sex", sex, SEX_VALUES)
+        _check_choice("race", race, RACE_VALUES)
+        _check_choice("status", status, STATUS_VALUES)
+        if mdoc_number and not mdoc_number.isdigit():
+            raise ValueError("MDOC number must be digits")
+        age_text = "" if age is None else str(age).strip()
+        if age_text and not (age_text.isdigit() and 0 < int(age_text) < 130):
+            raise ValueError("age must be a whole number between 1 and 129")
+        if not (last_name or first_name or mdoc_number or tattoos):
+            raise ValueError("Give at least a name, an MDOC number or a tattoo/marks text")
+
+        client = self._http()
+        try:
+            resp = await client.post(
+                f"{self._base}/Search",
+                data=self._form(
+                    LastName=last_name,
+                    FirstName=first_name,
+                    MDOCNumber=mdoc_number,
+                    Sex=sex,
+                    Race=race,
+                    Age=age_text,
+                    OffenderStatus=status,
+                    MarksScarsTattoos=tattoos,
+                ),
+            )
+            while True:
+                rows, total, has_next = parse_mdoc_results(self._checked_results(resp))
+                yield rows, total, has_next
+                if not has_next:
+                    return
+                resp = await client.post(
+                    f"{self._base}/Results", data={"action:Pagination": "Next"}
+                )
+        except httpx.HTTPError as e:
+            raise self._unreachable(e) from e
+
+    async def search(
+        self,
+        *,
+        last_name: str = "",
+        first_name: str = "",
+        mdoc_number: str = "",
+        sex: str = "Either",
+        race: str = "All",
+        age: int | str | None = None,
+        status: str = DEFAULT_STATUS,
+        tattoos: str = "",
+        max_pages: int = DEFAULT_MAX_PAGES,
+    ) -> MdocSearchOutcome:
+        """Run the search form and follow pagination.
+
+        Every field of the OTIS form is a parameter. ``sex``, ``race`` and
+        ``status`` must be one of ``SEX_VALUES`` / ``RACE_VALUES`` /
+        ``STATUS_VALUES`` (ValueError otherwise). ``status`` defaults to
+        ``DEFAULT_STATUS``, see the observations below for why that is not the
+        option its label suggests. At least one of a name, an MDOC number or a
+        tattoo/marks substring is required.
+
+        OTIS pages 25 rows at a time; ``max_pages`` caps the walk (a bare
+        surname can return hundreds, each page a round trip through the proxy).
+        Check ``truncated`` rather than assuming the rows are complete.
+
+        A name search is a lead, not an identification. Several people share a
+        name, and OTIS holds only those who passed through the Department of
+        Corrections: county jail, federal custody and juvenile records never
+        appear here, so an empty result does not mean someone has no record.
+
+        LIVE OBSERVATIONS (2026-11-04, a handful of requests):
+          * One token serves any number of searches in a session (six in a row
+            worked), and a ``Search`` POST may follow a ``Results`` pagination.
+          * A tattoo-only search is accepted (``tattoos`` alone: thousands of
+            matches for a common word), and tattoos + status + race + sex
+            combine as ANDed filters (each added filter shrank the total).
+            ``tattoos`` is a substring match on the marks text.
+          * ``age`` is a fuzzy filter, not an exact one: age 30 returned people
+            aged 27 to 32 by date of birth, age 45 returned 42 to 47. It
+            narrows a list; never read it as the age of a hit.
+          * ``status`` is NOT what its labels say. For a name search, "Active
+            Offenders" is the widest option and the only one that returns
+            discharged people (status ``Dischrg``); "All" returned a strict
+            subset without them (6 vs 7 and 5 vs 10 hits in two probes), and
+            "Discharged" returned 0 rows every time. Hence DEFAULT_STATUS is
+            "Active Offenders". A search by ``mdoc_number`` ignores ``status``
+            entirely (a discharged man was found under "Prison").
+          * The results table has no MCL column (see ``parse_mdoc_results``);
+            its race text is the long form ("Black or African American") while
+            the filter takes the short one ("Black"). The results page also
+            has a ``pageSize`` field (10, 25, 50, 100); this client leaves the
+            default 25.
+        """
+        if max_pages < 1:
+            raise ValueError("max_pages must be at least 1")
+        out: list[MdocSearchResult] = []
+        seen: set[str] = set()
+        total: int | None = None
+        truncated = False
+        pages = self.search_pages(
+            last_name=last_name,
+            first_name=first_name,
+            mdoc_number=mdoc_number,
+            sex=sex,
+            race=race,
+            age=age,
+            status=status,
+            tattoos=tattoos,
         )
-    return profile.text
+        count = 0
+        async for rows, page_total, has_next in pages:
+            count += 1
+            if count == 1:
+                total = page_total
+            # Guard against a pagination that loops back on itself rather
+            # than advancing, which would otherwise spin to max_pages.
+            fresh = [r for r in rows if r.mdoc_number not in seen]
+            if not fresh:
+                break
+            seen.update(r.mdoc_number for r in fresh)
+            out.extend(fresh)
+            if not has_next:
+                break
+            if count == max_pages:
+                truncated = True
+                break
+        await pages.aclose()
+        return MdocSearchOutcome(rows=out, total=total, truncated=truncated)
+
+    async def _profile_once(self, number: str) -> str:
+        client = self._http()
+        try:
+            results = await client.post(f"{self._base}/Search", data=self._form(MDOCNumber=number))
+            profile = await client.post(
+                f"{self._base}/Results", data={"action:LoadProfile": number}
+            )
+        except httpx.HTTPError as e:
+            raise self._unreachable(e) from e
+
+        # OTIS raises rather than 404s for a number that doesn't exist. Definitive,
+        # so it is raised straight out of the retry loop rather than retried.
+        if profile.status_code >= 500:
+            raise MdocFetchError(
+                f"OTIS has no offender with MDOC number {number} "
+                f"(it answered {profile.status_code} {_title_of(profile.text)!r})."
+            )
+        if profile.status_code != 200 or PROFILE_TITLE not in _title_of(profile.text):
+            raise _OtisBounced(
+                f"({profile.status_code}, {_title_of(profile.text)!r}; the search "
+                f"step returned {_title_of(results.text)!r})"
+            )
+        return profile.text
+
+    async def profile(self, mdoc_number: str) -> MdocProfile:
+        """Load and parse one offender's profile by MDOC number.
+
+        Two requests on this session, in this order - there is no shortcut,
+        because ``action:LoadProfile`` is only honoured once a search has put a
+        result set into the session:
+
+            POST /Search   + MDOCNumber + token  -> the results list
+            POST /Results  + action:LoadProfile=N -> the profile
+
+        OTIS answers 200 with the search form when it rejects a step rather than
+        signalling an error, so each step is verified by page title. The search
+        step exists only to establish session state, and **nothing is decided
+        from what it returns**: for one real offender it reported "0 matches
+        found" on one attempt and bounced to the search form on the next, yet
+        ``LoadProfile`` fetched that profile correctly both times.
+
+        A bounced ``LoadProfile`` is retried up to ``PROFILE_ATTEMPTS`` times
+        on a rebuilt session (new cookies, new token): what fails is the
+        session, so reusing it would reproduce the rejection. ``LoadProfile``
+        answering 500 means no such number and is not retried.
+        """
+        number = str(mdoc_number).strip()
+        if not number.isdigit():
+            raise ValueError("MDOC number must be digits")
+
+        last_bounce = ""
+        for attempt in range(PROFILE_ATTEMPTS):
+            try:
+                html = await self._profile_once(number)
+                break
+            except _OtisBounced as e:
+                last_bounce = str(e)
+                if attempt + 1 < PROFILE_ATTEMPTS:
+                    await asyncio.sleep(PROFILE_RETRY_DELAYS[attempt])
+                    await self._close()
+                    await self._open()
+        else:
+            raise MdocFetchError(
+                f"OTIS did not load a profile for MDOC number {number} after "
+                f"{PROFILE_ATTEMPTS} attempts {last_bounce}. It rejects a new "
+                "session intermittently; try again in a moment."
+            )
+
+        parsed = parse_mdoc_html(html)
+        # Belt and braces. OTIS holds the selected offender in session state, so a
+        # bug or a session mix-up upstream could hand back somebody else - and
+        # attaching the wrong person's convictions to a member is the worst thing
+        # this code could quietly do. Verified correct today; checked anyway.
+        if parsed.mdoc_number and parsed.mdoc_number != number:
+            raise MdocFetchError(
+                f"OTIS returned MDOC number {parsed.mdoc_number} when asked for "
+                f"{number}; refusing to use a profile that may be someone else's."
+            )
+        return parsed
 
 
 async def fetch_mdoc_profile(mdoc_number: str, proxy: str | None = None) -> MdocProfile:
-    """Look an offender up by MDOC number and return their parsed profile.
-
-    Three requests on one cookie jar, in this order - there is no shortcut,
-    because ``action:LoadProfile`` is only honoured once a search has put a
-    result set into the session:
-
-        GET  /OTIS2/Search                            -> session cookies
-        POST /OTIS2/Search   + action:Search          -> the results list
-        POST /OTIS2/Results  + action:LoadProfile=N   -> the profile
-
-    OTIS answers 200 with the search form when it rejects a step rather than
-    signalling an error, so each step is verified by page title.
-
-    The search step exists only to establish session state, and **nothing is
-    decided from what it returns**, because what it returns is not trustworthy:
-    for one real offender it reported "0 matches found" on one attempt and
-    bounced to the search form on the next, yet ``LoadProfile`` fetched that
-    profile correctly both times. Gating on it rejects lookups that work.
-
-    ``LoadProfile`` is the authoritative step: it returns the offender asked
-    for regardless of what the search listed, and answers 500 "Runtime Error"
-    when no such number exists.
-    """
+    """Look an offender up by MDOC number: a one-profile ``OtisSession``."""
     number = str(mdoc_number).strip()
     if not number.isdigit():
         raise ValueError("MDOC number must be digits")
-
-    proxy = proxy or _configured_proxy()
-    last_bounce = ""
-    for attempt in range(PROFILE_ATTEMPTS):
-        try:
-            html = await _load_profile_once(number, proxy)
-            break
-        except _OtisBounced as e:
-            last_bounce = str(e)
-            if attempt + 1 < PROFILE_ATTEMPTS:
-                await asyncio.sleep(PROFILE_RETRY_DELAYS[attempt])
-    else:
-        raise MdocFetchError(
-            f"OTIS did not load a profile for MDOC number {number} after "
-            f"{PROFILE_ATTEMPTS} attempts {last_bounce}. It rejects a new "
-            "session intermittently; try again in a moment."
-        )
-
-    parsed = parse_mdoc_html(html)
-    # Belt and braces. OTIS holds the selected offender in session state, so a
-    # bug or a session mix-up upstream could hand back somebody else - and
-    # attaching the wrong person's convictions to a member is the worst thing
-    # this code could quietly do. Verified correct today; checked anyway.
-    if parsed.mdoc_number and parsed.mdoc_number != number:
-        raise MdocFetchError(
-            f"OTIS returned MDOC number {parsed.mdoc_number} when asked for "
-            f"{number}; refusing to use a profile that may be someone else's."
-        )
-    return parsed
+    async with OtisSession(proxy) as otis:
+        return await otis.profile(number)
 
 
-async def search_mdoc(
-    last_name: str = "",
-    first_name: str = "",
-    *,
-    max_pages: int = 10,
-    proxy: str | None = None,
-) -> list[MdocSearchResult]:
-    """Search OTIS by name and return every result row, following pagination.
-
-    OTIS pages 25 rows at a time. `max_pages` caps that at 250 rows by default,
-    because a bare surname can return hundreds and each page is a round trip
-    through the proxy. When the cap is hit the list is simply short - it is
-    logged in no way OTIS can tell us about, so **check `len()` against what you
-    expected** rather than assuming completeness.
-
-    A name search is a lead, not an identification. Several people share a name,
-    and OTIS holds only those who passed through the Department of Corrections:
-    county jail, federal custody and juvenile records never appear here, so an
-    empty result does not mean someone has no record.
-    """
-    last_name, first_name = last_name.strip(), first_name.strip()
-    if not last_name and not first_name:
-        raise ValueError("Give at least a last name or a first name")
-
-    async with httpx.AsyncClient(
-        proxy=proxy or _configured_proxy(),
-        timeout=HTTP_TIMEOUT,
-        follow_redirects=True,
-        headers={"User-Agent": USER_AGENT},
-    ) as client:
-        try:
-            base, token = await _open_search(client)
-            resp = await client.post(
-                f"{base}/Search",
-                data={
-                    **BLANK_SEARCH,
-                    "LastName": last_name,
-                    "FirstName": first_name,
-                    "action:Search": "Search",
-                    "__RequestVerificationToken": token,
-                },
-            )
-            resp.raise_for_status()
-
-            out: list[MdocSearchResult] = []
-            seen: set[str] = set()
-            for _ in range(max_pages):
-                rows, _total, has_next = parse_mdoc_results(resp.text)
-                # Guard against a pagination that loops back on itself rather
-                # than advancing, which would otherwise spin to max_pages.
-                fresh = [r for r in rows if r.mdoc_number not in seen]
-                if not fresh:
-                    break
-                seen.update(r.mdoc_number for r in fresh)
-                out.extend(fresh)
-                if not has_next:
-                    break
-                resp = await client.post(f"{base}/Results", data={"action:Pagination": "Next"})
-                resp.raise_for_status()
-        except httpx.HTTPError as e:
-            raise MdocFetchError(
-                f"Couldn't reach OTIS ({e}). It 403s this server's own IP, so "
-                "MDOC_PROXY must point at a SOCKS5 proxy that egresses "
-                "elsewhere (infra/otis-tunnel.sh opens one)."
-            ) from e
-    return out
+async def search_mdoc(*, proxy: str | None = None, **fields) -> MdocSearchOutcome:
+    """One search in a one-search ``OtisSession``; see ``OtisSession.search``."""
+    async with OtisSession(proxy) as otis:
+        return await otis.search(**fields)
 
 
 async def fetch_mdoc_image(photo_url: str) -> tuple[bytes, str]:
