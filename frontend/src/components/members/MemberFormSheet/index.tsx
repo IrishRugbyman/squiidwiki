@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { UserPlus, X } from 'lucide-react'
 import { toast } from 'sonner'
+import { useQueryClient } from '@tanstack/react-query'
 import { FacebookIcon, InstagramIcon, TwitterIcon } from '@/components/icons/SocialIcons'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -14,7 +15,7 @@ import { FuzzyDateInput } from '@/components/FuzzyDateInput'
 import {
   useCreateMember, useUpdateMember, useBatchCitations,
   useAllSets, useAlliances, useGangs, useMember, useMemberSearch,
-  useMdocLookup, useMdocImportPhoto, useMemberIncarcerations, useImportMemberIncarcerations,
+  useMdocLookup, useMdocImportPhoto, useMemberIncarcerations,
   useCreateSet, useCreateAlliance, useCreateGang,
 } from '@/lib/queries'
 import { useDebounce } from '@/hooks/useDebounce'
@@ -22,6 +23,7 @@ import { api } from '@/lib/api'
 import { currentAffiliations } from '@/lib/utils'
 import { normalizeHandle, splitSocial, SOCIAL_BASE, type SocialMap, type SocialPlatform } from '@/lib/social'
 import { memberStatusFromMdoc } from '@/lib/mdoc'
+import { writeMdocSpells } from '@/lib/mdocImport'
 import { UrlPasteBanner, useUrlPasteBanner } from '@/components/UrlPasteBanner'
 import { SourceFormSheet } from '@/routes/_app.$universe.sources.index'
 import type { MdocProfile, MdocSpell, MemberListItem, MemberRead, MemberStatus, SetRank } from '@/lib/types'
@@ -507,7 +509,7 @@ function MemberFormSheetInner({ universeId, open, onClose, initial, defaultSetId
   const [error, setError] = useState<string | null>(null)
   const mdocLookup = useMdocLookup()
   const mdocImportPhoto = useMdocImportPhoto()
-  const importSpells = useImportMemberIncarcerations(universeId)
+  const queryClient = useQueryClient()
   const [mdocQuery, setMdocQuery] = useState('')
   // The spells the backend derived from OTIS's sentence rows, held until the
   // member exists to hang them on. One per prison sentence, so a discharged
@@ -655,25 +657,27 @@ function MemberFormSheetInner({ universeId, open, onClose, initial, defaultSetId
    */
   async function flushMdocPending(memberId: string) {
     if (!mdocPending) return
-    // The server decides what is already on record (same court file, offense
-    // line and dates, matched by count), so the same OTIS profile imported
-    // twice writes nothing the second time. This used to be decided here from
-    // the cached spell list, which the import itself never refreshed: a second
-    // import within the cache's five minutes saw the pre-import list and
-    // re-posted every sentence, and a fresh list skipped a new count on a
-    // court file already on record.
+    // The server decides what is already on record (see writeMdocSpells), so the
+    // same OTIS profile imported twice writes nothing the second time.
     if (mdocPending.spells.length > 0) {
       try {
-        const { created, matched } = await importSpells.mutateAsync({ memberId, spells: mdocPending.spells })
-        if (matched > 0) {
-          toast.info(matched === 1 ? 'Skipped 1 sentence already on record' : `Skipped ${matched} sentences already on record`)
+        const { saved, skipped } = await writeMdocSpells(api.post, {
+          memberId,
+          universeId,
+          spells: mdocPending.spells,
+        })
+        if (skipped > 0) {
+          toast.info(skipped === 1 ? 'Skipped 1 sentence already on record' : `Skipped ${skipped} sentences already on record`)
         }
-        if (created.length > 0) {
-          toast.success(created.length === 1 ? 'Imported MDOC incarceration record' : `Imported ${created.length} MDOC incarceration records`)
+        if (saved > 0) {
+          toast.success(saved === 1 ? 'Imported MDOC incarceration record' : `Imported ${saved} MDOC incarceration records`)
         }
       } catch (e) {
         toast.error(e instanceof Error ? `Couldn't save MDOC incarcerations: ${e.message}` : "Couldn't save MDOC incarcerations")
       }
+      // Refresh both the spell list this form reads and the member page, so
+      // neither keeps showing the pre-import state.
+      await queryClient.invalidateQueries({ queryKey: ['members', memberId] })
     }
     if (mdocPending.photo_url) {
       // Server-side fetch, which also avoids CORS on the MDOC URL. The photo
